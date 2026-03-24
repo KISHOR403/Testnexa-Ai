@@ -91,7 +91,7 @@ flowchart TD
     
     AuthContext --> AuthState["Auth State"]
     AuthState --> isAuthenticated["isAuthenticated"]
-    AuthState --> User["user"]
+    AuthState --> UserData["user"]
     AuthState --> GuestUsage["guestUsage"]
     AuthState --> PendingAction["pendingAction"]
     
@@ -135,7 +135,7 @@ flowchart LR
 ## 📂 Project Structure
 
 ```
-src/
+frontend/
 ├── 📁 components/                   # Reusable UI Components (22 total)
 │   ├── AnimatedBackground.jsx       # Canvas particle animation system
 │   ├── AntigravityBackground.jsx    # Dynamic space warp background

@@ -199,7 +199,7 @@ flowchart TB
 ```
 Testnexa-AI/
 ├── 📁 public/                    # Static assets & logo
-├── 📁 src/                       # Frontend source code
+├── 📁 frontend/                  # Frontend source code
 │   ├── 📁 components/            # Reusable UI components
 │   │   ├── AnimatedBackground    # Particle animation system
 │   │   ├── AntigravityBackground # Dynamic space-like background
