@@ -205,7 +205,14 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
                     )}
                 </div>
             )}
-
+            {/* Mobile backdrop to close sidebar when clicking outside */}
+            {isOpen && (
+                <div 
+                    className="mobile-sidebar-backdrop" 
+                    onClick={onClose} 
+                />
+            )}
+            
             {/* Full sidebar - visible when open */}
             <aside className={`gpt-sidebar ${isOpen ? 'gpt-sidebar-open' : ''}`}>
                 {/* Top section: Logo + collapse button */}

@@ -4,7 +4,7 @@ import {
     HelpCircle, LogIn, LogOut, Sparkles,
     ChevronDown, ChevronRight, Settings, MessageSquare,
     FileText, Download, Keyboard, Zap,
-    ArrowRight
+    ArrowRight, Menu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ProfileModal from './ProfileModal';
@@ -116,13 +116,17 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
     return (
         <>
             <nav className={`floating-navbar ${scrolled ? 'floating-navbar-scrolled' : ''}`} ref={navRef}>
-                {/* Logo */}
-                <NavLink to="/" className="floating-nav-logo" onClick={(e) => {
-                    if (location.pathname === '/') {
-                        e.preventDefault();
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }
-                }}>
+                <div className="navbar-left-group">
+                    <button className="sidebar-toggle-btn mobile-only" onClick={onToggleSidebar}>
+                        <Menu size={20} />
+                    </button>
+                    {/* Logo */}
+                    <NavLink to="/" className="floating-nav-logo" onClick={(e) => {
+                        if (location.pathname === '/') {
+                            e.preventDefault();
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    }}>
                     <div className="floating-logo-icon">
                         <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }} />
                     </div>
@@ -130,7 +134,8 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                         <span className="floating-logo-brand">Testnexa</span>
                         <span className="floating-logo-sub">AI Test Generator</span>
                     </div>
-                </NavLink>
+                    </NavLink>
+                </div>
 
                 {/* Center Nav Links */}
                 <div className="floating-nav-links">

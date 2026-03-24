@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     FileText, Sparkles, X, Clipboard, Loader2,
-    BookOpen, Info, Layers, Zap, Globe, Trash2, Lightbulb, ChevronDown
+    BookOpen, Info, Layers, Zap, Trash2, Lightbulb, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -172,20 +172,6 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
                             </div>
                         ))}
                     </div>
-                </div>
-
-                {/* Language Dropdown */}
-                <div className="param-group language">
-                    <label className="param-label"><Globe size={14} /> Test Language</label>
-                    <select
-                        className="prompt-select"
-                        value={settings.language}
-                        onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                    >
-                        <option value="english">English (US)</option>
-                        <option value="hindi">Hindi</option>
-                        <option value="spanish">Spanish</option>
-                    </select>
                 </div>
             </div>
 
