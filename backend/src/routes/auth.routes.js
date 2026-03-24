@@ -37,6 +37,10 @@ router.get('/google/callback',
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 
+// Password Reset Routes
+router.post('/forgot-password', authController.forgotPassword);
+router.put('/reset-password/:token', authController.resetPassword);
+
 // GitHub Auth Routes
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 

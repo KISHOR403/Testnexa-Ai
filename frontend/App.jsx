@@ -13,6 +13,8 @@ import BestPracticesPage from './pages/BestPracticesPage';
 import AboutUsPage from './pages/AboutUsPage';
 import ContactPage from './pages/ContactPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import HistorySidebar from './components/HistorySidebar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -50,6 +52,8 @@ function App() {
             <Route path="/help" element={<HelpPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/api-reference" element={<ApiReferencePage />} />
             <Route path="/best-practices" element={<BestPracticesPage />} />

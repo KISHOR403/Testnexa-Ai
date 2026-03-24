@@ -2,7 +2,8 @@ const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
-
+const crypto = require('crypto');
+const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
 // Helper to check DB connection
 const checkConnection = () => {
     if (mongoose.connection.readyState !== 1) {
@@ -41,6 +42,9 @@ exports.register = async (req, res) => {
         });
 
         if (user) {
+            // Send welcome email to new user (fire-and-forget)
+            sendWelcomeEmail(name, email);
+
             res.status(201).json({
                 success: true,
                 user: {
@@ -109,6 +113,87 @@ exports.getMe = async (req, res) => {
         });
     } catch (error) {
         console.error('GetMe error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        checkConnection();
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'There is no user with that email' });
+        }
+
+        // Generate token
+        const resetToken = crypto.randomBytes(20).toString('hex');
+
+        // Hash token and set to resetPasswordToken field
+        user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+        // Set expire (15 minutes)
+        user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+
+        await user.save();
+
+        // Create reset URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+        try {
+            const emailResult = await sendPasswordResetEmail(user.email, resetUrl);
+            if (!emailResult || !emailResult.success) {
+                user.resetPasswordToken = undefined;
+                user.resetPasswordExpire = undefined;
+                await user.save();
+                return res.status(500).json({ success: false, message: 'Email could not be sent' });
+            }
+
+            res.status(200).json({ success: true, message: 'Email sent successfully' });
+        } catch (err) {
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save();
+            return res.status(500).json({ success: false, message: 'Email could not be sent' });
+        }
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    try {
+        checkConnection();
+        
+        // Get hashed token
+        const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken,
+            resetPasswordExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+        }
+
+        // Set new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(req.body.password, salt);
+
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Password reset successfully'
+        });
+    } catch (error) {
+        console.error('Reset password error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

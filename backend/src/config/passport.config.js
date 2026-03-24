@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const User = require('../models/user.model');
+const { sendWelcomeEmail } = require('../services/email.service');
 
 passport.serializeUser((user, done) => {
     try {
@@ -88,6 +89,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 email: email,
                 avatar: profile.photos[0].value
             });
+
+            // Send welcome email to new user (fire-and-forget)
+            sendWelcomeEmail(profile.displayName, email);
 
             done(null, user);
         } catch (err) {

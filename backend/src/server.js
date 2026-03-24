@@ -31,7 +31,16 @@ if (process.env.MONGODB_URI) {
 
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function(origin, callback) {
+        if (!origin) return callback(null, true);
+        if (origin.startsWith('http://localhost:')) {
+            return callback(null, true);
+        }
+        if (origin === process.env.FRONTEND_URL) {
+            return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true
 }));
 app.use(express.json());

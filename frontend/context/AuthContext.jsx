@@ -152,6 +152,35 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const forgotPassword = async (email) => {
+        try {
+            const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+            return {
+                success: true,
+                message: response.data.message
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Failed to send reset email.'
+            };
+        }
+    };
+
+    const resetPassword = async (token, newPassword) => {
+        try {
+            const response = await axios.put(`${API_URL}/auth/reset-password/${token}`, { password: newPassword });
+            if (response.data.success) {
+                return { success: true };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Failed to reset password. The link might be invalid or expired.'
+            };
+        }
+    };
+
     const incrementGuestUsage = () => {
         const newCount = guestGenerationsUsed + 1;
         setGuestGenerationsUsed(newCount);
@@ -172,6 +201,8 @@ export const AuthProvider = ({ children }) => {
             loginWithGoogle,
             loginWithGitHub,
             logout,
+            forgotPassword,
+            resetPassword,
             checkAuth,
             pendingAction,
             setPendingAction,
