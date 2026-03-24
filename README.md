@@ -50,6 +50,26 @@
 
 ### User Workflow
 
+<p align="center">
+  <img src="public/screenshots/user-workflow.png" alt="User Workflow Diagram" width="100%" />
+</p>
+
+### AI Test Generation Pipeline
+
+<p align="center">
+  <img src="public/screenshots/ai-pipeline.png" alt="AI Test Generation Pipeline" width="100%" />
+</p>
+
+### System Architecture
+
+<p align="center">
+  <img src="public/screenshots/system-architecture.png" alt="System Architecture Diagram" width="100%" />
+</p>
+
+<details>
+<summary>📐 View Mermaid Source (Interactive)</summary>
+
+#### User Workflow
 ```mermaid
 flowchart LR
     A["📝 Paste Requirement"] --> B["⚙️ Select Settings"]
@@ -62,8 +82,7 @@ flowchart LR
     G --> H["📤 Export / Save"]
 ```
 
-### AI Test Generation Pipeline
-
+#### AI Test Generation Pipeline
 ```mermaid
 flowchart TD
     A["📄 Raw Requirement Input"] --> B["🔬 Requirement Deconstruction"]
@@ -97,8 +116,7 @@ flowchart TD
     style Q fill:#1a1a2e,stroke:#22c55e,color:#fff
 ```
 
-### System Architecture
-
+#### System Architecture
 ```mermaid
 flowchart TB
     subgraph Frontend["🖥️ Frontend - React + Vite"]
@@ -136,6 +154,7 @@ flowchart TB
     style Database fill:#0d1117,stroke:#3b82f6,color:#fff
     style Auth fill:#0d1117,stroke:#f59e0b,color:#fff
 ```
+</details>
 
 ---
 
