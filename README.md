@@ -48,23 +48,93 @@
 
 ## 🚀 How It Works
 
+### User Workflow
+
+```mermaid
+flowchart LR
+    A["📝 Paste Requirement"] --> B["⚙️ Select Settings"]
+    B --> C["🚀 Generate"]
+    C --> D{"🔍 Ambiguity Found?"}
+    D -->|Yes| E["❓ Clarification Questions"]
+    E --> F["✏️ Refine Requirement"]
+    F --> C
+    D -->|No| G["📊 View Results"]
+    G --> H["📤 Export / Save"]
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  1️⃣  Paste Your Requirement                                  │
-│     User story, PRD, API spec, or plain text                 │
-├──────────────────────────────────────────────────────────────┤
-│  2️⃣  AI Requirement Deconstruction                           │
-│     Breaks down input into atomic business rules & logic     │
-├──────────────────────────────────────────────────────────────┤
-│  3️⃣  Ambiguity Detection                                     │
-│     Identifies contradictions & missing information          │
-├──────────────────────────────────────────────────────────────┤
-│  4️⃣  Multi-Category Test Generation                          │
-│     Functional • Negative • Edge Case • API tests            │
-├──────────────────────────────────────────────────────────────┤
-│  5️⃣  Risk-Based Prioritization                               │
-│     High / Medium / Low based on impact & complexity         │
-└──────────────────────────────────────────────────────────────┘
+
+### AI Test Generation Pipeline
+
+```mermaid
+flowchart TD
+    A["📄 Raw Requirement Input"] --> B["🔬 Requirement Deconstruction"]
+    B --> C["Break into atomic business rules"]
+    B --> D["Identify logical branches"]
+    C --> E["🔍 Ambiguity Detection Engine"]
+    D --> E
+    E --> F{"Contradictions or gaps?"}
+    F -->|Yes| G["Generate clarification questions"]
+    F -->|No| H["🧪 Multi-Category Test Generation"]
+    G --> H
+    H --> I["Functional Tests"]
+    H --> J["Negative Tests"]
+    H --> K["Edge Case Tests"]
+    H --> L["API Tests"]
+    I --> M["📊 Risk-Based Prioritization"]
+    J --> M
+    K --> M
+    L --> M
+    M --> N["High Priority"]
+    M --> O["Medium Priority"]
+    M --> P["Low Priority"]
+    N --> Q["✅ Complete Test Suite"]
+    O --> Q
+    P --> Q
+
+    style A fill:#1a1a2e,stroke:#00d4aa,color:#fff
+    style E fill:#1a1a2e,stroke:#a855f7,color:#fff
+    style H fill:#1a1a2e,stroke:#3b82f6,color:#fff
+    style M fill:#1a1a2e,stroke:#f59e0b,color:#fff
+    style Q fill:#1a1a2e,stroke:#22c55e,color:#fff
+```
+
+### System Architecture
+
+```mermaid
+flowchart TB
+    subgraph Frontend["🖥️ Frontend - React + Vite"]
+        UI["UI Components"] --> Router["React Router"]
+        Router --> Pages["Pages"]
+        Pages --> Context["Auth & Settings Context"]
+        Context --> API["API Service Layer"]
+    end
+
+    subgraph Backend["⚙️ Backend - Node.js + Express"]
+        Routes["Express Routes"] --> Controllers["Controllers"]
+        Controllers --> Middleware["Auth Middleware"]
+        Controllers --> Services["AI Service"]
+        Services --> Gemini["Google Gemini AI"]
+    end
+
+    subgraph Database["🗄️ Database"]
+        MongoDB[("MongoDB")]
+    end
+
+    subgraph Auth["🔐 Authentication"]
+        JWT["JWT Tokens"]
+        Google["Google OAuth"]
+        GitHub["GitHub OAuth"]
+    end
+
+    API -->|HTTP/REST| Routes
+    Controllers --> MongoDB
+    Middleware --> JWT
+    Middleware --> Google
+    Middleware --> GitHub
+
+    style Frontend fill:#0d1117,stroke:#00d4aa,color:#fff
+    style Backend fill:#0d1117,stroke:#a855f7,color:#fff
+    style Database fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Auth fill:#0d1117,stroke:#f59e0b,color:#fff
 ```
 
 ---
