@@ -1,16 +1,271 @@
-# React + Vite
+<p align="center">
+  <img src="public/screenshots/hero-preview.png" alt="Testnexa AI - Intelligent QA Design" width="100%" />
+</p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<h1 align="center">🧪 Testnexa AI</h1>
 
-Currently, two official plugins are available:
+<p align="center">
+  <b>AI-Powered Intelligent QA Test Case Generator</b><br/>
+  <i>Transform unclear product requirements into complete, prioritized test suites — in seconds.</i>
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Google-Gemini%20AI-4285F4?logo=google&logoColor=white" alt="Gemini AI" />
+  <img src="https://img.shields.io/badge/License-ISC-blue" alt="License" />
+</p>
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🌟 Overview
 
-## Expanding the ESLint configuration
+**Testnexa AI** is a full-stack, AI-powered web application that automatically converts product requirements — user stories, PRDs, or API specs — into comprehensive, prioritized test suites. It leverages **Google Gemini AI** to deeply analyze requirements, detect ambiguities, and generate multi-category test cases covering functional, negative, edge case, and API testing scenarios.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+> 🎯 *Stop missing edge cases. Stop writing test cases manually. Let AI handle the heavy lifting.*
+
+---
+
+## ✨ Key Features
+
+| Feature | Description |
+|---|---|
+| 🧠 **AI-Powered Analysis** | Advanced LLM intelligence for context-aware requirement parsing and domain-specific logic understanding |
+| 📋 **Multi-Category Tests** | Generates Functional, Negative, Edge Case, and API tests simultaneously in one pass |
+| 🔍 **Ambiguity Detection** | Identifies contradictions, missing logic, and unclear specs — then generates targeted clarification questions |
+| 📊 **Risk-Based Prioritization** | Automatically assigns High/Medium/Low priority based on business impact and complexity |
+| 📤 **Multi-Format Export** | Export test suites in JSON, Markdown, or structured formats ready for your test management tools |
+| 📈 **Requirement Insights** | Quality scores, coverage metrics, and actionable tips on requirement completeness |
+| 🔐 **Auth System** | Google & GitHub OAuth + JWT-based authentication with guest trial mode |
+| 📜 **History & Sidebar** | Full generation history with search, saved sessions, and quick access sidebar |
+| 🎨 **Premium Dark UI** | Glassmorphism design, animated particle background, smooth micro-animations |
+| 🔔 **Desktop Notifications** | Get notified when your test suite is ready |
+| 🎓 **Guided Tour** | First-time user onboarding with step-by-step walkthrough |
+
+---
+
+## 🚀 How It Works
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  1️⃣  Paste Your Requirement                                  │
+│     User story, PRD, API spec, or plain text                 │
+├──────────────────────────────────────────────────────────────┤
+│  2️⃣  AI Requirement Deconstruction                           │
+│     Breaks down input into atomic business rules & logic     │
+├──────────────────────────────────────────────────────────────┤
+│  3️⃣  Ambiguity Detection                                     │
+│     Identifies contradictions & missing information          │
+├──────────────────────────────────────────────────────────────┤
+│  4️⃣  Multi-Category Test Generation                          │
+│     Functional • Negative • Edge Case • API tests            │
+├──────────────────────────────────────────────────────────────┤
+│  5️⃣  Risk-Based Prioritization                               │
+│     High / Medium / Low based on impact & complexity         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Who Is This For?
+
+### 🔧 SDETs (Software Development Engineers in Test)
+> Accelerate test design and automation planning. Get structured test cases with automation feasibility ratings, execution prerequisites, and API coverage analysis.
+
+### 📋 Product Managers & Business Analysts
+> Identify requirement gaps before development starts. Receive clear visibility into missing acceptance criteria, business risk areas, and ambiguous requirements.
+
+### 🎓 QA Freshers & Entry-Level Engineers
+> Learn testing fundamentals while building real test cases. Get guided test cases with explanations of testing concepts and clear priorities.
+
+---
+
+## 🛠️ Real QA Pain Points, Solved
+
+| ❌ Problem | ✅ Solution |
+|---|---|
+| Missing edge cases in fast sprints | AI generates functional, negative, edge & API tests automatically |
+| Ambiguous requirements from product | Auto-detects ambiguity and asks targeted clarification questions |
+| Manual test case writing takes hours | Outputs clean, reusable test cases instantly |
+
+---
+
+## 💡 Why This Matters
+
+- **🛡️ Reduce Production Risk** — Catch critical edge cases before they reach your users
+- **⚡ Accelerate Sprints** — Reduce manual test design time by up to 80%
+- **📝 Improve Clarity** — Force requirement precision early in the SDLC
+
+---
+
+## 🏗️ Tech Stack
+
+### Frontend
+| Technology | Purpose |
+|---|---|
+| **React 19.2** | UI framework with hooks & context API |
+| **Vite 7.2** | Lightning-fast build tool & dev server |
+| **React Router DOM 7.12** | Client-side routing & navigation |
+| **Lucide React** | Beautiful, consistent icon library |
+| **Axios** | HTTP client for API communication |
+| **Vanilla CSS** | Custom glassmorphism design system |
+
+### Backend
+| Technology | Purpose |
+|---|---|
+| **Node.js + Express** | REST API server |
+| **Google Gemini AI** | LLM for intelligent test generation |
+| **MongoDB + Mongoose** | Database for users, history & sessions |
+| **JWT + bcryptjs** | Token-based authentication & password hashing |
+| **Passport.js** | OAuth strategies (Google, GitHub) |
+| **Joi** | Request validation schemas |
+
+---
+
+## 📂 Project Structure
+
+```
+Testnexa-AI/
+├── 📁 public/                    # Static assets & logo
+├── 📁 src/                       # Frontend source code
+│   ├── 📁 components/            # Reusable UI components
+│   │   ├── AnimatedBackground    # Particle animation system
+│   │   ├── AntigravityBackground # Dynamic space-like background
+│   │   ├── Features              # Key features showcase grid
+│   │   ├── Hero                  # Landing hero section
+│   │   ├── HowItWorks            # Step-by-step process
+│   │   ├── InputPanel            # Requirement input with examples
+│   │   ├── ResultsSection        # Generated test suite display
+│   │   ├── RefineRegeneratePanel # Iterative refinement controls
+│   │   ├── HistorySidebar        # Collapsible history panel
+│   │   ├── Navbar                # Navigation with auth state
+│   │   ├── Footer                # Site-wide footer
+│   │   └── ... (22 components)
+│   ├── 📁 pages/                 # Route-level pages
+│   │   ├── GeneratorPage         # Main AI test generator
+│   │   ├── HistoryPage           # Past generation history
+│   │   ├── LoginPage             # Email/OAuth login
+│   │   ├── SignUpPage            # Registration with OAuth
+│   │   ├── AboutUsPage           # Company information
+│   │   ├── ContactPage           # Contact form
+│   │   ├── HelpPage              # Documentation
+│   │   ├── ApiReferencePage      # API documentation
+│   │   ├── BestPracticesPage     # QA best practices
+│   │   ├── PrivacyPolicyPage     # Privacy policy
+│   │   └── TermsPage             # Terms of service
+│   ├── 📁 context/               # React Context providers
+│   ├── 📁 hooks/                 # Custom React hooks
+│   ├── 📁 services/              # API service layer
+│   ├── 📁 styles/                # Additional stylesheets
+│   └── 📁 utils/                 # Utility functions
+├── 📁 backend/                   # Backend API server
+│   └── 📁 src/
+│       ├── 📁 config/            # Database & auth config
+│       ├── 📁 controllers/       # Route handlers
+│       ├── 📁 middleware/        # Auth & validation middleware
+│       ├── 📁 models/            # Mongoose schemas
+│       ├── 📁 routes/            # API route definitions
+│       ├── 📁 services/          # Business logic & AI service
+│       ├── 📁 utils/             # Helper utilities
+│       └── server.js             # Express server entry point
+├── index.html                    # App entry point
+├── vite.config.js                # Vite configuration
+└── package.json                  # Frontend dependencies
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** (v18 or higher)
+- **MongoDB** (local or Atlas connection)
+- **Google Gemini API Key**
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/KISHOR403/Testnexa-Ai.git
+cd Testnexa-Ai
+```
+
+### 2. Install Frontend Dependencies
+```bash
+npm install
+```
+
+### 3. Install Backend Dependencies
+```bash
+cd backend
+npm install
+```
+
+### 4. Configure Environment Variables
+Create a `.env` file in the `backend/` directory:
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+GEMINI_API_KEY=your_google_gemini_api_key
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+GITHUB_CLIENT_ID=your_github_oauth_client_id
+GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
+```
+
+### 5. Start the Backend Server
+```bash
+cd backend
+npm run dev
+```
+
+### 6. Start the Frontend Dev Server
+```bash
+npm run dev
+```
+
+### 7. Open in Browser
+```
+http://localhost:5173
+```
+
+---
+
+## 📸 Website Sections
+
+| Section | Description |
+|---|---|
+| **🏠 Hero** | Eye-catching landing with animated particle background and key value propositions |
+| **⚡ AI Workspace** | Main input panel with example requirements dropdown and detail level selector |
+| **📊 Results Dashboard** | Comprehensive test suite output with quality scores, test cases, and export options |
+| **🌟 Key Features** | 6-card interactive grid showcasing AI capabilities |
+| **🔧 Pain Points** | Problem vs. Solution comparison for real QA challenges |
+| **⚙️ How It Works** | 4-step engineering process visualization |
+| **👥 Who Is This For** | Persona-based cards for SDETs, PMs, and QA Freshers |
+| **💡 Why This Matters** | Decision-maker value proposition with key metrics |
+| **📚 Help & Docs** | Comprehensive documentation and API reference |
+| **📞 Contact** | Contact form and support information |
+
+---
+
+## 🔒 Authentication
+
+Testnexa AI supports multiple authentication methods:
+- **Guest Mode** — Try the tool with limited free generations
+- **Email/Password** — Traditional signup with JWT tokens
+- **Google OAuth** — One-click Google sign-in
+- **GitHub OAuth** — Developer-friendly GitHub login
+
+---
+
+## 📄 License
+
+This project is licensed under the **ISC License**.
+
+---
+
+<p align="center">
+  Built with ❤️ by <b>Testnexa AI Team</b><br/>
+  <a href="https://github.com/KISHOR403/Testnexa-Ai">⭐ Star this repo</a> if you find it useful!
+</p>
