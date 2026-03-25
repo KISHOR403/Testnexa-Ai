@@ -73,6 +73,8 @@ body {
   min-height: 100vh;
   z-index: 1; /* Establishes a stacking context */
   background: transparent; /* Changed from solid to transparent so canvas underneath is visible */
+  display: flex;
+  flex-direction: column;
 }
 
 .app-container::before {
@@ -96,6 +98,7 @@ main {
   min-height: calc(100vh - 64px);
   position: relative;
   z-index: 10;
+  flex: 1 0 auto;
 }
 
 .glass-card {
@@ -690,7 +693,7 @@ h4 {
 }
 
 /* --- Responsive: hide center links on small screens --- */
-@media (max-width: 768px) {
+@media (max-width: 992px) {
   .floating-navbar {
     max-width: calc(100% - 1.5rem);
     padding: 0.5rem 0.5rem 0.5rem 1rem;
