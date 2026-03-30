@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-    FileText, Sparkles, X, Clipboard, Loader2,
-    BookOpen, Info, Layers, Zap, Trash2, Lightbulb, ChevronDown
+    Sparkles, Clipboard, Loader2,
+    Layers, Zap, Trash2, Lightbulb, ChevronDown, Info,
+    Globe, Smartphone, Server, Gauge, Target, Rocket
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSettings }) => {
     const { isAuthenticated, guestGenerationsUsed, GUEST_LIMIT } = useAuth();
     const maxLength = 2000;
-
+    const cardRef = useRef(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [isFocused, setIsFocused] = useState(false);
     const [showSampleDropdown, setShowSampleDropdown] = useState(false);
 
     const sampleRequirements = {
@@ -32,7 +35,7 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
 
     const handleSample = (text) => {
         onChange(text);
-        setShowSampleDropdown(false); // Close dropdown after selection
+        setShowSampleDropdown(false);
     };
 
     const handleClear = () => onChange('');
@@ -46,44 +49,79 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
         }
     };
 
+    const handleMouseMove = (e) => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        setMousePos({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+        });
+    };
+
     const detailTips = {
-        Essential: 'AI focuses on critical happy paths and primary failures · Best for low-risk features',
-        Standard: 'AI analyzes functional flows, negative cases, and common edge conditions · Best for production features',
-        Comprehensive: 'AI performs deep analysis: security risks, API contracts, boundary conditions · Best for payment flows, authentication'
+        Essential: 'Critical happy paths & primary failures',
+        Standard: 'Functional, negative & edge conditions',
+        Comprehensive: 'Security, API contracts & boundary analysis'
+    };
+
+    const contextIcons = { WEB: Globe, MOBILE: Smartphone, API: Server };
+    const depthIcons = { Essential: Gauge, Standard: Target, Comprehensive: Rocket };
+
+    const qualityLevel = value.length < 50 ? 'low' : value.length < 150 ? 'medium' : 'high';
+    const qualityText = {
+        low: 'Add more detail for richer results',
+        medium: 'Good clarity — ready for analysis',
+        high: 'Excellent detail — deep edge case detection'
     };
 
     return (
-        <div className="prompt-card glass-card luxury-glow">
-            {/* 1. Header Row */}
-            <div className="prompt-header">
-                <div className="header-left">
-                    <Sparkles size={18} className="text-primary" />
+        <div
+            ref={cardRef}
+            className={`ip-2026 ${isFocused ? 'ip-focused' : ''}`}
+            onMouseMove={handleMouseMove}
+            style={{
+                '--mouse-x': `${mousePos.x}px`,
+                '--mouse-y': `${mousePos.y}px`,
+            }}
+        >
+            {/* Cursor-following spotlight overlay */}
+            <div className="ip-spotlight" />
+
+            {/* Top gradient border */}
+            <div className="ip-border-glow" />
+
+            {/* ─── Header ─── */}
+            <div className="ip-header">
+                <div className="ip-header-left">
+                    <div className="ip-logo-badge">
+                        <Sparkles size={16} />
+                    </div>
                     <div>
-                        <span className="header-title">AI Workspace</span>
-                        <p className="header-subtitle">Describe your requirement — the AI will analyze clarity, detect risks, and design comprehensive tests</p>
+                        <h3 className="ip-title">AI Workspace</h3>
+                        <p className="ip-subtitle">Describe your requirement — the AI analyzes clarity, risks & designs tests</p>
                     </div>
                 </div>
-                <div className="header-right">
+                <div className="ip-header-actions">
                     <div className="sample-dropdown-container">
                         <button
-                            className={`btn-icon-text ${showSampleDropdown ? 'active' : ''}`}
+                            className={`ip-btn-ghost ${showSampleDropdown ? 'active' : ''}`}
                             onClick={() => setShowSampleDropdown(!showSampleDropdown)}
                             disabled={isGenerating}
                         >
                             <Lightbulb size={14} />
-                            <span>Example Requirements</span>
-                            <ChevronDown size={14} className={showSampleDropdown ? 'rotate-180' : ''} />
+                            <span className="ip-btn-label">Examples</span>
+                            <ChevronDown size={12} className={showSampleDropdown ? 'rotate-180' : ''} />
                         </button>
 
                         {showSampleDropdown && (
-                            <div className="sample-dropdown-menu glass-card">
+                            <div className="ip-dropdown">
                                 {Object.entries(sampleRequirements).map(([category, items]) => (
-                                    <div key={category} className="sample-category">
-                                        <div className="category-label">{category}</div>
+                                    <div key={category} className="ip-dropdown-group">
+                                        <div className="ip-dropdown-label">{category}</div>
                                         {items.map((item) => (
                                             <button
                                                 key={item.name}
-                                                className="sample-item"
+                                                className="ip-dropdown-item"
                                                 onClick={() => handleSample(item.text)}
                                             >
                                                 {item.name}
@@ -95,130 +133,149 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
                         )}
                     </div>
                     {value && (
-                        <button className="btn-icon-text danger" onClick={handleClear} disabled={isGenerating}>
+                        <button className="ip-btn-ghost ip-btn-danger" onClick={handleClear} disabled={isGenerating}>
                             <Trash2 size={14} />
-                            <span>Clear</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* 2. Textarea Section */}
-            <div className="prompt-main-area">
+            {/* ─── Textarea ─── */}
+            <div className="ip-editor-area">
                 <textarea
-                    placeholder="Describe your requirement in natural language...&#10;&#10;Examples: User authentication flow, payment processing, API rate limiting"
+                    placeholder={"Describe your requirement in natural language...\n\nExamples: User authentication flow, payment processing, API rate limiting"}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     maxLength={maxLength}
-                    className="prompt-textarea"
+                    className="ip-textarea"
                     disabled={isGenerating}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
                 />
                 <button
-                    className="btn-paste-chat"
+                    className="ip-paste-btn"
                     onClick={handlePaste}
                     disabled={isGenerating}
                     title="Paste from clipboard"
                 >
-                    <Clipboard size={16} />
+                    <Clipboard size={14} />
                 </button>
 
-                {/* Requirement Quality Indicator */}
+                {/* Quality bar */}
                 {value.length > 0 && (
-                    <div className={`quality-indicator ${value.length < 50 ? 'low' : value.length < 150 ? 'medium' : 'high'}`}>
-                        <Sparkles size={12} />
-                        <span>
-                            {value.length < 50 ? 'Add more detail for better analysis' :
-                                value.length < 150 ? 'Good clarity — ready for analysis' :
-                                    'High clarity — AI can detect nuanced edge cases'}
+                    <div className={`ip-quality-bar ip-quality-${qualityLevel}`}>
+                        <div className="ip-quality-bar-fill" style={{
+                            width: `${Math.min((value.length / 200) * 100, 100)}%`
+                        }} />
+                        <span className="ip-quality-label">
+                            <Sparkles size={10} />
+                            {qualityText[qualityLevel]}
                         </span>
                     </div>
                 )}
             </div>
 
-            {/* 3. Parameters Row (Inline ChatGPT style) */}
-            <div className="prompt-parameters-bar">
-                {/* App Type Chips */}
-                <div className="param-group">
-                    <label className="param-label"><Layers size={14} /> Application Context</label>
-                    <div className="chip-group">
-                        {['WEB', 'MOBILE', 'API'].map((type) => (
-                            <button
-                                key={type}
-                                className={`chip-pill ${settings.type.toUpperCase() === type ? 'active' : ''}`}
-                                onClick={() => setSettings({ ...settings, type: type.toLowerCase() })}
-                            >
-                                {type}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Detail Level Pills */}
-                <div className="param-group">
-                    <label className="param-label"><Zap size={14} /> Coverage Depth</label>
-                    <div className="chip-group">
-                        {['Essential', 'Standard', 'Comprehensive'].map((level) => (
-                            <div key={level} className="chip-pill-wrapper">
-                                <button
-                                    className={`chip-pill ${settings.level === level ? 'active' : ''}`}
-                                    onClick={() => setSettings({ ...settings, level })}
-                                >
-                                    {level}
-                                </button>
-                                <div className="chip-tooltip">
-                                    <Info size={12} />
-                                    <span className="tooltip-text">{detailTips[level]}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* 4. Footer Row */}
-            <div className="prompt-footer">
-                <div className="footer-left">
-                    <span className="char-counter">
-                        {value.length} characters {value.length > 0 && `· ${value.length < 50 ? 'Add more detail for better analysis' : value.length < 150 ? 'Good clarity detected' : 'High clarity detected'}`}
+            {/* ─── Controls Row ─── */}
+            <div className="ip-controls">
+                {/* App Context Selector */}
+                <div className="ip-control-group">
+                    <span className="ip-control-label">
+                        <Layers size={12} />
+                        Context
                     </span>
-                    <div className="guidance-chips">
-                        <span className="guidance-tag">AI analyzes:</span>
-                        <span className="chip-simple">Clarity</span>
-                        <span className="chip-simple">Ambiguities</span>
-                        <span className="chip-simple">Risk Areas</span>
-                        <span className="chip-simple">Edge Cases</span>
+                    <div className="ip-chip-row">
+                        {['WEB', 'MOBILE', 'API'].map((type) => {
+                            const Icon = contextIcons[type];
+                            const isActive = settings.type.toUpperCase() === type;
+                            return (
+                                <button
+                                    key={type}
+                                    className={`ip-chip ${isActive ? 'ip-chip-active' : ''}`}
+                                    onClick={() => setSettings({ ...settings, type: type.toLowerCase() })}
+                                >
+                                    <Icon size={13} />
+                                    <span>{type}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
-                <div className="footer-right">
-                    <div className="generate-button-wrapper">
-                        <button
-                            className={`btn-generate-chat ${isGenerating ? 'loading' : ''}`}
-                            onClick={onGenerate}
-                            disabled={isGenerating || !value.trim()}
-                        >
-                            {isGenerating ? (
-                                <Loader2 className="animate-spin" size={18} />
-                            ) : (
-                                <Sparkles size={18} fill="currentColor" />
-                            )}
-                            <span>{isGenerating ? 'Analyzing requirement...' : 'Analyze & Generate Tests'}</span>
-                        </button>
-                        {!isAuthenticated && (
-                            <div className="guest-usage-counter">
-                                <span className={`usage-text ${guestGenerationsUsed >= GUEST_LIMIT ? 'limit-reached' : ''}`}>
-                                    {guestGenerationsUsed >= GUEST_LIMIT
-                                        ? '🔒 Sign in to continue generating'
-                                        : `${guestGenerationsUsed} of ${GUEST_LIMIT} free generations used`}
-                                </span>
-                            </div>
-                        )}
+
+                <div className="ip-controls-divider" />
+
+                {/* Coverage Depth */}
+                <div className="ip-control-group">
+                    <span className="ip-control-label">
+                        <Zap size={12} />
+                        Depth
+                    </span>
+                    <div className="ip-chip-row">
+                        {['Essential', 'Standard', 'Comprehensive'].map((level) => {
+                            const Icon = depthIcons[level];
+                            const isActive = settings.level === level;
+                            return (
+                                <div key={level} className="ip-chip-wrapper">
+                                    <button
+                                        className={`ip-chip ${isActive ? 'ip-chip-active' : ''}`}
+                                        onClick={() => setSettings({ ...settings, level })}
+                                    >
+                                        <Icon size={13} />
+                                        <span>{level}</span>
+                                    </button>
+                                    <div className="ip-tooltip">
+                                        <Info size={10} />
+                                        <span>{detailTips[level]}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
-            {/* 5. Pro Tip micro-content */}
-            <div className="pro-tip-box">
-                <Sparkles size={14} className="text-primary" />
-                <span>The AI performs multi-step analysis: requirement understanding → ambiguity detection → risk assessment → test synthesis</span>
+
+            {/* ─── Footer ─── */}
+            <div className="ip-footer">
+                <div className="ip-footer-meta">
+                    <span className="ip-char-count">
+                        {value.length}<span className="ip-char-sep">/</span>{maxLength}
+                    </span>
+                    <div className="ip-tags-row">
+                        <span className="ip-tags-label">AI analyzes:</span>
+                        {['Clarity', 'Ambiguities', 'Risk Areas', 'Edge Cases'].map((tag) => (
+                            <span key={tag} className="ip-tag">{tag}</span>
+                        ))}
+                    </div>
+                </div>
+                <div className="ip-footer-action">
+                    <button
+                        className={`ip-generate-btn ${isGenerating ? 'ip-generating' : ''}`}
+                        onClick={onGenerate}
+                        disabled={isGenerating || !value.trim()}
+                    >
+                        <span className="ip-generate-bg" />
+                        {isGenerating ? (
+                            <Loader2 className="animate-spin" size={18} />
+                        ) : (
+                            <Sparkles size={18} />
+                        )}
+                        <span>{isGenerating ? 'Analyzing...' : 'Analyze & Generate Tests'}</span>
+                    </button>
+                    {!isAuthenticated && (
+                        <div className="ip-usage-badge">
+                            <span className={guestGenerationsUsed >= GUEST_LIMIT ? 'ip-limit-hit' : ''}>
+                                {guestGenerationsUsed >= GUEST_LIMIT
+                                    ? '🔒 Sign in to continue'
+                                    : `${guestGenerationsUsed} of ${GUEST_LIMIT} free generations used`}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* ─── Pro Tip ─── */}
+            <div className="ip-pro-tip">
+                <Sparkles size={12} />
+                <span>Multi-step AI analysis: requirement understanding → ambiguity detection → risk assessment → test synthesis</span>
             </div>
         </div>
     );

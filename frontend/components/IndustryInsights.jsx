@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     AlertCircle, CheckCircle2, ChevronRight,
     MousePointer2, Users, BarChart3, Shield,
-    Clock, Search, Cpu, ListChecks
+    Clock, Search, Cpu, ListChecks, Zap, ShieldAlert, Timer, Sparkles,
+    Target, GraduationCap
 } from 'lucide-react';
 
 const IndustryInsights = () => {
@@ -11,25 +12,50 @@ const IndustryInsights = () => {
             <div className="sections-divider" />
 
             {/* 1. QA Pain Points Section */}
-            <section className="insight-section">
-                <span className="section-label">Problem vs Solution</span>
-                <h3 className="section-title-large">Real QA Pain Points, Solved.</h3>
+            <section className="insight-section pain-section-2026">
+                <div className="pain-section-header">
+                    <span className="pain-badge-label">
+                        <Sparkles size={12} />
+                        Problem vs Solution
+                    </span>
+                    <h3 className="pain-title-2026">
+                        Real QA Pain Points, <span className="title-gradient-accent">Solved.</span>
+                    </h3>
+                    <p className="pain-subtitle-2026">
+                        Every challenge your QA team faces — we've engineered a solution for it.
+                    </p>
+                </div>
 
-                <div className="pain-grid">
-                    <PainCard
+                <div className="pain-grid-2026">
+                    <PainCard2026
+                        index={0}
+                        icon={<ShieldAlert size={22} />}
                         problem="Missing edge cases in fast sprints"
                         solution="Generates functional, negative, edge & API tests"
                         description="AI analysis ensures boundary conditions are never overlooked even under tight deadlines."
+                        accentColor="239, 68, 68"
+                        solveColor="0, 212, 193"
+                        tag="Coverage"
                     />
-                    <PainCard
+                    <PainCard2026
+                        index={1}
+                        icon={<AlertCircle size={22} />}
                         problem="Ambiguous requirements from product"
                         solution="Auto-detects ambiguity and asks clarifications"
                         description="Testnexa AI identifies missing logic early, saving hours of developer back-and-forth."
+                        accentColor="251, 146, 60"
+                        solveColor="99, 102, 241"
+                        tag="Clarity"
                     />
-                    <PainCard
+                    <PainCard2026
+                        index={2}
+                        icon={<Timer size={22} />}
                         problem="Manual test case writing takes hours"
                         solution="Outputs clean, reusable test cases instantly"
                         description="Shift your focus from writing to executing and optimizing your test strategy."
+                        accentColor="168, 85, 247"
+                        solveColor="34, 211, 238"
+                        tag="Speed"
                     />
                 </div>
             </section>
@@ -70,24 +96,41 @@ const IndustryInsights = () => {
             {/* 3. Use Cases / Audience Section */}
             <section className="insight-section">
                 <span className="section-label">Target Audience</span>
-                <h3 className="section-title-large">Who is this for?</h3>
+                <h3 className="section-title-large">Who is this <span className="title-gradient-accent">for?</span></h3>
+                <p className="pain-subtitle-2026" style={{ marginBottom: "3rem" }}>
+                    Testnexa AI adapts to your role, delivering insights that matter to you
+                </p>
 
-                <div className="audience-grid">
-                    <AudienceCard
-                        title="QA Engineers"
-                        description="Faster test design & strategy"
-                    />
-                    <AudienceCard
+                <div className="audience-grid-2026">
+                    <AudienceCard2026
+                        icon={<Target size={20} />}
+                        iconColor="var(--primary)"
+                        iconBg="rgba(0, 212, 193, 0.1)"
                         title="SDETs"
-                        description="Better automation planning"
+                        subtitle="Software Development Engineers in Test"
+                        highlightText="Accelerate test design and automation planning"
+                        useCase="You receive a new feature requirement and need to quickly design comprehensive test coverage before writing automation scripts."
+                        outcome="Get structured test cases with automation feasibility ratings, execution prerequisites, and API coverage analysis—saving hours of manual test design work."
                     />
-                    <AudienceCard
+                    <AudienceCard2026
+                        icon={<Users size={20} />}
+                        iconColor="#a855f7"
+                        iconBg="rgba(168, 85, 247, 0.1)"
                         title="Product Managers"
-                        description="Requirement validation"
+                        subtitle="Product & Business Analysts"
+                        highlightText="Identify requirement gaps before development starts"
+                        useCase="You're finalizing a feature spec and want to ensure all edge cases and acceptance criteria are covered before handoff to engineering."
+                        outcome="Receive clear visibility into missing acceptance criteria, business risk areas, and ambiguous requirements—reducing costly rework during UAT."
                     />
-                    <AudienceCard
-                        title="Freshers"
-                        description="Learn real testing patterns"
+                    <AudienceCard2026
+                        icon={<GraduationCap size={20} />} 
+                        iconColor="#10b981"
+                        iconBg="rgba(16, 185, 129, 0.1)"
+                        title="QA Freshers"
+                        subtitle="Entry-Level QA Engineers"
+                        highlightText="Learn testing fundamentals while building real test cases"
+                        useCase="You're assigned to test a feature but aren't sure where to start or what testing concepts to apply."
+                        outcome="Get guided test cases with explanations of testing concepts (positive, negative, boundary testing) and clear priorities—accelerating your learning curve."
                     />
                 </div>
             </section>
@@ -122,22 +165,81 @@ const IndustryInsights = () => {
     );
 };
 
-const PainCard = ({ problem, solution, description }) => (
-    <div className="pain-card">
-        <div className="pain-header">
-            <div className="pain-point">
-                <AlertCircle size={16} />
-                <span>Problem: {problem}</span>
+const PainCard2026 = ({ index, icon, problem, solution, description, accentColor, solveColor, tag }) => {
+    const cardRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => setIsVisible(true), index * 150);
+                }
+            },
+            { threshold: 0.2 }
+        );
+        if (cardRef.current) observer.observe(cardRef.current);
+        return () => observer.disconnect();
+    }, [index]);
+
+    const handleMouseMove = (e) => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        setMousePos({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+        });
+    };
+
+    return (
+        <div
+            ref={cardRef}
+            className={`pain-card-2026 ${isVisible ? 'pain-card-visible' : ''}`}
+            onMouseMove={handleMouseMove}
+            style={{
+                '--accent': accentColor,
+                '--solve': solveColor,
+                '--mouse-x': `${mousePos.x}px`,
+                '--mouse-y': `${mousePos.y}px`,
+                animationDelay: `${index * 0.15}s`,
+            }}
+        >
+            <div className="pain-card-spotlight" />
+            <div className="pain-card-border-glow" />
+            <div className="pain-card-tag">
+                <Zap size={10} />
+                {tag}
             </div>
-            <div className="solution-point">
-                <CheckCircle2 size={16} />
-                <span>Solution: {solution}</span>
+            <div className="pain-card-problem">
+                <div className="pain-card-icon-badge pain-icon-problem">
+                    {icon}
+                </div>
+                <div className="pain-card-problem-text">
+                    <span className="pain-label-micro">PROBLEM</span>
+                    <p>{problem}</p>
+                </div>
             </div>
+            <div className="pain-card-connector">
+                <div className="connector-line" />
+                <div className="connector-pulse" />
+                <div className="connector-line" />
+            </div>
+            <div className="pain-card-solution">
+                <div className="pain-card-icon-badge pain-icon-solution">
+                    <CheckCircle2 size={22} />
+                </div>
+                <div className="pain-card-solution-text">
+                    <span className="pain-label-micro pain-label-solution">SOLUTION</span>
+                    <p>{solution}</p>
+                </div>
+            </div>
+            <div className="pain-card-divider-2026" />
+            <p className="pain-card-desc-2026">{description}</p>
+            <div className="pain-card-ambient" />
         </div>
-        <div className="pain-divider" />
-        <p className="pain-description">{description}</p>
-    </div>
-);
+    );
+};
 
 const ProcessStep = ({ number, title, description, icon }) => (
     <div className="process-step">
@@ -152,10 +254,32 @@ const ProcessStep = ({ number, title, description, icon }) => (
     </div>
 );
 
-const AudienceCard = ({ title, description }) => (
-    <div className="audience-card">
-        <strong>{title}</strong>
-        <span>{description}</span>
+const AudienceCard2026 = ({ title, subtitle, icon, iconColor, iconBg, highlightText, useCase, outcome }) => (
+    <div className="audience-card-2026">
+        <div className="audience-card-header">
+            <div className="audience-icon-box" style={{ color: iconColor, backgroundColor: iconBg, borderColor: iconColor }}>
+                {icon}
+            </div>
+            <div className="audience-title-group">
+                <h4 className="audience-title">{title}</h4>
+                <span className="audience-subtitle">{subtitle}</span>
+            </div>
+        </div>
+        
+        <div className="audience-highlight-box" style={{ borderLeftColor: iconColor }}>
+            {highlightText}
+        </div>
+        
+        <div className="audience-content-section">
+            <div className="content-block">
+                <span className="content-label" style={{ color: iconColor }}>TYPICAL USE CASE:</span>
+                <p>{useCase}</p>
+            </div>
+            <div className="content-block">
+                <span className="content-label" style={{ color: iconColor }}>OUTCOME:</span>
+                <p>{outcome}</p>
+            </div>
+        </div>
     </div>
 );
 
