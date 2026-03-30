@@ -9122,7 +9122,7 @@ main {
 
 /* Sidebar toggle button in navbar */
 .sidebar-toggle-btn {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   width: 36px;
