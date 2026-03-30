@@ -39,18 +39,11 @@ const GeneratorPage = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [result, setResult] = useState(null);
     const { saveToHistory } = useHistory();
-    const [showTour, setShowTour] = useState(false);
-    const [tourStep, setTourStep] = useState(0);
     const [showClarification, setShowClarification] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [pageError, setPageError] = useState(null);
 
     React.useEffect(() => {
-        const hasSeenTour = localStorage.getItem('testnexa_tour_seen');
-        if (!hasSeenTour) {
-            setShowTour(true);
-        }
-
         // --- Post-Login Resume Logic ---
         const checkResume = async () => {
             const savedData = localStorage.getItem('testnexa_pending_generation');
@@ -78,21 +71,6 @@ const GeneratorPage = () => {
 
         checkResume();
     }, [isAuthenticated]);
-
-    const tourSteps = [
-        { title: 'Paste Requirement', content: 'Paste your user story, PRD, or API spec here to get started.', target: '.prompt-textarea' },
-        { title: 'Select Detail Level', content: 'Choose how deep you want the tests to go. Detailed is best for critical features.', target: '.chip-group' },
-        { title: 'Generate Suite', content: 'Click "Generate" and let the AI do the heavy lifting!', target: '.btn-generate-chat' }
-    ];
-
-    const nextTour = () => {
-        if (tourStep < tourSteps.length - 1) {
-            setTourStep(tourStep + 1);
-        } else {
-            setShowTour(false);
-            localStorage.setItem('testnexa_tour_seen', 'true');
-        }
-    };
 
     const handleSave = (suite) => {
         saveToHistory(suite, requirement, settings);
@@ -277,23 +255,6 @@ const GeneratorPage = () => {
 
             {/* 7. Why This Matters */}
             <WhyThisMatters />
-
-            {/* First-Time Guided Tour Overlay */}
-            {showTour && (
-                <div className="tour-overlay-v2">
-                    <div className="tour-modal glass-card luxury-glow">
-                        <div className="tour-badge">Step {tourStep + 1} of 3</div>
-                        <h3 className="tour-title">{tourSteps[tourStep].title}</h3>
-                        <p className="tour-content">{tourSteps[tourStep].content}</p>
-                        <div className="tour-footer">
-                            <button className="btn-tour-skip" onClick={() => { setShowTour(false); localStorage.setItem('testnexa_tour_seen', 'true'); }}>Skip Tour</button>
-                            <button className="btn-tour-next" onClick={nextTour}>
-                                {tourStep === tourSteps.length - 1 ? 'Get Started' : 'Next Step'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Login Modal */}
             <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
