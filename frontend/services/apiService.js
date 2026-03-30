@@ -3,7 +3,7 @@
  * Connects to the TestNexa AI backend API.
  */
 
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 export const apiService = {
     generateTestSuite: async (requirement, settings) => {
