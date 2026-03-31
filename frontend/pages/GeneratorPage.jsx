@@ -12,9 +12,11 @@ import ResultsSection from '../components/ResultsSection';
 import LoginModal from '../components/LoginModal';
 import { apiService } from '../services/apiService';
 import { useHistory } from '../hooks/useHistory';
+import useScrollReveal from '../hooks/useScrollReveal';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { Sparkles, Terminal, AlertTriangle, HelpCircle, ChevronRight } from 'lucide-react';
+
 
 const GeneratorPage = () => {
     const { isAuthenticated, canGenerateAsGuest, incrementGuestUsage, setPendingAction } = useAuth();
@@ -42,6 +44,8 @@ const GeneratorPage = () => {
     const [showClarification, setShowClarification] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [pageError, setPageError] = useState(null);
+    const inputReveal = useScrollReveal({ threshold: 0.1 });
+
 
     React.useEffect(() => {
         // --- Post-Login Resume Logic ---
@@ -159,7 +163,10 @@ const GeneratorPage = () => {
 
             <div className="container" style={{ paddingBottom: '8rem' }}>
                 {/* 2. Requirement Input - Primary action (Try It) */}
-                <div className="generator-content-wrapper">
+                <div
+                    ref={inputReveal.ref}
+                    className={`generator-content-wrapper scroll-reveal-zoom ${inputReveal.isVisible ? 'revealed' : ''}`}
+                >
                     <InputPanel
                         value={requirement}
                         onChange={setRequirement}

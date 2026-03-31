@@ -10571,19 +10571,8 @@ main {
     position: relative;
     overflow: hidden;
     border-radius: 20px;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    animation: featureCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes featureCardIn {
-    from {
-        opacity: 0;
-        transform: translateY(24px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+    cursor: crosshair;
 }
 
 .feature-card:hover {
@@ -10736,10 +10725,6 @@ main {
     }
 }
 /* Feature Card Hover Animations */
-.feature-card {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
-  cursor: crosshair;
-}
 .feature-card:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow: 0 20px 40px -15px rgba(0, 212, 193, 0.15), 0 0 20px rgba(0, 212, 193, 0.05);
@@ -11522,5 +11507,152 @@ textarea.form-input {
   color: var(--primary);
   font-weight: 700;
   margin-right: 0.5rem;
+}
+
+/* ============================================
+   SCROLL REVEAL ANIMATION SYSTEM
+   ============================================ */
+
+/* --- Base hidden state for all scroll-reveal elements --- */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+
+/* --- Revealed state --- */
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+  filter: blur(0);
+}
+
+/* --- Variant: Fade Up (default) --- */
+.scroll-reveal-fade-up {
+  opacity: 0;
+  transform: translateY(50px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal-fade-up.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Variant: Fade Left --- */
+.scroll-reveal-fade-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition:
+    opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal-fade-left.revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- Variant: Fade Right --- */
+.scroll-reveal-fade-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition:
+    opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal-fade-right.revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- Variant: Zoom In --- */
+.scroll-reveal-zoom {
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal-zoom.revealed {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* --- Variant: Blur In --- */
+.scroll-reveal-blur {
+  opacity: 0;
+  transform: translateY(30px);
+  filter: blur(10px);
+  transition:
+    opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+
+.scroll-reveal-blur.revealed {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* --- Stagger children animation delays --- */
+.scroll-reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal-stagger.revealed > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-reveal-stagger.revealed > *:nth-child(1) { transition-delay: 0.05s; }
+.scroll-reveal-stagger.revealed > *:nth-child(2) { transition-delay: 0.12s; }
+.scroll-reveal-stagger.revealed > *:nth-child(3) { transition-delay: 0.19s; }
+.scroll-reveal-stagger.revealed > *:nth-child(4) { transition-delay: 0.26s; }
+.scroll-reveal-stagger.revealed > *:nth-child(5) { transition-delay: 0.33s; }
+.scroll-reveal-stagger.revealed > *:nth-child(6) { transition-delay: 0.40s; }
+.scroll-reveal-stagger.revealed > *:nth-child(7) { transition-delay: 0.47s; }
+.scroll-reveal-stagger.revealed > *:nth-child(8) { transition-delay: 0.54s; }
+
+/* --- Custom delay utility classes --- */
+.scroll-delay-100 { transition-delay: 0.1s !important; }
+.scroll-delay-200 { transition-delay: 0.2s !important; }
+.scroll-delay-300 { transition-delay: 0.3s !important; }
+.scroll-delay-400 { transition-delay: 0.4s !important; }
+.scroll-delay-500 { transition-delay: 0.5s !important; }
+
+/* --- Accessibility: Respect reduced-motion preferences --- */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal-fade-up,
+  .scroll-reveal-fade-left,
+  .scroll-reveal-fade-right,
+  .scroll-reveal-zoom,
+  .scroll-reveal-blur,
+  .scroll-reveal-stagger > * {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
 }
 

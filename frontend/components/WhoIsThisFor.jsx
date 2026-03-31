@@ -1,7 +1,11 @@
 import React from 'react';
 import { Users, Target, GraduationCap } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const WhoIsThisFor = () => {
+    const headerReveal = useScrollReveal({ threshold: 0.3 });
+    const gridReveal = useScrollReveal({ threshold: 0.1 });
+
     const personas = [
         {
             icon: Target,
@@ -35,19 +39,24 @@ const WhoIsThisFor = () => {
     return (
         <section id="who-is-this-for" className="who-section">
             <div className="container">
-                <div className="section-header">
+                <div
+                    ref={headerReveal.ref}
+                    className={`section-header scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
+                >
                     <h2 className="section-title">Who is this for?</h2>
                     <p className="section-subtitle">
                         Testnexa AI adapts to your role, delivering insights that matter to you
                     </p>
                 </div>
 
-                <div className="persona-grid">
-                    {personas.map((persona, index) => (
+                <div
+                    ref={gridReveal.ref}
+                    className={`persona-grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
+                >
+                    {personas.map((persona) => (
                         <div
                             key={persona.role}
                             className="persona-card glass-card"
-                            style={{ animationDelay: `${index * 0.1}s` }}
                         >
                             <div className={`persona-icon-box ${persona.color}`}>
                                 <persona.icon size={28} />

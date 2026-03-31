@@ -1,14 +1,26 @@
 import React from 'react';
 import { AlertCircle, Search, Cpu, BarChart3 } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const HowItWorks = () => {
+    const headerReveal = useScrollReveal({ threshold: 0.3 });
+    const stepsReveal = useScrollReveal({ threshold: 0.1 });
+
     return (
         <section id="engineering-maturity" className="insight-section">
             <div className="container">
-                <span className="section-label">Engineering Maturity</span>
-                <h3 className="section-title-large">How Testnexa AI Works</h3>
+                <div
+                    ref={headerReveal.ref}
+                    className={`scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
+                >
+                    <span className="section-label">Engineering Maturity</span>
+                    <h3 className="section-title-large">How Testnexa AI Works</h3>
+                </div>
 
-                <div className="steps-container">
+                <div
+                    ref={stepsReveal.ref}
+                    className={`steps-container scroll-reveal-stagger ${stepsReveal.isVisible ? 'revealed' : ''}`}
+                >
                     <ProcessStep
                         number="1"
                         title="Requirement Deconstruction"

@@ -3,6 +3,7 @@ import {
     Brain, Layers, SearchCheck, BarChart3,
     FileOutput, Gauge, CheckCircle2, Sparkles
 } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const features = [
     {
@@ -50,10 +51,16 @@ const features = [
 ];
 
 const Features = () => {
+    const headerReveal = useScrollReveal({ threshold: 0.3 });
+    const gridReveal = useScrollReveal({ threshold: 0.1 });
+
     return (
         <section id="features" className="features-section">
             <div className="container">
-                <div className="features-header">
+                <div
+                    ref={headerReveal.ref}
+                    className={`features-header scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
+                >
                     <div className="features-badge">
                         <Sparkles size={14} />
                         <span>Powered by Advanced AI</span>
@@ -66,12 +73,14 @@ const Features = () => {
                     </p>
                 </div>
 
-                <div className="features-grid">
-                    {features.map((feature, index) => (
+                <div
+                    ref={gridReveal.ref}
+                    className={`features-grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
+                >
+                    {features.map((feature) => (
                         <div
                             key={feature.title}
                             className="feature-card glass-card"
-                            style={{ animationDelay: `${index * 0.1}s` }}
                         >
                             <div className={`feature-card-glow ${feature.color}`} />
                             <div className={`feature-icon-box ${feature.color}`}>

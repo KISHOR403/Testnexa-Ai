@@ -1,12 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Twitter, Github, Linkedin, Mail } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const Footer = () => {
+    const footerReveal = useScrollReveal({ threshold: 0.1 });
+
     return (
         <footer className="footer-container">
             <div className="footer-glow-effect"></div>
-            <div className="container footer-content">
+            <div
+                ref={footerReveal.ref}
+                className={`container footer-content scroll-reveal-fade-up ${footerReveal.isVisible ? 'revealed' : ''}`}
+            >
                 <div className="footer-brand-column">
                     <Link to="/" className="footer-logo">
                         <div className="footer-logo-icon">

@@ -1,17 +1,29 @@
 import React from 'react';
 import { Shield, Clock, ListChecks } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const WhyThisMatters = () => {
+    const headerReveal = useScrollReveal({ threshold: 0.3 });
+    const gridReveal = useScrollReveal({ threshold: 0.15 });
+
     return (
         <div id="why-this-matters" className="value-footer">
             <div className="container">
-                <span className="section-label" style={{ color: '#fff', opacity: 1 }}>Decision Maker Value</span>
-                <h3 className="section-title-large" style={{ marginBottom: '1rem' }}>Why This Matters</h3>
-                <p style={{ color: 'var(--text-dim)', maxWidth: '600px', margin: '0 auto 3rem' }}>
-                    Quality isn't just about bugs; it's about speed, clarity, and risk management.
-                </p>
+                <div
+                    ref={headerReveal.ref}
+                    className={`scroll-reveal-blur ${headerReveal.isVisible ? 'revealed' : ''}`}
+                >
+                    <span className="section-label" style={{ color: '#fff', opacity: 1 }}>Decision Maker Value</span>
+                    <h3 className="section-title-large" style={{ marginBottom: '1rem' }}>Why This Matters</h3>
+                    <p style={{ color: 'var(--text-dim)', maxWidth: '600px', margin: '0 auto 3rem' }}>
+                        Quality isn't just about bugs; it's about speed, clarity, and risk management.
+                    </p>
+                </div>
 
-                <div className="value-grid">
+                <div
+                    ref={gridReveal.ref}
+                    className={`value-grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
+                >
                     <ValueItem
                         icon={<Shield size={24} />}
                         title="Reduce Production Risk"
