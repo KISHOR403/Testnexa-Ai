@@ -62,25 +62,6 @@ router.get('/logout', (req, res, next) => {
     });
 });
 
-// Test Email Route (Temporary for verification)
-router.get('/test-email', async (req, res) => {
-    try {
-        const { email } = req.query;
-        if (!email) return res.status(400).json({ success: false, message: 'Email query parameter is required' });
-        
-        const { sendWelcomeEmail } = require('../services/email.service');
-        const result = await sendWelcomeEmail('Test User', email);
-        
-        if (result.success) {
-            res.json({ success: true, message: `Test email sent to ${email}`, details: result });
-        } else {
-            res.status(500).json({ success: false, message: 'Failed to send test email', error: result.error });
-        }
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
-
 router.post('/logout', (req, res) => {
     // For JWT, the frontend just discards the token. 
     // This endpoint is here to satisfy the requirement and can be used to blacklist tokens if needed.
