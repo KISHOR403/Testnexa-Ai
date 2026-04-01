@@ -14,7 +14,7 @@ exports.protect = async (req, res, next) => {
             if (mongoose.connection.readyState !== 1) {
                 // If ID starts with guest_, it's a guest user from passport guest mode
                 if (decoded.id && decoded.id.toString().startsWith('guest_')) {
-                    req.user = { _id: decoded.id, isTemporary: true, displayName: 'Guest User' };
+                    req.user = { _id: decoded.id, isTemporary: true };
                     return next();
                 }
                 throw new Error('Database not connected');

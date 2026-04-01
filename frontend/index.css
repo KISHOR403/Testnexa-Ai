@@ -11656,3 +11656,155 @@ textarea.form-input {
   }
 }
 
+
+/* ============================================
+   MOBILE RESPONSIVENESS: RESULTS SECTION
+   ============================================ */
+
+@media (max-width: 768px) {
+  .results-container-luxury {
+    gap: 1.5rem !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .results-summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 1rem !important;
+  }
+
+  .summary-chip-new {
+    padding: 1.25rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .chip-value-xl {
+    font-size: 1.75rem !important;
+  }
+
+  .results-actions-bar {
+    padding: 1rem !important;
+    gap: 1.25rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .left-actions-padded {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  .search-input-wrapper-tall {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .filter-select-wrapper-tall {
+    width: 100% !important;
+  }
+
+  .right-actions-compact {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+
+  .api-view-luxury, 
+  .questions-view-luxury {
+    padding: 1.25rem !important;
+    gap: 1.5rem !important;
+  }
+
+  .question-row-interactive {
+    padding: 1.25rem !important;
+  }
+
+  .card-header-luxury {
+    padding: 1rem 1.25rem !important;
+  }
+
+  .card-body-luxury {
+    padding: 0 1.25rem 1.5rem !important;
+  }
+
+  .card-title-strong {
+    font-size: 1.1rem !important;
+  }
+
+  .header-meta-row {
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .tabs-nav-professional {
+    margin-bottom: 1.5rem !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    padding: 0.5rem !important;
+    scrollbar-width: none !important; /* Firefox */
+  }
+
+  .tabs-nav-professional::-webkit-scrollbar {
+    display: none !important; /* Chrome/Safari */
+  }
+
+  .tab-item-pro {
+    flex: 0 0 auto !important;
+    padding: 0.75rem 1.25rem !important;
+    min-width: fit-content !important;
+  }
+
+  .tab-label-pro {
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .tab-count-badge {
+    padding: 0.1rem 0.4rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .results-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .summary-chip-new {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .summary-chip-new .chip-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.25rem !important;
+  }
+
+  .chip-value-xl {
+    font-size: 1.5rem !important;
+  }
+
+  .btn-generate-dominant {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 1rem !important;
+  }
+
+  .action-group-buttons {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .action-group-buttons button {
+    width: 100% !important;
+  }
+}

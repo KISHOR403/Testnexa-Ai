@@ -182,7 +182,14 @@ const GeneratorPage = () => {
                 {pageError && (
                     <div className="form-error-banner animate-fade-in" style={{ marginTop: '2rem' }}>
                         <AlertTriangle size={20} />
-                        <span>{pageError}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span>{pageError.replace('Test generation failed: ', '')}</span>
+                            {pageError.includes("couldn't understand") && (
+                                <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                                    💡 Try something like: "User registration with email, password, and phone number validation"
+                                </span>
+                            )}
+                        </div>
                     </div>
                 )}
 

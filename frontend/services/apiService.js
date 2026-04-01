@@ -35,6 +35,11 @@ export const apiService = {
             if (!response.ok) {
                 const errorData = await response.json();
 
+                // Special handling for 422 Input Quality Error
+                if (response.status === 422) {
+                    throw new Error(errorData.error || "We couldn't understand your input. Please describe a software feature clearly, e.g. 'User login with email and password validation'.");
+                }
+
                 // Special handling for 429 Rate Limit / Resource Exhausted
                 if (response.status === 429) {
                     const message = errorData.error || "";
@@ -43,7 +48,12 @@ export const apiService = {
                     throw new Error(`QUOTA_LIMIT: Gemini is currently busy. Please wait for ${retryTime} before trying again.`);
                 }
 
-                throw new Error(errorData.error || 'Failed to generate test cases');
+                // Special handling for 400 Validation Errors
+                if (response.status === 400) {
+                    throw new Error(errorData.error || 'Please check your input. Make sure your requirement is at least 20 characters long.');
+                }
+
+                throw new Error(errorData.error || 'Failed to generate test cases. Please try again.');
             }
 
             const result = await response.json();

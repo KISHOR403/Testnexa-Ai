@@ -88,7 +88,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
         return () => observers.forEach(o => o.disconnect());
     }, [location.pathname]);
 
-    const initials = user?.name ? user.name.charAt(0) : (user?.email ? user.email.charAt(0) : 'U');
+    const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0);
 
     // Scroll detection for navbar style change
     useEffect(() => {
@@ -180,8 +180,8 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                                     <span>{initials}</span>
                                                 </div>
                                                 <div className="profile-card-info">
-                                                    <span className="profile-card-name">{user?.name || 'User'}</span>
-                                                    <span className="profile-card-email">@{user?.email?.split('@')[0] || 'user'}</span>
+                                                    <span className="profile-card-name">{user?.name || user?.displayName || user?.email?.split('@')[0] || 'User'}</span>
+                                                    <span className="profile-card-email">{user?.email || 'user@example.com'}</span>
                                                 </div>
                                                 <div className="profile-card-badge">Pro</div>
                                             </div>

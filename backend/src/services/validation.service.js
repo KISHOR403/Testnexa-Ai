@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { ValidationError } = require('../utils/errors');
+const { ValidationError, InputQualityError } = require('../utils/errors');
 
 // Request Validation Schema
 const generateRequestSchema = Joi.object({
@@ -51,6 +51,56 @@ const generateRequestSchema = Joi.object({
         .default('en-US'),
 });
 
+/**
+ * Check if the input text is meaningful enough for test case generation.
+ * Returns { isValid: boolean, reason: string }
+ */
+const checkInputQuality = (text) => {
+    const trimmed = (text || '').trim();
+
+    // 1. Check for excessive special characters (gibberish like "!@#$%^&*()")
+    const specialCharRatio = (trimmed.replace(/[a-zA-Z0-9\s]/g, '').length) / trimmed.length;
+    if (specialCharRatio > 0.5) {
+        return { isValid: false, reason: 'Your input contains too many special characters. Please describe a software feature or requirement in plain language.' };
+    }
+
+    // 2. Check for repeated characters (e.g. "aaaaaaaaaa", "abcabcabcabc")
+    const repeatedPattern = /(.{1,4})\1{4,}/i;
+    if (repeatedPattern.test(trimmed.replace(/\s/g, ''))) {
+        return { isValid: false, reason: 'Your input appears to contain repeated characters. Please describe a real software feature or requirement.' };
+    }
+
+    // 3. Check if it has enough real words (at least 3 words with 2+ letters)
+    const words = trimmed.split(/\s+/).filter(w => /[a-zA-Z]{2,}/.test(w));
+    if (words.length < 3) {
+        return { isValid: false, reason: 'Your input is too short or unclear. Please describe what the feature should do, including user actions and expected behavior (at least 3 meaningful words).' };
+    }
+
+    // 4. Check for keyboard-mash patterns (consonant clusters without vowels)
+    const lowered = trimmed.toLowerCase();
+    const consonantCluster = /[bcdfghjklmnpqrstvwxyz]{6,}/;
+    if (consonantCluster.test(lowered)) {
+        return { isValid: false, reason: 'We couldn\'t understand your input. Please describe a software feature in plain English, e.g. "User login with email and password".' };
+    }
+
+    // 5. Check vowel ratio — real English text typically has 30-45% vowels 
+    const letters = lowered.replace(/[^a-z]/g, '');
+    if (letters.length > 10) {
+        const vowels = letters.replace(/[^aeiou]/g, '').length;
+        const vowelRatio = vowels / letters.length;
+        if (vowelRatio < 0.1) {
+            return { isValid: false, reason: 'Your input doesn\'t appear to be readable text. Please write a clear description of the feature you want to test.' };
+        }
+    }
+
+    // 6. Check for purely numeric input
+    if (/^\d[\d\s.,-]*$/.test(trimmed)) {
+        return { isValid: false, reason: 'Your input contains only numbers. Please describe a software feature or user story that you want to generate test cases for.' };
+    }
+
+    return { isValid: true, reason: '' };
+};
+
 // Validation Service
 const validateGenerateRequest = (data) => {
     const { error, value } = generateRequestSchema.validate(data, {
@@ -63,9 +113,16 @@ const validateGenerateRequest = (data) => {
         throw new ValidationError(errorMessage);
     }
 
+    // Check input quality AFTER schema validation passes
+    const qualityCheck = checkInputQuality(value.requirement);
+    if (!qualityCheck.isValid) {
+        throw new InputQualityError(qualityCheck.reason);
+    }
+
     return value;
 };
 
 module.exports = {
     validateGenerateRequest,
+    checkInputQuality,
 };

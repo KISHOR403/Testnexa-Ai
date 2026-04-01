@@ -35,12 +35,25 @@ class TwoStepOrchestrator {
             // Adapt prompt for persona
             const adaptedPrompt = personaPromptAdapter.adaptPrompt(combinedPrompt, persona);
 
-            const response = await callAI(adaptedPrompt, {
-                temperature: 0.2,
-                maxTokens: 8192
-            });
+            let combinedResult;
+            try {
+                const response = await callAI(adaptedPrompt, {
+                    temperature: 0.2,
+                    maxTokens: 8192
+                });
 
-            const combinedResult = this.parseAIResponse(response);
+                combinedResult = this.parseAIResponse(response);
+            } catch (aiError) {
+                logger.warn('AI call failed, using fallback generation:', aiError.message);
+
+                // Check if it's a rate limit error — re-throw those
+                if (aiError.statusCode === 429 || aiError.message.includes('429') || aiError.message.includes('RESOURCE_EXHAUSTED')) {
+                    throw aiError;
+                }
+
+                // For other AI errors, generate fallback test cases
+                combinedResult = this.generateFallbackTestCases(requirement, config);
+            }
 
             // Extract understanding from combined result
             const understanding = {
@@ -791,6 +804,175 @@ Generate comprehensive coverage across all categories.
             }
         });
         return total;
+    }
+
+    /**
+     * Generate fallback test cases when AI call fails.
+     * Derives basic but useful test cases from the requirement text.
+     * @param {string} requirement - Original requirement text
+     * @param {Object} config - Configuration
+     * @returns {Object} Fallback test case structure
+     */
+    generateFallbackTestCases(requirement, config = {}) {
+        logger.info('Generating fallback test cases from requirement text');
+
+        // Extract meaningful keywords from the requirement
+        const words = requirement.toLowerCase().split(/\s+/);
+        const actionWords = words.filter(w => 
+            ['login', 'register', 'create', 'delete', 'update', 'search', 'filter', 
+             'submit', 'upload', 'download', 'send', 'receive', 'add', 'remove',
+             'edit', 'view', 'display', 'click', 'select', 'enter', 'navigate',
+             'checkout', 'pay', 'order', 'book', 'cancel', 'reset', 'verify',
+             'validate', 'authenticate', 'authorize', 'export', 'import', 'save',
+             'load', 'fetch', 'process', 'generate', 'calculate', 'convert'].includes(w)
+        );
+
+        const featureName = requirement.substring(0, 60).replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        const mainAction = actionWords.length > 0 ? actionWords[0] : 'process';
+
+        return {
+            feature: featureName || 'Feature Under Test',
+            business_rules: [`The system should ${mainAction} as described in the requirement`],
+            inputs: [{ name: 'user_input', type: 'string', constraints: 'As per requirement' }],
+            outputs: [{ name: 'result', type: 'object', structure: 'Expected output' }],
+            risk_areas: ['input_validation', 'error_handling'],
+            non_functional_signals: { performance_critical: false, security_sensitive: true, user_facing: true },
+            ambiguities: ['Some details may need clarification from the requirement'],
+            missing_information: [],
+            assumptions: [
+                'Assumed standard validation rules apply',
+                'Assumed the feature requires authentication',
+                'Note: These are AI-fallback test cases. Try regenerating for more detailed results.'
+            ],
+            functional: [
+                {
+                    id: 'TC_FUNC_001',
+                    title: `Verify successful ${mainAction} with valid data`,
+                    priority: 'High',
+                    steps: [
+                        'Navigate to the feature page',
+                        'Enter valid input data as per the requirement',
+                        `Click the ${mainAction} button or trigger the action`,
+                        'Observe the system response'
+                    ],
+                    expectedResult: `The system should successfully ${mainAction} and show a confirmation`,
+                    reason: 'Core happy path validation',
+                    riskType: 'Revenue',
+                    priorityExplanation: 'Primary success path must work correctly',
+                    intentGroup: 'Success'
+                },
+                {
+                    id: 'TC_FUNC_002',
+                    title: `Verify ${mainAction} result is displayed correctly`,
+                    priority: 'High',
+                    steps: [
+                        `Complete the ${mainAction} action with valid data`,
+                        'Check the response/result displayed on screen',
+                        'Verify all expected fields are present',
+                        'Verify data accuracy'
+                    ],
+                    expectedResult: 'All result data should be displayed accurately and completely',
+                    reason: 'Output validation is critical for user trust',
+                    riskType: 'UX',
+                    priorityExplanation: 'Users must see correct results',
+                    intentGroup: 'Validation'
+                },
+                {
+                    id: 'TC_FUNC_003',
+                    title: `Verify ${mainAction} with all required fields filled`,
+                    priority: 'Medium',
+                    steps: [
+                        'Navigate to the feature',
+                        'Fill in all required fields with valid data',
+                        `Perform the ${mainAction} action`,
+                        'Verify successful completion'
+                    ],
+                    expectedResult: 'The action should complete successfully with all required fields provided',
+                    reason: 'Ensures all required field validations work',
+                    intentGroup: 'Validation'
+                }
+            ],
+            negative: [
+                {
+                    id: 'TC_NEG_001',
+                    title: `Verify ${mainAction} fails with empty required fields`,
+                    priority: 'High',
+                    steps: [
+                        'Navigate to the feature',
+                        'Leave all required fields empty',
+                        `Attempt to ${mainAction}`,
+                        'Observe error handling'
+                    ],
+                    expectedResult: 'System should display appropriate validation error messages for each empty required field',
+                    reason: 'Empty field handling is a top failure scenario',
+                    intentGroup: 'Validation'
+                },
+                {
+                    id: 'TC_NEG_002',
+                    title: `Verify ${mainAction} with invalid/malformed input`,
+                    priority: 'Medium',
+                    steps: [
+                        'Navigate to the feature',
+                        'Enter invalid data (special characters, wrong format)',
+                        `Attempt to ${mainAction}`,
+                        'Observe error handling'
+                    ],
+                    expectedResult: 'System should reject invalid input with clear, user-friendly error messages',
+                    reason: 'Invalid input is a common real-world scenario',
+                    intentGroup: 'Error Handling'
+                }
+            ],
+            edge: [
+                {
+                    id: 'TC_EDGE_001',
+                    title: `Verify ${mainAction} with boundary value inputs`,
+                    priority: 'Medium',
+                    steps: [
+                        'Navigate to the feature',
+                        'Enter minimum allowed values for all fields',
+                        `Perform the ${mainAction} action`,
+                        'Repeat with maximum allowed values'
+                    ],
+                    expectedResult: 'System should handle both minimum and maximum boundary values correctly',
+                    reason: 'Boundary conditions often reveal bugs',
+                    intentGroup: 'Boundary'
+                },
+                {
+                    id: 'TC_EDGE_002',
+                    title: `Verify rapid repeated ${mainAction} actions`,
+                    priority: 'Low',
+                    steps: [
+                        'Navigate to the feature',
+                        `Click ${mainAction} button multiple times rapidly`,
+                        'Observe system behavior',
+                        'Check for duplicate submissions or errors'
+                    ],
+                    expectedResult: 'System should handle rapid clicks gracefully without duplicate processing',
+                    reason: 'Double-submit is a common user behavior',
+                    intentGroup: 'Concurrency'
+                }
+            ],
+            apiChecklist: [],
+            nonFunctional: [
+                {
+                    id: 'TC_NF_001',
+                    title: `Verify ${mainAction} response time is acceptable`,
+                    priority: 'Medium',
+                    steps: [
+                        `Perform the ${mainAction} action with valid data`,
+                        'Measure the response time',
+                        'Verify it completes within acceptable time limits'
+                    ],
+                    expectedResult: 'The action should complete within 3 seconds under normal conditions',
+                    reason: 'Performance directly affects user experience'
+                }
+            ],
+            questions: [
+                'What are the exact validation rules for each input field?',
+                'What error messages should be shown for different failure scenarios?',
+                'Are there any rate limits or usage restrictions for this feature?'
+            ]
+        };
     }
 }
 

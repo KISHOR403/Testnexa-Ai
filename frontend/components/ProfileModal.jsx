@@ -12,7 +12,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
 
     if (!isOpen || !user) return null;
 
-    const initials = user.name ? user.name.charAt(0) : (user.email ? user.email.charAt(0) : '?');
+    const initials = (user?.name || user?.displayName || user?.email || '?').charAt(0);
 
     const handleHistoryClick = () => {
         navigate('/history');
@@ -72,7 +72,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 <div className="info-value">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                         <User size={16} color="#718096" />
-                                        <span>{user.name || user.displayName || 'Unnamed User'}</span>
+                                        <span>{user.name || user.displayName || user.email || 'Unnamed User'}</span>
                                     </div>
                                 </div>
                             </div>

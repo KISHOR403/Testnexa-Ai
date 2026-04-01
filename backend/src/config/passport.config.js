@@ -67,6 +67,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             let user = await User.findOne({ googleId: profile.id });
 
             if (user) {
+                // Ensure name is set for legacy users or if it was missing
+                if (!user.name) {
+                    user.name = profile.displayName;
+                    await user.save();
+                }
                 return done(null, user);
             }
 
@@ -77,6 +82,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             if (user) {
                 // Link Google ID to existing account
                 user.googleId = profile.id;
+                if (!user.name) user.name = profile.displayName;
                 if (!user.avatar) user.avatar = profile.photos[0].value;
                 await user.save();
                 return done(null, user);
@@ -85,6 +91,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             // If no user exists at all, create a new one
             user = await User.create({
                 googleId: profile.id,
+                name: profile.displayName,
                 displayName: profile.displayName,
                 email: email,
                 avatar: profile.photos[0].value
@@ -129,6 +136,11 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             let user = await User.findOne({ githubId: profile.id });
 
             if (user) {
+                // Ensure name is set for legacy users or if it was missing
+                if (!user.name) {
+                    user.name = profile.displayName || profile.username;
+                    await user.save();
+                }
                 return done(null, user);
             }
 
@@ -139,6 +151,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             if (user) {
                 // Link GitHub ID to existing account
                 user.githubId = profile.id;
+                if (!user.name) user.name = profile.displayName || profile.username;
                 if (!user.avatar && profile.photos) user.avatar = profile.photos[0].value;
                 await user.save();
                 return done(null, user);
@@ -147,6 +160,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             // If no user exists at all, create a new one
             user = await User.create({
                 githubId: profile.id,
+                name: profile.displayName || profile.username,
                 displayName: profile.displayName || profile.username,
                 email: email,
                 avatar: profile.photos ? profile.photos[0].value : null

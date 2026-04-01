@@ -8,6 +8,15 @@ class ValidationError extends Error {
     }
 }
 
+class InputQualityError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'InputQualityError';
+        this.code = 'INPUT_QUALITY_ERROR';
+        this.statusCode = 422;
+    }
+}
+
 class AIServiceError extends Error {
     constructor(message) {
         super(message);
@@ -47,6 +56,7 @@ const formatErrorResponse = (error) => {
 
 module.exports = {
     ValidationError,
+    InputQualityError,
     AIServiceError,
     RateLimitError,
     InternalError,
