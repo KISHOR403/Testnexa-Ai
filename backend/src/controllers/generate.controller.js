@@ -2,10 +2,14 @@ const { validateGenerateRequest } = require('../services/validation.service');
 const orchestrator = require('../services/orchestrator.service');
 const logger = require('../utils/logger');
 const { formatErrorResponse } = require('../utils/errors');
+const mongoose = require('mongoose');
+const TestHistory = require('../models/testHistory.model');
+const User = require('../models/user.model');
 
 /**
  * Enhanced Test Case Generation Controller
  * Uses two-step orchestration for improved accuracy
+ * Now saves generation history to MongoDB
  */
 const generateTestCases = async (req, res) => {
     const startTime = Date.now();
@@ -34,6 +38,8 @@ const generateTestCases = async (req, res) => {
             detailLevel,
             testFocus: testFocus || 'mixed'
         });
+
+        const processingTime = `${((Date.now() - startTime) / 1000).toFixed(2)}s`;
 
         // Step 3: Build Final Response
         const response = {
@@ -78,11 +84,53 @@ const generateTestCases = async (req, res) => {
             metadata: {
                 generatedAt: result.metadata.generatedAt,
                 model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-                processingTime: `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
+                processingTime,
                 version: result.metadata.version,
                 generationMethod: result.metadata.generationMethod
             }
         };
+
+        // Step 4: Save test generation history to MongoDB (non-blocking)
+        if (req.user && req.user._id && mongoose.connection.readyState === 1) {
+            // Save in background — don't slow down the response
+            const saveHistory = async () => {
+                try {
+                    await TestHistory.create({
+                        userId: req.user._id,
+                        requirement,
+                        appType,
+                        detailLevel,
+                        testFocus: testFocus || 'mixed',
+                        feature: result.understanding.feature || '',
+                        summary: {
+                            total: result.metadata.totalTestCases,
+                            functional: result.functional.length,
+                            negative: result.negative.length,
+                            edge: result.edge.length,
+                            nonFunctional: result.nonFunctional.length,
+                            apiChecklist: result.apiChecklist.length
+                        },
+                        quality: {
+                            confidenceLevel: result.quality.confidenceLevel || '',
+                            ambiguityScore: result.quality.ambiguityScore || ''
+                        },
+                        processingTime,
+                        model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+                    });
+
+                    // Increment user's total test count
+                    await User.findByIdAndUpdate(req.user._id, {
+                        $inc: { totalTestsGenerated: result.metadata.totalTestCases }
+                    });
+
+                    logger.info('Test history saved for user', { userId: req.user._id });
+                } catch (historyErr) {
+                    logger.error('Failed to save test history', historyErr);
+                }
+            };
+
+            saveHistory(); // Fire-and-forget
+        }
 
         logger.info('Enhanced test cases generated successfully', {
             feature: result.understanding.feature,
@@ -103,6 +151,45 @@ const generateTestCases = async (req, res) => {
     }
 };
 
+/**
+ * Get test generation history for the authenticated user
+ */
+const getTestHistory = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Not authenticated' });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        const [history, total] = await Promise.all([
+            TestHistory.find({ userId: req.user._id })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            TestHistory.countDocuments({ userId: req.user._id })
+        ]);
+
+        res.json({
+            success: true,
+            data: history,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        logger.error('Error fetching test history', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     generateTestCases,
+    getTestHistory,
 };

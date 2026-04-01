@@ -29,15 +29,34 @@ const userSchema = new mongoose.Schema({
         required: false // Optional for OAuth users
     },
     avatar: {
-        type: String
+        type: String,
+        default: null
     },
-    createdAt: {
+    provider: {
+        type: String,
+        enum: ['email', 'google', 'github'],
+        default: 'email'
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    lastLogin: {
         type: Date,
-        default: Date.now
+        default: null
+    },
+    loginCount: {
+        type: Number,
+        default: 0
+    },
+    totalTestsGenerated: {
+        type: Number,
+        default: 0
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date
 }, {
+    timestamps: true, // Automatically adds createdAt and updatedAt
     bufferCommands: false // Disable buffering to avoid timeouts when DB is down
 });
 

@@ -67,11 +67,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             let user = await User.findOne({ googleId: profile.id });
 
             if (user) {
-                // Ensure name is set for legacy users or if it was missing
-                if (!user.name) {
-                    user.name = profile.displayName;
-                    await user.save();
-                }
+                // Update login tracking + ensure fields are set
+                user.lastLogin = new Date();
+                user.loginCount = (user.loginCount || 0) + 1;
+                if (!user.name) user.name = profile.displayName;
+                if (!user.avatar) user.avatar = profile.photos[0].value;
+                if (!user.provider) user.provider = 'google';
+                await user.save();
                 return done(null, user);
             }
 
@@ -80,10 +82,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             user = await User.findOne({ email });
 
             if (user) {
-                // Link Google ID to existing account
+                // Link Google ID to existing account + update tracking
                 user.googleId = profile.id;
+                user.lastLogin = new Date();
+                user.loginCount = (user.loginCount || 0) + 1;
                 if (!user.name) user.name = profile.displayName;
                 if (!user.avatar) user.avatar = profile.photos[0].value;
+                if (!user.provider || user.provider === 'email') user.provider = 'google';
                 await user.save();
                 return done(null, user);
             }
@@ -94,7 +99,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 name: profile.displayName,
                 displayName: profile.displayName,
                 email: email,
-                avatar: profile.photos[0].value
+                avatar: profile.photos[0].value,
+                provider: 'google',
+                isVerified: true, // Google accounts are pre-verified
+                lastLogin: new Date(),
+                loginCount: 1
             });
 
             // Send welcome email to new user
@@ -136,11 +145,13 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             let user = await User.findOne({ githubId: profile.id });
 
             if (user) {
-                // Ensure name is set for legacy users or if it was missing
-                if (!user.name) {
-                    user.name = profile.displayName || profile.username;
-                    await user.save();
-                }
+                // Update login tracking + ensure fields are set
+                user.lastLogin = new Date();
+                user.loginCount = (user.loginCount || 0) + 1;
+                if (!user.name) user.name = profile.displayName || profile.username;
+                if (!user.avatar && profile.photos) user.avatar = profile.photos[0].value;
+                if (!user.provider) user.provider = 'github';
+                await user.save();
                 return done(null, user);
             }
 
@@ -149,10 +160,13 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             user = await User.findOne({ email });
 
             if (user) {
-                // Link GitHub ID to existing account
+                // Link GitHub ID to existing account + update tracking
                 user.githubId = profile.id;
+                user.lastLogin = new Date();
+                user.loginCount = (user.loginCount || 0) + 1;
                 if (!user.name) user.name = profile.displayName || profile.username;
                 if (!user.avatar && profile.photos) user.avatar = profile.photos[0].value;
+                if (!user.provider || user.provider === 'email') user.provider = 'github';
                 await user.save();
                 return done(null, user);
             }
@@ -163,7 +177,11 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                 name: profile.displayName || profile.username,
                 displayName: profile.displayName || profile.username,
                 email: email,
-                avatar: profile.photos ? profile.photos[0].value : null
+                avatar: profile.photos ? profile.photos[0].value : null,
+                provider: 'github',
+                isVerified: true, // GitHub accounts are pre-verified
+                lastLogin: new Date(),
+                loginCount: 1
             });
 
             // Send welcome email to new user

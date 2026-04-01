@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
+
 // Helper to check DB connection
 const checkConnection = () => {
     if (mongoose.connection.readyState !== 1) {
@@ -38,7 +39,11 @@ exports.register = async (req, res) => {
             name,
             displayName: name,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            provider: 'email',
+            isVerified: false,
+            lastLogin: new Date(),
+            loginCount: 1
         });
 
         if (user) {
@@ -50,7 +55,10 @@ exports.register = async (req, res) => {
                 user: {
                     id: user._id,
                     name: user.name,
-                    email: user.email
+                    email: user.email,
+                    avatar: user.avatar,
+                    provider: user.provider,
+                    createdAt: user.createdAt
                 },
                 token: generateToken(user._id)
             });
@@ -76,12 +84,23 @@ exports.login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
+        // Update login tracking data
+        user.lastLogin = new Date();
+        user.loginCount = (user.loginCount || 0) + 1;
+        await user.save();
+
         res.json({
             success: true,
             user: {
                 id: user._id,
                 name: user.name || user.displayName,
-                email: user.email
+                email: user.email,
+                avatar: user.avatar,
+                provider: user.provider || 'email',
+                lastLogin: user.lastLogin,
+                loginCount: user.loginCount,
+                totalTestsGenerated: user.totalTestsGenerated,
+                createdAt: user.createdAt
             },
             token: generateToken(user._id)
         });
@@ -97,9 +116,12 @@ exports.getMe = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        let provider = 'Email';
-        if (req.user.googleId) provider = 'Google';
-        else if (req.user.githubId) provider = 'GitHub';
+        let provider = req.user.provider || 'email';
+        if (!req.user.provider) {
+            // Fallback for legacy users without provider field
+            if (req.user.googleId) provider = 'google';
+            else if (req.user.githubId) provider = 'github';
+        }
 
         res.json({
             success: true,
@@ -108,7 +130,11 @@ exports.getMe = async (req, res) => {
                 name: req.user.name || req.user.displayName,
                 email: req.user.email,
                 avatar: req.user.avatar,
-                provider
+                provider,
+                lastLogin: req.user.lastLogin,
+                loginCount: req.user.loginCount,
+                totalTestsGenerated: req.user.totalTestsGenerated,
+                createdAt: req.user.createdAt
             }
         });
     } catch (error) {

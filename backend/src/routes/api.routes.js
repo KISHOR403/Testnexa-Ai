@@ -1,9 +1,33 @@
 const express = require('express');
-const { generateTestCases } = require('../controllers/generate.controller');
+const { generateTestCases, getTestHistory } = require('../controllers/generate.controller');
+const { protect } = require('../middleware/auth.middleware');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user.model');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
-// POST /api/v1/generate - Generate test cases
-router.post('/generate', generateTestCases);
+// Middleware to optionally attach user (doesn't require auth, but attaches user if token exists)
+const optionalAuth = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer')) {
+            const token = authHeader.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+            if (mongoose.connection.readyState === 1) {
+                req.user = await User.findById(decoded.id).select('-password');
+            }
+        }
+    } catch (err) {
+        // Silently fail — user just won't have history saved
+    }
+    next();
+};
+
+// POST /api/v1/generate - Generate test cases (optional auth to save history)
+router.post('/generate', optionalAuth, generateTestCases);
+
+// GET /api/v1/history - Get test generation history (requires auth)
+router.get('/history', protect, getTestHistory);
 
 module.exports = router;
