@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, History, LogOut, User, Mail, Shield } from 'lucide-react';
+import { X, History, LogOut, User, Mail, Shield, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
@@ -85,6 +85,41 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                         <span>{user.email}</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            {user.createdAt && (
+                                <div className="info-row">
+                                    <span className="info-label">Member Since</span>
+                                    <div className="info-value">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Clock size={16} color="#718096" />
+                                            <span>{new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {user.lastLogin && (
+                                <div className="info-row">
+                                    <span className="info-label">Last Login</span>
+                                    <div className="info-value">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <History size={16} color="#718096" />
+                                            <span>{new Date(user.lastLogin).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="profile-stats-grid">
+                            <div className="stat-card">
+                                <span className="stat-value">{user.totalTestsGenerated || 0}</span>
+                                <span className="stat-label">Tests Generated</span>
+                            </div>
+                            <div className="stat-card">
+                                <span className="stat-value">{user.loginCount || 1}</span>
+                                <span className="stat-label">Total Logins</span>
                             </div>
                         </div>
 

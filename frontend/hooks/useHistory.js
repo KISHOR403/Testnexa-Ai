@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiService } from '../services/apiService';
 
 const BASE_STORAGE_KEY = 'autotestnexa_history';
 const HISTORY_UPDATE_EVENT = 'historyUpdated';
@@ -18,22 +19,62 @@ export const useHistory = () => {
 
     const storageKey = getStorageKey(user);
 
-    // Load history from localStorage
-    const loadHistory = useCallback(() => {
+    // Load history from localStorage and sync with backend
+    const loadHistory = useCallback(async () => {
         if (!isAuthenticated || !user) {
             setHistory([]);
             return;
         }
+
+        // 1. Load from localStorage first for immediate UI response
         const storedHistory = localStorage.getItem(storageKey);
+        let localData = [];
         if (storedHistory) {
             try {
-                setHistory(JSON.parse(storedHistory));
+                localData = JSON.parse(storedHistory);
+                setHistory(localData);
             } catch (e) {
                 console.error('Failed to parse history:', e);
-                setHistory([]);
             }
-        } else {
-            setHistory([]);
+        }
+
+        // 2. Fetch from backend to sync (if online and authenticated)
+        try {
+            const response = await apiService.getHistory(1, 50);
+            if (response.success && Array.isArray(response.data)) {
+                // Transform backend history to match frontend format if necessary
+                const remoteData = response.data.map(item => ({
+                    id: item._id,
+                    feature: item.feature || 'Generated Suite',
+                    requirement: item.requirement,
+                    settings: {
+                        type: item.appType,
+                        level: item.detailLevel,
+                        testFocus: item.testFocus
+                    },
+                    totalCases: item.summary?.total || 0,
+                    date: item.createdAt,
+                    // Note: We don't fetch full 'data' for the list to save bandwidth, 
+                    // only fetch details when an item is selected if needed.
+                    // For now, our frontend expects 'data' to be present for preview.
+                    isRemote: true
+                }));
+
+                // Merge: In a real app, we'd de-duplicate by ID or timestamp
+                // For now, we prefer remote data but keep local data that hasn't been synced yet
+                setHistory(prev => {
+                    const merged = [...remoteData];
+                    // Add local items that aren't in remote (very basic de-dupe)
+                    localData.forEach(localItem => {
+                        if (!merged.find(r => r.feature === localItem.feature && r.requirement === localItem.requirement)) {
+                            merged.push(localItem);
+                        }
+                    });
+                    return merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+                });
+            }
+        } catch (e) {
+            console.error('Failed to sync history with backend:', e);
         }
     }, [storageKey, isAuthenticated, user]);
 

@@ -114,5 +114,27 @@ export const apiService = {
             // alert('BROWSER ERROR: ' + error.message); // REMOVED intrusive alert
             throw new Error(`Test generation failed: ${error.message}`);
         }
+    },
+    
+    getHistory: async (page = 1, limit = 20) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/history?page=${page}&limit=${limit}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch history');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('History fetch error:', error);
+            throw error;
+        }
     }
 };
