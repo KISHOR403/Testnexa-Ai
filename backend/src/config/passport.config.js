@@ -90,8 +90,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 avatar: profile.photos[0].value
             });
 
-            // Send welcome email to new user (fire-and-forget)
-            sendWelcomeEmail(profile.displayName, email);
+            // Send welcome email to new user
+            await sendWelcomeEmail(profile.displayName, email);
 
             done(null, user);
         } catch (err) {
@@ -151,6 +151,9 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                 email: email,
                 avatar: profile.photos ? profile.photos[0].value : null
             });
+
+            // Send welcome email to new user
+            await sendWelcomeEmail(profile.displayName || profile.username, email);
 
             done(null, user);
         } catch (err) {

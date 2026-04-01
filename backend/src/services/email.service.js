@@ -4,20 +4,27 @@ const nodemailer = require('nodemailer');
  * Creates a Nodemailer transporter from environment variables.
  */
 const createTransporter = () => {
+    // Clean spaces from SMTP_PASS (common in Gmail App Passwords)
+    const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
+    
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT) || 587,
         secure: false, // true for 465, false for other ports
         auth: {
             user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
+            pass: pass
+        },
+        // TLS options to ensure compatibility with modern Node.js and Gmail
+        tls: {
+            rejectUnauthorized: false
         }
     });
 };
 
 /**
  * Sends a welcome email to a newly registered user.
- * This is fire-and-forget — errors are logged but never thrown.
+ * Now returns the result so it can be awaited.
  *
  * @param {string} name - The user's display name
  * @param {string} email - The user's email address
@@ -26,10 +33,14 @@ const sendWelcomeEmail = async (name, email) => {
     try {
         if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
             console.warn('⚠️  SMTP credentials not configured — skipping welcome email');
-            return;
+            return { success: false, message: 'SMTP credentials missing' };
         }
 
         const transporter = createTransporter();
+        
+        // Verify connection before sending
+        await transporter.verify();
+
         const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
 
         const mailOptions = {
@@ -69,10 +80,12 @@ const sendWelcomeEmail = async (name, email) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log(`✅ Welcome email sent to ${email}`);
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Welcome email sent to ${email}: ${info.messageId}`);
+        return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error(`❌ Failed to send welcome email to ${email}:`, error.message);
+        return { success: false, error: error.message };
     }
 };
 

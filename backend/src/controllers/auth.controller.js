@@ -42,8 +42,8 @@ exports.register = async (req, res) => {
         });
 
         if (user) {
-            // Send welcome email to new user (fire-and-forget)
-            sendWelcomeEmail(name, email);
+            // Send welcome email to new user (and wait for it)
+            await sendWelcomeEmail(name, email);
 
             res.status(201).json({
                 success: true,
