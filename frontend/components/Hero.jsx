@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, ShieldCheck, FileJson, Sparkles } from 'lucide-react';
+import { Zap, ShieldCheck, FileJson } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 const Hero = () => {
@@ -14,7 +14,7 @@ const Hero = () => {
                     className={`scroll-reveal-blur ${headerReveal.isVisible ? 'revealed' : ''}`}
                 >
                     <div className="hero-badge">
-                        <Sparkles size={14} className="badge-icon" />
+                        <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '16px', height: '16px', objectFit: 'cover', borderRadius: '3px' }} />
                         <span>AI-Powered Test Generation</span>
                     </div>
 

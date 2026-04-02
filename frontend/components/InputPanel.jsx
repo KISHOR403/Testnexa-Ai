@@ -94,7 +94,7 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
             <div className="ip-header">
                 <div className="ip-header-left">
                     <div className="ip-logo-badge">
-                        <Sparkles size={16} />
+                        <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
                     </div>
                     <div>
                         <h3 className="ip-title">AI Workspace</h3>
