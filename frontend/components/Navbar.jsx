@@ -240,29 +240,29 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                                 <span>Help</span>
                                             </button>
                                             <div className="dropdown-separator" />
-                                            <button className="dropdown-action">
+                                            <button className="dropdown-action" onClick={() => { navigate('/help'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
                                                 <div className="action-icon-wrap"><HelpCircle size={14} /></div>
                                                 <span>Help center</span>
                                             </button>
-                                            <button className="dropdown-action">
+                                            <button className="dropdown-action" onClick={() => { navigate('/best-practices'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
                                                 <div className="action-icon-wrap"><Zap size={14} /></div>
                                                 <span>Release notes</span>
                                             </button>
-                                            <button className="dropdown-action">
+                                            <button className="dropdown-action" onClick={() => { navigate('/terms'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
                                                 <div className="action-icon-wrap"><FileText size={14} /></div>
                                                 <span>Terms & policies</span>
                                             </button>
-                                            <button className="dropdown-action">
+                                            <button className="dropdown-action" onClick={() => { navigate('/contact'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
                                                 <div className="action-icon-wrap"><MessageSquare size={14} /></div>
                                                 <span>Report Bug</span>
                                             </button>
-                                            <button className="dropdown-action">
+                                            <button className="dropdown-action" onClick={() => { navigate('/about'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
                                                 <div className="action-icon-wrap"><Download size={14} /></div>
-                                                <span>Download apps</span>
+                                                <span>About Us</span>
                                             </button>
-                                            <button className="dropdown-action">
+                                            <button className="dropdown-action" onClick={() => { navigate('/privacy'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
                                                 <div className="action-icon-wrap"><Keyboard size={14} /></div>
-                                                <span>Keyboard shortcuts</span>
+                                                <span>Privacy Policy</span>
                                             </button>
                                         </div>
                                     ) : null}
