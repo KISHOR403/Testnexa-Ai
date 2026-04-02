@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, ArrowLeft, KeyRound, Sparkles } from 'lucide-react';
+import { Mail, ArrowLeft, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ForgotPasswordPage = () => {
@@ -58,7 +58,7 @@ const ForgotPasswordPage = () => {
                     {/* Logo and Title */}
                     <div className="login-header" style={{ marginTop: '1.5rem' }}>
                         <div className="login-logo">
-                            <KeyRound size={28} className="login-logo-icon" />
+                            <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
                         </div>
                         <h1 className="login-title">Reset Password</h1>
                         <p className="login-subtitle">

@@ -74,7 +74,7 @@ const ResetPasswordPage = () => {
                     {/* Logo and Title */}
                     <div className="login-header">
                         <div className="login-logo">
-                            <Sparkles size={32} className="login-logo-icon" />
+                            <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
                         </div>
                         <h1 className="login-title">Set New Password</h1>
                         <p className="login-subtitle">

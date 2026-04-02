@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, LogIn, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Mail, Lock, User, LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const SignUpPage = () => {
@@ -114,7 +114,7 @@ const SignUpPage = () => {
                     {/* Logo and Title */}
                     <div className="login-header">
                         <div className="login-logo">
-                            <Sparkles size={32} className="login-logo-icon" />
+                            <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
                         </div>
                         <h1 className="login-title">Create Account</h1>
                         <p className="login-subtitle">Sign up to get started with Testnexa AI</p>
