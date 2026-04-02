@@ -39,6 +39,10 @@ const testHistorySchema = new mongoose.Schema({
         confidenceLevel: { type: String, default: '' },
         ambiguityScore: { type: String, default: '' }
     },
+    data: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
     processingTime: {
         type: String,
         default: ''

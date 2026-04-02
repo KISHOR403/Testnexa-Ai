@@ -54,9 +54,7 @@ export const useHistory = () => {
                     },
                     totalCases: item.summary?.total || 0,
                     date: item.createdAt,
-                    // Note: We don't fetch full 'data' for the list to save bandwidth, 
-                    // only fetch details when an item is selected if needed.
-                    // For now, our frontend expects 'data' to be present for preview.
+                    data: item.data || null, 
                     isRemote: true
                 }));
 

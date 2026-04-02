@@ -114,6 +114,7 @@ const generateTestCases = async (req, res) => {
                             confidenceLevel: result.quality.confidenceLevel || '',
                             ambiguityScore: result.quality.ambiguityScore || ''
                         },
+                        data: result,
                         processingTime,
                         model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
                     });
