@@ -108,34 +108,79 @@ const GeneratorPage = () => {
         await handleActualGenerate();
     };
 
-    const handleActualGenerate = async (overrideReq = null, overrideSettings = null) => {
+    const handleActualGenerate = async (overrideReq = null, overrideSettings = null, isRefinement = false) => {
         const reqToUse = overrideReq !== null ? overrideReq : requirement;
         const settingsToUse = overrideSettings !== null ? overrideSettings : settings;
 
         if (!reqToUse.trim()) return;
 
         setIsGenerating(true);
-        setResult(null);
+        if (!isRefinement) {
+            setResult(null);
+        }
         setShowClarification(false);
         setPageError(null);
 
         try {
             const generatedSuite = await apiService.generateTestSuite(reqToUse, settingsToUse);
-            console.log('API Response received:', generatedSuite);
-            setResult(generatedSuite);
-            console.log('Result state updated:', !!generatedSuite);
+            let finalSuite = generatedSuite;
+
+            if (isRefinement && result) {
+                // Merge the new suite into the old suite
+                finalSuite = { ...result };
+                
+                // Helper to merge arrays uniquely by ID or Title
+                const mergeArrays = (arr1, arr2) => {
+                    const map = new Map();
+                    (arr1 || []).forEach(item => map.set(item.id || item.title, item));
+                    (arr2 || []).forEach(item => map.set(item.id || item.title, item));
+                    return Array.from(map.values());
+                };
+
+                finalSuite.functional = mergeArrays(result.functional, generatedSuite.functional);
+                finalSuite.negative = mergeArrays(result.negative, generatedSuite.negative);
+                finalSuite.edge = mergeArrays(result.edge, generatedSuite.edge);
+                finalSuite.apiChecklist = mergeArrays(result.apiChecklist, generatedSuite.apiChecklist);
+                finalSuite.api = mergeArrays(result.api, generatedSuite.api);
+                finalSuite.nonFunctional = mergeArrays(result.nonFunctional, generatedSuite.nonFunctional);
+                finalSuite.questions = Array.from(new Set([...(result.questions || []), ...(generatedSuite.questions || [])]));
+                
+                const getApiCount = (suite) => Math.max(suite.apiChecklist?.length || 0, suite.api?.length || 0);
+                
+                // Update summary counts
+                finalSuite.summary = {
+                    ...finalSuite.summary,
+                    functional: finalSuite.functional.length,
+                    negative: finalSuite.negative.length,
+                    edge: finalSuite.edge.length,
+                    apiChecklist: getApiCount(finalSuite),
+                    nonFunctional: finalSuite.nonFunctional.length,
+                    total: finalSuite.functional.length + finalSuite.negative.length + finalSuite.edge.length + 
+                           getApiCount(finalSuite) + finalSuite.nonFunctional.length
+                };
+                
+                // Merge metadata intelligently
+                finalSuite.metadata = {
+                    ...result.metadata,
+                    generatedAt: new Date().toISOString()
+                };
+            }
+
+            console.log('API Response received (processed):', finalSuite);
+            setResult(finalSuite);
+            console.log('Result state updated:', !!finalSuite);
 
             // Auto-save to history
-            saveToHistory(generatedSuite, reqToUse, settingsToUse);
+            saveToHistory(finalSuite, reqToUse, settingsToUse);
 
-            if (generatedSuite.quality?.ambiguityScore === 'High' && generatedSuite.questions?.length > 0) {
+            if (finalSuite.quality?.ambiguityScore === 'High' && finalSuite.questions?.length > 0) {
                 setShowClarification(true);
             }
 
             // Desktop Notification
             if (globalSettings.notifications && Notification.permission === 'granted') {
                 new Notification('Test Suite Ready!', {
-                    body: `AI has successfully generated ${generatedSuite.testCases?.length || 0} test cases for your requirement.`,
+                    body: `AI has successfully generated ${finalSuite.summary?.total || 0} test cases for your requirement.`,
                     icon: '/favicon.ico'
                 });
             }
@@ -148,12 +193,56 @@ const GeneratorPage = () => {
                     window.scrollTo({ top: y, behavior: 'smooth' });
                 }
             }, 300); // Slightly longer delay to ensure DOM is ready
+            
+            return finalSuite;
         } catch (error) {
             console.error('Generation failed:', error);
             setPageError(error.message);
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    const handleRefineRegenerate = async (refinementData) => {
+        let enrichedReq = requirement + "\n\n--- ADDITIONAL CONTEXT & REFINEMENTS ---\n";
+        if (refinementData.targetedFeedback) {
+            enrichedReq += `\nFeedback: ${refinementData.targetedFeedback}`;
+        }
+        if (refinementData.focusAreas && refinementData.focusAreas.length > 0) {
+            enrichedReq += `\nFocus Areas: ${refinementData.focusAreas.join(', ')}`;
+        }
+        if (refinementData.assumptionOverrides && Object.keys(refinementData.assumptionOverrides).length > 0) {
+            enrichedReq += "\nOverwritten Assumptions: " + JSON.stringify(refinementData.assumptionOverrides);
+        }
+
+        const updatedSettings = {
+            ...settings,
+            testFocus: refinementData.testType
+        };
+
+        const previousTotal = result?.summary?.total || 
+            ((result?.summary?.functional || 0) + (result?.summary?.negative || 0) + (result?.summary?.edge || 0) + (result?.apiChecklist?.length || result?.api?.length || 0));
+
+        const newSuite = await handleActualGenerate(enrichedReq, updatedSettings, true);
+
+        if (newSuite) {
+            const newTotal = newSuite.summary?.total || 
+                ((newSuite.summary?.functional || 0) + (newSuite.summary?.negative || 0) + (newSuite.summary?.edge || 0) + Math.max(newSuite.apiChecklist?.length || 0, newSuite.api?.length || 0) + (newSuite.summary?.nonFunctional || 0));
+            
+            const diff = newTotal - previousTotal;
+            const actualAdded = Math.max(0, diff);
+
+            return {
+                changesSummary: [
+                    "Merged your refinements perfectly!",
+                    `Expanded coverage in: ${refinementData.testType}`,
+                    `Your suite now has ${newTotal} total test cases.`,
+                    actualAdded > 0 ? `Successfully isolated and added ${actualAdded} new test case(s).` : "Existing test cases were optimized without increasing the total count."
+                ],
+                metadata: { testsAdded: actualAdded }
+            };
+        }
+        return null;
     };
 
     return (
@@ -248,7 +337,7 @@ const GeneratorPage = () => {
                                     <h2 className="strong-heading text-gradient">Generation Results</h2>
                                     <span className="timestamp-badge">Generated just now</span>
                                 </div>
-                                <ResultsSection result={result} onSave={() => handleSave(result)} />
+                                <ResultsSection result={result} onSave={() => handleSave(result)} onRefineRegenerate={handleRefineRegenerate} />
                             </>
                         )}
                     </div>

@@ -202,7 +202,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
         { name: 'Functional (Happy paths covered)', icon: <ClipboardList size={18} />, count: result?.summary?.functional || 0, data: result?.functional || [] },
         { name: 'Negative (Failure scenarios)', icon: <XCircle size={18} />, count: result?.summary?.negative || 0, data: result?.negative || [] },
         { name: 'Edge Cases (Boundary conditions)', icon: <Zap size={18} />, count: result?.summary?.edge || 0, data: result?.edge || [] },
-        { name: 'API Checklist (Backend validation)', icon: <Link size={18} />, count: result?.api?.length || 0, data: result?.api || [] },
+        { name: 'API Checklist (Backend validation)', icon: <Link size={18} />, count: result?.apiChecklist?.length || result?.api?.length || 0, data: result?.apiChecklist || result?.api || [] },
         { name: 'Non-Functional (Performance & Security)', icon: <AlertCircle size={18} />, count: result?.nonFunctional?.length || 0, data: result?.nonFunctional || [] },
         { name: 'Questions (Logic Gaps Found)', icon: <MessageSquare size={18} />, count: result?.questions?.length || 0, data: result?.questions || [] }
     ];
@@ -250,7 +250,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                 functional: result.summary?.functional || 0,
                 negative: result.summary?.negative || 0,
                 edge_cases: result.summary?.edge || 0,
-                api_checks: result.api?.length || 0,
+                api_checks: result.apiChecklist?.length || result.api?.length || 0,
                 non_functional: result.nonFunctional?.length || 0,
                 total_test_cases:
                     (result.summary?.functional || 0) +
@@ -289,7 +289,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                     reason: tc.reason || '',
                 })),
             },
-            api_checklist: (result.api || []).map(item => ({
+            api_checklist: (result.apiChecklist || result.api || []).map(item => ({
                 endpoint: item.endpoint || item.title || '',
                 method: item.method || 'POST',
                 checks: item.checks || item.steps || [],
@@ -461,7 +461,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                         />
                     ) : activeTab.includes('API Checklist') ? (
                         <div className="api-view-luxury glass-card">
-                            {(result.api || []).map((item, i) => (
+                            {(result.apiChecklist || result.api || []).map((item, i) => (
                                 <div key={i} className="endpoint-block">
                                     <div className="endpoint-title-row">
                                         <span className="method-tag">{item.method || 'POST'}</span>

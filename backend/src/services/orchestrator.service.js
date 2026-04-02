@@ -126,14 +126,28 @@ class TwoStepOrchestrator {
         const detailLevel = config.detailLevel || 'medium';
         const appType = config.appType || 'web';
 
-        return `You are an expert QA engineer. Analyze the following requirement and generate comprehensive test cases in a single pass.
+        const detailInstructions = {
+            basic: 'Limit to 3-5 high-priority test cases per category. Focus ONLY on the most critical essential paths.',
+            medium: 'Provide a balanced test suite with 5-8 test cases per category, covering typical paths and common edge cases.',
+            detailed: 'Provide an exhaustive test suite with 8-12+ test cases per category, deeply uncovering security, boundaries, and complex interactions.'
+        };
+
+        const appTypeInstructions = {
+            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations.',
+            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle.',
+            api: 'Focus entirely on backend logic. You MUST leave UI test cases empty and deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas.'
+        };
+
+        return `You are a Senior QA Architect and SDET with deep industry experience in testing standards (ISTQB, Agile, BDD).
+Analyze the following requirement and generate comprehensive, industry-standard test cases in a single pass.
 
 Requirement:
 ${requirement}
 
-Application Type: ${appType}
-Detail Level: ${detailLevel}
-Test Focus: ${testFocus}
+CONTEXT RULES:
+Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstructions.web}
+Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
+Test Focus Category: ${testFocus}
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -170,12 +184,17 @@ Return ONLY valid JSON with this exact structure:
   "questions": ["Clarification question 1?"]
 }
 
-CRITICAL RULES:
-- List ALL assumptions explicitly in the "assumptions" array
-- Generate comprehensive coverage across functional, negative, edge, API, and non-functional categories
-- Keep test steps concise but actionable
-- IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'
-- DO NOT use markdown code blocks`;
+}
+
+CRITICAL RULES FOR QA INDUSTRY STANDARDS:
+1. All generated tests MUST adhere strictly to industry standards (ISTQB, IEEE 829).
+2. Steps MUST use precise, actionable language (e.g., Given/When/Then formats or clear sequential setup/execution commands).
+3. Always include necessary preconditions and explicit Test Data in the first steps.
+4. "expectedResult" MUST be unambiguously verifiable with clear pass/fail criteria.
+5. For "apiChecklist", you MUST include validation for status codes, schema contracts, response payloads, headers, and authentication.
+6. Generate comprehensive coverage isolating specific risk vectors for functional, negative, edge, API, and non-functional categories.
+7. List ALL assumptions explicitly in the "assumptions" array.
+8. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
     }
 
     /**
@@ -274,8 +293,22 @@ Rules:
     buildTestnexaerationPrompt(understanding, ambiguityAnalysis, domains, config) {
         const domainContext = domains.length > 0 ? domains[0].domain : 'general';
         const mandatoryScenarios = understanding.mandatory_scenarios || [];
+        const detailLevel = config?.detailLevel || 'medium';
+        const appType = config?.appType || 'web';
 
-        return `Generate test cases based on this validated requirement understanding:
+        const detailInstructions = {
+            basic: 'Limit to 3-5 high-priority test cases per category. Focus ONLY on the most critical essential paths.',
+            medium: 'Provide a balanced test suite with 5-8 test cases per category, covering typical paths and common edge cases.',
+            detailed: 'Provide an exhaustive test suite with 8-12+ test cases per category, deeply uncovering security, boundaries, and complex interactions.'
+        };
+
+        const appTypeInstructions = {
+            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations.',
+            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle.',
+            api: 'Focus entirely on backend logic. You MUST leave UI test cases empty and deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas.'
+        };
+
+        return `You are a Senior QA Architect. Generate industry-standard test cases based on this validated requirement understanding:
 
 ${JSON.stringify(understanding, null, 2)}
 
@@ -283,7 +316,11 @@ Domain Context: ${domainContext}
 Ambiguity Level: ${ambiguityAnalysis.level}
 Mandatory Scenarios: ${mandatoryScenarios.join(', ')}
 
-Generate test cases following this structure and rules:
+CONTEXT RULES:
+Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstructions.web}
+Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
+
+Generate test cases following strict industry standards (ISTQB/BDD), using this structure and rules:
 
 CRITICAL ASSUMPTION RULES:
 1. You MUST list every assumption you make in the "assumptions" array
@@ -320,6 +357,11 @@ Return ONLY a JSON object with this exact structure:
 }
 
 Generate comprehensive coverage across all categories.
+CRITICAL FORMATTING INSTRUCTIONS:
+- Steps MUST use BDD formulation (Given/When/Then) or highly explicit setup/execution/verification formats.
+- Preconditions and test data dependencies must be explicitly stated in the steps.
+- Expected Results must establish absolute pass/fail criteria (e.g., "HTTP 200 OK with schema X", or "Button is disabled and red").
+- For API endpoints, validate headers, tokens, parameters, and payload schemas rigorously.
 - IMPORTANT: Return ONLY valid JSON. START your response with '{' and END with '}'.
 - DO NOT use markdown code blocks (like \`\`\`json).
 - DO NOT include any preamble, introduction, or concluding text.`;
