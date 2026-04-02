@@ -215,6 +215,15 @@ const GeneratorPage = () => {
             enrichedReq += "\nOverwritten Assumptions: " + JSON.stringify(refinementData.assumptionOverrides);
         }
 
+        // Auth Guard Logic for Refinement
+        if (!isAuthenticated) {
+            if (!canGenerateAsGuest()) {
+                setShowLoginModal(true);
+                return null;
+            }
+            incrementGuestUsage();
+        }
+
         const updatedSettings = {
             ...settings,
             testFocus: refinementData.testType
