@@ -17,12 +17,16 @@ export const apiService = {
 
             const mappedDetailLevel = detailLevelMap[settings.level.toLowerCase()] || 'medium';
 
+            const token = localStorage.getItem('testnexa_token');
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const response = await fetch(`${API_BASE_URL}/generate`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', // Include cookies for authentication
+                headers,
+                credentials: 'include', // Backup if using cookies
                 body: JSON.stringify({
                     requirement: requirement,
                     appType: settings.type.toLowerCase(),
@@ -118,11 +122,15 @@ export const apiService = {
     
     getHistory: async (page = 1, limit = 20) => {
         try {
+            const token = localStorage.getItem('testnexa_token');
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const response = await fetch(`${API_BASE_URL}/history?page=${page}&limit=${limit}`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 credentials: 'include',
             });
 
