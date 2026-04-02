@@ -232,13 +232,89 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
     };
 
     const handleDownload = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(result));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", `TestPlan_${result.feature}.json`);
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const timestamp = new Date().toISOString();
+        const safeFeature = (result.feature || 'TestPlan').replace(/[^a-z0-9_\-]/gi, '_');
+
+        // Build a clean, structured JSON export
+        const structured = {
+            metadata: {
+                title: `Test Plan: ${result.feature || 'Unnamed Feature'}`,
+                generated_at: timestamp,
+                tool: 'Testnexa AI',
+                version: '1.0',
+                requirement: result.requirement || '',
+                app_context: result.appContext || '',
+                coverage_depth: result.coverageDepth || '',
+            },
+            summary: {
+                functional: result.summary?.functional || 0,
+                negative: result.summary?.negative || 0,
+                edge_cases: result.summary?.edge || 0,
+                api_checks: result.api?.length || 0,
+                non_functional: result.nonFunctional?.length || 0,
+                total_test_cases:
+                    (result.summary?.functional || 0) +
+                    (result.summary?.negative || 0) +
+                    (result.summary?.edge || 0),
+                quality_score: result.quality?.coverageConfidence || null,
+                ambiguity_score: result.quality?.ambiguityScore || null,
+            },
+            test_cases: {
+                functional: (result.functional || []).map(tc => ({
+                    id: tc.id,
+                    title: tc.title,
+                    priority: tc.priority,
+                    intent_group: tc.intentGroup || 'General',
+                    steps: tc.steps,
+                    expected_result: tc.expected,
+                    reason: tc.reason || '',
+                    priority_explanation: tc.priorityExplanation || '',
+                })),
+                negative: (result.negative || []).map(tc => ({
+                    id: tc.id,
+                    title: tc.title,
+                    priority: tc.priority,
+                    intent_group: tc.intentGroup || 'General',
+                    steps: tc.steps,
+                    expected_result: tc.expected,
+                    reason: tc.reason || '',
+                })),
+                edge_cases: (result.edge || []).map(tc => ({
+                    id: tc.id,
+                    title: tc.title,
+                    priority: tc.priority,
+                    intent_group: tc.intentGroup || 'General',
+                    steps: tc.steps,
+                    expected_result: tc.expected,
+                    reason: tc.reason || '',
+                })),
+            },
+            api_checklist: (result.api || []).map(item => ({
+                endpoint: item.endpoint || item.title || '',
+                method: item.method || 'POST',
+                checks: item.checks || item.steps || [],
+            })),
+            non_functional: (result.nonFunctional || []).map(tc => ({
+                id: tc.id,
+                title: tc.title,
+                category: tc.category || '',
+                steps: tc.steps,
+                expected_result: tc.expected,
+            })),
+            assumptions: result.assumptions || [],
+            clarification_questions: result.questions || [],
+            confidence_warnings: result.quality?.confidenceWarnings || [],
+        };
+
+        const dataStr =
+            'data:text/json;charset=utf-8,' +
+            encodeURIComponent(JSON.stringify(structured, null, 2));
+        const anchor = document.createElement('a');
+        anchor.setAttribute('href', dataStr);
+        anchor.setAttribute('download', `TestPlan_${safeFeature}_${Date.now()}.json`);
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
     };
 
     return (
