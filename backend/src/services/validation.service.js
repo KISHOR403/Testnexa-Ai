@@ -98,6 +98,22 @@ const checkInputQuality = (text) => {
         return { isValid: false, reason: 'Your input contains only numbers. Please describe a software feature or user story that you want to generate test cases for.' };
     }
 
+    // 7. Check for general conversational or educational/support prompts
+    const conversationalPatterns = [
+        /help me (to )?(learn|understand|code|write a script)/i,
+        /how (do|can) i (learn|write|code|understand)/i,
+        /what is (the meaning of|a good way to)/i,
+        /explain (how|what|why)/i,
+        /write a (poem|story|essay|blog|script in python|java program)/i,
+        /^hi(\s|,|!|$)/i, /^hello(\s|,|!|$)/i, /^hey(\s|,|!|$)/i
+    ];
+
+    for (const pattern of conversationalPatterns) {
+        if (pattern.test(trimmed)) {
+            return { isValid: false, reason: 'This appears to be a general question or conversational prompt. Testnexa AI is specifically designed to generate QA test cases from software requirements. Please describe a software feature (e.g., "User login module handling forgot password").' };
+        }
+    }
+
     return { isValid: true, reason: '' };
 };
 
