@@ -202,7 +202,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
         { name: 'Functional (Happy paths covered)', icon: <ClipboardList size={18} />, count: result?.summary?.functional || 0, data: result?.functional || [] },
         { name: 'Negative (Failure scenarios)', icon: <XCircle size={18} />, count: result?.summary?.negative || 0, data: result?.negative || [] },
         { name: 'Edge Cases (Boundary conditions)', icon: <Zap size={18} />, count: result?.summary?.edge || 0, data: result?.edge || [] },
-        { name: 'API Checklist (Backend validation)', icon: <Link size={18} />, count: result?.apiChecklist?.length || result?.api?.length || 0, data: result?.apiChecklist || result?.api || [] },
+        { name: 'API Checklist (Backend validation)', icon: <Link size={18} />, count: result?.apiChecklist?.length || result?.api?.length || 0, data: (result?.apiChecklist && result.apiChecklist.length > 0) ? result.apiChecklist : (result?.api || []) },
         { name: 'Non-Functional (Performance & Security)', icon: <AlertCircle size={18} />, count: result?.nonFunctional?.length || 0, data: result?.nonFunctional || [] },
         { name: 'Questions (Logic Gaps Found)', icon: <MessageSquare size={18} />, count: result?.questions?.length || 0, data: result?.questions || [] }
     ];
@@ -461,7 +461,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                         />
                     ) : activeTab.includes('API Checklist') ? (
                         <div className="api-view-luxury glass-card">
-                            {(result.apiChecklist || result.api || []).map((item, i) => (
+                            {((result?.apiChecklist && result.apiChecklist.length > 0) ? result.apiChecklist : (result?.api || [])).map((item, i) => (
                                 <div key={i} className="endpoint-block">
                                     <div className="endpoint-title-row">
                                         <span className="method-tag">{item.method || 'POST'}</span>

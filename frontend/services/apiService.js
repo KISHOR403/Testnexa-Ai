@@ -98,6 +98,7 @@ export const apiService = {
                 negative: normalize(data.negative, 'NEG'),
                 edge: normalize(data.edge, 'EDGE'),
                 api: normalize(data.apiChecklist || data.api, 'API'),
+                apiChecklist: normalize(data.apiChecklist || data.api, 'API'),
                 nonFunctional: normalize(data.nonFunctional, 'NONFUNC'),
                 assumptions: Array.isArray(data.assumptions) ? data.assumptions.map(a =>
                     (a && typeof a === 'object') ? (a.text || a.message || a.assumption || JSON.stringify(a)) : String(a || '')

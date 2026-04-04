@@ -140,8 +140,11 @@ const GeneratorPage = () => {
                 finalSuite.functional = mergeArrays(result.functional, generatedSuite.functional);
                 finalSuite.negative = mergeArrays(result.negative, generatedSuite.negative);
                 finalSuite.edge = mergeArrays(result.edge, generatedSuite.edge);
-                finalSuite.apiChecklist = mergeArrays(result.apiChecklist, generatedSuite.apiChecklist);
-                finalSuite.api = mergeArrays(result.api, generatedSuite.api);
+                
+                const mergedApi = mergeArrays(result.apiChecklist || result.api, generatedSuite.apiChecklist || generatedSuite.api);
+                finalSuite.apiChecklist = mergedApi;
+                finalSuite.api = mergedApi;
+                
                 finalSuite.nonFunctional = mergeArrays(result.nonFunctional, generatedSuite.nonFunctional);
                 finalSuite.questions = Array.from(new Set([...(result.questions || []), ...(generatedSuite.questions || [])]));
                 

@@ -187,14 +187,15 @@ Return ONLY valid JSON with this exact structure:
 }
 
 CRITICAL RULES FOR QA INDUSTRY STANDARDS:
-1. All generated tests MUST adhere strictly to industry standards (ISTQB, IEEE 829).
-2. Steps MUST use precise, actionable language (e.g., Given/When/Then formats or clear sequential setup/execution commands).
-3. Always include necessary preconditions and explicit Test Data in the first steps.
-4. "expectedResult" MUST be unambiguously verifiable with clear pass/fail criteria.
-5. For "apiChecklist", you MUST include validation for status codes, schema contracts, response payloads, headers, and authentication.
-6. Generate comprehensive coverage isolating specific risk vectors for functional, negative, edge, API, and non-functional categories.
-7. List ALL assumptions explicitly in the "assumptions" array.
-8. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
+1. ALL generated output MUST be strictly industry standard (ISTQB, IEEE 829 compliance).
+2. Use professional software engineering and QA terminology. Do not use colloquial language.
+3. Steps MUST use precise, actionable BDD formulation (Given/When/Then) or clear sequential setup/execution commands.
+4. Always include necessary preconditions and explicit Test Data in the first steps.
+5. "expectedResult" MUST be unambiguously verifiable with clear, formal pass/fail criteria.
+6. For "apiChecklist", you MUST include validation for status codes, schema contracts, response payloads, headers, and authentication.
+7. Generate comprehensive coverage isolating specific risk vectors for functional, negative, edge, API, and non-functional categories.
+8. List ALL assumptions explicitly in the "assumptions" array.
+9. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
     }
 
     /**
@@ -357,10 +358,11 @@ Return ONLY a JSON object with this exact structure:
 }
 
 Generate comprehensive coverage across all categories.
-CRITICAL FORMATTING INSTRUCTIONS:
+CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
+- ALL generated output should be strictly industry standard (ISTQB, Agile, IEEE 829). Use professional QA terminology.
 - Steps MUST use BDD formulation (Given/When/Then) or highly explicit setup/execution/verification formats.
 - Preconditions and test data dependencies must be explicitly stated in the steps.
-- Expected Results must establish absolute pass/fail criteria (e.g., "HTTP 200 OK with schema X", or "Button is disabled and red").
+- Expected Results must establish absolute, formal pass/fail criteria (e.g., "HTTP 200 OK with schema X", or "Button is disabled and red"). Do not use colloquial language.
 - For API endpoints, validate headers, tokens, parameters, and payload schemas rigorously.
 - IMPORTANT: Return ONLY valid JSON. START your response with '{' and END with '}'.
 - DO NOT use markdown code blocks (like \`\`\`json).
