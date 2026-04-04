@@ -400,7 +400,7 @@ h4 {
   transform: translateY(0);
 }
 
-/* --- Avatar & User Section (keep existing for authenticated users) --- */
+/* --- Avatar & User Section (Advanced Modern 2026 UI) --- */
 .navbar-user-section {
   position: relative;
 }
@@ -408,47 +408,66 @@ h4 {
 .navbar-avatar-trigger {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  background: none;
-  border: none;
+  gap: 0.6rem;
+  background: rgba(20, 24, 34, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 50px;
-  transition: all 0.2s ease;
+  padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+  border-radius: 9999px;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .navbar-avatar-trigger:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 36, 50, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.navbar-avatar-trigger:active {
+  transform: translateY(0);
 }
 
 .navbar-avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), rgba(168, 85, 247, 0.8));
+  background: linear-gradient(135deg, #00E1D9 0%, #5B6CFF 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 2px 10px rgba(91, 108, 255, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-.navbar-avatar:hover {
-  box-shadow: 0 0 16px rgba(0, 212, 193, 0.3);
+.navbar-avatar-trigger:hover .navbar-avatar {
+  box-shadow: 0 4px 16px rgba(0, 225, 217, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
 }
 
 .avatar-letter {
-  font-weight: 700;
-  font-size: 0.82rem;
-  color: white;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 1;
 }
 
 .avatar-chevron {
-  color: rgba(255, 255, 255, 0.4);
-  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-right: 0.2rem;
+}
+
+.navbar-avatar-trigger:hover .avatar-chevron {
+  color: #ffffff;
 }
 
 .chevron-flipped {
