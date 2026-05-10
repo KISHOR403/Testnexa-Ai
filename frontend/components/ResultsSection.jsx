@@ -39,6 +39,31 @@ const TestCaseCard = React.memo(({ testCase, isInitiallyExpanded = false, isSele
         setIsSynced(true);
     };
 
+    const handleCopy = (e) => {
+        e.stopPropagation();
+        
+        const stepsText = testCase.steps && testCase.steps.length > 0 
+            ? testCase.steps.map((step, idx) => `${idx + 1}. ${step}`).join('\n')
+            : 'No steps provided';
+            
+        const textToCopy = `Test Case: ${testCase.id}
+Title: ${testCase.title}
+Priority: ${testCase.priority}
+
+Steps to execute:
+${stepsText}
+
+Expected Behavior:
+${testCase.expected || 'N/A'}`;
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            alert("Copied to clipboard!");
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            alert("Failed to copy text.");
+        });
+    };
+
     const getIconForType = () => {
         const id = testCase.id || '';
         if (id.startsWith('TC_FUNC')) return <CheckSquare size={14} className="text-primary" />;
@@ -93,7 +118,7 @@ const TestCaseCard = React.memo(({ testCase, isInitiallyExpanded = false, isSele
                     </div>
                 </div>
                 <div className="card-header-quick-actions">
-                    <button className="btn-icon-tiny" title="Copy Card" onClick={(e) => { e.stopPropagation(); alert("Copied!"); }}><Copy size={16} /></button>
+                    <button className="btn-icon-tiny" title="Copy Card" onClick={handleCopy}><Copy size={16} /></button>
                     <div className="card-expand-icon">
                         {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </div>
@@ -131,7 +156,7 @@ const TestCaseCard = React.memo(({ testCase, isInitiallyExpanded = false, isSele
                         </div>
                     </div>
                     <div className="card-footer-luxury">
-                        <button className="btn-action-ghost" onClick={(e) => { e.stopPropagation(); alert("Copied!"); }}>
+                        <button className="btn-action-ghost" onClick={handleCopy}>
                             <Copy size={16} />
                             <span>Copy</span>
                         </button>
