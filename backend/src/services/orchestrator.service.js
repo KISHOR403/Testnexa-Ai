@@ -302,8 +302,8 @@ Rules:
         };
 
         const appTypeInstructions = {
-            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations.',
-            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle.',
+            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations. You MUST also generate backend API validation tests in the apiChecklist array.',
+            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. You MUST also generate backend API validation tests in the apiChecklist array.',
             api: 'Focus entirely on backend logic. You MUST leave UI test cases empty and deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas.'
         };
 
@@ -348,10 +348,10 @@ Return ONLY a JSON object with this exact structure:
       "intentGroup": "Validation|Success|Security|UX"
     }
   ],
-  "negative": [...],
-  "edge": [...],
-  "apiChecklist": [...],
-  "nonFunctional": [...],
+  "negative": [{ "id": "TC_NEG_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
+  "edge": [{ "id": "TC_EDGE_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
+  "apiChecklist": [{ "id": "TC_API_001", "title": "...", "method": "POST", "endpoint": "/api/...", "steps": ["Check 1", "Check 2"], "expectedResult": "..." }],
+  "nonFunctional": [{ "id": "TC_NF_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "..." }],
   "questions": ["Clarification question 1?"]
 }
 
