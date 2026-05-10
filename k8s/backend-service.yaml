@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: testnexa-backend-service
+  namespace: testnexa
+  labels:
+    app: testnexa-backend
+    app.kubernetes.io/name: testnexa-backend
+    app.kubernetes.io/part-of: testnexa-ai
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: testnexa-backend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 5000

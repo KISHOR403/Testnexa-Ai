@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+
+# Environment files (injected via K8s secrets)
+.env
+.env.example
+
+# Test & debug files
+test-*.js
+test-*.ps1
+brute-force*.js
+debug-*.json
+*_output.*
+*_verification.*
+last_ai_raw.txt
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Docs
+README.md
+*.md
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Misc
+.DS_Store

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testnexa-frontend
+  namespace: testnexa
+  labels:
+    app: testnexa-frontend
+    app.kubernetes.io/name: testnexa-frontend
+    app.kubernetes.io/part-of: testnexa-ai
+    app.kubernetes.io/component: frontend
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/"
+    prometheus.io/port: "80"
+
+spec:
+  replicas: 2   # ✅ FIXED (was 4)
+
+  selector:
+    matchLabels:
+      app: testnexa-frontend
+
+  template:
+    metadata:
+      labels:
+        app: testnexa-frontend
+        app.kubernetes.io/name: testnexa-frontend
+        app.kubernetes.io/part-of: testnexa-ai
+        app.kubernetes.io/component: frontend
+
+    spec:
+      containers:
+        - name: testnexa-frontend
+          image: kishorgogoi2003/testnexa-frontend:latest
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 80
+              protocol: TCP
+
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+
+          # ❤️ Liveness Probe
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # 🚦 Readiness Probe
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+
+          env:
+            - name: VITE_API_BASE_URL
+              value: "http://testnexa-backend-service:5000/api/v1"
+
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+
+      restartPolicy: Always

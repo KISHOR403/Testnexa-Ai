@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
+# Backend (separate Docker build)
+backend/
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Reports & docs
+*.pdf
+*.svg
+Testnexa_AI_Final_Report*
+*.html
+!index.html
+
+# Environment files
+.env
+.env.local
+*.local
+
+# Kubernetes & CI/CD (except nginx.conf needed by Dockerfile)
+k8s/
+!k8s/nginx.conf
+.github/
+
+# Misc
+.DS_Store
+DEPLOYMENT.md
+README.md

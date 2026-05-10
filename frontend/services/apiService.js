@@ -75,7 +75,9 @@ export const apiService = {
                         ...tc,
                         id: String(tc.id || `TC_${type}_${i + 1}`),
                         title: String(tc.title || 'Untitled Test Case'),
-                        steps: Array.isArray(tc.steps) ? tc.steps.map(String) : [],
+                        steps: Array.isArray(tc.steps) ? tc.steps.map(String) :
+                               Array.isArray(tc.checkpoints) ? tc.checkpoints.map(String) :
+                               Array.isArray(tc.checks) ? tc.checks.map(String) : [],
                         expected: String(tc.expected || tc.expectedResult || 'No expected result provided'),
                         priority: String(tc.priority || 'Medium'),
                         intentGroup: String(tc.intentGroup || 'General Coverage'),

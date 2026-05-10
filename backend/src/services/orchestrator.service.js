@@ -133,8 +133,8 @@ class TwoStepOrchestrator {
         };
 
         const appTypeInstructions = {
-            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations.',
-            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle.',
+            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations. You MUST also generate backend API validation tests in the apiChecklist array.',
+            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. You MUST also generate backend API validation tests in the apiChecklist array.',
             api: 'Focus entirely on backend logic. You MUST leave UI test cases empty and deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas.'
         };
 
@@ -182,8 +182,6 @@ Return ONLY valid JSON with this exact structure:
   "apiChecklist": [{ "id": "TC_API_001", "title": "...", "method": "POST", "endpoint": "/api/...", "checks": ["Check 1"], "steps": ["..."], "expectedResult": "..." }],
   "nonFunctional": [{ "id": "TC_NF_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "..." }],
   "questions": ["Clarification question 1?"]
-}
-
 }
 
 CRITICAL RULES FOR QA INDUSTRY STANDARDS:
@@ -996,7 +994,20 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
                     intentGroup: 'Concurrency'
                 }
             ],
-            apiChecklist: [],
+            apiChecklist: [
+                {
+                    id: 'TC_API_001',
+                    title: `Verify API endpoint for ${mainAction}`,
+                    priority: 'High',
+                    steps: [
+                        `Send POST request to ${mainAction} endpoint with valid payload`,
+                        'Verify response status code is 200 or 201',
+                        'Verify response payload matches expected schema'
+                    ],
+                    expectedResult: 'API should return success status code and correct schema structure',
+                    reason: 'API contract validation is critical for frontend integration'
+                }
+            ],
             nonFunctional: [
                 {
                     id: 'TC_NF_001',

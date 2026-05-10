@@ -79,13 +79,24 @@ app.use('/api/v1', apiRoutes);
 const { callAI } = require('./services/ai.service');
 
 
-// Health check endpoint
+// Health check endpoint (liveness probe)
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
+        memory: process.memoryUsage(),
     });
+});
+
+// Readiness probe endpoint
+app.get('/ready', (req, res) => {
+    const mongoStatus = mongoose.connection.readyState;
+    // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+    if (!process.env.MONGODB_URI || mongoStatus === 1) {
+        return res.json({ status: 'READY', db: mongoStatus === 1 ? 'connected' : 'not_configured' });
+    }
+    return res.status(503).json({ status: 'NOT_READY', db: 'disconnected' });
 });
 
 // 404 Handler

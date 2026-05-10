@@ -468,7 +468,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                                         <span className="path-text">{item.endpoint || item.title}</span>
                                     </div>
                                     <div className="checklist-grid">
-                                        {(item.checks || item.steps || []).map((check, j) => (
+                                        {(item.checks || item.checkpoints || item.steps || []).map((check, j) => (
                                             <div key={j} className="check-item-card glass-card">
                                                 <CheckSquare size={16} />
                                                 <span>{check}</span>

@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testnexa-backend
+  namespace: testnexa
+  labels:
+    app: testnexa-backend
+    app.kubernetes.io/name: testnexa-backend
+    app.kubernetes.io/part-of: testnexa-ai
+    app.kubernetes.io/component: backend
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/health"
+    prometheus.io/port: "5000"
+
+spec:
+  replicas: 2   # ✅ FIXED (was 10)
+
+  selector:
+    matchLabels:
+      app: testnexa-backend
+
+  template:
+    metadata:
+      labels:
+        app: testnexa-backend
+        app.kubernetes.io/name: testnexa-backend
+        app.kubernetes.io/part-of: testnexa-ai
+        app.kubernetes.io/component: backend
+
+    spec:
+      containers:
+        - name: testnexa-backend
+          image: kishorgogoi2003/testnexa-backend:latest   # ✅ CORRECT IMAGE
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+
+          # 🔥 Resource Limits (kept optimized for EC2)
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+
+          # ❤️ Liveness Probe
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # 🚦 Readiness Probe
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # 🚀 Startup Probe
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+
+          # 🔐 ENV (ConfigMap + Secret)
+          envFrom:
+            - configMapRef:
+                name: testnexa-config
+            - secretRef:
+                name: testnexa-secrets
+
+      restartPolicy: Always

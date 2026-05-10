@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: testnexa
+  labels:
+    app.kubernetes.io/name: testnexa
+    app.kubernetes.io/part-of: testnexa-ai
