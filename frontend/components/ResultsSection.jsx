@@ -372,7 +372,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                         <span className="chip-label-new">API (Backend)</span>
                         <Link size={18} className="text-primary" />
                     </div>
-                    <span className="chip-value-xl">{tabs[3]?.count || 0}</span>
+                    <span className="chip-value-xl">{result?.summary?.apiChecklist || 0}</span>
                 </div>
                 <div className="summary-chip-new glass-card score-chip">
                     <div className="chip-header">

@@ -122,9 +122,9 @@ class TwoStepOrchestrator {
      * @returns {string} Combined prompt
      */
     buildCombinedPrompt(requirement, config = {}) {
-        const testFocus = config.testFocus || 'mixed';
-        const detailLevel = config.detailLevel || 'medium';
-        const appType = config.appType || 'web';
+        const testFocus = (config.testFocus || 'mixed').toLowerCase();
+        const detailLevel = (config.detailLevel || 'medium').toLowerCase();
+        const appType = (config.appType || 'web').toLowerCase();
 
         const detailInstructions = {
             basic: 'Limit to 3-5 high-priority test cases per category. Focus ONLY on the most critical essential paths.',
@@ -133,9 +133,9 @@ class TwoStepOrchestrator {
         };
 
         const appTypeInstructions = {
-            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations. You MUST also generate backend API validation tests in the apiChecklist array.',
-            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. You MUST also generate backend API validation tests in the apiChecklist array.',
-            api: 'Focus entirely on backend logic. You MUST leave UI test cases empty and deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas.'
+            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations. MANDATORY: You MUST also generate backend API validation tests in the apiChecklist array.',
+            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. MANDATORY: You MUST also generate backend API validation tests in the apiChecklist array.',
+            api: 'Focus entirely on backend logic. Deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas. While focusing on API, you may still include critical functional integration tests in other categories.'
         };
 
         return `You are a Senior QA Architect and SDET with deep industry experience in testing standards (ISTQB, Agile, BDD).
@@ -179,7 +179,7 @@ Return ONLY valid JSON with this exact structure:
   ],
   "negative": [{ "id": "TC_NEG_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
   "edge": [{ "id": "TC_EDGE_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
-  "apiChecklist": [{ "id": "TC_API_001", "title": "...", "method": "POST", "endpoint": "/api/...", "checks": ["Check 1"], "steps": ["..."], "expectedResult": "..." }],
+  "apiChecklist": [{ "id": "TC_API_001", "title": "API: Valid Login", "method": "POST", "endpoint": "/api/v1/login", "steps": ["Send request with valid credentials", "Verify status 200", "Verify JWT token in response"], "expectedResult": "Successful API authentication" }],
   "nonFunctional": [{ "id": "TC_NF_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "..." }],
   "questions": ["Clarification question 1?"]
 }
@@ -289,11 +289,11 @@ Rules:
      * @param {Object} config - Config
      * @returns {string} Prompt
      */
-    buildTestnexaerationPrompt(understanding, ambiguityAnalysis, domains, config) {
+    buildTestGenerationPrompt(understanding, ambiguityAnalysis, domains, config) {
         const domainContext = domains.length > 0 ? domains[0].domain : 'general';
         const mandatoryScenarios = understanding.mandatory_scenarios || [];
-        const detailLevel = config?.detailLevel || 'medium';
-        const appType = config?.appType || 'web';
+        const detailLevel = (config?.detailLevel || 'medium').toLowerCase();
+        const appType = (config?.appType || 'web').toLowerCase();
 
         const detailInstructions = {
             basic: 'Limit to 3-5 high-priority test cases per category. Focus ONLY on the most critical essential paths.',
@@ -302,9 +302,9 @@ Rules:
         };
 
         const appTypeInstructions = {
-            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations. You MUST also generate backend API validation tests in the apiChecklist array.',
-            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. You MUST also generate backend API validation tests in the apiChecklist array.',
-            api: 'Focus entirely on backend logic. You MUST leave UI test cases empty and deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas.'
+            web: 'Focus heavily on UI/UX workflows, responsive behaviors, client-side state, and browser-specific validations. MANDATORY: You MUST also generate backend API validation tests in the apiChecklist array.',
+            mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. MANDATORY: You MUST also generate backend API validation tests in the apiChecklist array.',
+            api: 'Focus entirely on backend logic. Deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas. While focusing on API, you may still include critical functional integration tests in other categories.'
         };
 
         return `You are a Senior QA Architect. Generate industry-standard test cases based on this validated requirement understanding:
@@ -468,7 +468,7 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
             functional: personaEnhanced.functional || [],
             negative: personaEnhanced.negative || [],
             edge: personaEnhanced.edge || [],
-            apiChecklist: personaEnhanced.apiChecklist || [],
+            apiChecklist: personaEnhanced.apiChecklist || personaEnhanced.api || [],
             nonFunctional: personaEnhanced.nonFunctional || [],
 
             // Clarification questions

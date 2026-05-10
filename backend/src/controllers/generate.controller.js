@@ -41,6 +41,25 @@ const generateTestCases = async (req, res) => {
 
         const processingTime = `${((Date.now() - startTime) / 1000).toFixed(2)}s`;
 
+        // Log the internal result for debugging
+        logger.info('Generation completed successfully', {
+            functionalCount: result.functional?.length || 0,
+            negativeCount: result.negative?.length || 0,
+            edgeCount: result.edge?.length || 0,
+            apiCount: result.apiChecklist?.length || 0,
+            processingTime
+        });
+
+        // Debug: Save the result to a file so we can inspect it
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const debugFile = path.join(__dirname, '../../debug_last_result.json');
+            fs.writeFileSync(debugFile, JSON.stringify(result, null, 2));
+        } catch (e) {
+            logger.error('Failed to save debug result', e);
+        }
+
         // Step 3: Build Final Response
         const response = {
             success: true,
