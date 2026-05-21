@@ -5989,19 +5989,45 @@ textarea:focus {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .process-step:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(0, 212, 193, 0.2);
-  transform: translateX(10px);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 212, 193, 0.04);
+}
+
+@media (min-width: 769px) {
+  .process-step::after {
+    content: '';
+    position: absolute;
+    top: calc(2rem + 22px);
+    bottom: calc(-2.5rem - 2rem - 22px);
+    left: calc(2rem + 22px);
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--primary) 0%,
+      rgba(0, 212, 193, 0.3) 30%,
+      rgba(0, 212, 193, 0.3) 70%,
+      var(--primary) 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .process-step:last-child::after {
+    display: none;
+  }
 }
 
 .step-number {
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  background: rgba(0, 212, 193, 0.1);
+  background: #080c15;
   border: 1px solid var(--primary);
   border-radius: 50%;
   display: flex;
@@ -6011,6 +6037,8 @@ textarea:focus {
   font-weight: 800;
   font-size: 1.1rem;
   box-shadow: 0 0 15px rgba(0, 212, 193, 0.2);
+  position: relative;
+  z-index: 2;
 }
 
 .step-content h4 {
