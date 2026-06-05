@@ -12223,6 +12223,99 @@ textarea.form-input {
   }
 }
 
+/* ─── Structured Steps Table (Action / Expected) ─── */
+.tc-steps-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 0.5rem;
+}
+
+.tc-steps-table thead tr {
+  background: rgba(0, 212, 193, 0.08);
+}
+
+.tc-steps-table th {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim, rgba(255,255,255,0.5));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tc-steps-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.tc-steps-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tc-steps-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tc-steps-table td {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary, rgba(255,255,255,0.7));
+  vertical-align: top;
+}
+
+.tc-steps-table .tc-step-num {
+  width: 36px;
+  text-align: center;
+  color: var(--primary, #00d4c1);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.tc-steps-table .tc-step-action {
+  width: 55%;
+  color: var(--text-primary, #fff);
+}
+
+.tc-steps-table .tc-step-expected {
+  width: 40%;
+  color: var(--text-secondary, rgba(255,255,255,0.65));
+  font-style: italic;
+}
+
+/* ─── Preconditions Tags ─── */
+.tc-preconditions-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.tc-precondition-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.tc-precondition-tag::before {
+  content: '•';
+  margin-right: 0.35rem;
+  color: var(--primary, #00d4c1);
+  font-weight: 800;
+}
+
+
 /* ═══════════════════════════════════════════════════════════════
    COVERAGE ANALYTICS DASHBOARD
    Real, data-driven metrics — not cosmetic decorations.

@@ -37,14 +37,22 @@ const TestCaseRow = React.memo(({ testCase, isExpanded, onToggleExpand, isSelect
     const handleCopy = (e) => {
         e.stopPropagation();
         const stepsText = testCase.steps && testCase.steps.length > 0
-            ? testCase.steps.map((step, idx) => `${idx + 1}. ${step}`).join('\n')
+            ? testCase.steps.map((step, idx) => {
+                if (typeof step === 'object' && step.action) {
+                    return `${idx + 1}. Action: ${step.action}\n   Expected: ${step.expected || 'N/A'}`;
+                }
+                return `${idx + 1}. ${step}`;
+            }).join('\n')
             : 'No steps provided';
+        const preconText = Array.isArray(testCase.preconditions)
+            ? testCase.preconditions.join(', ')
+            : (testCase.preconditions || 'None');
         const textToCopy = `ID: ${testCase.id}
 Module: ${testCase.module}
 Title: ${testCase.title}
 Type: ${testCase.type}
 Priority: ${testCase.priority}
-Preconditions: ${testCase.preconditions || 'None'}
+Preconditions: ${preconText}
 Steps:\n${stepsText}
 Expected Result: ${testCase.expectedResult || 'N/A'}
 Requirement ID: ${testCase.requirementId}`;
@@ -90,7 +98,15 @@ Requirement ID: ${testCase.requirementId}`;
                             <div className="tc-detail-grid">
                                 <div className="tc-detail-block">
                                     <h5 className="tc-detail-label">Preconditions</h5>
-                                    <p className="tc-detail-value">{testCase.preconditions || 'None specified'}</p>
+                                    {Array.isArray(testCase.preconditions) && testCase.preconditions.length > 0 ? (
+                                        <div className="tc-preconditions-tags">
+                                            {testCase.preconditions.map((p, i) => (
+                                                <span key={i} className="tc-precondition-tag">{p}</span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="tc-detail-value">{typeof testCase.preconditions === 'string' ? testCase.preconditions : 'None specified'}</p>
+                                    )}
                                 </div>
                                 <div className="tc-detail-block">
                                     <h5 className="tc-detail-label">Requirement ID</h5>
@@ -99,11 +115,32 @@ Requirement ID: ${testCase.requirementId}`;
                             </div>
                             <div className="tc-detail-block">
                                 <h5 className="tc-detail-label">Steps to Execute</h5>
-                                <ol className="tc-steps-list">
-                                    {(testCase.steps || []).map((step, i) => (
-                                        <li key={i}>{step}</li>
-                                    ))}
-                                </ol>
+                                {testCase.steps?.length > 0 && typeof testCase.steps[0] === 'object' && testCase.steps[0].action ? (
+                                    <table className="tc-steps-table">
+                                        <thead>
+                                            <tr>
+                                                <th className="tc-step-num">#</th>
+                                                <th className="tc-step-action">Action</th>
+                                                <th className="tc-step-expected">Expected</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {testCase.steps.map((step, i) => (
+                                                <tr key={i}>
+                                                    <td className="tc-step-num">{i + 1}</td>
+                                                    <td className="tc-step-action">{step.action}</td>
+                                                    <td className="tc-step-expected">{step.expected || '—'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <ol className="tc-steps-list">
+                                        {(testCase.steps || []).map((step, i) => (
+                                            <li key={i}>{typeof step === 'string' ? step : step?.action || String(step)}</li>
+                                        ))}
+                                    </ol>
+                                )}
                             </div>
                             <div className="tc-detail-block">
                                 <h5 className="tc-detail-label">Expected Result</h5>

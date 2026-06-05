@@ -148,16 +148,35 @@ Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstruc
 Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
 Test Focus Category: ${testFocus}
 
-STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 9 fields:
+STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 9 fields (NO additional fields allowed):
 - "id": string (e.g. "TC_FUNC_001")
 - "module": string (feature module name, e.g. "Login", "Payment")
-- "title": string (concise test case title)
-- "type": string ("Functional", "Negative", "Edge", "API", or "Non-Functional")
-- "priority": string ("High", "Medium", or "Low")
-- "preconditions": string (pre-conditions before execution)
-- "steps": array of strings (ordered execution steps)
-- "expectedResult": string (unambiguous pass/fail criteria)
+- "title": string (concise test case title, max 80 chars, NO prose)
+- "type": string (MUST be one of: "Functional", "Negative", "Edge", "API", "Non-Functional")
+- "priority": string (MUST be one of: "High", "Medium", "Low")
+- "preconditions": string[] (array of prerequisite conditions, each a short declarative statement)
+- "steps": array of objects, each with exactly {"action": string, "expected": string}
+    - "action": what the tester DOES (imperative verb, e.g. "Enter valid email in the email field")
+    - "expected": what the system SHOULD do (e.g. "Email field accepts input without error")
+- "expectedResult": string (final pass/fail verdict for the entire test case)
 - "requirementId": string (traceability ID, e.g. "REQ_001")
+
+ABSOLUTE CONSTRAINTS ON FIELD VALUES:
+- "title": Must be a concise noun phrase. NO sentences, NO prose, NO "Verify that..." phrasing.
+  ✅ GOOD: "Valid Credit Card Payment"
+  ❌ BAD: "Verify that the user can successfully make a payment using a valid credit card"
+- "steps[].action": Must start with an imperative verb (Enter, Click, Navigate, Submit, Send, Select).
+  NO "Given/When/Then" prefixes. NO prose paragraphs.
+  ✅ GOOD: "Enter 'test@email.com' in the email field"
+  ❌ BAD: "Given the user is on the login page, when they enter their email..."
+- "steps[].expected": Must be a short, verifiable assertion.
+  ✅ GOOD: "Email field accepts input and shows no validation error"
+  ❌ BAD: "The system should properly validate and accept the email input from the user"
+- "preconditions": Must be an array of short declarative statements.
+  ✅ GOOD: ["User is logged in", "Cart has at least 1 item"]
+  ❌ BAD: "The user must be logged in and have items in their cart"
+- "expectedResult": One concise sentence with clear pass/fail criteria.
+- ALL string values must be plain text. NO markdown, NO HTML, NO bullet points inside strings.
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -177,31 +196,35 @@ Return ONLY valid JSON with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
-      "module": "Feature Module",
-      "title": "Test case title",
+      "module": "Payment",
+      "title": "Valid Credit Card Checkout",
       "type": "Functional",
-      "priority": "High|Medium|Low",
-      "preconditions": "Pre-conditions for this test",
-      "steps": ["Step 1", "Step 2"],
-      "expectedResult": "Expected result with pass/fail criteria",
+      "priority": "High",
+      "preconditions": ["User is logged in", "Cart contains items"],
+      "steps": [
+        {"action": "Navigate to checkout page", "expected": "Checkout page loads with cart summary"},
+        {"action": "Enter valid credit card details", "expected": "Card fields accept input without error"},
+        {"action": "Click 'Place Order' button", "expected": "Order is submitted and confirmation page appears"}
+      ],
+      "expectedResult": "Order placed successfully with confirmation number displayed",
       "requirementId": "REQ_001"
     }
   ],
-  "negative": [{ "id": "TC_NEG_001", "module": "Module", "title": "...", "type": "Negative", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
-  "edge": [{ "id": "TC_EDGE_001", "module": "Module", "title": "...", "type": "Edge", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
-  "apiChecklist": [{ "id": "TC_API_001", "module": "API Module", "title": "API: Valid Login", "type": "API", "priority": "High", "preconditions": "API server running", "steps": ["Send request with valid credentials", "Verify status 200", "Verify JWT token in response"], "expectedResult": "HTTP 200 with valid JWT", "requirementId": "REQ_API_001" }],
-  "nonFunctional": [{ "id": "TC_NF_001", "module": "Module", "title": "...", "type": "Non-Functional", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_NF_001" }],
+  "negative": [{"id": "TC_NEG_001", "module": "Module", "title": "Expired Card Rejection", "type": "Negative", "priority": "High", "preconditions": ["User on payment page"], "steps": [{"action": "Enter expired card details", "expected": "System displays expiration error message"}], "expectedResult": "Payment rejected with clear error", "requirementId": "REQ_001"}],
+  "edge": [{"id": "TC_EDGE_001", "module": "Module", "title": "Boundary Amount Test", "type": "Edge", "priority": "Medium", "preconditions": ["Cart ready"], "steps": [{"action": "Set order total to $0.01", "expected": "System accepts minimum amount"}], "expectedResult": "Order processes for minimum valid amount", "requirementId": "REQ_001"}],
+  "apiChecklist": [{"id": "TC_API_001", "module": "Payment API", "title": "POST /api/payment - Valid Card", "type": "API", "priority": "High", "preconditions": ["API server running", "Valid auth token"], "steps": [{"action": "Send POST with valid card payload", "expected": "Response status 200"}, {"action": "Validate response schema", "expected": "Body contains transactionId and status=success"}], "expectedResult": "HTTP 200 with valid transaction object", "requirementId": "REQ_API_001"}],
+  "nonFunctional": [{"id": "TC_NF_001", "module": "Module", "title": "Checkout Page Load Time", "type": "Non-Functional", "priority": "Medium", "preconditions": ["Standard network conditions"], "steps": [{"action": "Load checkout page with 10 items", "expected": "Page renders within 2 seconds"}], "expectedResult": "Page load time under 2s at P95", "requirementId": "REQ_NF_001"}],
   "questions": ["Clarification question 1?"]
 }
 
-CRITICAL RULES FOR QA INDUSTRY STANDARDS:
-1. ALL generated output MUST be strictly industry standard (ISTQB, IEEE 829 compliance).
-2. Use professional software engineering and QA terminology. Do not use colloquial language.
-3. Steps MUST use precise, actionable BDD formulation (Given/When/Then) or clear sequential setup/execution commands.
-4. Always include necessary preconditions in the "preconditions" field (NOT as step 1).
-5. "expectedResult" MUST be unambiguously verifiable with clear, formal pass/fail criteria.
-6. For "apiChecklist", you MUST include validation for status codes, schema contracts, response payloads, headers, and authentication.
-7. Generate comprehensive coverage isolating specific risk vectors for functional, negative, edge, API, and non-functional categories.
+CRITICAL RULES:
+1. EVERY test case must match the schema EXACTLY. No extra fields, no missing fields.
+2. "steps" MUST be an array of {"action": string, "expected": string} objects. NOT an array of strings.
+3. "preconditions" MUST be an array of strings. NOT a single string.
+4. NO prose anywhere in test case bodies. Keep all values concise and machine-readable.
+5. "title" must be under 80 characters. NO sentences. Noun phrase only.
+6. For "apiChecklist": include HTTP method, endpoint path, status codes, and response schema validation.
+7. Generate comprehensive coverage across functional, negative, edge, API, and non-functional categories.
 8. List ALL assumptions explicitly in the "assumptions" array.
 9. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
     }

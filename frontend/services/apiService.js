@@ -68,6 +68,30 @@ export const apiService = {
             });
 
             // Transform backend response to match frontend expectations with defensive defaults
+            const normalizeSteps = (rawSteps) => {
+                if (!Array.isArray(rawSteps)) return [];
+                return rawSteps.map((step, idx) => {
+                    if (typeof step === 'string') {
+                        // Legacy format: plain string → convert to {action, expected}
+                        return { action: step, expected: '' };
+                    }
+                    if (step && typeof step === 'object') {
+                        // New structured format
+                        return {
+                            action: String(step.action || step.step || ''),
+                            expected: String(step.expected || step.result || ''),
+                        };
+                    }
+                    return { action: String(step), expected: '' };
+                }).filter(s => s.action);
+            };
+
+            const normalizePreconditions = (raw) => {
+                if (Array.isArray(raw)) return raw.map(String);
+                if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
+                return [];
+            };
+
             const normalize = (cases = [], type = 'FUNC', typeLabel = 'Functional') => {
                 return (Array.isArray(cases) ? cases : []).map((tc, i) => {
                     if (!tc || typeof tc !== 'object') return null;
@@ -78,10 +102,8 @@ export const apiService = {
                         title: String(tc.title || 'Untitled Test Case'),
                         type: String(tc.type || typeLabel),
                         priority: String(tc.priority || 'Medium'),
-                        preconditions: String(tc.preconditions || ''),
-                        steps: Array.isArray(tc.steps) ? tc.steps.map(String) :
-                               Array.isArray(tc.checkpoints) ? tc.checkpoints.map(String) :
-                               Array.isArray(tc.checks) ? tc.checks.map(String) : [],
+                        preconditions: normalizePreconditions(tc.preconditions),
+                        steps: normalizeSteps(tc.steps || tc.checkpoints || tc.checks || []),
                         expectedResult: String(tc.expectedResult || tc.expected || 'No expected result provided'),
                         requirementId: String(tc.requirementId || `REQ_${String(i + 1).padStart(3, '0')}`),
                     };
