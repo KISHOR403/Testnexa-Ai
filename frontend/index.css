@@ -11871,3 +11871,355 @@ textarea.form-input {
   background: #030712;
 }
 
+/* ============================================
+   TEST CASE TABLE — STRICT SCHEMA v2
+   ============================================ */
+
+.tc-table-wrapper {
+  overflow-x: auto;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.tc-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.tc-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.tc-table thead tr {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+}
+
+.tc-table th {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--surface-border);
+  white-space: nowrap;
+}
+
+.tc-th-checkbox {
+  width: 40px;
+  text-align: center !important;
+}
+
+.tc-th-id { width: 120px; }
+.tc-th-module { width: 130px; }
+.tc-th-title { min-width: 200px; }
+.tc-th-type { width: 120px; }
+.tc-th-priority { width: 100px; }
+.tc-th-steps { width: 90px; }
+.tc-th-actions { width: 80px; }
+
+/* Table Rows */
+.tc-table-row {
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tc-table-row:hover {
+  background: rgba(0, 212, 193, 0.04);
+}
+
+.tc-table-row.expanded {
+  background: rgba(0, 212, 193, 0.06);
+  border-bottom-color: transparent;
+}
+
+.tc-table-row.selected {
+  background: rgba(0, 212, 193, 0.08);
+}
+
+.tc-table-row td {
+  padding: 0.8rem 1rem;
+  vertical-align: middle;
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tc-cell-checkbox {
+  text-align: center !important;
+  width: 40px;
+}
+
+.tc-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.tc-cell-id {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+}
+
+.tc-id-pill {
+  background: rgba(0, 212, 193, 0.1);
+  color: var(--primary);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tc-cell-module {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.tc-cell-title {
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.tc-cell-type { white-space: nowrap; }
+.tc-cell-priority { white-space: nowrap; }
+.tc-cell-steps { text-align: center; }
+
+.tc-cell-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.expand-indicator {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+/* Priority Badges (Table) */
+.tc-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tc-priority-badge.high {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.tc-priority-badge.medium {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.tc-priority-badge.low {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+/* Type Badges (Table) */
+.tc-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.tc-type-badge.type-functional {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+
+.tc-type-badge.type-negative {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.tc-type-badge.type-edge {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+
+.tc-type-badge.type-api {
+  background: rgba(0, 212, 193, 0.12);
+  color: var(--primary);
+}
+
+.tc-type-badge.type-nonfunctional {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+
+/* Steps Count Badge */
+.steps-count-badge {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Expanded Row */
+.tc-expanded-row td {
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(0, 212, 193, 0.12);
+}
+
+.tc-expanded-content {
+  padding: 1.25rem 1.5rem 1.5rem 3.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(0, 212, 193, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: fadeSlideDown 0.25s ease-out;
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tc-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.tc-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tc-detail-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin: 0;
+}
+
+.tc-detail-value {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tc-req-id {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.tc-steps-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tc-steps-list li {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.tc-steps-list li::marker {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.tc-expected-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.tc-expected-result .success-icon {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.tc-expected-result p {
+  color: #d1fae5;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Mobile Responsive: Test Case Table */
+@media (max-width: 768px) {
+  .tc-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tc-table {
+    min-width: 700px;
+  }
+
+  .tc-expanded-content {
+    padding: 1rem 1.25rem 1.25rem 1.25rem;
+  }
+
+  .tc-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .tc-table {
+    font-size: 0.82rem;
+  }
+
+  .tc-table th {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.72rem;
+  }
+
+  .tc-table-row td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+

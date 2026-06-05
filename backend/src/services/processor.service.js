@@ -75,20 +75,28 @@ const removeDuplicates = (testCases) => {
     return uniqueTests;
 };
 
-// Normalize test case structure
+// Normalize test case structure to strict schema
 const normalizeTestCase = (testCase, category, index, feature) => {
+    // Map category to type label
+    const typeMap = {
+        functional: 'Functional',
+        negative: 'Negative',
+        edge: 'Edge',
+        api: 'API',
+        apiChecklist: 'API',
+        nonFunctional: 'Non-Functional',
+    };
+
     return {
         id: generateTestCaseId(category, index),
+        module: testCase.module || feature || 'General',
         title: testCase.title || 'Untitled Test Case',
+        type: testCase.type || typeMap[category] || 'Functional',
         priority: assignPriority(testCase, feature),
+        preconditions: testCase.preconditions || '',
         steps: testCase.steps || [],
-        expected: testCase.expected || '',
-        testData: testCase.testData || {},
-        reason: testCase.reason || 'Generated based on inferred rule from requirement.',
-        riskType: testCase.riskType || (category === 'negative' ? 'Security' : 'UX'),
-        priorityExplanation: testCase.priorityExplanation || (testCase.priority === 'High' ? 'Critical business path validation.' : null),
-        intentGroup: testCase.intentGroup || 'General Coverage',
-        category: testCase.category || category,
+        expectedResult: testCase.expectedResult || testCase.expected || '',
+        requirementId: testCase.requirementId || `REQ_${String(index + 1).padStart(3, '0')}`,
     };
 };
 

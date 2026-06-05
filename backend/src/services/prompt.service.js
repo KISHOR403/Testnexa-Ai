@@ -1,5 +1,26 @@
 // Production-Ready Prompt Templates for Test Case Generation
 // Supports: Functional, Non-Functional, API, Mixed, and Regeneration modes
+// Schema v2: Strict JSON with id, module, title, type, priority, preconditions, steps[], expectedResult, requirementId
+
+// ============================================
+// STRICT TEST CASE SCHEMA (shared across all prompts)
+// ============================================
+const TEST_CASE_SCHEMA_EXAMPLE = `{
+  "id": "TC_FUNC_001",
+  "module": "Login",
+  "title": "Verify successful login with valid credentials",
+  "type": "Functional",
+  "priority": "High",
+  "preconditions": "User has a registered account; application is accessible",
+  "steps": [
+    "Navigate to the login page",
+    "Enter a valid registered email address",
+    "Enter the correct password",
+    "Click the Login button"
+  ],
+  "expectedResult": "User is redirected to the dashboard; a valid session token is issued",
+  "requirementId": "REQ_001"
+}`;
 
 // ============================================
 // BASE SYSTEM PROMPT (COMMON FOR ALL)
@@ -17,7 +38,18 @@ Rules:
 - Prefer clarity, structure, and testability.
 - Expected results must have unambiguous pass/fail criteria.
 - Think like a real QA engineer working in Agile teams.
-- Output MUST be valid JSON only. No explanations outside JSON.`;
+- Output MUST be valid JSON only. No explanations outside JSON.
+
+STRICT TEST CASE SCHEMA — Every test case object MUST have exactly these fields:
+- "id": string (e.g. "TC_FUNC_001", "TC_NEG_002")
+- "module": string (the feature module this test belongs to, e.g. "Login", "Payment", "Registration")
+- "title": string (concise test case title)
+- "type": string (one of: "Functional", "Negative", "Edge", "API", "Non-Functional")
+- "priority": string (one of: "High", "Medium", "Low")
+- "preconditions": string (pre-conditions that must be met before execution)
+- "steps": array of strings (ordered execution steps)
+- "expectedResult": string (unambiguous pass/fail criteria)
+- "requirementId": string (traceability ID linking back to the requirement, e.g. "REQ_001")`;
 
 // ============================================
 // 1️⃣ FUNCTIONAL TEST FOCUS PROMPT
@@ -29,13 +61,7 @@ Instructions:
 - Focus on happy paths and core user workflows.
 - Exclude performance, security, and non-functional tests.
 - Include negative functional scenarios (invalid inputs).
-- Each test case must include:
-  - id
-  - title
-  - priority (High / Medium / Low)
-  - steps (array)
-  - expectedResult
-  - reason (why this test exists)
+- Every test case MUST follow the strict schema with all 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
 
 Also return:
 - ambiguityScore: Low | Medium | High
@@ -61,41 +87,32 @@ Return ONLY a JSON object with this exact structure:
   },
   "assumptions": ["Assumption 1", "Assumption 2"],
   "functional": [
-    {
-      "id": "TC_FUNC_001",
-      "title": "Test case title",
-      "priority": "High|Medium|Low",
-      "steps": ["Step 1", "Step 2"],
-      "expectedResult": "Expected result",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "For High priority only",
-      "intentGroup": "Validation|Success|Security|UX"
-    }
+    ${TEST_CASE_SCHEMA_EXAMPLE}
   ],
   "negative": [
     {
       "id": "TC_NEG_001",
-      "title": "Negative test title",
-      "priority": "High|Medium|Low",
-      "steps": ["Step 1"],
-      "expectedResult": "Expected error",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "For High priority only",
-      "intentGroup": "Validation|Success|Security|UX"
+      "module": "Login",
+      "title": "Verify error on invalid password",
+      "type": "Negative",
+      "priority": "High",
+      "preconditions": "User has a registered account",
+      "steps": ["Navigate to login", "Enter valid email", "Enter wrong password", "Click Login"],
+      "expectedResult": "Error message displayed: 'Invalid credentials'",
+      "requirementId": "REQ_001"
     }
   ],
   "edge": [
     {
       "id": "TC_EDGE_001",
-      "title": "Edge case title",
-      "priority": "Medium|Low",
-      "steps": ["Step 1"],
-      "expectedResult": "Expected behavior",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "intentGroup": "Validation|Success|Security|UX"
+      "module": "Login",
+      "title": "Verify login with boundary-length password",
+      "type": "Edge",
+      "priority": "Medium",
+      "preconditions": "User account exists with minimum-length password",
+      "steps": ["Navigate to login", "Enter valid email", "Enter 8-char password", "Click Login"],
+      "expectedResult": "Login succeeds if password matches",
+      "requirementId": "REQ_001"
     }
   ],
   "questions": ["Clarification question 1?", "Question 2?"]
@@ -111,23 +128,9 @@ const buildNonFunctionalFocusPrompt = (requirement) => {
 IMPORTANT:
 - Do NOT generate functional happy-path flows.
 - Do NOT include UI navigation steps unless required for context.
-- Focus strictly on quality attributes.
-
-Group test cases into the following categories:
-- Performance
-- Security
-- Reliability & Recovery
-- Usability
-- Scalability
-
-For each test case include:
-- id
-- category
-- title
-- priority (High / Medium / Low)
-- scenario (clear description)
-- expectedOutcome
-- reason (why this test exists)
+- Focus strictly on quality attributes: Performance, Security, Reliability & Recovery, Usability, Scalability.
+- Every test case MUST follow the strict schema with all 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- Set "type" to "Non-Functional" for all test cases.
 
 Also return:
 - ambiguityScore: Low | Medium | High
@@ -154,15 +157,15 @@ Return ONLY a JSON object with this exact structure:
   "assumptions": ["Assumption 1", "Assumption 2"],
   "nonFunctional": [
     {
-      "id": "TC_NF_PERF_001",
-      "category": "Performance",
-      "title": "Test case title",
-      "priority": "High|Medium|Low",
-      "scenario": "Clear description of the test scenario",
-      "expectedOutcome": "Expected performance metric or behavior",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "For High priority only"
+      "id": "TC_NF_001",
+      "module": "Login",
+      "title": "Verify login page loads within 2 seconds under normal load",
+      "type": "Non-Functional",
+      "priority": "High",
+      "preconditions": "Application is deployed to staging; network latency < 50ms",
+      "steps": ["Open browser", "Navigate to login URL", "Measure page load time"],
+      "expectedResult": "Page fully renders within 2 seconds (LCP < 2s)",
+      "requirementId": "REQ_NF_001"
     }
   ],
   "questions": ["Clarification question 1?", "Question 2?"]
@@ -179,13 +182,8 @@ Instructions:
 - Focus on integration, contracts, and backend validations.
 - Exclude UI-level functional tests.
 - Include API error handling and edge cases.
-- Each test case must include:
-  - id
-  - title
-  - priority (High / Medium / Low)
-  - steps or scenario
-  - expectedResult
-  - reason (why this test exists)
+- Every test case MUST follow the strict schema with all 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- Set "type" to "API" for all test cases.
 
 Also return:
 - ambiguityScore: Low | Medium | High
@@ -213,13 +211,14 @@ Return ONLY a JSON object with this exact structure:
   "apiChecklist": [
     {
       "id": "TC_API_001",
-      "title": "API test case title",
-      "priority": "High|Medium|Low",
-      "checkpoints": ["Checkpoint 1", "Checkpoint 2"],
-      "expectedResult": "Expected API response",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "For High priority only"
+      "module": "Auth API",
+      "title": "POST /api/v1/login — valid credentials return 200 with JWT",
+      "type": "API",
+      "priority": "High",
+      "preconditions": "API server is running; test user exists in database",
+      "steps": ["Send POST to /api/v1/login with valid email and password", "Verify response status is 200", "Verify response body contains 'token' field", "Verify token is a valid JWT"],
+      "expectedResult": "HTTP 200 OK; response contains valid JWT token and user object",
+      "requirementId": "REQ_API_001"
     }
   ],
   "questions": ["Clarification question 1?", "Question 2?"]
@@ -239,25 +238,17 @@ const buildMixedFocusPrompt = (requirement, appType, detailLevel) => {
   return `Analyze the following requirement and generate a COMPLETE test suite.
 
 Generate test cases across these categories:
-- Functional
-- Negative
-- Edge / Boundary
-- API Validation (if applicable)
-- Non-Functional (Performance, Security, Reliability)
+- Functional (set type = "Functional")
+- Negative (set type = "Negative")
+- Edge / Boundary (set type = "Edge")
+- API Validation (set type = "API") — if applicable
+- Non-Functional (set type = "Non-Functional") — Performance, Security, Reliability
 
 Rules:
 - Prioritize business-critical and risk-heavy areas.
 - Avoid duplicate or overlapping scenarios.
 - Assign realistic priorities based on impact.
-
-Each test case must include:
-- id
-- type (Functional / Negative / Edge / API / Non-Functional)
-- title
-- priority
-- steps or scenario
-- expectedResult
-- reason
+- EVERY test case MUST follow the strict schema with ALL 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
 
 Also return:
 - ambiguityScore: Low | Medium | High
@@ -287,30 +278,69 @@ Return ONLY a JSON object with this exact structure:
   },
   "assumptions": ["Implicit assumption 1", "Assumed rule 2"],
   "functional": [
-    { 
+    {
       "id": "TC_FUNC_001",
-      "title": "...", 
-      "priority": "High|Medium|Low", 
-      "steps": ["..."], 
-      "expectedResult": "...", 
-      "testData": {}, 
-      "reason": "Why this test exists", 
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "Briefly why High (only for High)",
-      "intentGroup": "Validation|Success|Security|UX"
+      "module": "Feature Module",
+      "title": "Test case title",
+      "type": "Functional",
+      "priority": "High|Medium|Low",
+      "preconditions": "Pre-conditions for this test",
+      "steps": ["Step 1", "Step 2"],
+      "expectedResult": "Expected result with clear pass/fail criteria",
+      "requirementId": "REQ_001"
     }
   ],
   "negative": [
-    { "id": "TC_NEG_001", "title": "...", "priority": "High|Medium|Low", "steps": ["..."], "expectedResult": "...", "testData": {}, "reason": "...", "riskType": "...", "priorityExplanation": "...", "intentGroup": "..." }
+    {
+      "id": "TC_NEG_001",
+      "module": "Feature Module",
+      "title": "Negative test title",
+      "type": "Negative",
+      "priority": "High|Medium|Low",
+      "preconditions": "Pre-conditions",
+      "steps": ["Step 1"],
+      "expectedResult": "Expected error behavior",
+      "requirementId": "REQ_001"
+    }
   ],
   "edge": [
-    { "id": "TC_EDGE_001", "title": "...", "priority": "Medium|Low", "steps": ["..."], "expectedResult": "...", "testData": {}, "reason": "...", "riskType": "...", "priorityExplanation": "...", "intentGroup": "..." }
+    {
+      "id": "TC_EDGE_001",
+      "module": "Feature Module",
+      "title": "Edge case title",
+      "type": "Edge",
+      "priority": "Medium|Low",
+      "preconditions": "Pre-conditions",
+      "steps": ["Step 1"],
+      "expectedResult": "Expected boundary behavior",
+      "requirementId": "REQ_001"
+    }
   ],
   "apiChecklist": [
-    { "id": "TC_API_001", "title": "...", "priority": "High|Medium", "checkpoints": ["..."] }
+    {
+      "id": "TC_API_001",
+      "module": "API Module",
+      "title": "API test title",
+      "type": "API",
+      "priority": "High|Medium",
+      "preconditions": "API server running; auth token available",
+      "steps": ["Send request", "Verify status code", "Verify response schema"],
+      "expectedResult": "HTTP 200 with valid response",
+      "requirementId": "REQ_API_001"
+    }
   ],
   "nonFunctional": [
-    { "id": "TC_NF_001", "title": "...", "category": "Performance|Security|Usability|Reliability", "priority": "High|Medium|Low", "expectedOutcome": "...", "testData": {} }
+    {
+      "id": "TC_NF_001",
+      "module": "Feature Module",
+      "title": "Non-functional test title",
+      "type": "Non-Functional",
+      "priority": "High|Medium|Low",
+      "preconditions": "Pre-conditions for NFR test",
+      "steps": ["Step 1"],
+      "expectedResult": "Expected performance/security metric",
+      "requirementId": "REQ_NF_001"
+    }
   ],
   "questions": ["specific clarification question 1", "question 2"]
 }
@@ -319,12 +349,8 @@ Instructions:
 1. ${detailInstructions[detailLevel]}.
 2. Generate 3-5 non-functional test cases.
 3. ${appType === 'api' ? 'Include detailed API checklist.' : 'API checklist can be minimal or empty for UI apps.'}
-4. For each test case, Provide:
-   - "riskType": The primary area of impact (Revenue, Security, or UX).
-   - "intentGroup": A grouping for better readability (e.g., "Success Flows", "Validation Errors", "Security Guardrails").
-   - "priorityExplanation": For HIGH priority cases, provide a 1-line business impact statement (e.g., "Failure directly impacts transaction revenue").
-5. "assumptions": Explicitly list any assumptions made because of vague or missing info.
-6. "confidenceWarnings": Specific warnings for the user where coverage might be weak or assumptions are heavy.`;
+4. "assumptions": Explicitly list any assumptions made because of vague or missing info.
+5. "confidenceWarnings": Specific warnings for the user where coverage might be weak or assumptions are heavy.`;
 };
 
 // ============================================
@@ -367,13 +393,7 @@ Instructions:
 - Keep previously valid test cases stable.
 - Explicitly mention what changed.
 - ${testTypeInstruction}
-
-Return:
-- updatedTestCases (complete updated test suite)
-- changesSummary (array of improvements made)
-- updatedCoverageConfidence
-- updatedAmbiguityScore
-- assumptions (if any)
+- EVERY test case MUST follow the strict schema with ALL 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -390,7 +410,19 @@ Return ONLY a JSON object with this exact structure:
     "confidenceWarnings": ["warning if any"]
   },
   "assumptions": ["Assumption 1", "Assumption 2"],
-  "functional": [...],
+  "functional": [
+    {
+      "id": "TC_FUNC_001",
+      "module": "Module Name",
+      "title": "Test title",
+      "type": "Functional",
+      "priority": "High",
+      "preconditions": "Pre-conditions",
+      "steps": ["Step 1"],
+      "expectedResult": "Expected result",
+      "requirementId": "REQ_001"
+    }
+  ],
   "negative": [...],
   "edge": [...],
   "apiChecklist": [...],

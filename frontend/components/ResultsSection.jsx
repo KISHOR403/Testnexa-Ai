@@ -7,183 +7,114 @@ import {
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 
-// Memoized TestCaseCard for better scroll performance
-const TestCaseCard = React.memo(({ testCase, isInitiallyExpanded = false, isSelected, onToggleSelect }) => {
-    const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [isSynced, setIsSynced] = useState(false);
-    const [showWhy, setShowWhy] = useState(false);
+// ─── Priority Badge Component ───
+const PriorityBadge = ({ priority }) => {
+    const p = (priority || 'Medium').toLowerCase();
+    return <span className={`tc-priority-badge ${p}`}>{priority || 'Medium'}</span>;
+};
 
-    React.useEffect(() => {
-        setIsExpanded(isInitiallyExpanded);
-    }, [isInitiallyExpanded]);
-
-    const getPriorityClass = (priority = 'Medium') => {
-        const p = (priority || 'Medium').toLowerCase();
-        switch (p) {
-            case 'high': return 'priority-badge high';
-            case 'medium': return 'priority-badge medium';
-            case 'low': return 'priority-badge low';
-            default: return 'priority-badge';
-        }
+// ─── Type Badge Component ───
+const TypeBadge = ({ type }) => {
+    const typeClassMap = {
+        'Functional': 'type-functional',
+        'Negative': 'type-negative',
+        'Edge': 'type-edge',
+        'API': 'type-api',
+        'Non-Functional': 'type-nonfunctional',
     };
+    return <span className={`tc-type-badge ${typeClassMap[type] || ''}`}>{type || 'Functional'}</span>;
+};
 
-    const handleJiraSync = async (e) => {
-        e.stopPropagation();
-        if (isSynced || isSyncing) return;
-
-        setIsSyncing(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setIsSyncing(false);
-        setIsSynced(true);
-    };
-
+// ─── Expandable Table Row ───
+const TestCaseRow = React.memo(({ testCase, isExpanded, onToggleExpand, isSelected, onToggleSelect }) => {
     const handleCopy = (e) => {
         e.stopPropagation();
-        
-        const stepsText = testCase.steps && testCase.steps.length > 0 
+        const stepsText = testCase.steps && testCase.steps.length > 0
             ? testCase.steps.map((step, idx) => `${idx + 1}. ${step}`).join('\n')
             : 'No steps provided';
-            
-        const textToCopy = `Test Case: ${testCase.id}
+        const textToCopy = `ID: ${testCase.id}
+Module: ${testCase.module}
 Title: ${testCase.title}
+Type: ${testCase.type}
 Priority: ${testCase.priority}
-
-Steps to execute:
-${stepsText}
-
-Expected Behavior:
-${testCase.expected || 'N/A'}`;
+Preconditions: ${testCase.preconditions || 'None'}
+Steps:\n${stepsText}
+Expected Result: ${testCase.expectedResult || 'N/A'}
+Requirement ID: ${testCase.requirementId}`;
 
         navigator.clipboard.writeText(textToCopy).then(() => {
-            alert("Copied to clipboard!");
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            alert("Failed to copy text.");
-        });
+            // brief visual feedback could be added
+        }).catch(err => console.error('Failed to copy:', err));
     };
-
-    const getIconForType = () => {
-        const id = testCase.id || '';
-        if (id.startsWith('TC_FUNC')) return <CheckSquare size={14} className="text-primary" />;
-        if (id.startsWith('TC_NEG')) return <XCircle size={14} className="text-danger" />;
-        return <Zap size={14} className="text-warning" />;
-    };
-
-    const getExecutionTag = () => {
-        const priority = String(testCase.priority || 'Medium').toLowerCase();
-        const testId = String(testCase.id || '');
-
-        if (priority === 'high' && testId.includes('FUNC')) {
-            return { label: 'Ready to Execute', class: 'tag-ready' };
-        }
-        if (testId.includes('API') || testCase.category === 'apiChecklist') {
-            return { label: 'Automation Candidate', class: 'tag-automation' };
-        }
-        if (testCase.hasAmbiguity) { // Inferred or passed from backend
-            return { label: 'Needs Clarification', class: 'tag-clarify' };
-        }
-        return null;
-    };
-
-    const execTag = getExecutionTag();
 
     return (
-        <div className={`test-case-card-luxury glass-card ${isExpanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''}`}>
-            <div className="card-header-luxury" onClick={() => setIsExpanded(!isExpanded)}>
-                <div className="card-selection-area" onClick={(e) => e.stopPropagation()}>
+        <>
+            <tr
+                className={`tc-table-row ${isExpanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''}`}
+                onClick={() => onToggleExpand(testCase.id)}
+            >
+                <td className="tc-cell-checkbox" onClick={(e) => e.stopPropagation()}>
                     <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => onToggleSelect(testCase.id)}
                         className="tc-checkbox"
                     />
-                </div>
-                <div className="card-header-main">
-                    <div className="header-meta-row">
-                        <span className="tc-id-pill">{testCase.id}</span>
-                        <span className={getPriorityClass(testCase.priority)}>{testCase.priority}</span>
-                        <span className="type-badge-mini">{getIconForType()} {(testCase.id || '').includes('FUNC') ? 'Functional' : (testCase.id || '').includes('NEG') ? 'Negative' : 'Edge'}</span>
-                        {execTag && <span className={`execution-tag ${execTag.class}`}>{execTag.label}</span>}
-                    </div>
-                    <div className="title-row-scannable">
-                        <h4 className="card-title-strong">{testCase.title}</h4>
-                        {testCase.priority === 'High' && testCase.priorityExplanation && (
-                            <p className="priority-impact-desc">
-                                <Zap size={12} fill="currentColor" /> {testCase.priorityExplanation}
-                            </p>
-                        )}
-                        <p className="card-mini-summary">{(testCase.expected || '').substring(0, 80)}...</p>
-                    </div>
-                </div>
-                <div className="card-header-quick-actions">
-                    <button className="btn-icon-tiny" title="Copy Card" onClick={handleCopy}><Copy size={16} /></button>
-                    <div className="card-expand-icon">
-                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </div>
-                </div>
-            </div>
-
+                </td>
+                <td className="tc-cell-id"><span className="tc-id-pill">{testCase.id}</span></td>
+                <td className="tc-cell-module">{testCase.module}</td>
+                <td className="tc-cell-title">{testCase.title}</td>
+                <td className="tc-cell-type"><TypeBadge type={testCase.type} /></td>
+                <td className="tc-cell-priority"><PriorityBadge priority={testCase.priority} /></td>
+                <td className="tc-cell-steps">
+                    <span className="steps-count-badge">{testCase.steps?.length || 0} steps</span>
+                </td>
+                <td className="tc-cell-actions">
+                    <button className="btn-icon-tiny" title="Copy" onClick={handleCopy}><Copy size={14} /></button>
+                    <span className="expand-indicator">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                </td>
+            </tr>
             {isExpanded && (
-                <div className="card-body-luxury">
-                    <div className="body-section-luxury">
-                        <div className="section-header-row">
-                            <h5 className="section-label-bright">Steps to execute:</h5>
-                            <button className="btn-why-link" onClick={(e) => { e.stopPropagation(); setShowWhy(!showWhy); }}>
-                                <Search size={14} />
-                                <span>Why this test?</span>
-                            </button>
-                        </div>
-
-                        {showWhy && (
-                            <div className="why-box glass-card animate-fade-in">
-                                <p>{testCase.reason || "Generated based on inferred rule from requirement."}</p>
+                <tr className="tc-expanded-row">
+                    <td colSpan="8">
+                        <div className="tc-expanded-content">
+                            <div className="tc-detail-grid">
+                                <div className="tc-detail-block">
+                                    <h5 className="tc-detail-label">Preconditions</h5>
+                                    <p className="tc-detail-value">{testCase.preconditions || 'None specified'}</p>
+                                </div>
+                                <div className="tc-detail-block">
+                                    <h5 className="tc-detail-label">Requirement ID</h5>
+                                    <p className="tc-detail-value tc-req-id">{testCase.requirementId}</p>
+                                </div>
                             </div>
-                        )}
-
-                        <ol className="steps-list-luxury">
-                            {testCase.steps.map((step, i) => (
-                                <li key={i}>{step}</li>
-                            ))}
-                        </ol>
-                    </div>
-                    <div className="body-section-luxury">
-                        <h5 className="section-label-bright">Expected Behavior:</h5>
-                        <div className="expected-result-highlight">
-                            <CheckSquare size={16} className="success-icon" />
-                            <p>{testCase.expected}</p>
+                            <div className="tc-detail-block">
+                                <h5 className="tc-detail-label">Steps to Execute</h5>
+                                <ol className="tc-steps-list">
+                                    {(testCase.steps || []).map((step, i) => (
+                                        <li key={i}>{step}</li>
+                                    ))}
+                                </ol>
+                            </div>
+                            <div className="tc-detail-block">
+                                <h5 className="tc-detail-label">Expected Result</h5>
+                                <div className="tc-expected-result">
+                                    <CheckSquare size={16} className="success-icon" />
+                                    <p>{testCase.expectedResult}</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div className="card-footer-luxury">
-                        <button className="btn-action-ghost" onClick={handleCopy}>
-                            <Copy size={16} />
-                            <span>Copy</span>
-                        </button>
-                        <button
-                            className={`btn-action-ghost ${isSynced ? 'success-pulse' : ''}`}
-                            onClick={handleJiraSync}
-                            disabled={isSyncing || isSynced}
-                        >
-                            {isSyncing ? (
-                                <Loader2 size={16} className="animate-spin" />
-                            ) : isSynced ? (
-                                <CheckSquare size={16} className="text-success" />
-                            ) : (
-                                <ExternalLink size={16} />
-                            )}
-                            <span>{isSyncing ? 'Syncing...' : isSynced ? 'Synced to Jira' : 'Jira Sync'}</span>
-                        </button>
-                    </div>
-                </div>
+                    </td>
+                </tr>
             )}
-        </div>
+        </>
     );
 });
+TestCaseRow.displayName = 'TestCaseRow';
 
-// Add display name for debugging
-TestCaseCard.displayName = 'TestCaseCard';
-
+// ─── Empty State ───
 const EmptyState = ({ message, submessage }) => (
     <div className="empty-state-luxury glass-card">
         <div className="empty-icon-wrapper">
@@ -194,13 +125,15 @@ const EmptyState = ({ message, submessage }) => (
     </div>
 );
 
+// ─── Main Results Section ───
 const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
     console.log('ResultsSection rendering with:', result);
     if (!result) return <EmptyState message="Critical Error: No Result Data" />;
 
-    const [activeTab, setActiveTab] = useState('Functional (Happy paths covered)');
+    const [activeTab, setActiveTab] = useState('Functional');
     const [searchQuery, setSearchQuery] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('All');
+    const [expandedIds, setExpandedIds] = useState(new Set());
     const [isAllExpanded, setIsAllExpanded] = useState(false);
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
@@ -223,26 +156,45 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
         }
     };
 
+    const handleToggleExpand = (id) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleExpandAll = () => {
+        if (isAllExpanded) {
+            setExpandedIds(new Set());
+        } else {
+            const allIds = filteredData.map(tc => tc.id);
+            setExpandedIds(new Set(allIds));
+        }
+        setIsAllExpanded(!isAllExpanded);
+    };
+
     const tabs = [
-        { name: 'Functional (Happy paths covered)', icon: <ClipboardList size={18} />, count: result?.summary?.functional || 0, data: result?.functional || [] },
-        { name: 'Negative (Failure scenarios)', icon: <XCircle size={18} />, count: result?.summary?.negative || 0, data: result?.negative || [] },
-        { name: 'Edge Cases (Boundary conditions)', icon: <Zap size={18} />, count: result?.summary?.edge || 0, data: result?.edge || [] },
-        { name: 'API Checklist (Backend validation)', icon: <Link size={18} />, count: result?.apiChecklist?.length || result?.api?.length || 0, data: (result?.apiChecklist && result.apiChecklist.length > 0) ? result.apiChecklist : (result?.api || []) },
-        { name: 'Non-Functional (Performance & Security)', icon: <AlertCircle size={18} />, count: result?.nonFunctional?.length || 0, data: result?.nonFunctional || [] },
-        { name: 'Questions (Logic Gaps Found)', icon: <MessageSquare size={18} />, count: result?.questions?.length || 0, data: result?.questions || [] }
+        { name: 'Functional', icon: <ClipboardList size={18} />, count: result?.summary?.functional || 0, data: result?.functional || [] },
+        { name: 'Negative', icon: <XCircle size={18} />, count: result?.summary?.negative || 0, data: result?.negative || [] },
+        { name: 'Edge Cases', icon: <Zap size={18} />, count: result?.summary?.edge || 0, data: result?.edge || [] },
+        { name: 'API', icon: <Link size={18} />, count: result?.apiChecklist?.length || result?.api?.length || 0, data: (result?.apiChecklist && result.apiChecklist.length > 0) ? result.apiChecklist : (result?.api || []) },
+        { name: 'Non-Functional', icon: <AlertCircle size={18} />, count: result?.nonFunctional?.length || 0, data: result?.nonFunctional || [] },
+        { name: 'Questions', icon: <MessageSquare size={18} />, count: result?.questions?.length || 0, data: result?.questions || [] }
     ];
 
     const currentTab = tabs.find(t => t.name === activeTab);
 
-    // Memoize filtered data for better performance
     const filteredData = useMemo(() => {
         if (!currentTab || !currentTab.data || !Array.isArray(currentTab.data)) return [];
-        if (activeTab.includes('API Checklist') || activeTab.includes('Questions')) return currentTab.data;
+        if (activeTab === 'Questions') return currentTab.data;
 
         return currentTab.data.filter(tc => {
             if (!tc) return false;
             const matchesSearch = ((tc.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (tc.expected || '').toLowerCase().includes(searchQuery.toLowerCase()));
+                (tc.expectedResult || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (tc.module || '').toLowerCase().includes(searchQuery.toLowerCase()));
             const matchesPriority = priorityFilter === 'All' || tc.priority === priorityFilter;
             return matchesSearch && matchesPriority;
         });
@@ -260,16 +212,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
         const timestamp = new Date().toISOString();
         const safeFeature = (result.feature || 'TestPlan').replace(/[^a-z0-9_\-]/gi, '_');
 
-        // Build a clean, structured JSON export
         const structured = {
             metadata: {
                 title: `Test Plan: ${result.feature || 'Unnamed Feature'}`,
                 generated_at: timestamp,
                 tool: 'Testnexa AI',
-                version: '1.0',
-                requirement: result.requirement || '',
-                app_context: result.appContext || '',
-                coverage_depth: result.coverageDepth || '',
+                version: '2.0',
             },
             summary: {
                 functional: result.summary?.functional || 0,
@@ -277,58 +225,43 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                 edge_cases: result.summary?.edge || 0,
                 api_checks: result.apiChecklist?.length || result.api?.length || 0,
                 non_functional: result.nonFunctional?.length || 0,
-                total_test_cases:
-                    (result.summary?.functional || 0) +
-                    (result.summary?.negative || 0) +
-                    (result.summary?.edge || 0),
                 quality_score: result.quality?.coverageConfidence || null,
                 ambiguity_score: result.quality?.ambiguityScore || null,
             },
             test_cases: {
                 functional: (result.functional || []).map(tc => ({
-                    id: tc.id,
-                    title: tc.title,
-                    priority: tc.priority,
-                    intent_group: tc.intentGroup || 'General',
-                    steps: tc.steps,
-                    expected_result: tc.expected,
-                    reason: tc.reason || '',
-                    priority_explanation: tc.priorityExplanation || '',
+                    id: tc.id, module: tc.module, title: tc.title, type: tc.type,
+                    priority: tc.priority, preconditions: tc.preconditions,
+                    steps: tc.steps, expected_result: tc.expectedResult,
+                    requirement_id: tc.requirementId,
                 })),
                 negative: (result.negative || []).map(tc => ({
-                    id: tc.id,
-                    title: tc.title,
-                    priority: tc.priority,
-                    intent_group: tc.intentGroup || 'General',
-                    steps: tc.steps,
-                    expected_result: tc.expected,
-                    reason: tc.reason || '',
+                    id: tc.id, module: tc.module, title: tc.title, type: tc.type,
+                    priority: tc.priority, preconditions: tc.preconditions,
+                    steps: tc.steps, expected_result: tc.expectedResult,
+                    requirement_id: tc.requirementId,
                 })),
                 edge_cases: (result.edge || []).map(tc => ({
-                    id: tc.id,
-                    title: tc.title,
-                    priority: tc.priority,
-                    intent_group: tc.intentGroup || 'General',
-                    steps: tc.steps,
-                    expected_result: tc.expected,
-                    reason: tc.reason || '',
+                    id: tc.id, module: tc.module, title: tc.title, type: tc.type,
+                    priority: tc.priority, preconditions: tc.preconditions,
+                    steps: tc.steps, expected_result: tc.expectedResult,
+                    requirement_id: tc.requirementId,
                 })),
             },
-            api_checklist: (result.apiChecklist || result.api || []).map(item => ({
-                endpoint: item.endpoint || item.title || '',
-                method: item.method || 'POST',
-                checks: item.checks || item.steps || [],
+            api_checklist: (result.apiChecklist || result.api || []).map(tc => ({
+                id: tc.id, module: tc.module, title: tc.title, type: tc.type,
+                priority: tc.priority, preconditions: tc.preconditions,
+                steps: tc.steps, expected_result: tc.expectedResult,
+                requirement_id: tc.requirementId,
             })),
             non_functional: (result.nonFunctional || []).map(tc => ({
-                id: tc.id,
-                title: tc.title,
-                category: tc.category || '',
-                steps: tc.steps,
-                expected_result: tc.expected,
+                id: tc.id, module: tc.module, title: tc.title, type: tc.type,
+                priority: tc.priority, preconditions: tc.preconditions,
+                steps: tc.steps, expected_result: tc.expectedResult,
+                requirement_id: tc.requirementId,
             })),
             assumptions: result.assumptions || [],
             clarification_questions: result.questions || [],
-            confidence_warnings: result.quality?.confidenceWarnings || [],
         };
 
         const dataStr =
@@ -344,32 +277,32 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
 
     return (
         <div className="results-container-luxury">
-            {/* 4 Multi-Count Summary Cards with Icons */}
+            {/* Summary Cards */}
             <div className="results-summary-grid">
                 <div className="summary-chip-new functional glass-card">
                     <div className="chip-header">
-                        <span className="chip-label-new">Functional (Happy Path)</span>
+                        <span className="chip-label-new">Functional</span>
                         <CheckSquare size={18} className="text-primary" />
                     </div>
                     <span className="chip-value-xl">{result?.summary?.functional || 0}</span>
                 </div>
                 <div className="summary-chip-new negative glass-card">
                     <div className="chip-header">
-                        <span className="chip-label-new">Negative (Failures)</span>
+                        <span className="chip-label-new">Negative</span>
                         <XCircle size={18} className="text-danger" />
                     </div>
                     <span className="chip-value-xl">{result?.summary?.negative || 0}</span>
                 </div>
                 <div className="summary-chip-new edge glass-card">
                     <div className="chip-header">
-                        <span className="chip-label-new">Edge (Boundary)</span>
+                        <span className="chip-label-new">Edge Cases</span>
                         <Zap size={18} className="text-warning" />
                     </div>
                     <span className="chip-value-xl">{result?.summary?.edge || 0}</span>
                 </div>
                 <div className="summary-chip-new api glass-card">
                     <div className="chip-header">
-                        <span className="chip-label-new">API (Backend)</span>
+                        <span className="chip-label-new">API</span>
                         <Link size={18} className="text-primary" />
                     </div>
                     <span className="chip-value-xl">{result?.summary?.apiChecklist || 0}</span>
@@ -392,14 +325,14 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                 </div>
             </div>
 
-
+            {/* Action Bar */}
             <div className="results-actions-bar glass-card">
                 <div className="left-actions-padded">
                     <div className="search-input-wrapper-tall">
                         <Search size={18} />
                         <input
                             type="text"
-                            placeholder="Search cases (e.g. lock, password, email)"
+                            placeholder="Search by title, module, or expected result..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -420,9 +353,8 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                         </button>
                     )}
                 </div>
-
                 <div className="right-actions-compact">
-                    <button className="btn-secondary-bright" onClick={() => setIsAllExpanded(!isAllExpanded)}>
+                    <button className="btn-secondary-bright" onClick={handleExpandAll}>
                         {isAllExpanded ? <ChevronFirst size={18} /> : <ChevronLast size={18} />}
                         <span>{isAllExpanded ? 'Collapse' : 'Expand All'}</span>
                     </button>
@@ -435,7 +367,6 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                             <Download size={18} />
                             <span>Download JSON</span>
                         </button>
-                        <span className="export-micro-tip">Includes priorities & reasons</span>
                     </div>
                 </div>
             </div>
@@ -460,7 +391,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                 </div>
             )}
 
-            {/* Advanced Tabs with Clear Count Badges */}
+            {/* Tabs */}
             <div className="tabs-system-luxury">
                 <div className="tabs-nav-professional glass-card">
                     {tabs.map((tab) => (
@@ -484,26 +415,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                             message={`No ${activeTab.toLowerCase()} results match.`}
                             submessage="Try adjusting your filters or requirement description."
                         />
-                    ) : activeTab.includes('API Checklist') ? (
-                        <div className="api-view-luxury glass-card">
-                            {((result?.apiChecklist && result.apiChecklist.length > 0) ? result.apiChecklist : (result?.api || [])).map((item, i) => (
-                                <div key={i} className="endpoint-block">
-                                    <div className="endpoint-title-row">
-                                        <span className="method-tag">{item.method || 'POST'}</span>
-                                        <span className="path-text">{item.endpoint || item.title}</span>
-                                    </div>
-                                    <div className="checklist-grid">
-                                        {(item.checks || item.checkpoints || item.steps || []).map((check, j) => (
-                                            <div key={j} className="check-item-card glass-card">
-                                                <CheckSquare size={16} />
-                                                <span>{check}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : activeTab.includes('Questions') ? (
+                    ) : activeTab === 'Questions' ? (
                         <div className="questions-view-luxury glass-card">
                             <div className="questions-header-luxury">
                                 <MessageSquare size={24} className="accent-icon" />
@@ -534,93 +446,59 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="test-cases-list-luxury">
-                            {/* Grouping by Intent */}
-                            {Object.entries(
-                                filteredData.reduce((acc, tc) => {
-                                    const group = tc.intentGroup || 'General Coverage';
-                                    if (!acc[group]) acc[group] = [];
-                                    acc[group].push(tc);
-                                    return acc;
-                                }, {})
-                            ).map(([groupName, groupTests]) => (
-                                <div key={groupName} className="intent-group-wrapper">
-                                    <div className="intent-group-header">
-                                        <div className="intent-line" />
-                                        <h4 className="intent-title">{groupName}</h4>
-                                        <span className="intent-badge">{groupTests.length} cases</span>
-                                    </div>
-                                    <div className="intent-group-content">
-                                        {groupTests.map((tc) => (
-                                            <TestCaseCard
-                                                key={tc.id}
-                                                testCase={tc}
-                                                isInitiallyExpanded={isAllExpanded}
-                                                isSelected={selectedIds.includes(tc.id)}
-                                                onToggleSelect={handleToggleSelect}
+                        /* ─── TEST CASE TABLE ─── */
+                        <div className="tc-table-wrapper glass-card">
+                            <table className="tc-table">
+                                <thead>
+                                    <tr>
+                                        <th className="tc-th-checkbox">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
+                                                onChange={() => handleSelectAll(filteredData)}
+                                                className="tc-checkbox"
                                             />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
+                                        </th>
+                                        <th className="tc-th-id">ID</th>
+                                        <th className="tc-th-module">Module</th>
+                                        <th className="tc-th-title">Title</th>
+                                        <th className="tc-th-type">Type</th>
+                                        <th className="tc-th-priority">Priority</th>
+                                        <th className="tc-th-steps">Steps</th>
+                                        <th className="tc-th-actions"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredData.map((tc) => (
+                                        <TestCaseRow
+                                            key={tc.id}
+                                            testCase={tc}
+                                            isExpanded={expandedIds.has(tc.id)}
+                                            onToggleExpand={handleToggleExpand}
+                                            isSelected={selectedIds.includes(tc.id)}
+                                            onToggleSelect={handleToggleSelect}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Refine & Regenerate Panel — shown after test output */}
+            {/* Refine & Regenerate Panel */}
             <RefineRegeneratePanel
                 onRegenerate={async (refinementData) => {
                     setIsRefineRegenerating(true);
                     try {
-                        // Call parent's refine regenerate function if provided
                         if (onRefineRegenerate) {
                             const result = await onRefineRegenerate(refinementData);
                             return result;
                         }
-                        // Fallback: simulate regeneration with test type awareness
                         await new Promise(resolve => setTimeout(resolve, 2000));
-
-                        const testType = refinementData.testType || 'mixed';
-                        const changesSummary = [];
-
-                        if (testType === 'non_functional') {
-                            changesSummary.push(
-                                'Added 8 performance and load test cases',
-                                'Expanded security and compliance coverage',
-                                'Included 5 reliability and recovery scenarios',
-                                'Added 3 usability test cases'
-                            );
-                        } else if (testType === 'functional') {
-                            changesSummary.push(
-                                'Added 12 edge case scenarios',
-                                'Expanded negative path coverage',
-                                'Included boundary condition tests',
-                                'Enhanced error handling validation'
-                            );
-                        } else if (testType === 'api') {
-                            changesSummary.push(
-                                'Added 10 API contract validation tests',
-                                'Expanded error code coverage',
-                                'Included integration scenarios',
-                                'Enhanced backend validation tests'
-                            );
-                        } else {
-                            changesSummary.push(
-                                'Added 8 additional security test cases',
-                                'Expanded negative scenarios for payment failures',
-                                'Updated CVV validation assumptions to 4 digits',
-                                'Increased edge case coverage by 35%'
-                            );
-                        }
-
                         return {
-                            changesSummary,
-                            metadata: {
-                                testsAdded: testType === 'non_functional' ? 16 :
-                                    testType === 'functional' ? 12 :
-                                        testType === 'api' ? 10 : 15
-                            }
+                            changesSummary: ['Refinement applied successfully'],
+                            metadata: { testsAdded: 0 }
                         };
                     } finally {
                         setIsRefineRegenerating(false);

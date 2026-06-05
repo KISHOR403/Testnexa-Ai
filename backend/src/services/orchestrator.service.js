@@ -137,7 +137,6 @@ class TwoStepOrchestrator {
             mobile: 'Focus heavily on mobile gestures, network connectivity changes, device rotation, interruptions, and app lifecycle. MANDATORY: You MUST also generate backend API validation tests in the apiChecklist array.',
             api: 'Focus entirely on backend logic. Deeply populate the apiChecklist with contract validations, headers, limits, and payload schemas. While focusing on API, you may still include critical functional integration tests in other categories.'
         };
-
         return `You are a Senior QA Architect and SDET with deep industry experience in testing standards (ISTQB, Agile, BDD).
 Analyze the following requirement and generate comprehensive, industry-standard test cases in a single pass.
 
@@ -148,6 +147,17 @@ CONTEXT RULES:
 Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstructions.web}
 Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
 Test Focus Category: ${testFocus}
+
+STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 9 fields:
+- "id": string (e.g. "TC_FUNC_001")
+- "module": string (feature module name, e.g. "Login", "Payment")
+- "title": string (concise test case title)
+- "type": string ("Functional", "Negative", "Edge", "API", or "Non-Functional")
+- "priority": string ("High", "Medium", or "Low")
+- "preconditions": string (pre-conditions before execution)
+- "steps": array of strings (ordered execution steps)
+- "expectedResult": string (unambiguous pass/fail criteria)
+- "requirementId": string (traceability ID, e.g. "REQ_001")
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -167,20 +177,20 @@ Return ONLY valid JSON with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
+      "module": "Feature Module",
       "title": "Test case title",
+      "type": "Functional",
       "priority": "High|Medium|Low",
+      "preconditions": "Pre-conditions for this test",
       "steps": ["Step 1", "Step 2"],
-      "expectedResult": "Expected result",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "For High priority only",
-      "intentGroup": "Validation|Success|Security|UX"
+      "expectedResult": "Expected result with pass/fail criteria",
+      "requirementId": "REQ_001"
     }
   ],
-  "negative": [{ "id": "TC_NEG_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
-  "edge": [{ "id": "TC_EDGE_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
-  "apiChecklist": [{ "id": "TC_API_001", "title": "API: Valid Login", "method": "POST", "endpoint": "/api/v1/login", "steps": ["Send request with valid credentials", "Verify status 200", "Verify JWT token in response"], "expectedResult": "Successful API authentication" }],
-  "nonFunctional": [{ "id": "TC_NF_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "..." }],
+  "negative": [{ "id": "TC_NEG_001", "module": "Module", "title": "...", "type": "Negative", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "edge": [{ "id": "TC_EDGE_001", "module": "Module", "title": "...", "type": "Edge", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "apiChecklist": [{ "id": "TC_API_001", "module": "API Module", "title": "API: Valid Login", "type": "API", "priority": "High", "preconditions": "API server running", "steps": ["Send request with valid credentials", "Verify status 200", "Verify JWT token in response"], "expectedResult": "HTTP 200 with valid JWT", "requirementId": "REQ_API_001" }],
+  "nonFunctional": [{ "id": "TC_NF_001", "module": "Module", "title": "...", "type": "Non-Functional", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_NF_001" }],
   "questions": ["Clarification question 1?"]
 }
 
@@ -188,7 +198,7 @@ CRITICAL RULES FOR QA INDUSTRY STANDARDS:
 1. ALL generated output MUST be strictly industry standard (ISTQB, IEEE 829 compliance).
 2. Use professional software engineering and QA terminology. Do not use colloquial language.
 3. Steps MUST use precise, actionable BDD formulation (Given/When/Then) or clear sequential setup/execution commands.
-4. Always include necessary preconditions and explicit Test Data in the first steps.
+4. Always include necessary preconditions in the "preconditions" field (NOT as step 1).
 5. "expectedResult" MUST be unambiguously verifiable with clear, formal pass/fail criteria.
 6. For "apiChecklist", you MUST include validation for status codes, schema contracts, response payloads, headers, and authentication.
 7. Generate comprehensive coverage isolating specific risk vectors for functional, negative, edge, API, and non-functional categories.
@@ -319,18 +329,13 @@ CONTEXT RULES:
 Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstructions.web}
 Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
 
-Generate test cases following strict industry standards (ISTQB/BDD), using this structure and rules:
+STRICT TEST CASE SCHEMA — Every test case MUST contain exactly these 9 fields:
+- "id", "module", "title", "type", "priority", "preconditions", "steps", "expectedResult", "requirementId"
 
 CRITICAL ASSUMPTION RULES:
 1. You MUST list every assumption you make in the "assumptions" array
-2. If you use a default value (e.g., "3 retries"), state it explicitly
-3. If the requirement doesn't specify something, do NOT silently fill it in
-4. Format: "Assumed [what] as [value] because [reason]"
-
-Examples of REQUIRED assumption declarations:
-✓ "Assumed CVV length as 3 digits (standard for Visa/Mastercard)"
-✓ "Assumed retry attempts as 2 (not specified in requirement)"
-✗ WRONG: Silently using 3 retries without declaring it
+2. If you use a default value, state it explicitly
+3. Format: "Assumed [what] as [value] because [reason]"
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -338,28 +343,28 @@ Return ONLY a JSON object with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
+      "module": "Feature Module",
       "title": "Test case title",
+      "type": "Functional",
       "priority": "High|Medium|Low",
+      "preconditions": "Pre-conditions for this test",
       "steps": ["Step 1", "Step 2"],
       "expectedResult": "Expected result",
-      "reason": "Why this test exists",
-      "riskType": "Revenue|Security|UX",
-      "priorityExplanation": "For High priority only",
-      "intentGroup": "Validation|Success|Security|UX"
+      "requirementId": "REQ_001"
     }
   ],
-  "negative": [{ "id": "TC_NEG_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
-  "edge": [{ "id": "TC_EDGE_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "...", "intentGroup": "..." }],
-  "apiChecklist": [{ "id": "TC_API_001", "title": "...", "method": "POST", "endpoint": "/api/...", "steps": ["Check 1", "Check 2"], "expectedResult": "..." }],
-  "nonFunctional": [{ "id": "TC_NF_001", "title": "...", "priority": "...", "steps": ["..."], "expectedResult": "...", "reason": "..." }],
+  "negative": [{ "id": "TC_NEG_001", "module": "Module", "title": "...", "type": "Negative", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "edge": [{ "id": "TC_EDGE_001", "module": "Module", "title": "...", "type": "Edge", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "apiChecklist": [{ "id": "TC_API_001", "module": "API Module", "title": "...", "type": "API", "priority": "High", "preconditions": "...", "steps": ["Check 1"], "expectedResult": "...", "requirementId": "REQ_API_001" }],
+  "nonFunctional": [{ "id": "TC_NF_001", "module": "Module", "title": "...", "type": "Non-Functional", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_NF_001" }],
   "questions": ["Clarification question 1?"]
 }
 
 Generate comprehensive coverage across all categories.
 CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
-- ALL generated output should be strictly industry standard (ISTQB, Agile, IEEE 829). Use professional QA terminology.
-- Steps MUST use BDD formulation (Given/When/Then) or highly explicit setup/execution/verification formats.
-- Preconditions and test data dependencies must be explicitly stated in the steps.
+- Steps MUST use BDD formulation (Given/When/Then) or explicit setup/execution/verification formats.
+- Preconditions go in the "preconditions" field, NOT as step 1.
+- Expected Results must be formal pass/fail criteria.
 - Expected Results must establish absolute, formal pass/fail criteria (e.g., "HTTP 200 OK with schema X", or "Button is disabled and red"). Do not use colloquial language.
 - For API endpoints, validate headers, tokens, parameters, and payload schemas rigorously.
 - IMPORTANT: Return ONLY valid JSON. START your response with '{' and END with '}'.

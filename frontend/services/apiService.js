@@ -68,20 +68,22 @@ export const apiService = {
             });
 
             // Transform backend response to match frontend expectations with defensive defaults
-            const normalize = (cases = [], type = 'FUNC') => {
+            const normalize = (cases = [], type = 'FUNC', typeLabel = 'Functional') => {
                 return (Array.isArray(cases) ? cases : []).map((tc, i) => {
                     if (!tc || typeof tc !== 'object') return null;
                     return {
                         ...tc,
                         id: String(tc.id || `TC_${type}_${i + 1}`),
+                        module: String(tc.module || 'General'),
                         title: String(tc.title || 'Untitled Test Case'),
+                        type: String(tc.type || typeLabel),
+                        priority: String(tc.priority || 'Medium'),
+                        preconditions: String(tc.preconditions || ''),
                         steps: Array.isArray(tc.steps) ? tc.steps.map(String) :
                                Array.isArray(tc.checkpoints) ? tc.checkpoints.map(String) :
                                Array.isArray(tc.checks) ? tc.checks.map(String) : [],
-                        expected: String(tc.expected || tc.expectedResult || 'No expected result provided'),
-                        priority: String(tc.priority || 'Medium'),
-                        intentGroup: String(tc.intentGroup || 'General Coverage'),
-                        reason: String(tc.reason || '')
+                        expectedResult: String(tc.expectedResult || tc.expected || 'No expected result provided'),
+                        requirementId: String(tc.requirementId || `REQ_${String(i + 1).padStart(3, '0')}`),
                     };
                 }).filter(Boolean);
             };
@@ -96,12 +98,12 @@ export const apiService = {
                     apiChecklist: Number(data.summary?.apiChecklist || 0),
                     nonFunctional: Number(data.summary?.nonFunctional || 0),
                 },
-                functional: normalize(data.functional, 'FUNC'),
-                negative: normalize(data.negative, 'NEG'),
-                edge: normalize(data.edge, 'EDGE'),
-                api: normalize(data.apiChecklist || data.api, 'API'),
-                apiChecklist: normalize(data.apiChecklist || data.api, 'API'),
-                nonFunctional: normalize(data.nonFunctional, 'NONFUNC'),
+                functional: normalize(data.functional, 'FUNC', 'Functional'),
+                negative: normalize(data.negative, 'NEG', 'Negative'),
+                edge: normalize(data.edge, 'EDGE', 'Edge'),
+                api: normalize(data.apiChecklist || data.api, 'API', 'API'),
+                apiChecklist: normalize(data.apiChecklist || data.api, 'API', 'API'),
+                nonFunctional: normalize(data.nonFunctional, 'NONFUNC', 'Non-Functional'),
                 assumptions: Array.isArray(data.assumptions) ? data.assumptions.map(a =>
                     (a && typeof a === 'object') ? (a.text || a.message || a.assumption || JSON.stringify(a)) : String(a || '')
                 ) : [],
