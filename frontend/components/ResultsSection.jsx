@@ -116,24 +116,28 @@ Requirement ID: ${testCase.requirementId}`;
                             <div className="tc-detail-block">
                                 <h5 className="tc-detail-label">Steps to Execute</h5>
                                 {testCase.steps?.length > 0 && typeof testCase.steps[0] === 'object' && testCase.steps[0].action ? (
-                                    <table className="tc-steps-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="tc-step-num">#</th>
-                                                <th className="tc-step-action">Action</th>
-                                                <th className="tc-step-expected">Expected</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {testCase.steps.map((step, i) => (
-                                                <tr key={i}>
-                                                    <td className="tc-step-num">{i + 1}</td>
-                                                    <td className="tc-step-action">{step.action}</td>
-                                                    <td className="tc-step-expected">{step.expected || '—'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <div className="tc-steps-timeline">
+                                        {testCase.steps.map((step, i) => (
+                                            <div key={i} className="tc-timeline-item">
+                                                <div className="tc-timeline-left">
+                                                    <div className="tc-timeline-node">{i + 1}</div>
+                                                    {i < testCase.steps.length - 1 && <div className="tc-timeline-line"></div>}
+                                                </div>
+                                                <div className="tc-timeline-content">
+                                                    <div className="tc-step-grid">
+                                                        <div className="tc-step-pane action-pane">
+                                                            <span className="tc-pane-tag tag-action">ACTION</span>
+                                                            <p className="tc-pane-text">{step.action}</p>
+                                                        </div>
+                                                        <div className="tc-step-pane expected-pane">
+                                                            <span className="tc-pane-tag tag-expected">EXPECTED BEHAVIOR</span>
+                                                            <p className="tc-pane-text">{step.expected || '—'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
                                     <ol className="tc-steps-list">
                                         {(testCase.steps || []).map((step, i) => (

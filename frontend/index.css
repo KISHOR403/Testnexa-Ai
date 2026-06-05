@@ -12223,68 +12223,128 @@ textarea.form-input {
   }
 }
 
-/* ─── Structured Steps Table (Action / Expected) ─── */
-.tc-steps-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  margin-top: 0.5rem;
+/* ─── Structured Steps Timeline Layout ─── */
+.tc-steps-timeline {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.tc-steps-table thead tr {
-  background: rgba(0, 212, 193, 0.08);
+.tc-timeline-item {
+  display: flex;
+  gap: 1.25rem;
+  align-items: stretch;
 }
 
-.tc-steps-table th {
-  text-align: left;
-  padding: 0.6rem 0.85rem;
-  font-size: 0.72rem;
+.tc-timeline-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 30px;
+  min-height: 100%;
+}
+
+.tc-timeline-node {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 212, 193, 0.1);
+  border: 2px solid var(--primary, #00d4c1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim, rgba(255,255,255,0.5));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.tc-steps-table tbody tr {
-  transition: background 0.15s ease;
-}
-
-.tc-steps-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.tc-steps-table tbody tr:not(:last-child) td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.tc-steps-table td {
-  padding: 0.55rem 0.85rem;
-  font-size: 0.82rem;
-  color: var(--text-secondary, rgba(255,255,255,0.7));
-  vertical-align: top;
-}
-
-.tc-steps-table .tc-step-num {
-  width: 36px;
-  text-align: center;
   color: var(--primary, #00d4c1);
-  font-weight: 700;
-  font-size: 0.75rem;
+  box-shadow: 0 0 12px rgba(0, 212, 193, 0.25);
+  z-index: 2;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.tc-steps-table .tc-step-action {
-  width: 55%;
-  color: var(--text-primary, #fff);
+.tc-timeline-item:hover .tc-timeline-node {
+  transform: scale(1.1);
+  background: rgba(0, 212, 193, 0.2);
+  box-shadow: 0 0 16px rgba(0, 212, 193, 0.4);
 }
 
-.tc-steps-table .tc-step-expected {
-  width: 40%;
-  color: var(--text-secondary, rgba(255,255,255,0.65));
+.tc-timeline-line {
+  width: 2px;
+  flex-grow: 1;
+  background: linear-gradient(180deg, var(--primary, #00d4c1) 0%, rgba(0, 212, 193, 0.05) 100%);
+  margin: 6px 0;
+  min-height: 28px;
+  z-index: 1;
+}
+
+.tc-timeline-content {
+  flex-grow: 1;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem 1.35rem;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tc-timeline-item:hover .tc-timeline-content {
+  border-color: rgba(0, 212, 193, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.tc-step-grid {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+/* Let's simplify back to a 2-column grid inside the card */
+.tc-step-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem;
+}
+
+.tc-step-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tc-pane-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  display: inline-block;
+}
+
+.tag-action {
+  color: var(--primary, #00d4c1);
+}
+
+.tag-expected {
+  color: #a78bfa; /* violet / purple accent for verification behaviour */
+}
+
+.tc-pane-text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.expected-pane .tc-pane-text {
+  color: rgba(255, 255, 255, 0.7);
   font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .tc-step-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 /* ─── Preconditions Tags ─── */
