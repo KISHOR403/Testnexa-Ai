@@ -39,7 +39,7 @@ class TwoStepOrchestrator {
             try {
                 const response = await callAI(adaptedPrompt, {
                     temperature: 0.2,
-                    maxTokens: 8192
+                    maxTokens: 65536
                 });
 
                 combinedResult = this.parseAIResponse(response);

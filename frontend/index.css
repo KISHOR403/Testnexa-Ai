@@ -12223,3 +12223,593 @@ textarea.form-input {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   COVERAGE ANALYTICS DASHBOARD
+   Real, data-driven metrics — not cosmetic decorations.
+   ═══════════════════════════════════════════════════════════════ */
+
+.ca-panel {
+  margin-top: 1.5rem;
+  padding: 0;
+  border-color: rgba(0, 212, 193, 0.15) !important;
+  overflow: hidden;
+}
+
+.ca-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1.25rem 1.75rem;
+  background: linear-gradient(135deg, rgba(0, 212, 193, 0.04) 0%, transparent 100%);
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.ca-panel-header:hover {
+  background: linear-gradient(135deg, rgba(0, 212, 193, 0.08) 0%, transparent 100%);
+}
+
+.ca-panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ca-panel-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.ca-health-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.ca-toggle-icon {
+  color: var(--text-dim);
+  transition: color 0.2s ease;
+}
+
+.ca-panel-header:hover .ca-toggle-icon {
+  color: var(--primary);
+}
+
+.ca-panel-body {
+  padding: 1.5rem 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Metric Rows */
+.ca-metrics-row {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.ca-row-two {
+  grid-template-columns: 1fr 1fr;
+}
+
+.ca-full-width {
+  width: 100%;
+}
+
+/* Metric Cards */
+.ca-metric-card {
+  padding: 1.5rem;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(17, 24, 39, 0.4) !important;
+}
+
+.ca-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ca-metric-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(0, 212, 193, 0.1);
+  color: var(--primary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ─── Radial Gauge ─── */
+.ca-radial-gauge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ca-traceability-content {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.ca-traceability-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ca-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ca-stat-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.ca-stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── Type Ratio ─── */
+.ca-type-ratio-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ca-ratio-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ca-ratio-bar-container {
+  display: flex;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ca-ratio-segment {
+  height: 100%;
+  min-width: 4px;
+  transition: width 0.8s ease-out;
+  position: relative;
+}
+
+.ca-ratio-segment:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.ca-ratio-segment:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.ca-ratio-label-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.ca-ratio-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ca-ratio-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.ca-ratio-legend,
+.ca-bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ca-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ca-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ca-legend-label {
+  font-weight: 600;
+}
+
+.ca-legend-count {
+  font-weight: 800;
+  color: #fff;
+}
+
+/* ─── Module Distribution Bars ─── */
+.ca-module-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.ca-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ca-bar-label {
+  width: 120px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ca-bar-track {
+  flex: 1;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ca-bar-fill {
+  height: 100%;
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: width 0.8s ease-out;
+}
+
+.ca-bar-segment {
+  height: 100%;
+  min-width: 3px;
+  transition: width 0.5s ease-out;
+}
+
+.ca-bar-count {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ─── Risk Heatmap ─── */
+.ca-heatmap-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ca-heatmap-grid {
+  display: grid;
+  gap: 2px;
+}
+
+.ca-heat-header {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.ca-heat-module-header {
+  text-align: left;
+}
+
+.ca-heat-header.high { color: #f87171; }
+.ca-heat-header.medium { color: #f59e0b; }
+.ca-heat-header.low { color: #60a5fa; }
+
+.ca-heat-module {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.ca-risk-icon { color: #f59e0b; flex-shrink: 0; }
+.ca-covered-icon { color: #00d4c1; flex-shrink: 0; }
+
+.ca-heat-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  cursor: default;
+  min-height: 36px;
+}
+
+.ca-heat-cell.empty {
+  color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ca-heat-cell:not(.empty):hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ca-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.ca-heat-legend-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.ca-heat-scale {
+  display: flex;
+  gap: 2px;
+}
+
+.ca-heat-scale-cell {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ─── Factor Progress Bars ─── */
+.ca-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ca-factor-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ca-factor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ca-factor-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ca-factor-score {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.ca-factor-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ca-factor-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.ca-factor-detail {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* ─── Confidence & Gaps ─── */
+.ca-confidence-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ca-confidence-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ca-no-data {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.ca-gaps-section,
+.ca-recs-section {
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ca-gaps-title,
+.ca-recs-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.ca-gaps-title { color: #f59e0b; }
+.ca-recs-title { color: #00d4c1; }
+
+.ca-gaps-list,
+.ca-recs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ca-gaps-list li,
+.ca-recs-list li {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.4rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border-left: 3px solid;
+  line-height: 1.4;
+}
+
+.ca-gaps-list li { border-left-color: rgba(251, 191, 36, 0.4); }
+.ca-recs-list li { border-left-color: rgba(0, 212, 193, 0.4); }
+
+/* Non-functional chip color */
+.summary-chip-new.nonfunctional {
+  border-color: rgba(167, 139, 250, 0.2);
+}
+
+.summary-chip-new.nonfunctional .chip-value-xl {
+  color: #a78bfa;
+}
+
+.text-purple {
+  color: #a78bfa;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .ca-row-two {
+    grid-template-columns: 1fr;
+  }
+
+  .ca-traceability-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .ca-traceability-stats {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+
+  .ca-stat-item {
+    align-items: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .ca-panel-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .ca-panel-body {
+    padding: 1rem 1.25rem 1.5rem;
+  }
+
+  .ca-metric-card {
+    padding: 1rem;
+  }
+
+  .ca-bar-label {
+    width: 80px;
+    font-size: 0.72rem;
+  }
+
+  .ca-heatmap-grid {
+    font-size: 0.75rem;
+  }
+
+  .ca-heat-module {
+    font-size: 0.72rem;
+  }
+
+  .ca-traceability-stats {
+    flex-direction: column;
+  }
+
+  .ca-ratio-legend,
+  .ca-bar-legend {
+    gap: 0.5rem;
+  }
+
+  .ca-health-badge {
+    display: none;
+  }
+}
+
+

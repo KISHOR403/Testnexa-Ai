@@ -6,6 +6,13 @@ import {
     Filter, ChevronLast, ChevronFirst, ExternalLink, XCircle, Zap, Link, Loader2, BookOpen
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
+import CoverageAnalytics from './CoverageAnalytics';
+import {
+    computeRequirementTraceability,
+    computeModuleDistribution,
+    computeTypeRatios,
+    computeOverallHealth,
+} from '../utils/coverageAnalytics';
 
 // ─── Priority Badge Component ───
 const PriorityBadge = ({ priority }) => {
@@ -225,8 +232,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                 edge_cases: result.summary?.edge || 0,
                 api_checks: result.apiChecklist?.length || result.api?.length || 0,
                 non_functional: result.nonFunctional?.length || 0,
-                quality_score: result.quality?.coverageConfidence || null,
-                ambiguity_score: result.quality?.ambiguityScore || null,
+            },
+            coverage_analytics: {
+                requirement_traceability: computeRequirementTraceability(result),
+                module_distribution: computeModuleDistribution(result),
+                type_ratios: computeTypeRatios(result),
+                overall_health: computeOverallHealth(result),
             },
             test_cases: {
                 functional: (result.functional || []).map(tc => ({
@@ -307,23 +318,17 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                     </div>
                     <span className="chip-value-xl">{result?.summary?.apiChecklist || 0}</span>
                 </div>
-                <div className="summary-chip-new glass-card score-chip">
+                <div className="summary-chip-new nonfunctional glass-card">
                     <div className="chip-header">
-                        <span className="chip-label-new">Quality Score</span>
-                        <Shield size={18} className="text-primary" />
+                        <span className="chip-label-new">Non-Functional</span>
+                        <AlertCircle size={18} className="text-purple" />
                     </div>
-                    <div className="score-display">
-                        <span className="chip-value-xl">{result.quality?.coverageConfidence || 85}%</span>
-                        <span className="score-status">{result.quality?.ambiguityScore === 'High' ? 'Needs Work' : 'Excellent'}</span>
-                    </div>
-                    {result.quality?.confidenceWarnings?.length > 0 && (
-                        <div className="confidence-warning-mini">
-                            <AlertCircle size={10} />
-                            <span>{result.quality.confidenceWarnings[0]}</span>
-                        </div>
-                    )}
+                    <span className="chip-value-xl">{result?.nonFunctional?.length || 0}</span>
                 </div>
             </div>
+
+            {/* Coverage Analytics Dashboard */}
+            <CoverageAnalytics result={result} />
 
             {/* Action Bar */}
             <div className="results-actions-bar glass-card">

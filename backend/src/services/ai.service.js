@@ -54,16 +54,39 @@ const callGemini = async (prompt, options = {}) => {
             systemInstruction: options.systemPrompt || SYSTEM_PROMPT
         });
 
+        const generationConfig = {
+            maxOutputTokens: options.maxTokens || aiConfig.gemini.maxTokens,
+            temperature: options.temperature || aiConfig.gemini.temperature,
+            responseMimeType: 'application/json',
+        };
+
+        // For Gemini 2.5+ thinking models, set thinking budget
+        if (modelName.includes('2.5')) {
+            generationConfig.thinkingConfig = { thinkingBudget: 2048 };
+        }
+
         const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                maxOutputTokens: options.maxTokens || aiConfig.gemini.maxTokens,
-                temperature: options.temperature || aiConfig.gemini.temperature,
-                responseMimeType: 'application/json',
-            }
+            generationConfig,
         });
         const response = await result.response;
         const text = response.text();
+
+        // Log raw response length and preview for debugging
+        logger.info(`Gemini raw response: ${text ? text.length : 0} chars`);
+        if (text && text.length < 200) {
+            logger.warn('Gemini response suspiciously short:', text);
+        }
+
+        // Save raw response for debugging
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            fs.writeFileSync(
+                path.join(__dirname, '../../debug_raw_ai_response.txt'),
+                text || '(empty)'
+            );
+        } catch (e) { /* ignore file write errors */ }
 
         if (text) {
             return text;

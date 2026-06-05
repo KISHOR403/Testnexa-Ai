@@ -110,8 +110,13 @@ export const apiService = {
                 quality: {
                     coverageConfidence: Number(data.quality?.coverageConfidence || 85),
                     ambiguityScore: String(data.quality?.ambiguityScore || 'Low'),
-                    confidenceWarnings: Array.isArray(data.quality?.confidenceWarnings) ? data.quality.confidenceWarnings.map(String) : []
+                    confidenceWarnings: Array.isArray(data.quality?.confidenceWarnings) ? data.quality.confidenceWarnings.map(String) : [],
+                    confidenceBreakdown: data.quality?.confidenceBreakdown || null,
+                    confidenceByType: data.quality?.confidenceByType || null,
+                    confidenceLevel: String(data.quality?.confidenceLevel || ''),
                 },
+                coverageGaps: Array.isArray(data.coverageGaps) ? data.coverageGaps : [],
+                recommendations: Array.isArray(data.recommendations) ? data.recommendations.map(String) : [],
                 questions: Array.isArray(data.questions) ? data.questions.map(String) : [],
                 metadata: result.metadata || {},
             };

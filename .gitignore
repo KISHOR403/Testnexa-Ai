@@ -12,6 +12,18 @@ dist
 dist-ssr
 *.local
 
+# Environment files — NEVER commit these
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Debug output
+backend/debug_last_result.json
+backend/test_gemini.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
