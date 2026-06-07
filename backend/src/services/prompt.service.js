@@ -7,11 +7,14 @@
 // ============================================
 const TEST_CASE_SCHEMA_EXAMPLE = `{
   "id": "TC_FUNC_001",
+  "testScenario": "User Authentication",
   "module": "Login",
   "title": "Verify successful login with valid credentials",
   "type": "Functional",
   "priority": "High",
+  "severity": "Critical",
   "preconditions": "User has a registered account; application is accessible",
+  "testData": "Email: testuser@example.com, Password: ValidPass123",
   "steps": [
     "Navigate to the login page",
     "Enter a valid registered email address",
@@ -42,11 +45,14 @@ Rules:
 
 STRICT TEST CASE SCHEMA — Every test case object MUST have exactly these fields:
 - "id": string (e.g. "TC_FUNC_001", "TC_NEG_002")
+- "testScenario": string (high-level functionality being tested, e.g. "User Authentication", "Payment Processing")
 - "module": string (the feature module this test belongs to, e.g. "Login", "Payment", "Registration")
 - "title": string (concise test case title)
 - "type": string (one of: "Functional", "Negative", "Edge", "API", "Non-Functional")
 - "priority": string (one of: "High", "Medium", "Low")
+- "severity": string (impact if test fails, one of: "Critical", "Major", "Minor", "Trivial")
 - "preconditions": string (pre-conditions that must be met before execution)
+- "testData": string (specific input values needed for execution, e.g. "Email: test@mail.com, Password: Pass123")
 - "steps": array of strings (ordered execution steps)
 - "expectedResult": string (unambiguous pass/fail criteria)
 - "requirementId": string (traceability ID linking back to the requirement, e.g. "REQ_001")`;
@@ -61,7 +67,7 @@ Instructions:
 - Focus on happy paths and core user workflows.
 - Exclude performance, security, and non-functional tests.
 - Include negative functional scenarios (invalid inputs).
-- Every test case MUST follow the strict schema with all 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- Every test case MUST follow the strict schema with all 12 fields: id, testScenario, module, title, type, priority, severity, preconditions, testData, steps, expectedResult, requirementId.
 
 Also return:
 - ambiguityScore: Low | Medium | High
@@ -87,16 +93,19 @@ Return ONLY a JSON object with this exact structure:
   },
   "assumptions": ["Assumption 1", "Assumption 2"],
   "functional": [
-    ${TEST_CASE_SCHEMA_EXAMPLE}
+    ${TEST_CASE_SCHEMA_EXAMPLE.replace(/TC_FUNC/g, 'TC_FUNC')}
   ],
   "negative": [
     {
       "id": "TC_NEG_001",
+      "testScenario": "User Authentication",
       "module": "Login",
       "title": "Verify error on invalid password",
       "type": "Negative",
       "priority": "High",
+      "severity": "Critical",
       "preconditions": "User has a registered account",
+      "testData": "Email: testuser@example.com, Password: WrongPass999",
       "steps": ["Navigate to login", "Enter valid email", "Enter wrong password", "Click Login"],
       "expectedResult": "Error message displayed: 'Invalid credentials'",
       "requirementId": "REQ_001"
@@ -105,11 +114,14 @@ Return ONLY a JSON object with this exact structure:
   "edge": [
     {
       "id": "TC_EDGE_001",
+      "testScenario": "User Authentication",
       "module": "Login",
       "title": "Verify login with boundary-length password",
       "type": "Edge",
       "priority": "Medium",
+      "severity": "Minor",
       "preconditions": "User account exists with minimum-length password",
+      "testData": "Email: testuser@example.com, Password: Ab1@5678 (8 chars)",
       "steps": ["Navigate to login", "Enter valid email", "Enter 8-char password", "Click Login"],
       "expectedResult": "Login succeeds if password matches",
       "requirementId": "REQ_001"
@@ -129,7 +141,7 @@ IMPORTANT:
 - Do NOT generate functional happy-path flows.
 - Do NOT include UI navigation steps unless required for context.
 - Focus strictly on quality attributes: Performance, Security, Reliability & Recovery, Usability, Scalability.
-- Every test case MUST follow the strict schema with all 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- Every test case MUST follow the strict schema with all 12 fields: id, testScenario, module, title, type, priority, severity, preconditions, testData, steps, expectedResult, requirementId.
 - Set "type" to "Non-Functional" for all test cases.
 
 Also return:
@@ -158,11 +170,14 @@ Return ONLY a JSON object with this exact structure:
   "nonFunctional": [
     {
       "id": "TC_NF_001",
+      "testScenario": "Login Performance",
       "module": "Login",
       "title": "Verify login page loads within 2 seconds under normal load",
       "type": "Non-Functional",
       "priority": "High",
+      "severity": "Major",
       "preconditions": "Application is deployed to staging; network latency < 50ms",
+      "testData": "Network: 4G, Users: 1, Browser: Chrome latest",
       "steps": ["Open browser", "Navigate to login URL", "Measure page load time"],
       "expectedResult": "Page fully renders within 2 seconds (LCP < 2s)",
       "requirementId": "REQ_NF_001"
@@ -182,7 +197,7 @@ Instructions:
 - Focus on integration, contracts, and backend validations.
 - Exclude UI-level functional tests.
 - Include API error handling and edge cases.
-- Every test case MUST follow the strict schema with all 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- Every test case MUST follow the strict schema with all 12 fields: id, testScenario, module, title, type, priority, severity, preconditions, testData, steps, expectedResult, requirementId.
 - Set "type" to "API" for all test cases.
 
 Also return:
@@ -211,11 +226,14 @@ Return ONLY a JSON object with this exact structure:
   "apiChecklist": [
     {
       "id": "TC_API_001",
+      "testScenario": "Authentication API",
       "module": "Auth API",
       "title": "POST /api/v1/login — valid credentials return 200 with JWT",
       "type": "API",
       "priority": "High",
+      "severity": "Critical",
       "preconditions": "API server is running; test user exists in database",
+      "testData": "POST body: {email: 'test@mail.com', password: 'ValidPass123'}",
       "steps": ["Send POST to /api/v1/login with valid email and password", "Verify response status is 200", "Verify response body contains 'token' field", "Verify token is a valid JWT"],
       "expectedResult": "HTTP 200 OK; response contains valid JWT token and user object",
       "requirementId": "REQ_API_001"
@@ -248,7 +266,7 @@ Rules:
 - Prioritize business-critical and risk-heavy areas.
 - Avoid duplicate or overlapping scenarios.
 - Assign realistic priorities based on impact.
-- EVERY test case MUST follow the strict schema with ALL 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- EVERY test case MUST follow the strict schema with ALL 12 fields: id, testScenario, module, title, type, priority, severity, preconditions, testData, steps, expectedResult, requirementId.
 
 Also return:
 - ambiguityScore: Low | Medium | High
@@ -280,11 +298,14 @@ Return ONLY a JSON object with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
+      "testScenario": "High-level scenario name",
       "module": "Feature Module",
       "title": "Test case title",
       "type": "Functional",
       "priority": "High|Medium|Low",
+      "severity": "Critical|Major|Minor|Trivial",
       "preconditions": "Pre-conditions for this test",
+      "testData": "Specific input values needed",
       "steps": ["Step 1", "Step 2"],
       "expectedResult": "Expected result with clear pass/fail criteria",
       "requirementId": "REQ_001"
@@ -293,11 +314,14 @@ Return ONLY a JSON object with this exact structure:
   "negative": [
     {
       "id": "TC_NEG_001",
+      "testScenario": "High-level scenario name",
       "module": "Feature Module",
       "title": "Negative test title",
       "type": "Negative",
       "priority": "High|Medium|Low",
+      "severity": "Critical|Major|Minor|Trivial",
       "preconditions": "Pre-conditions",
+      "testData": "Invalid input values",
       "steps": ["Step 1"],
       "expectedResult": "Expected error behavior",
       "requirementId": "REQ_001"
@@ -306,11 +330,14 @@ Return ONLY a JSON object with this exact structure:
   "edge": [
     {
       "id": "TC_EDGE_001",
+      "testScenario": "Boundary scenario name",
       "module": "Feature Module",
       "title": "Edge case title",
       "type": "Edge",
       "priority": "Medium|Low",
+      "severity": "Minor|Trivial",
       "preconditions": "Pre-conditions",
+      "testData": "Boundary input values",
       "steps": ["Step 1"],
       "expectedResult": "Expected boundary behavior",
       "requirementId": "REQ_001"
@@ -319,11 +346,14 @@ Return ONLY a JSON object with this exact structure:
   "apiChecklist": [
     {
       "id": "TC_API_001",
+      "testScenario": "API Integration scenario",
       "module": "API Module",
       "title": "API test title",
       "type": "API",
       "priority": "High|Medium",
+      "severity": "Critical|Major",
       "preconditions": "API server running; auth token available",
+      "testData": "Request payload and headers",
       "steps": ["Send request", "Verify status code", "Verify response schema"],
       "expectedResult": "HTTP 200 with valid response",
       "requirementId": "REQ_API_001"
@@ -332,11 +362,14 @@ Return ONLY a JSON object with this exact structure:
   "nonFunctional": [
     {
       "id": "TC_NF_001",
+      "testScenario": "Performance/Security scenario",
       "module": "Feature Module",
       "title": "Non-functional test title",
       "type": "Non-Functional",
       "priority": "High|Medium|Low",
+      "severity": "Major|Minor",
       "preconditions": "Pre-conditions for NFR test",
+      "testData": "Load parameters or security config",
       "steps": ["Step 1"],
       "expectedResult": "Expected performance/security metric",
       "requirementId": "REQ_NF_001"
@@ -393,7 +426,7 @@ Instructions:
 - Keep previously valid test cases stable.
 - Explicitly mention what changed.
 - ${testTypeInstruction}
-- EVERY test case MUST follow the strict schema with ALL 9 fields: id, module, title, type, priority, preconditions, steps, expectedResult, requirementId.
+- EVERY test case MUST follow the strict schema with ALL 12 fields: id, testScenario, module, title, type, priority, severity, preconditions, testData, steps, expectedResult, requirementId.
 
 Return ONLY a JSON object with this exact structure:
 {
@@ -413,11 +446,14 @@ Return ONLY a JSON object with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
+      "testScenario": "Scenario name",
       "module": "Module Name",
       "title": "Test title",
       "type": "Functional",
       "priority": "High",
+      "severity": "Critical",
       "preconditions": "Pre-conditions",
+      "testData": "Input values",
       "steps": ["Step 1"],
       "expectedResult": "Expected result",
       "requirementId": "REQ_001"

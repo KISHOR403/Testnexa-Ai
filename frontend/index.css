@@ -11916,13 +11916,16 @@ textarea.form-input {
   text-align: center !important;
 }
 
-.tc-th-id { width: 120px; }
-.tc-th-module { width: 130px; }
-.tc-th-title { min-width: 200px; }
-.tc-th-type { width: 120px; }
-.tc-th-priority { width: 100px; }
-.tc-th-steps { width: 90px; }
-.tc-th-actions { width: 80px; }
+.tc-th-id { width: 110px; }
+.tc-th-scenario { width: 150px; }
+.tc-th-module { width: 110px; }
+.tc-th-title { min-width: 180px; }
+.tc-th-type { width: 110px; }
+.tc-th-priority { width: 90px; }
+.tc-th-severity { width: 90px; }
+.tc-th-status { width: 110px; }
+.tc-th-steps { width: 80px; }
+.tc-th-actions { width: 70px; }
 
 /* Table Rows */
 .tc-table-row {
@@ -11994,7 +11997,19 @@ textarea.form-input {
 
 .tc-cell-type { white-space: nowrap; }
 .tc-cell-priority { white-space: nowrap; }
+.tc-cell-severity { white-space: nowrap; }
+.tc-cell-status { white-space: nowrap; }
 .tc-cell-steps { text-align: center; }
+
+.tc-cell-scenario {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.83rem;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .tc-cell-actions {
   display: flex;
@@ -12084,6 +12099,76 @@ textarea.form-input {
   white-space: nowrap;
 }
 
+/* Severity Badges (Table) */
+.tc-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tc-severity-badge.critical {
+  background: rgba(220, 38, 38, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.tc-severity-badge.major {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.25);
+}
+
+.tc-severity-badge.minor {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.tc-severity-badge.trivial {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+/* Status Badges (Table) */
+.tc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tc-status-badge.not-executed {
+  background: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.tc-status-badge.pass {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.tc-status-badge.fail {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.tc-status-badge.blocked {
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
 /* Expanded Row */
 .tc-expanded-row td {
   padding: 0 !important;
@@ -12117,6 +12202,12 @@ textarea.form-input {
   gap: 1.25rem;
 }
 
+@media (max-width: 600px) {
+  .tc-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .tc-detail-block {
   display: flex;
   flex-direction: column;
@@ -12144,6 +12235,32 @@ textarea.form-input {
   color: var(--primary);
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+/* Test Data & Actual Result detail styles */
+.tc-test-data,
+.tc-actual-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.detail-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+}
+
+.tc-test-data {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.83rem;
+  color: #a5b4fc;
+}
+
+.tc-actual-result {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .tc-steps-list {
@@ -12196,7 +12313,7 @@ textarea.form-input {
   }
 
   .tc-table {
-    min-width: 700px;
+    min-width: 950px;
   }
 
   .tc-expanded-content {

@@ -98,13 +98,18 @@ export const apiService = {
                     return {
                         ...tc,
                         id: String(tc.id || `TC_${type}_${i + 1}`),
+                        testScenario: String(tc.testScenario || tc.test_scenario || `${tc.module || 'General'} ${typeLabel}`),
                         module: String(tc.module || 'General'),
                         title: String(tc.title || 'Untitled Test Case'),
                         type: String(tc.type || typeLabel),
                         priority: String(tc.priority || 'Medium'),
+                        severity: String(tc.severity || (tc.priority === 'High' ? 'Critical' : tc.priority === 'Low' ? 'Minor' : 'Major')),
                         preconditions: normalizePreconditions(tc.preconditions),
+                        testData: String(tc.testData || tc.test_data || 'N/A'),
                         steps: normalizeSteps(tc.steps || tc.checkpoints || tc.checks || []),
                         expectedResult: String(tc.expectedResult || tc.expected || 'No expected result provided'),
+                        actualResult: String(tc.actualResult || 'Not yet executed'),
+                        status: String(tc.status || 'Not Executed'),
                         requirementId: String(tc.requirementId || `REQ_${String(i + 1).padStart(3, '0')}`),
                     };
                 }).filter(Boolean);

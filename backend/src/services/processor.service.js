@@ -75,7 +75,34 @@ const removeDuplicates = (testCases) => {
     return uniqueTests;
 };
 
-// Normalize test case structure to strict schema
+// Derive severity from priority when AI doesn't provide it
+const deriveSeverity = (testCase) => {
+    if (testCase.severity) return testCase.severity;
+    const priority = (testCase.priority || 'Medium').toLowerCase();
+    const severityMap = {
+        high: 'Critical',
+        medium: 'Major',
+        low: 'Minor',
+    };
+    return severityMap[priority] || 'Major';
+};
+
+// Derive testScenario from module + type when AI doesn't provide it
+const deriveTestScenario = (testCase, category, feature) => {
+    if (testCase.testScenario) return testCase.testScenario;
+    const module = testCase.module || feature || 'General';
+    const typeMap = {
+        functional: 'Functionality',
+        negative: 'Negative Validation',
+        edge: 'Boundary Testing',
+        api: 'API Integration',
+        apiChecklist: 'API Integration',
+        nonFunctional: 'Non-Functional Quality',
+    };
+    return `${module} ${typeMap[category] || 'Testing'}`;
+};
+
+// Normalize test case structure to strict schema (13-field industry standard)
 const normalizeTestCase = (testCase, category, index, feature) => {
     // Map category to type label
     const typeMap = {
@@ -89,13 +116,18 @@ const normalizeTestCase = (testCase, category, index, feature) => {
 
     return {
         id: generateTestCaseId(category, index),
+        testScenario: deriveTestScenario(testCase, category, feature),
         module: testCase.module || feature || 'General',
         title: testCase.title || 'Untitled Test Case',
         type: testCase.type || typeMap[category] || 'Functional',
         priority: assignPriority(testCase, feature),
+        severity: deriveSeverity(testCase),
         preconditions: testCase.preconditions || '',
+        testData: testCase.testData || 'N/A',
         steps: testCase.steps || [],
         expectedResult: testCase.expectedResult || testCase.expected || '',
+        actualResult: 'Not yet executed',
+        status: 'Not Executed',
         requirementId: testCase.requirementId || `REQ_${String(index + 1).padStart(3, '0')}`,
     };
 };

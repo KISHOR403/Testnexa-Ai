@@ -3,7 +3,8 @@ import {
     Copy, Save, Download, ClipboardList, AlertCircle,
     Maximize2, CheckSquare, MessageSquare, ChevronDown,
     ChevronUp, Sparkles, LayoutGrid, ListChecks, Search, Shield,
-    Filter, ChevronLast, ChevronFirst, ExternalLink, XCircle, Zap, Link, Loader2, BookOpen
+    Filter, ChevronLast, ChevronFirst, ExternalLink, XCircle, Zap, Link, Loader2, BookOpen,
+    Database, Activity
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 import CoverageAnalytics from './CoverageAnalytics';
@@ -32,6 +33,18 @@ const TypeBadge = ({ type }) => {
     return <span className={`tc-type-badge ${typeClassMap[type] || ''}`}>{type || 'Functional'}</span>;
 };
 
+// ─── Severity Badge Component ───
+const SeverityBadge = ({ severity }) => {
+    const s = (severity || 'Major').toLowerCase();
+    return <span className={`tc-severity-badge ${s}`}>{severity || 'Major'}</span>;
+};
+
+// ─── Status Badge Component ───
+const StatusBadge = ({ status }) => {
+    const s = (status || 'Not Executed').toLowerCase().replace(/\s+/g, '-');
+    return <span className={`tc-status-badge ${s}`}>{status || 'Not Executed'}</span>;
+};
+
 // ─── Expandable Table Row ───
 const TestCaseRow = React.memo(({ testCase, isExpanded, onToggleExpand, isSelected, onToggleSelect }) => {
     const handleCopy = (e) => {
@@ -47,15 +60,19 @@ const TestCaseRow = React.memo(({ testCase, isExpanded, onToggleExpand, isSelect
         const preconText = Array.isArray(testCase.preconditions)
             ? testCase.preconditions.join(', ')
             : (testCase.preconditions || 'None');
-        const textToCopy = `ID: ${testCase.id}
-Module: ${testCase.module}
+        const textToCopy = `Test Case ID: ${testCase.id}
+Test Scenario: ${testCase.testScenario || 'N/A'}
 Title: ${testCase.title}
-Type: ${testCase.type}
+Module/Feature: ${testCase.module}
+Requirement ID: ${testCase.requirementId}
 Priority: ${testCase.priority}
+Severity: ${testCase.severity || 'N/A'}
 Preconditions: ${preconText}
+Test Data: ${testCase.testData || 'N/A'}
 Steps:\n${stepsText}
 Expected Result: ${testCase.expectedResult || 'N/A'}
-Requirement ID: ${testCase.requirementId}`;
+Actual Result: ${testCase.actualResult || 'Not yet executed'}
+Status: ${testCase.status || 'Not Executed'}`;
 
         navigator.clipboard.writeText(textToCopy).then(() => {
             // brief visual feedback could be added
@@ -77,10 +94,12 @@ Requirement ID: ${testCase.requirementId}`;
                     />
                 </td>
                 <td className="tc-cell-id"><span className="tc-id-pill">{testCase.id}</span></td>
-                <td className="tc-cell-module">{testCase.module}</td>
+                <td className="tc-cell-scenario" title={testCase.testScenario}>{testCase.testScenario || '—'}</td>
                 <td className="tc-cell-title">{testCase.title}</td>
-                <td className="tc-cell-type"><TypeBadge type={testCase.type} /></td>
+                <td className="tc-cell-module">{testCase.module}</td>
                 <td className="tc-cell-priority"><PriorityBadge priority={testCase.priority} /></td>
+                <td className="tc-cell-severity"><SeverityBadge severity={testCase.severity} /></td>
+                <td className="tc-cell-status"><StatusBadge status={testCase.status} /></td>
                 <td className="tc-cell-steps">
                     <span className="steps-count-badge">{testCase.steps?.length || 0} steps</span>
                 </td>
@@ -93,7 +112,7 @@ Requirement ID: ${testCase.requirementId}`;
             </tr>
             {isExpanded && (
                 <tr className="tc-expanded-row">
-                    <td colSpan="8">
+                    <td colSpan="10">
                         <div className="tc-expanded-content">
                             <div className="tc-detail-grid">
                                 <div className="tc-detail-block">
@@ -111,6 +130,20 @@ Requirement ID: ${testCase.requirementId}`;
                                 <div className="tc-detail-block">
                                     <h5 className="tc-detail-label">Requirement ID</h5>
                                     <p className="tc-detail-value tc-req-id">{testCase.requirementId}</p>
+                                </div>
+                                <div className="tc-detail-block">
+                                    <h5 className="tc-detail-label">Test Data</h5>
+                                    <p className="tc-detail-value tc-test-data">
+                                        <Database size={14} className="detail-icon" />
+                                        {testCase.testData || 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="tc-detail-block">
+                                    <h5 className="tc-detail-label">Actual Result</h5>
+                                    <p className="tc-detail-value tc-actual-result">
+                                        <Activity size={14} className="detail-icon" />
+                                        {testCase.actualResult || 'Not yet executed'}
+                                    </p>
                                 </div>
                             </div>
                             <div className="tc-detail-block">
@@ -282,35 +315,45 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
             },
             test_cases: {
                 functional: (result.functional || []).map(tc => ({
-                    id: tc.id, module: tc.module, title: tc.title, type: tc.type,
-                    priority: tc.priority, preconditions: tc.preconditions,
+                    test_case_id: tc.id, test_scenario: tc.testScenario, title: tc.title,
+                    module: tc.module, requirement_id: tc.requirementId,
+                    priority: tc.priority, severity: tc.severity,
+                    preconditions: tc.preconditions, test_data: tc.testData,
                     steps: tc.steps, expected_result: tc.expectedResult,
-                    requirement_id: tc.requirementId,
+                    actual_result: tc.actualResult, status: tc.status,
                 })),
                 negative: (result.negative || []).map(tc => ({
-                    id: tc.id, module: tc.module, title: tc.title, type: tc.type,
-                    priority: tc.priority, preconditions: tc.preconditions,
+                    test_case_id: tc.id, test_scenario: tc.testScenario, title: tc.title,
+                    module: tc.module, requirement_id: tc.requirementId,
+                    priority: tc.priority, severity: tc.severity,
+                    preconditions: tc.preconditions, test_data: tc.testData,
                     steps: tc.steps, expected_result: tc.expectedResult,
-                    requirement_id: tc.requirementId,
+                    actual_result: tc.actualResult, status: tc.status,
                 })),
                 edge_cases: (result.edge || []).map(tc => ({
-                    id: tc.id, module: tc.module, title: tc.title, type: tc.type,
-                    priority: tc.priority, preconditions: tc.preconditions,
+                    test_case_id: tc.id, test_scenario: tc.testScenario, title: tc.title,
+                    module: tc.module, requirement_id: tc.requirementId,
+                    priority: tc.priority, severity: tc.severity,
+                    preconditions: tc.preconditions, test_data: tc.testData,
                     steps: tc.steps, expected_result: tc.expectedResult,
-                    requirement_id: tc.requirementId,
+                    actual_result: tc.actualResult, status: tc.status,
                 })),
             },
             api_checklist: (result.apiChecklist || result.api || []).map(tc => ({
-                id: tc.id, module: tc.module, title: tc.title, type: tc.type,
-                priority: tc.priority, preconditions: tc.preconditions,
+                test_case_id: tc.id, test_scenario: tc.testScenario, title: tc.title,
+                module: tc.module, requirement_id: tc.requirementId,
+                priority: tc.priority, severity: tc.severity,
+                preconditions: tc.preconditions, test_data: tc.testData,
                 steps: tc.steps, expected_result: tc.expectedResult,
-                requirement_id: tc.requirementId,
+                actual_result: tc.actualResult, status: tc.status,
             })),
             non_functional: (result.nonFunctional || []).map(tc => ({
-                id: tc.id, module: tc.module, title: tc.title, type: tc.type,
-                priority: tc.priority, preconditions: tc.preconditions,
+                test_case_id: tc.id, test_scenario: tc.testScenario, title: tc.title,
+                module: tc.module, requirement_id: tc.requirementId,
+                priority: tc.priority, severity: tc.severity,
+                preconditions: tc.preconditions, test_data: tc.testData,
                 steps: tc.steps, expected_result: tc.expectedResult,
-                requirement_id: tc.requirementId,
+                actual_result: tc.actualResult, status: tc.status,
             })),
             assumptions: result.assumptions || [],
             clarification_questions: result.questions || [],
@@ -506,10 +549,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                                             />
                                         </th>
                                         <th className="tc-th-id">ID</th>
-                                        <th className="tc-th-module">Module</th>
+                                        <th className="tc-th-scenario">Scenario</th>
                                         <th className="tc-th-title">Title</th>
-                                        <th className="tc-th-type">Type</th>
+                                        <th className="tc-th-module">Module</th>
                                         <th className="tc-th-priority">Priority</th>
+                                        <th className="tc-th-severity">Severity</th>
+                                        <th className="tc-th-status">Status</th>
                                         <th className="tc-th-steps">Steps</th>
                                         <th className="tc-th-actions"></th>
                                     </tr>

@@ -148,13 +148,16 @@ Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstruc
 Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
 Test Focus Category: ${testFocus}
 
-STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 9 fields (NO additional fields allowed):
+STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 12 fields (NO additional fields allowed):
 - "id": string (e.g. "TC_FUNC_001")
+- "testScenario": string (high-level functionality being tested, e.g. "User Authentication", "Payment Processing")
 - "module": string (feature module name, e.g. "Login", "Payment")
 - "title": string (concise test case title, max 80 chars, NO prose)
 - "type": string (MUST be one of: "Functional", "Negative", "Edge", "API", "Non-Functional")
 - "priority": string (MUST be one of: "High", "Medium", "Low")
+- "severity": string (impact if test fails, MUST be one of: "Critical", "Major", "Minor", "Trivial")
 - "preconditions": string[] (array of prerequisite conditions, each a short declarative statement)
+- "testData": string (specific input values needed for execution, e.g. "Email: test@mail.com, Password: Pass123")
 - "steps": array of objects, each with exactly {"action": string, "expected": string}
     - "action": what the tester DOES (imperative verb, e.g. "Enter valid email in the email field")
     - "expected": what the system SHOULD do (e.g. "Email field accepts input without error")
@@ -196,11 +199,14 @@ Return ONLY valid JSON with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
+      "testScenario": "Payment Processing",
       "module": "Payment",
       "title": "Valid Credit Card Checkout",
       "type": "Functional",
       "priority": "High",
+      "severity": "Critical",
       "preconditions": ["User is logged in", "Cart contains items"],
+      "testData": "Card: 4111111111111111, Exp: 12/28, CVV: 123, Amount: $50.00",
       "steps": [
         {"action": "Navigate to checkout page", "expected": "Checkout page loads with cart summary"},
         {"action": "Enter valid credit card details", "expected": "Card fields accept input without error"},
@@ -210,10 +216,10 @@ Return ONLY valid JSON with this exact structure:
       "requirementId": "REQ_001"
     }
   ],
-  "negative": [{"id": "TC_NEG_001", "module": "Module", "title": "Expired Card Rejection", "type": "Negative", "priority": "High", "preconditions": ["User on payment page"], "steps": [{"action": "Enter expired card details", "expected": "System displays expiration error message"}], "expectedResult": "Payment rejected with clear error", "requirementId": "REQ_001"}],
-  "edge": [{"id": "TC_EDGE_001", "module": "Module", "title": "Boundary Amount Test", "type": "Edge", "priority": "Medium", "preconditions": ["Cart ready"], "steps": [{"action": "Set order total to $0.01", "expected": "System accepts minimum amount"}], "expectedResult": "Order processes for minimum valid amount", "requirementId": "REQ_001"}],
-  "apiChecklist": [{"id": "TC_API_001", "module": "Payment API", "title": "POST /api/payment - Valid Card", "type": "API", "priority": "High", "preconditions": ["API server running", "Valid auth token"], "steps": [{"action": "Send POST with valid card payload", "expected": "Response status 200"}, {"action": "Validate response schema", "expected": "Body contains transactionId and status=success"}], "expectedResult": "HTTP 200 with valid transaction object", "requirementId": "REQ_API_001"}],
-  "nonFunctional": [{"id": "TC_NF_001", "module": "Module", "title": "Checkout Page Load Time", "type": "Non-Functional", "priority": "Medium", "preconditions": ["Standard network conditions"], "steps": [{"action": "Load checkout page with 10 items", "expected": "Page renders within 2 seconds"}], "expectedResult": "Page load time under 2s at P95", "requirementId": "REQ_NF_001"}],
+  "negative": [{"id": "TC_NEG_001", "testScenario": "Payment Validation", "module": "Module", "title": "Expired Card Rejection", "type": "Negative", "priority": "High", "severity": "Critical", "preconditions": ["User on payment page"], "testData": "Card: 4111111111111111, Exp: 01/20 (expired)", "steps": [{"action": "Enter expired card details", "expected": "System displays expiration error message"}], "expectedResult": "Payment rejected with clear error", "requirementId": "REQ_001"}],
+  "edge": [{"id": "TC_EDGE_001", "testScenario": "Order Amount Boundaries", "module": "Module", "title": "Boundary Amount Test", "type": "Edge", "priority": "Medium", "severity": "Minor", "preconditions": ["Cart ready"], "testData": "Amount: $0.01 (minimum valid)", "steps": [{"action": "Set order total to $0.01", "expected": "System accepts minimum amount"}], "expectedResult": "Order processes for minimum valid amount", "requirementId": "REQ_001"}],
+  "apiChecklist": [{"id": "TC_API_001", "testScenario": "Payment API Integration", "module": "Payment API", "title": "POST /api/payment - Valid Card", "type": "API", "priority": "High", "severity": "Critical", "preconditions": ["API server running", "Valid auth token"], "testData": "POST body: {cardNumber: '4111...', amount: 50.00}", "steps": [{"action": "Send POST with valid card payload", "expected": "Response status 200"}, {"action": "Validate response schema", "expected": "Body contains transactionId and status=success"}], "expectedResult": "HTTP 200 with valid transaction object", "requirementId": "REQ_API_001"}],
+  "nonFunctional": [{"id": "TC_NF_001", "testScenario": "Checkout Performance", "module": "Module", "title": "Checkout Page Load Time", "type": "Non-Functional", "priority": "Medium", "severity": "Major", "preconditions": ["Standard network conditions"], "testData": "Items: 10, Network: 4G, Browser: Chrome", "steps": [{"action": "Load checkout page with 10 items", "expected": "Page renders within 2 seconds"}], "expectedResult": "Page load time under 2s at P95", "requirementId": "REQ_NF_001"}],
   "questions": ["Clarification question 1?"]
 }
 
@@ -226,7 +232,10 @@ CRITICAL RULES:
 6. For "apiChecklist": include HTTP method, endpoint path, status codes, and response schema validation.
 7. Generate comprehensive coverage across functional, negative, edge, API, and non-functional categories.
 8. List ALL assumptions explicitly in the "assumptions" array.
-9. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
+9. "testScenario" must describe the high-level functionality being tested (e.g. "User Authentication", "Payment Processing").
+10. "testData" must contain specific input values needed for test execution.
+11. "severity" must be one of: "Critical", "Major", "Minor", "Trivial" — based on business impact if the test fails.
+12. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
     }
 
     /**
@@ -352,8 +361,8 @@ CONTEXT RULES:
 Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstructions.web}
 Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
 
-STRICT TEST CASE SCHEMA — Every test case MUST contain exactly these 9 fields:
-- "id", "module", "title", "type", "priority", "preconditions", "steps", "expectedResult", "requirementId"
+STRICT TEST CASE SCHEMA — Every test case MUST contain exactly these 12 fields:
+- "id", "testScenario", "module", "title", "type", "priority", "severity", "preconditions", "testData", "steps", "expectedResult", "requirementId"
 
 CRITICAL ASSUMPTION RULES:
 1. You MUST list every assumption you make in the "assumptions" array
@@ -366,20 +375,23 @@ Return ONLY a JSON object with this exact structure:
   "functional": [
     {
       "id": "TC_FUNC_001",
+      "testScenario": "Feature Scenario",
       "module": "Feature Module",
       "title": "Test case title",
       "type": "Functional",
       "priority": "High|Medium|Low",
+      "severity": "Critical|Major|Minor|Trivial",
       "preconditions": "Pre-conditions for this test",
+      "testData": "Input values needed",
       "steps": ["Step 1", "Step 2"],
       "expectedResult": "Expected result",
       "requirementId": "REQ_001"
     }
   ],
-  "negative": [{ "id": "TC_NEG_001", "module": "Module", "title": "...", "type": "Negative", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
-  "edge": [{ "id": "TC_EDGE_001", "module": "Module", "title": "...", "type": "Edge", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
-  "apiChecklist": [{ "id": "TC_API_001", "module": "API Module", "title": "...", "type": "API", "priority": "High", "preconditions": "...", "steps": ["Check 1"], "expectedResult": "...", "requirementId": "REQ_API_001" }],
-  "nonFunctional": [{ "id": "TC_NF_001", "module": "Module", "title": "...", "type": "Non-Functional", "priority": "...", "preconditions": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_NF_001" }],
+  "negative": [{ "id": "TC_NEG_001", "testScenario": "Scenario", "module": "Module", "title": "...", "type": "Negative", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "edge": [{ "id": "TC_EDGE_001", "testScenario": "Scenario", "module": "Module", "title": "...", "type": "Edge", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "apiChecklist": [{ "id": "TC_API_001", "testScenario": "API Scenario", "module": "API Module", "title": "...", "type": "API", "priority": "High", "severity": "Critical", "preconditions": "...", "testData": "...", "steps": ["Check 1"], "expectedResult": "...", "requirementId": "REQ_API_001" }],
+  "nonFunctional": [{ "id": "TC_NF_001", "testScenario": "NFR Scenario", "module": "Module", "title": "...", "type": "Non-Functional", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_NF_001" }],
   "questions": ["Clarification question 1?"]
 }
 
