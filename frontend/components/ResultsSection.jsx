@@ -207,7 +207,7 @@ const EmptyState = ({ message, submessage }) => (
 );
 
 // ─── Main Results Section ───
-const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
+const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true }) => {
     console.log('ResultsSection rendering with:', result);
     if (!result) return <EmptyState message="Critical Error: No Result Data" />;
 
@@ -577,31 +577,26 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate }) => {
                 </div>
             </div>
 
-            {/* Refine & Regenerate Panel */}
-            <RefineRegeneratePanel
-                onRegenerate={async (refinementData) => {
-                    setIsRefineRegenerating(true);
-                    try {
-                        if (onRefineRegenerate) {
+            {/* Refine & Regenerate Panel — only on the latest generation */}
+            {isLatest && onRefineRegenerate && (
+                <RefineRegeneratePanel
+                    onRegenerate={async (refinementData) => {
+                        setIsRefineRegenerating(true);
+                        try {
                             const result = await onRefineRegenerate(refinementData);
                             return result;
+                        } finally {
+                            setIsRefineRegenerating(false);
                         }
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        return {
-                            changesSummary: ['Refinement applied successfully'],
-                            metadata: { testsAdded: 0 }
-                        };
-                    } finally {
-                        setIsRefineRegenerating(false);
-                    }
-                }}
-                isRegenerating={isRefineRegenerating}
-                testSuiteMetadata={{
-                    totalTests: (result?.summary?.functional || 0) + (result?.summary?.negative || 0) + (result?.summary?.edge || 0),
-                    hasQuestions: (result?.questions?.length || 0) > 0,
-                    assumptions: result?.assumptions || []
-                }}
-            />
+                    }}
+                    isRegenerating={isRefineRegenerating}
+                    testSuiteMetadata={{
+                        totalTests: (result?.summary?.functional || 0) + (result?.summary?.negative || 0) + (result?.summary?.edge || 0),
+                        hasQuestions: (result?.questions?.length || 0) > 0,
+                        assumptions: result?.assumptions || []
+                    }}
+                />
+            )}
 
             {/* Next Actions Panel */}
             <div className="next-actions-luxury glass-card">
