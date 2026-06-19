@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import {
     Sparkles, Terminal, AlertTriangle, HelpCircle, ChevronRight,
-    ChevronDown, Clock, Hash
+    Clock
 } from 'lucide-react';
 
 
@@ -35,194 +35,113 @@ const formatRelativeTime = (ts) => {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
-// ─── Helper: build compact stats string from a result ───
-const buildStatsString = (result) => {
-    if (!result) return '';
-    const f = result.summary?.functional || result.functional?.length || 0;
-    const n = result.summary?.negative || result.negative?.length || 0;
-    const e = result.summary?.edge || result.edge?.length || 0;
-    const a = result.summary?.apiChecklist || result.apiChecklist?.length || result.api?.length || 0;
-    const nf = result.summary?.nonFunctional || result.nonFunctional?.length || 0;
-    const parts = [];
-    if (f) parts.push(`${f}F`);
-    if (n) parts.push(`${n}N`);
-    if (e) parts.push(`${e}E`);
-    if (a) parts.push(`${a}API`);
-    if (nf) parts.push(`${nf}NF`);
-    return parts.join(' · ') || '0 tests';
-};
 
-
-// ─── VersionBlock: A single generation in the accordion ───
-// isOpen is controlled entirely by the parent — no local collapse state.
-// When closed, body is NOT mounted (perf).
-const VersionBlock = ({
-    generation,
-    versionNumber,
-    isLatest,
-    isOpen,
-    onToggle,
+// ─── GenerationTabs: Tab row + single active output ───
+const GenerationTabs = ({
+    generations,
+    activeIndex,
+    setActiveIndex,
     onSave,
     onRefineRegenerate,
     showClarification,
     setShowClarification,
 }) => {
-    const result = generation.result;
-    const promptPreview = (generation.prompt || '').replace(/\n/g, ' ');
+    if (generations.length === 0) return null;
+
+    const active = generations[activeIndex];
+    const result = active?.result;
+    const isLatest = activeIndex === generations.length - 1;
 
     return (
-        <div
-            id={`generation-${generation.id}`}
-            className={`version-block ${isLatest ? 'is-latest' : ''} ${isOpen ? 'is-open' : ''}`}
-        >
-            {/* ── Clickable header row ── */}
-            <button className="version-header" onClick={onToggle} type="button">
-                <span className={`v-badge ${isLatest ? 'v-latest' : 'v-old'}`}>
-                    Output {versionNumber}{isLatest ? ' · Latest' : ''}
-                </span>
-
-                <span className="v-prompt" title={generation.prompt}>
-                    {promptPreview}
-                </span>
-
-                {/* Compact stats — only when collapsed */}
-                {!isOpen && (
-                    <span className="v-stats">{buildStatsString(result)}</span>
-                )}
-
-                <span className="v-time">{formatRelativeTime(generation.timestamp)}</span>
-
-                <span className={`v-chevron ${isOpen ? 'rotated' : ''}`}>
-                    <ChevronDown size={16} />
-                </span>
-            </button>
-
-            {/* ── Body — only mounted when open ── */}
-            {isOpen && (
-                <div className="version-body">
-                    {/* Clarification check — only on latest */}
-                    {isLatest && showClarification && result?.questions?.length > 0 ? (
-                        <div className="clarification-required-luxury glass-card luxury-glow">
-                            <div className="clarification-header">
-                                <div className="warning-icon-badge">
-                                    <AlertTriangle size={24} className="text-warning" />
-                                </div>
-                                <div className="header-text">
-                                    <h2 className="clarification-title">Clarification Required</h2>
-                                    <p className="clarification-subtitle">To generate high-accuracy tests, the AI needs more details on these points.</p>
-                                </div>
-                            </div>
-
-                            <div className="questions-list-luxury">
-                                {result.questions.map((q, i) => (
-                                    <div key={i} className="question-item-v2 glass-card">
-                                        <HelpCircle size={18} className="text-primary" />
-                                        <p className="question-text">{q}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="clarification-footer">
-                                <button
-                                    className="btn-secondary-bright"
-                                    onClick={() => setShowClarification(false)}
-                                >
-                                    Proceed with current logic
-                                </button>
-                                <button
-                                    className="btn-primary-bright"
-                                    onClick={() => {
-                                        const el = document.querySelector('.prompt-textarea');
-                                        if (el) el.focus();
-                                    }}
-                                >
-                                    <span>Refine Requirement</span>
-                                    <ChevronRight size={18} />
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="result-header-row">
-                                <h2 className="strong-heading text-gradient">
-                                    Output {versionNumber} — Generation Results
-                                </h2>
-                                <span className="timestamp-badge">{formatRelativeTime(generation.timestamp)}</span>
-                            </div>
-                            <ResultsSection
-                                result={result}
-                                onSave={() => onSave(result)}
-                                onRefineRegenerate={isLatest ? onRefineRegenerate : undefined}
-                                isLatest={isLatest}
-                            />
-                        </>
-                    )}
+        <div className="generation-tabs-wrapper">
+            {/* Tab row — only show when 2+ generations */}
+            {generations.length > 1 && (
+                <div className="gen-tab-row">
+                    {generations.map((gen, idx) => (
+                        <button
+                            key={gen.id}
+                            className={`gen-tab-pill ${idx === activeIndex ? 'active' : ''}`}
+                            onClick={() => setActiveIndex(idx)}
+                            title={gen.prompt.slice(0, 80)}
+                        >
+                            v{idx + 1}
+                            {idx === generations.length - 1 && (
+                                <span className="gen-tab-latest-dot" />
+                            )}
+                        </button>
+                    ))}
                 </div>
             )}
-        </div>
-    );
-};
 
-
-// ─── GenerationFeed: The accordion container ───
-const GenerationFeed = ({
-    generations,
-    openGenerationId,
-    setOpenGenerationId,
-    onSave,
-    onRefineRegenerate,
-    showClarification,
-    setShowClarification,
-}) => {
-    return (
-        <div className="generation-feed">
-            {[...generations].reverse().map((gen, idx) => {
-                const versionNumber = generations.length - idx;
-                const isLatest = idx === 0; // first in reversed = newest
-                const isOpen = openGenerationId === gen.id;
-
-                return (
-                    <VersionBlock
-                        key={gen.id}
-                        generation={gen}
-                        versionNumber={versionNumber}
-                        isLatest={isLatest}
-                        isOpen={isOpen}
-                        onToggle={() => setOpenGenerationId(isOpen ? null : gen.id)}
-                        onSave={onSave}
-                        onRefineRegenerate={onRefineRegenerate}
-                        showClarification={showClarification}
-                        setShowClarification={setShowClarification}
-                    />
-                );
-            })}
-        </div>
-    );
-};
-
-
-// ─── VersionStrip: Horizontal navigation pills ───
-const VersionStrip = ({ generations, openGenerationId, onSelectGeneration }) => {
-    if (generations.length <= 1) return null;
-
-    return (
-        <div className="version-strip glass-card">
-            <span className="version-strip-label">
-                <Hash size={14} />
-                Versions
-            </span>
-            <div className="version-strip-pills">
-                {generations.map((gen, idx) => (
-                    <button
-                        key={gen.id}
-                        className={`version-pill ${gen.id === openGenerationId ? 'active' : ''}`}
-                        onClick={() => onSelectGeneration(gen.id)}
-                        title={`${gen.prompt.slice(0, 50)}…`}
-                    >
-                        v{idx + 1}
-                    </button>
-                ))}
+            {/* Prompt preview + timestamp for active tab */}
+            <div className="gen-active-meta">
+                <p className="gen-active-prompt">{active.prompt}</p>
+                <span className="gen-active-time">
+                    <Clock size={12} />
+                    {formatRelativeTime(active.timestamp)}
+                </span>
             </div>
+
+            {/* Clarification check — only on latest */}
+            {isLatest && showClarification && result?.questions?.length > 0 ? (
+                <div className="clarification-required-luxury glass-card luxury-glow">
+                    <div className="clarification-header">
+                        <div className="warning-icon-badge">
+                            <AlertTriangle size={24} className="text-warning" />
+                        </div>
+                        <div className="header-text">
+                            <h2 className="clarification-title">Clarification Required</h2>
+                            <p className="clarification-subtitle">To generate high-accuracy tests, the AI needs more details on these points.</p>
+                        </div>
+                    </div>
+
+                    <div className="questions-list-luxury">
+                        {result.questions.map((q, i) => (
+                            <div key={i} className="question-item-v2 glass-card">
+                                <HelpCircle size={18} className="text-primary" />
+                                <p className="question-text">{q}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="clarification-footer">
+                        <button
+                            className="btn-secondary-bright"
+                            onClick={() => setShowClarification(false)}
+                        >
+                            Proceed with current logic
+                        </button>
+                        <button
+                            className="btn-primary-bright"
+                            onClick={() => {
+                                const el = document.querySelector('.prompt-textarea');
+                                if (el) el.focus();
+                            }}
+                        >
+                            <span>Refine Requirement</span>
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className="result-header-row">
+                        <h2 className="strong-heading text-gradient">
+                            {generations.length > 1 ? `Output ${activeIndex + 1} — ` : ''}Generation Results
+                        </h2>
+                        <span className="timestamp-badge">{formatRelativeTime(active.timestamp)}</span>
+                    </div>
+
+                    {/* The ONLY ResultsSection mounted — swaps on tab change */}
+                    <ResultsSection
+                        key={active.id}
+                        result={result}
+                        onSave={() => onSave(result)}
+                        onRefineRegenerate={isLatest ? onRefineRegenerate : undefined}
+                        isLatest={isLatest}
+                    />
+                </>
+            )}
         </div>
     );
 };
@@ -251,9 +170,9 @@ const GeneratorPage = () => {
 
     const [isGenerating, setIsGenerating] = useState(false);
 
-    // ── Generations array + single accordion open ID ──
+    // ── Generations array + active tab index ──
     const [generations, setGenerations] = useState([]);
-    const [openGenerationId, setOpenGenerationId] = useState(null);
+    const [activeIndex, setActiveIndex] = useState(0);
 
     const { saveToHistory } = useHistory();
     const [showClarification, setShowClarification] = useState(false);
@@ -261,7 +180,7 @@ const GeneratorPage = () => {
     const [pageError, setPageError] = useState(null);
     const inputReveal = useScrollReveal({ threshold: 0.1 });
 
-    // Derived: the latest generation's result (used by merge logic & helpers)
+    // Derived: the latest generation's result (used by merge logic)
     const latestGeneration = generations.length > 0 ? generations[generations.length - 1] : null;
     const latestResult = latestGeneration?.result || null;
 
@@ -273,15 +192,9 @@ const GeneratorPage = () => {
             if (isAuthenticated && savedData) {
                 try {
                     const { requirement: savedReq, settings: savedSettings } = JSON.parse(savedData);
-
-                    // Restore state
                     setRequirement(savedReq);
                     setSettings(savedSettings);
-
-                    // Clear storage first to prevent loops
                     localStorage.removeItem('testnexa_pending_generation');
-
-                    // Trigger generation
                     console.log('Resuming generation after login...');
                     await handleActualGenerate(savedReq, savedSettings);
                 } catch (e) {
@@ -290,7 +203,6 @@ const GeneratorPage = () => {
                 }
             }
         };
-
         checkResume();
     }, [isAuthenticated]);
 
@@ -302,7 +214,6 @@ const GeneratorPage = () => {
     const handleGenerate = async () => {
         if (!requirement.trim()) return;
 
-        // Auth Guard Logic
         if (!isAuthenticated) {
             if (!canGenerateAsGuest()) {
                 localStorage.setItem('testnexa_pending_generation', JSON.stringify({
@@ -334,7 +245,6 @@ const GeneratorPage = () => {
             let finalSuite = generatedSuite;
 
             if (isRefinement && latestResult) {
-                // Merge the new suite into the latest generation's result
                 finalSuite = { ...latestResult };
                 
                 const mergeArrays = (arr1, arr2) => {
@@ -376,18 +286,22 @@ const GeneratorPage = () => {
 
             console.log('API Response received (processed):', finalSuite);
 
-            // ── Append new generation, set it as the open accordion item ──
+            // ── Append + jump to new tab ──
             const newGeneration = {
                 id: crypto.randomUUID(),
-                prompt: isRefinement ? requirement : reqToUse, // show original prompt in header for refinements
+                prompt: isRefinement ? requirement : reqToUse,
                 settings: settingsToUse,
                 timestamp: Date.now(),
                 result: finalSuite,
                 isRefinement,
             };
 
-            setGenerations(prev => [...prev, newGeneration]);
-            setOpenGenerationId(newGeneration.id); // accordion: only this one is open
+            setGenerations(prev => {
+                const updated = [...prev, newGeneration];
+                setActiveIndex(updated.length - 1); // jump to newest tab
+                return updated;
+            });
+
             console.log('New generation appended:', newGeneration.id);
 
             // Auto-save to history
@@ -405,7 +319,7 @@ const GeneratorPage = () => {
                 });
             }
 
-            // Scroll to top of output so user sees new generation immediately
+            // Scroll to output section
             setTimeout(() => {
                 const outputSection = document.getElementById('output-section');
                 if (outputSection) {
@@ -452,7 +366,7 @@ const GeneratorPage = () => {
             enrichedReq += `\n\nPREVIOUSLY GENERATED TEST CASES (improve upon these, don't just repeat):\n${previousTitles}`;
         }
 
-        // Auth Guard Logic for Refinement
+        // Auth Guard
         if (!isAuthenticated) {
             if (!canGenerateAsGuest()) {
                 setShowLoginModal(true);
@@ -491,26 +405,13 @@ const GeneratorPage = () => {
         return null;
     };
 
-    // ── Version strip: scroll to + expand a specific generation ──
-    const handleSelectGeneration = useCallback((genId) => {
-        setOpenGenerationId(genId);
-        setTimeout(() => {
-            const el = document.getElementById(`generation-${genId}`);
-            if (el) {
-                const yOffset = -80;
-                const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-            }
-        }, 50);
-    }, []);
-
     return (
         <div className="home-page">
             {/* 1. Hero - What is Testnexa AI? */}
             <Hero />
 
             <div className="container" style={{ paddingBottom: '8rem' }}>
-                {/* 2. Requirement Input - Primary action (Try It) */}
+                {/* 2. Requirement Input */}
                 <div
                     ref={inputReveal.ref}
                     className={`generator-content-wrapper scroll-reveal-zoom ${inputReveal.isVisible ? 'revealed' : ''}`}
@@ -541,25 +442,17 @@ const GeneratorPage = () => {
                     </div>
                 )}
 
-                {/* 3. Generation Results — accordion feed */}
+                {/* 3. Tab-switched generation output */}
                 {generations.length > 0 && (
                     <div
                         id="output-section"
                         className="output-section-wrapper animate-slide-up"
                         style={{ marginTop: '3rem' }}
                     >
-                        {/* Version strip — quick navigation */}
-                        <VersionStrip
+                        <GenerationTabs
                             generations={generations}
-                            openGenerationId={openGenerationId}
-                            onSelectGeneration={handleSelectGeneration}
-                        />
-
-                        {/* Accordion feed — newest first, only one open at a time */}
-                        <GenerationFeed
-                            generations={generations}
-                            openGenerationId={openGenerationId}
-                            setOpenGenerationId={setOpenGenerationId}
+                            activeIndex={activeIndex}
+                            setActiveIndex={setActiveIndex}
                             onSave={handleSave}
                             onRefineRegenerate={handleRefineRegenerate}
                             showClarification={showClarification}
