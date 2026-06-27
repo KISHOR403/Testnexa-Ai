@@ -20,7 +20,19 @@ export const SettingsProvider = ({ children }) => {
                     aiGlow: parsed.aiGlow ?? true,
                     highContrast: parsed.highContrast ?? false,
                     notifications: parsed.notifications ?? true,
-                    compactMode: parsed.compactMode ?? false
+                    compactMode: parsed.compactMode ?? false,
+                    emailAlerts: parsed.emailAlerts ?? true,
+                    weeklyDigest: parsed.weeklyDigest ?? false,
+                    defaultTestMix: parsed.defaultTestMix ?? {
+                        functional: true,
+                        negative: true,
+                        edge: true,
+                        api: false,
+                        nonFunctional: false
+                    },
+                    minTestCaseCount: parsed.minTestCaseCount ?? 15,
+                    defaultExportFormat: parsed.defaultExportFormat ?? 'JSON',
+                    defaultAutomationFramework: parsed.defaultAutomationFramework ?? 'Playwright'
                 };
             }
         } catch (e) {
@@ -30,7 +42,19 @@ export const SettingsProvider = ({ children }) => {
             aiGlow: true,
             highContrast: false,
             notifications: true,
-            compactMode: false
+            compactMode: false,
+            emailAlerts: true,
+            weeklyDigest: false,
+            defaultTestMix: {
+                functional: true,
+                negative: true,
+                edge: true,
+                api: false,
+                nonFunctional: false
+            },
+            minTestCaseCount: 15,
+            defaultExportFormat: 'JSON',
+            defaultAutomationFramework: 'Playwright'
         };
     });
 
@@ -62,7 +86,7 @@ export const SettingsProvider = ({ children }) => {
             root.classList.remove('compact-mode');
         }
 
-        // Persist
+        // Persist local copy
         localStorage.setItem('testnexa_settings', JSON.stringify(settings));
     }, [settings]);
 
@@ -90,8 +114,19 @@ export const SettingsProvider = ({ children }) => {
         }
     };
 
+    // Simulate saving preferences to the backend
+    const saveSettingsToServer = async (newSettings) => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                setSettings(newSettings);
+                localStorage.setItem('testnexa_settings', JSON.stringify(newSettings));
+                resolve({ success: true });
+            }, 600);
+        });
+    };
+
     return (
-        <SettingsContext.Provider value={{ settings, updateSetting, toggleSetting }}>
+        <SettingsContext.Provider value={{ settings, updateSetting, toggleSetting, saveSettingsToServer }}>
             {children}
         </SettingsContext.Provider>
     );

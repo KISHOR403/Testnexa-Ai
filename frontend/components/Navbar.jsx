@@ -26,9 +26,18 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState('');
+    const [localAvatar, setLocalAvatar] = useState(() => localStorage.getItem('testnexa_avatar_url') || null);
     const location = useLocation();
     const navigate = useNavigate();
     const navRef = useRef(null);
+
+    useEffect(() => {
+        const handleAvatarUpdate = () => {
+            setLocalAvatar(localStorage.getItem('testnexa_avatar_url'));
+        };
+        window.addEventListener('avatarUpdated', handleAvatarUpdate);
+        return () => window.removeEventListener('avatarUpdated', handleAvatarUpdate);
+    }, []);
 
     // Scroll to a section, navigating to home first if needed
     const scrollToSection = useCallback((sectionId) => {
@@ -163,7 +172,11 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                             >
                                 <div className="navbar-avatar-wrapper">
                                     <div className="navbar-avatar">
-                                        <span className="avatar-letter">{initials}</span>
+                                        {localAvatar ? (
+                                            <img src={localAvatar} alt="avatar" className="navbar-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block', position: 'relative', zIndex: 1 }} />
+                                        ) : (
+                                            <span className="avatar-letter">{initials}</span>
+                                        )}
                                         <span className="avatar-status-dot"></span>
                                     </div>
                                 </div>
@@ -178,15 +191,30 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                     <div className="dropdown-glow-effect" />
                                     {activeSubMenu === null ? (
                                         <>
-                                            <div className="dropdown-profile-card">
-                                                <div className="profile-card-avatar">
-                                                    <span>{initials}</span>
+                                            <div className="dropdown-profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', alignItems: 'stretch' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                                    <div className="profile-card-avatar">
+                                                        {localAvatar ? (
+                                                            <img src={localAvatar} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            <span>{initials}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="profile-card-info" style={{ flex: 1, minWidth: 0 }}>
+                                                        <span className="profile-card-name" style={{ display: 'block' }}>{user?.name || user?.displayName || user?.email?.split('@')[0] || 'User'}</span>
+                                                        <span className="profile-card-email" style={{ display: 'block' }}>{user?.email || 'user@example.com'}</span>
+                                                    </div>
+                                                    <div className="profile-card-badge">Pro</div>
                                                 </div>
-                                                <div className="profile-card-info">
-                                                    <span className="profile-card-name">{user?.name || user?.displayName || user?.email?.split('@')[0] || 'User'}</span>
-                                                    <span className="profile-card-email">{user?.email || 'user@example.com'}</span>
+                                                <div className="dropdown-usage-container" style={{ marginTop: '0.15rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.2rem' }}>
+                                                        <span>Generations</span>
+                                                        <span style={{ color: '#00f2de', fontWeight: '600' }}>342 / 1000</span>
+                                                    </div>
+                                                    <div className="dropdown-usage-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+                                                        <div className="dropdown-usage-progress" style={{ width: '34.2%', height: '100%', background: 'linear-gradient(90deg, #00f2de, #5b6cff)', borderRadius: '2px' }} />
+                                                    </div>
                                                 </div>
-                                                <div className="profile-card-badge">Pro</div>
                                             </div>
 
                                             <div className="dropdown-separator" />
