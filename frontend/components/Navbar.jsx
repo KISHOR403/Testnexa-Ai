@@ -161,8 +161,11 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                     setIsDropdownOpen(!isDropdownOpen);
                                 }}
                             >
-                                <div className="navbar-avatar">
-                                    <span className="avatar-letter">{initials}</span>
+                                <div className="navbar-avatar-wrapper">
+                                    <div className="navbar-avatar">
+                                        <span className="avatar-letter">{initials}</span>
+                                        <span className="avatar-status-dot"></span>
+                                    </div>
                                 </div>
                                 <ChevronDown
                                     size={13}
