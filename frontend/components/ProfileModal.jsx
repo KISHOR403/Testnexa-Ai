@@ -599,17 +599,17 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 <div className="account-section-card">
                                     <h4 className="settings-section-title text-gradient-teal">Change Password</h4>
                                     <form onSubmit={handlePasswordUpdate} className="security-form">
-                                        <div className="form-row-grid">
-                                            <div className="form-input-box">
-                                                <label className="form-label">Current Password</label>
-                                                <input 
-                                                    type="password" 
-                                                    className="security-input" 
-                                                    value={currentPassword}
-                                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                                    placeholder="••••••••"
-                                                />
-                                            </div>
+                                        <div className="form-input-box" style={{ marginBottom: '0.6rem' }}>
+                                            <label className="form-label">Current Password</label>
+                                            <input 
+                                                type="password" 
+                                                className="security-input" 
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                        <div className="form-row-half">
                                             <div className="form-input-box">
                                                 <label className="form-label">New Password</label>
                                                 <input 

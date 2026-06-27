@@ -1722,6 +1722,12 @@ h4 {
   gap: 0.6rem;
 }
 
+.form-row-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
 .form-input-box {
   display: flex;
   flex-direction: column;
@@ -14319,6 +14325,134 @@ textarea.form-input {
   .gen-tab-pill {
     font-size: 11px;
     padding: 4px 10px;
+  }
+}
+
+/* ── Profile/Settings Modal Responsive Adjustments ── */
+@media (max-width: 768px) {
+  .profile-card.modal-layout-expanded {
+    flex-direction: column;
+    height: auto;
+    max-height: 90vh;
+    width: calc(100% - 2rem);
+    margin: 1rem;
+  }
+
+  .modal-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.25rem 1.5rem;
+  }
+
+  .modal-sidebar-title {
+    margin-bottom: 0.75rem;
+    font-size: 0.65rem;
+  }
+
+  .modal-tabs-vertical {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .modal-tabs-vertical::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modal-tab-v {
+    flex-shrink: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .modal-body-content {
+    padding: 1.5rem;
+    height: auto;
+    overflow-y: auto;
+    max-height: calc(90vh - 150px);
+  }
+
+  .profile-info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .settings-row-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .form-row-half {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .danger-zone-body,
+  .export-action-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .danger-zone-body button,
+  .export-action-card button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-sidebar {
+    padding: 1rem;
+  }
+
+  .modal-body-content {
+    padding: 1.25rem;
+  }
+
+  .profile-actions-panel {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .profile-actions-panel button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .invoice-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .invoice-row .invoice-amount {
+    text-align: left;
+  }
+
+  .invoice-row .download-invoice-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .setup-2fa-layout {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .qr-setup-instructions div {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .qr-setup-instructions .security-input.code-input {
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
 }
 
