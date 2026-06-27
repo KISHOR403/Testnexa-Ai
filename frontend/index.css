@@ -2113,8 +2113,8 @@ h4 {
 
 .profile-close {
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+  top: 2rem;
+  right: 2.2rem;
   background: none;
   border: none;
   color: #718096;
@@ -2122,6 +2122,7 @@ h4 {
   padding: 0.5rem;
   border-radius: 50%;
   transition: all 0.2s;
+  z-index: 10;
 }
 
 .profile-close:hover {
@@ -14403,6 +14404,11 @@ textarea.form-input {
     width: 100%;
     justify-content: center;
   }
+
+  .profile-close {
+    top: 1.25rem;
+    right: 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -14453,6 +14459,11 @@ textarea.form-input {
   .qr-setup-instructions .security-input.code-input {
     width: 100%;
     margin-bottom: 0.5rem;
+  }
+
+  .profile-close {
+    top: 1rem;
+    right: 1rem;
   }
 }
 
