@@ -862,6 +862,47 @@ h4 {
     padding: 0.45rem 1rem;
     font-size: 0.78rem;
   }
+
+  /* Show sidebar toggle at this breakpoint */
+  .sidebar-toggle-btn {
+    display: flex !important;
+  }
+
+  /* Hide the fixed sidebar rail to prevent overlap */
+  .gpt-rail {
+    display: none !important;
+  }
+
+  /* Reset main margins since rail is hidden */
+  .sidebar-has-rail main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .sidebar-is-open main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Sidebar opens as an overlay instead of pushing content */
+  .gpt-sidebar {
+    z-index: 1005;
+  }
+
+  .mobile-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1004;
+    opacity: 0;
+    animation: fadeInBackdrop 0.2s forwards ease-out;
+  }
 }
 
 

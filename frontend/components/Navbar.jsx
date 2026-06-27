@@ -126,7 +126,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
         <>
             <nav className={`floating-navbar ${scrolled ? 'floating-navbar-scrolled' : ''}`} ref={navRef}>
                 <div className="navbar-left-group">
-                    <button className="sidebar-toggle-btn mobile-only" onClick={onToggleSidebar}>
+                    <button className="sidebar-toggle-btn" onClick={onToggleSidebar}>
                         <Menu size={20} />
                     </button>
                     {/* Logo */}
