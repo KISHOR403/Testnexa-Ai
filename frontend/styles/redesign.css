@@ -215,6 +215,7 @@ body {
   border: 1px solid var(--tn-border);
   border-radius: var(--tn-radius-lg);
   transition: all var(--tn-transition);
+  transform: none;
 }
 
 .floating-navbar-scrolled {
@@ -287,6 +288,36 @@ body {
 .floating-nav-cta:hover {
   box-shadow: 0 0 20px rgba(45, 212, 191, 0.25);
   transform: translateY(-1px);
+}
+
+.navbar-left-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.floating-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--tn-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all var(--tn-transition);
+}
+
+.sidebar-toggle-btn:hover {
+  color: var(--tn-text);
+  background: var(--tn-surface);
 }
 
 .floating-nav-logo {
