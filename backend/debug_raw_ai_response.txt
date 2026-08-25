@@ -1,0 +1,771 @@
+{
+  "feature": "User Registration",
+  "business_rules": [
+    "Username must be unique.",
+    "Email address must be unique.",
+    "Password must meet complexity requirements.",
+    "Email verification is mandatory for account activation.",
+    "All required fields must be populated for submission."
+  ],
+  "inputs": [
+    {
+      "name": "username",
+      "type": "string",
+      "constraints": "Min 5, Max 20 characters, alphanumeric, underscore, hyphen. Must be unique."
+    },
+    {
+      "name": "password",
+      "type": "string",
+      "constraints": "Min 8, Max 20 characters. At least one uppercase, one lowercase, one digit, one special character (!@#$%^&*). Must match 'Confirm Password'."
+    },
+    {
+      "name": "confirmPassword",
+      "type": "string",
+      "constraints": "Must match 'Password'."
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "constraints": "Valid email format. Must be unique. Must match 'Confirm Email'."
+    },
+    {
+      "name": "confirmEmail",
+      "type": "string",
+      "constraints": "Must match 'Email'."
+    },
+    {
+      "name": "submitButton",
+      "type": "button",
+      "constraints": "Enabled only when all fields are valid."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "successMessage",
+      "type": "string",
+      "structure": "e.g., 'Registration successful! Please check your email for verification.'"
+    },
+    {
+      "name": "errorMessage",
+      "type": "string",
+      "structure": "Field-specific validation messages or general error messages."
+    },
+    {
+      "name": "redirection",
+      "type": "URL",
+      "structure": "e.g., '/login' or '/registration-success'"
+    },
+    {
+      "name": "emailVerificationLink",
+      "type": "URL",
+      "structure": "Unique, time-limited link sent to registered email."
+    }
+  ],
+  "risk_areas": [
+    "Security (password hashing, email verification token integrity, data exposure)",
+    "Data Integrity (unique username/email, consistent data storage)",
+    "Usability (clear error messages, intuitive flow, responsive design)",
+    "Performance (form submission latency, email sending latency)",
+    "Compliance (data privacy for user information)"
+  ],
+  "non_functional_signals": {
+    "performance_critical": true,
+    "security_sensitive": true,
+    "user_facing": true
+  },
+  "ambiguities": [
+    "Exact content and styling of error messages.",
+    "Specific timeout for email verification link.",
+    "Behavior if user tries to log in before email verification.",
+    "What happens if a user tries to register with an already verified email that was previously registered but not activated?"
+  ],
+  "missing_information": [
+    "Specific UI/UX details for real-time validation feedback.",
+    "Error handling for email sending failures.",
+    "Internationalization/localization requirements for form fields and messages.",
+    "Accessibility standards (WCAG) compliance details."
+  ],
+  "assumptions": [
+    "Username must be unique, min 5, max 20 characters, alphanumeric, underscore, hyphen.",
+    "Password must be min 8, max 20 characters, include at least one uppercase, one lowercase, one digit, and one special character (!@#$%^&*).",
+    "Email address must be unique and follow standard email format.",
+    "A 'Confirm Password' field and a 'Confirm Email' field are present and must match their respective primary fields.",
+    "Email verification involves sending a unique, time-limited link to the provided email address.",
+    "Client-side validation provides immediate feedback on input fields.",
+    "Server-side validation re-validates all inputs upon form submission.",
+    "Upon successful registration, a success message is displayed, and the user is prompted to verify their email.",
+    "The submit button is disabled until all required fields are valid."
+  ],
+  "functional": [
+    {
+      "id": "TC_FUNC_REG_001",
+      "testScenario": "User Registration - Happy Path",
+      "module": "Registration",
+      "title": "Successful User Registration and Email Verification",
+      "type": "Functional",
+      "priority": "High",
+      "severity": "Critical",
+      "preconditions": [
+        "User is not logged in",
+        "Application is accessible",
+        "Email service is operational"
+      ],
+      "testData": "Username: validuser123, Password: Password123!, Confirm Password: Password123!, Email: validuser123@example.com, Confirm Email: validuser123@example.com",
+      "steps": [
+        {
+          "action": "Navigate to the registration page",
+          "expected": "Registration form is displayed with all required fields"
+        },
+        {
+          "action": "Enter 'validuser123' in the Username field",
+          "expected": "Username field accepts input without error"
+        },
+        {
+          "action": "Enter 'Password123!' in the Password field",
+          "expected": "Password field accepts input and password strength indicator (if present) reflects strength"
+        },
+        {
+          "action": "Enter 'Password123!' in the Confirm Password field",
+          "expected": "Confirm Password field accepts input without mismatch error"
+        },
+        {
+          "action": "Enter 'validuser123@example.com' in the Email field",
+          "expected": "Email field accepts input without format error"
+        },
+        {
+          "action": "Enter 'validuser123@example.com' in the Confirm Email field",
+          "expected": "Confirm Email field accepts input without mismatch error"
+        },
+        {
+          "action": "Click the 'Submit' button",
+          "expected": "System displays a success message indicating email verification is required and sends a verification email"
+        },
+        {
+          "action": "Access the email inbox for 'validuser123@example.com'",
+          "expected": "A new email from the application with a verification link is received"
+        },
+        {
+          "action": "Click the verification link in the email",
+          "expected": "Browser opens to a verification success page or login page with a success message"
+        }
+      ],
+      "expectedResult": "User account is successfully created and activated after email verification, allowing login.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_FUNC_REG_002",
+      "testScenario": "User Registration - UI Interaction",
+      "module": "Registration",
+      "title": "Submit Button State Management",
+      "type": "Functional",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Partial valid data",
+      "steps": [
+        {
+          "action": "Navigate to the registration page",
+          "expected": "Registration form is displayed, 'Submit' button is disabled"
+        },
+        {
+          "action": "Enter valid data into Username, Password, Confirm Password, and Email fields, leaving Confirm Email empty",
+          "expected": "Client-side validation shows no errors for filled fields, 'Submit' button remains disabled"
+        },
+        {
+          "action": "Enter valid data into the Confirm Email field",
+          "expected": "Client-side validation shows no errors for all fields, 'Submit' button becomes enabled"
+        }
+      ],
+      "expectedResult": "The 'Submit' button correctly enables only when all required fields contain valid input.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_FUNC_REG_003",
+      "testScenario": "User Registration - Form Field Acceptance",
+      "module": "Registration",
+      "title": "Valid Input Acceptance for All Fields",
+      "type": "Functional",
+      "priority": "Medium",
+      "severity": "Trivial",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: user_name-1, Password: P@ssw0rd!, Confirm Password: P@ssw0rd!, Email: user.name+tag@sub.domain.co.uk, Confirm Email: user.name+tag@sub.domain.co.uk",
+      "steps": [
+        {
+          "action": "Enter 'user_name-1' in the Username field",
+          "expected": "Username field accepts input without error"
+        },
+        {
+          "action": "Enter 'P@ssw0rd!' in the Password field",
+          "expected": "Password field accepts input without error"
+        },
+        {
+          "action": "Enter 'P@ssw0rd!' in the Confirm Password field",
+          "expected": "Confirm Password field accepts input without error"
+        },
+        {
+          "action": "Enter 'user.name+tag@sub.domain.co.uk' in the Email field",
+          "expected": "Email field accepts input without error"
+        },
+        {
+          "action": "Enter 'user.name+tag@sub.domain.co.uk' in the Confirm Email field",
+          "expected": "Confirm Email field accepts input without error"
+        }
+      ],
+      "expectedResult": "All registration form fields accept valid, complex input without displaying validation errors.",
+      "requirementId": "REQ_REG_001"
+    }
+  ],
+  "negative": [
+    {
+      "id": "TC_NEG_REG_001",
+      "testScenario": "User Registration - Invalid Username",
+      "module": "Registration",
+      "title": "Registration with Existing Username",
+      "type": "Negative",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the registration page",
+        "Username 'existinguser' is already registered and verified"
+      ],
+      "testData": "Username: existinguser, Password: NewPassword1!, Confirm Password: NewPassword1!, Email: newemail@example.com, Confirm Email: newemail@example.com",
+      "steps": [
+        {
+          "action": "Enter 'existinguser' in the Username field",
+          "expected": "Client-side validation may show an error (if real-time check implemented)"
+        },
+        {
+          "action": "Enter valid data in Password, Confirm Password, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Click the 'Submit' button",
+          "expected": "System displays an error message indicating the username is already taken"
+        }
+      ],
+      "expectedResult": "Registration fails with a clear error message stating the username is unavailable.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_NEG_REG_002",
+      "testScenario": "User Registration - Invalid Email",
+      "module": "Registration",
+      "title": "Registration with Invalid Email Format",
+      "type": "Negative",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: testuser1, Password: Password123!, Confirm Password: Password123!, Email: invalid-email, Confirm Email: invalid-email",
+      "steps": [
+        {
+          "action": "Enter 'invalid-email' in the Email field",
+          "expected": "Client-side validation displays an 'Invalid email format' error message"
+        },
+        {
+          "action": "Enter 'invalid-email' in the Confirm Email field",
+          "expected": "Client-side validation displays an 'Invalid email format' error message"
+        },
+        {
+          "action": "Enter valid data in Username, Password, and Confirm Password fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Attempt to click the 'Submit' button",
+          "expected": "'Submit' button remains disabled due to invalid email"
+        }
+      ],
+      "expectedResult": "Registration form prevents submission and displays a clear error for invalid email format.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_NEG_REG_003",
+      "testScenario": "User Registration - Password Mismatch",
+      "module": "Registration",
+      "title": "Registration with Mismatched Passwords",
+      "type": "Negative",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: testuser2, Password: Password123!, Confirm Password: DifferentPass1!, Email: testuser2@example.com, Confirm Email: testuser2@example.com",
+      "steps": [
+        {
+          "action": "Enter 'Password123!' in the Password field",
+          "expected": "Password field accepts input"
+        },
+        {
+          "action": "Enter 'DifferentPass1!' in the Confirm Password field",
+          "expected": "Confirm Password field accepts input"
+        },
+        {
+          "action": "Observe validation messages",
+          "expected": "Client-side validation displays a 'Passwords do not match' error message"
+        },
+        {
+          "action": "Enter valid data in Username, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Attempt to click the 'Submit' button",
+          "expected": "'Submit' button remains disabled due to password mismatch"
+        }
+      ],
+      "expectedResult": "Registration form prevents submission and displays a clear error for mismatched passwords.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_NEG_REG_004",
+      "testScenario": "User Registration - Missing Required Fields",
+      "module": "Registration",
+      "title": "Registration with Empty Required Fields",
+      "type": "Negative",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: (empty), Password: Password123!, Confirm Password: Password123!, Email: testuser3@example.com, Confirm Email: testuser3@example.com",
+      "steps": [
+        {
+          "action": "Leave Username field empty",
+          "expected": "Client-side validation displays a 'Username is required' error message"
+        },
+        {
+          "action": "Enter valid data in Password, Confirm Password, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Attempt to click the 'Submit' button",
+          "expected": "'Submit' button remains disabled due to missing username"
+        }
+      ],
+      "expectedResult": "Registration form prevents submission and displays a clear error for each empty required field.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_NEG_REG_005",
+      "testScenario": "User Registration - Password Complexity",
+      "module": "Registration",
+      "title": "Registration with Weak Password",
+      "type": "Negative",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: testuser4, Password: pass, Confirm Password: pass, Email: testuser4@example.com, Confirm Email: testuser4@example.com",
+      "steps": [
+        {
+          "action": "Enter 'pass' in the Password field",
+          "expected": "Client-side validation displays a 'Password does not meet complexity requirements' error message (e.g., too short, no special chars)"
+        },
+        {
+          "action": "Enter 'pass' in the Confirm Password field",
+          "expected": "Client-side validation displays a 'Password does not meet complexity requirements' error message"
+        },
+        {
+          "action": "Enter valid data in Username, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Attempt to click the 'Submit' button",
+          "expected": "'Submit' button remains disabled due to weak password"
+        }
+      ],
+      "expectedResult": "Registration form prevents submission and displays a clear error for passwords not meeting complexity requirements.",
+      "requirementId": "REQ_REG_001"
+    }
+  ],
+  "edge": [
+    {
+      "id": "TC_EDGE_REG_001",
+      "testScenario": "User Registration - Boundary Conditions",
+      "module": "Registration",
+      "title": "Username Min Length Boundary",
+      "type": "Edge",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: user1, Password: Password123!, Confirm Password: Password123!, Email: user1@example.com, Confirm Email: user1@example.com",
+      "steps": [
+        {
+          "action": "Enter 'user1' (5 characters) in the Username field",
+          "expected": "Username field accepts input without error"
+        },
+        {
+          "action": "Enter valid data in Password, Confirm Password, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Click the 'Submit' button",
+          "expected": "System displays a success message indicating email verification is required"
+        }
+      ],
+      "expectedResult": "Registration is successful with a username at the minimum allowed length.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_EDGE_REG_002",
+      "testScenario": "User Registration - Boundary Conditions",
+      "module": "Registration",
+      "title": "Username Max Length Boundary",
+      "type": "Edge",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: averylongusername123, Password: Password123!, Confirm Password: Password123!, Email: longuser@example.com, Confirm Email: longuser@example.com",
+      "steps": [
+        {
+          "action": "Enter 'averylongusername123' (20 characters) in the Username field",
+          "expected": "Username field accepts input without error"
+        },
+        {
+          "action": "Enter valid data in Password, Confirm Password, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Click the 'Submit' button",
+          "expected": "System displays a success message indicating email verification is required"
+        }
+      ],
+      "expectedResult": "Registration is successful with a username at the maximum allowed length.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_EDGE_REG_003",
+      "testScenario": "User Registration - Boundary Conditions",
+      "module": "Registration",
+      "title": "Password Min Length Boundary",
+      "type": "Edge",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: user_min_pass, Password: Pw1!2345, Confirm Password: Pw1!2345, Email: user_min_pass@example.com, Confirm Email: user_min_pass@example.com",
+      "steps": [
+        {
+          "action": "Enter 'Pw1!2345' (8 characters, meeting complexity) in the Password field",
+          "expected": "Password field accepts input without error"
+        },
+        {
+          "action": "Enter 'Pw1!2345' in the Confirm Password field",
+          "expected": "Confirm Password field accepts input without error"
+        },
+        {
+          "action": "Enter valid data in Username, Email, and Confirm Email fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Click the 'Submit' button",
+          "expected": "System displays a success message indicating email verification is required"
+        }
+      ],
+      "expectedResult": "Registration is successful with a password at the minimum allowed length and complexity.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_EDGE_REG_004",
+      "testScenario": "User Registration - Boundary Conditions",
+      "module": "Registration",
+      "title": "Email Max Length Boundary (Local Part)",
+      "type": "Edge",
+      "priority": "Low",
+      "severity": "Trivial",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Username: longemailuser, Password: Password123!, Confirm Password: Password123!, Email: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com, Confirm Email: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com",
+      "steps": [
+        {
+          "action": "Enter 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com' (64 chars local part) in the Email field",
+          "expected": "Email field accepts input without error"
+        },
+        {
+          "action": "Enter 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com' in the Confirm Email field",
+          "expected": "Confirm Email field accepts input without error"
+        },
+        {
+          "action": "Enter valid data in Username, Password, and Confirm Password fields",
+          "expected": "Fields accept input without error"
+        },
+        {
+          "action": "Click the 'Submit' button",
+          "expected": "System displays a success message indicating email verification is required"
+        }
+      ],
+      "expectedResult": "Registration is successful with an email address having a local part at its maximum allowed length.",
+      "requirementId": "REQ_REG_001"
+    }
+  ],
+  "apiChecklist": [
+    {
+      "id": "TC_API_REG_001",
+      "testScenario": "User Registration API",
+      "module": "Registration API",
+      "title": "POST /api/register - Valid User Data",
+      "type": "API",
+      "priority": "High",
+      "severity": "Critical",
+      "preconditions": [
+        "API server is running",
+        "Database is accessible"
+      ],
+      "testData": "POST body: { \"username\": \"apiuser1\", \"password\": \"ApiPass123!\", \"email\": \"apiuser1@example.com\" }",
+      "steps": [
+        {
+          "action": "Send POST request to /api/register with valid user data",
+          "expected": "Response status code is 201 Created"
+        },
+        {
+          "action": "Validate response body schema",
+          "expected": "Response body contains a success message and indicates email verification is pending"
+        },
+        {
+          "action": "Verify user record in database",
+          "expected": "User 'apiuser1' exists in the database with 'is_verified' status as false"
+        },
+        {
+          "action": "Verify email sent to 'apiuser1@example.com'",
+          "expected": "An email containing a verification link is sent to the provided email address"
+        }
+      ],
+      "expectedResult": "API successfully registers the user, returns 201, and triggers email verification.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_API_REG_002",
+      "testScenario": "User Registration API",
+      "module": "Registration API",
+      "title": "POST /api/register - Existing Username",
+      "type": "API",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "API server is running",
+        "User 'existingapiuser' is already registered in the database"
+      ],
+      "testData": "POST body: { \"username\": \"existingapiuser\", \"password\": \"ApiPass123!\", \"email\": \"newemail@example.com\" }",
+      "steps": [
+        {
+          "action": "Send POST request to /api/register with an existing username",
+          "expected": "Response status code is 409 Conflict or 400 Bad Request"
+        },
+        {
+          "action": "Validate response body",
+          "expected": "Response body contains an error message indicating 'Username already taken'"
+        }
+      ],
+      "expectedResult": "API rejects registration with an existing username, returning an appropriate error status and message.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_API_REG_003",
+      "testScenario": "User Registration API",
+      "module": "Registration API",
+      "title": "POST /api/register - Invalid Password Complexity",
+      "type": "API",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "API server is running"
+      ],
+      "testData": "POST body: { \"username\": \"weakpassuser\", \"password\": \"pass\", \"email\": \"weakpassuser@example.com\" }",
+      "steps": [
+        {
+          "action": "Send POST request to /api/register with a password that does not meet complexity requirements",
+          "expected": "Response status code is 400 Bad Request"
+        },
+        {
+          "action": "Validate response body",
+          "expected": "Response body contains an error message detailing password complexity requirements"
+        }
+      ],
+      "expectedResult": "API rejects registration with a weak password, returning 400 and a specific error message.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_API_REG_004",
+      "testScenario": "Email Verification API",
+      "module": "Registration API",
+      "title": "GET /api/verify-email - Valid Token",
+      "type": "API",
+      "priority": "High",
+      "severity": "Critical",
+      "preconditions": [
+        "API server is running",
+        "User 'verifyuser' is registered with an unverified email and a valid verification token is generated"
+      ],
+      "testData": "GET request: /api/verify-email?token={valid_verification_token}",
+      "steps": [
+        {
+          "action": "Send GET request to /api/verify-email with a valid verification token",
+          "expected": "Response status code is 200 OK"
+        },
+        {
+          "action": "Validate response body",
+          "expected": "Response body contains a success message indicating email verification"
+        },
+        {
+          "action": "Verify user record in database",
+          "expected": "User 'verifyuser' has 'is_verified' status as true"
+        }
+      ],
+      "expectedResult": "API successfully verifies the email, returns 200, and updates user status in the database.",
+      "requirementId": "REQ_REG_001"
+    },
+    {
+      "id": "TC_API_REG_005",
+      "testScenario": "Email Verification API",
+      "module": "Registration API",
+      "title": "GET /api/verify-email - Expired Token",
+      "type": "API",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "API server is running",
+        "User 'expireduser' is registered with an unverified email and an expired verification token"
+      ],
+      "testData": "GET request: /api/verify-email?token={expired_verification_token}",
+      "steps": [
+        {
+          "action": "Send GET request to /api/verify-email with an expired verification token",
+          "expected": "Response status code is 400 Bad Request or 401 Unauthorized"
+        },
+        {
+          "action": "Validate response body",
+          "expected": "Response body contains an error message indicating 'Verification token expired'"
+        }
+      ],
+      "expectedResult": "API rejects email verification with an expired token, returning an error status and message.",
+      "requirementId": "REQ_REG_001"
+    }
+  ],
+  "nonFunctional": [
+    {
+      "id": "TC_NF_REG_001",
+      "testScenario": "Registration Page Performance",
+      "module": "Registration",
+      "title": "Registration Page Load Time",
+      "type": "Non-Functional",
+      "priority": "Medium",
+      "severity": "Major",
+      "preconditions": [
+        "Standard network conditions (e.g., 4G/broadband)",
+        "Browser cache cleared"
+      ],
+      "testData": "Browser: Chrome, Network: Fast 3G, Device: Desktop",
+      "steps": [
+        {
+          "action": "Navigate to the registration page",
+          "expected": "Page fully renders within 2 seconds"
+        },
+        {
+          "action": "Measure page load time using browser developer tools",
+          "expected": "Load time is less than or equal to 2000ms"
+        }
+      ],
+      "expectedResult": "The registration page loads and becomes interactive within 2 seconds on standard network conditions.",
+      "requirementId": "REQ_NF_001"
+    },
+    {
+      "id": "TC_NF_REG_002",
+      "testScenario": "Registration Form Submission Performance",
+      "module": "Registration",
+      "title": "Registration Form Submission Latency",
+      "type": "Non-Functional",
+      "priority": "Medium",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the registration page with valid data entered",
+        "Email service is operational"
+      ],
+      "testData": "Username: perfuser, Password: PerfPass123!, Email: perfuser@example.com",
+      "steps": [
+        {
+          "action": "Enter valid data into all registration fields",
+          "expected": "Form is ready for submission"
+        },
+        {
+          "action": "Click the 'Submit' button and measure the time until success message/redirection",
+          "expected": "Submission process completes within 3 seconds"
+        }
+      ],
+      "expectedResult": "The registration form submission and initial response (success message/redirection) completes within 3 seconds.",
+      "requirementId": "REQ_NF_001"
+    },
+    {
+      "id": "TC_NF_REG_003",
+      "testScenario": "Registration Form Responsiveness",
+      "module": "Registration",
+      "title": "Registration Form UI Responsiveness",
+      "type": "Non-Functional",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "User is on the registration page"
+      ],
+      "testData": "Browser: Chrome, Device: Desktop, Tablet (iPad Pro), Mobile (iPhone 12)",
+      "steps": [
+        {
+          "action": "Navigate to the registration page on a desktop browser",
+          "expected": "Form elements are well-aligned and readable"
+        },
+        {
+          "action": "Resize the browser window to simulate tablet viewport (e.g., 768px width)",
+          "expected": "Form layout adjusts gracefully, elements remain visible and interactive"
+        },
+        {
+          "action": "Resize the browser window to simulate mobile viewport (e.g., 375px width)",
+          "expected": "Form layout adapts for mobile, fields are stacked appropriately, text is legible"
+        }
+      ],
+      "expectedResult": "The registration form UI is responsive and maintains usability across various screen sizes (desktop, tablet, mobile).",
+      "requirementId": "REQ_NF_002"
+    },
+    {
+      "id": "TC_NF_REG_004",
+      "testScenario": "Email Verification Link Expiration",
+      "module": "Registration",
+      "title": "Expired Email Verification Link Handling",
+      "type": "Non-Functional",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User 'expiretest' is registered but not verified",
+        "A verification link was sent and has now expired (e.g., after 24 hours)"
+      ],
+      "testData": "Expired verification link for user 'expiretest'",
+      "steps": [
+        {
+          "action": "Click on the expired email verification link",
+          "expected": "System redirects to an error page or a page prompting to resend verification email"
+        },
+        {
+          "action": "Verify the displayed message",
+          "expected": "Message clearly states 'Verification link expired' or similar"
+        }
+      ],
+      "expectedResult": "The system correctly identifies and handles expired email verification links, providing appropriate user feedback.",
+      "requirementId": "REQ_NF_003"
+    }
+  ],
+  "questions": [
+    "Are there any specific UI/UX guidelines for error message placement and styling?",
+    "What is the exact expiration time for the email verification link?",
+    "What is the expected behavior if a user attempts to register with an email that is already registered but unverified?",
+    "Are there any specific requirements for password strength visualization (e.g., real-time meter)?",
+    "Should the username field allow non-alphanumeric characters beyond underscore and hyphen?"
+  ]
+}

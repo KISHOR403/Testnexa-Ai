@@ -1,150 +1,79 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle2, Zap, ShieldAlert, Timer, Sparkles } from 'lucide-react';
+import React from 'react';
+import { X, Check } from 'lucide-react';
+import useScrollReveal from '../hooks/useScrollReveal';
+
+const COMPARISONS = [
+    {
+        before: 'Missing edge cases',
+        after: 'Complete scenario coverage',
+    },
+    {
+        before: 'Ambiguous requirements',
+        after: 'AI-detected ambiguity',
+    },
+    {
+        before: 'Manual test creation',
+        after: 'Prioritized test suites',
+    },
+];
 
 const PainPoints = () => {
+    const headerReveal = useScrollReveal({ threshold: 0.2 });
+    const gridReveal = useScrollReveal({ threshold: 0.1 });
+
     return (
-        <section id="problem-vs-solution" className="insight-section pain-section-2026">
+        <section id="problem-vs-solution" className="tn-pain" aria-labelledby="pain-heading">
             <div className="container">
-                <div className="pain-section-header">
-                    <span className="pain-badge-label">
-                        <Sparkles size={12} />
-                        Problem vs Solution
-                    </span>
-                    <h3 className="pain-title-2026">
-                        Real QA Pain Points, <span className="title-gradient-accent">Solved.</span>
-                    </h3>
-                    <p className="pain-subtitle-2026">
-                        Every challenge your QA team faces — we've engineered a solution for it.
-                    </p>
+                <div
+                    ref={headerReveal.ref}
+                    className={`tn-section-header scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
+                >
+                    <span className="tn-section-label">Problem vs Solution</span>
+                    <h2 id="pain-heading" className="tn-section-title">
+                        QA Work Shouldn't Start<br />
+                        With Guesswork.
+                    </h2>
                 </div>
 
-                <div className="pain-grid-2026">
-                    <PainCard
-                        index={0}
-                        icon={<ShieldAlert size={22} />}
-                        problem="Missing edge cases in fast sprints"
-                        solution="Generates functional, negative, edge & API tests"
-                        description="AI analysis ensures boundary conditions are never overlooked even under tight deadlines."
-                        accentColor="239, 68, 68"
-                        solveColor="0, 212, 193"
-                        tag="Coverage"
-                    />
-                    <PainCard
-                        index={1}
-                        icon={<AlertCircle size={22} />}
-                        problem="Ambiguous requirements from product"
-                        solution="Auto-detects ambiguity and asks clarifications"
-                        description="Testnexa AI identifies missing logic early, saving hours of developer back-and-forth."
-                        accentColor="251, 146, 60"
-                        solveColor="99, 102, 241"
-                        tag="Clarity"
-                    />
-                    <PainCard
-                        index={2}
-                        icon={<Timer size={22} />}
-                        problem="Manual test case writing takes hours"
-                        solution="Outputs clean, reusable test cases instantly"
-                        description="Shift your focus from writing to executing and optimizing your test strategy."
-                        accentColor="168, 85, 247"
-                        solveColor="34, 211, 238"
-                        tag="Speed"
-                    />
+                <div
+                    ref={gridReveal.ref}
+                    className={`tn-pain__grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
+                >
+                    {COMPARISONS.map((comp, i) => (
+                        <div key={i} className="tn-pain__block">
+                            {/* Before */}
+                            <div className="tn-pain__side tn-pain__side--before">
+                                <span className="tn-pain__side-label">BEFORE</span>
+                                <div className="tn-pain__item">
+                                    <div className="tn-pain__icon tn-pain__icon--before">
+                                        <X size={14} />
+                                    </div>
+                                    <span>{comp.before}</span>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="tn-pain__divider" aria-hidden="true">
+                                <div className="tn-pain__divider-line" />
+                                <div className="tn-pain__divider-dot" />
+                                <div className="tn-pain__divider-line" />
+                            </div>
+
+                            {/* After */}
+                            <div className="tn-pain__side tn-pain__side--after">
+                                <span className="tn-pain__side-label tn-pain__side-label--after">AFTER TESTNEXA</span>
+                                <div className="tn-pain__item">
+                                    <div className="tn-pain__icon tn-pain__icon--after">
+                                        <Check size={14} />
+                                    </div>
+                                    <span>{comp.after}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>
-    );
-};
-
-const PainCard = ({ index, icon, problem, solution, description, accentColor, solveColor, tag }) => {
-    const cardRef = useRef(null);
-    const [isVisible, setIsVisible] = useState(false);
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setTimeout(() => setIsVisible(true), index * 150);
-                }
-            },
-            { threshold: 0.2 }
-        );
-        if (cardRef.current) observer.observe(cardRef.current);
-        return () => observer.disconnect();
-    }, [index]);
-
-    const handleMouseMove = (e) => {
-        if (!cardRef.current) return;
-        const rect = cardRef.current.getBoundingClientRect();
-        setMousePos({
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-        });
-    };
-
-    return (
-        <div
-            ref={cardRef}
-            className={`pain-card-2026 ${isVisible ? 'pain-card-visible' : ''}`}
-            onMouseMove={handleMouseMove}
-            style={{
-                '--accent': accentColor,
-                '--solve': solveColor,
-                '--mouse-x': `${mousePos.x}px`,
-                '--mouse-y': `${mousePos.y}px`,
-                animationDelay: `${index * 0.15}s`,
-            }}
-        >
-            {/* Spotlight glow that follows cursor */}
-            <div className="pain-card-spotlight" />
-
-            {/* Top decorative border gradient */}
-            <div className="pain-card-border-glow" />
-
-            {/* Floating tag */}
-            <div className="pain-card-tag">
-                <Zap size={10} />
-                {tag}
-            </div>
-
-            {/* Problem section */}
-            <div className="pain-card-problem">
-                <div className="pain-card-icon-badge pain-icon-problem">
-                    {icon}
-                </div>
-                <div className="pain-card-problem-text">
-                    <span className="pain-label-micro">PROBLEM</span>
-                    <p>{problem}</p>
-                </div>
-            </div>
-
-            {/* Arrow connector */}
-            <div className="pain-card-connector">
-                <div className="connector-line" />
-                <div className="connector-pulse" />
-                <div className="connector-line" />
-            </div>
-
-            {/* Solution section */}
-            <div className="pain-card-solution">
-                <div className="pain-card-icon-badge pain-icon-solution">
-                    <CheckCircle2 size={22} />
-                </div>
-                <div className="pain-card-solution-text">
-                    <span className="pain-label-micro pain-label-solution">SOLUTION</span>
-                    <p>{solution}</p>
-                </div>
-            </div>
-
-            {/* Divider with glow */}
-            <div className="pain-card-divider-2026" />
-
-            {/* Description */}
-            <p className="pain-card-desc-2026">{description}</p>
-
-            {/* Bottom ambient glow */}
-            <div className="pain-card-ambient" />
-        </div>
     );
 };
 

@@ -1,56 +1,105 @@
-import React from 'react';
-import { Shield, Clock, ListChecks } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
+/* ────────────────────────────────────────────
+   Animated Counter Hook
+   ──────────────────────────────────────────── */
+const useCountUp = (target, duration = 1800, isVisible = false) => {
+    const [count, setCount] = useState(0);
+    const hasRun = useRef(false);
+
+    useEffect(() => {
+        if (!isVisible || hasRun.current) return;
+        hasRun.current = true;
+
+        const startTime = performance.now();
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setCount(Math.round(eased * target));
+            if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }, [isVisible, target, duration]);
+
+    return count;
+};
+
+const METRICS = [
+    {
+        value: 80,
+        suffix: '%',
+        qualitative: 'Faster',
+        description: 'Test planning acceleration',
+        note: 'Estimated based on typical manual test design workflows',
+    },
+    {
+        value: 3,
+        suffix: '×',
+        qualitative: 'Broader',
+        description: 'Scenario coverage expansion',
+        note: 'Compared to typical manual test case creation',
+    },
+    {
+        value: 100,
+        suffix: '%',
+        qualitative: 'Traceable',
+        description: 'Full requirement traceability',
+        note: 'Every test case maps back to source requirements',
+    },
+];
+
 const WhyThisMatters = () => {
-    const headerReveal = useScrollReveal({ threshold: 0.3 });
-    const gridReveal = useScrollReveal({ threshold: 0.15 });
+    const headerReveal = useScrollReveal({ threshold: 0.2 });
+    const metricsReveal = useScrollReveal({ threshold: 0.15 });
 
     return (
-        <div id="why-this-matters" className="value-footer">
+        <section id="why-this-matters" className="tn-metrics" aria-labelledby="metrics-heading">
             <div className="container">
                 <div
                     ref={headerReveal.ref}
-                    className={`scroll-reveal-blur ${headerReveal.isVisible ? 'revealed' : ''}`}
+                    className={`tn-section-header scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
                 >
-                    <span className="section-label" style={{ color: '#fff', opacity: 1 }}>Decision Maker Value</span>
-                    <h3 className="section-title-large" style={{ marginBottom: '1rem' }}>Why This Matters</h3>
-                    <p style={{ color: 'var(--text-dim)', maxWidth: '600px', margin: '0 auto 3rem' }}>
-                        Quality isn't just about bugs; it's about speed, clarity, and risk management.
-                    </p>
+                    <h2 id="metrics-heading" className="tn-section-title">
+                        Better Requirements.<br />
+                        Better Tests.<br />
+                        Less Rework.
+                    </h2>
                 </div>
 
                 <div
-                    ref={gridReveal.ref}
-                    className={`value-grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
+                    ref={metricsReveal.ref}
+                    className={`tn-metrics__grid scroll-reveal-stagger ${metricsReveal.isVisible ? 'revealed' : ''}`}
                 >
-                    <ValueItem
-                        icon={<Shield size={24} />}
-                        title="Reduce Production Risk"
-                        description="Catch critical edge cases before they reach your users."
-                    />
-                    <ValueItem
-                        icon={<Clock size={24} />}
-                        title="Accelerate Sprints"
-                        description="Reduce manual test design time by up to 80%."
-                    />
-                    <ValueItem
-                        icon={<ListChecks size={24} />}
-                        title="Improves Clarity"
-                        description="Force requirement precision early in the SDLC."
-                    />
+                    {METRICS.map((metric, i) => (
+                        <MetricCard
+                            key={i}
+                            metric={metric}
+                            isVisible={metricsReveal.isVisible}
+                        />
+                    ))}
                 </div>
             </div>
-        </div>
+        </section>
     );
 };
 
-const ValueItem = ({ icon, title, description }) => (
-    <div className="value-item">
-        <div className="value-icon-box">{icon}</div>
-        <h4>{title}</h4>
-        <p>{description}</p>
-    </div>
-);
+const MetricCard = ({ metric, isVisible }) => {
+    const count = useCountUp(metric.value, 1800, isVisible);
+
+    return (
+        <div className="tn-metrics__card">
+            <div className="tn-metrics__number">
+                <span className="tn-metrics__count">{count}</span>
+                <span className="tn-metrics__suffix">{metric.suffix}</span>
+            </div>
+            <span className="tn-metrics__qualitative">{metric.qualitative}</span>
+            <p className="tn-metrics__desc">{metric.description}</p>
+            <p className="tn-metrics__note">{metric.note}</p>
+        </div>
+    );
+};
 
 export default WhyThisMatters;

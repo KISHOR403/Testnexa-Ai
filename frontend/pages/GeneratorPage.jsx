@@ -2,9 +2,11 @@ import React, { useState, useCallback } from 'react';
 import Hero from '../components/Hero';
 import PainPoints from '../components/PainPoints';
 import Features from '../components/Features';
+import ProductStory from '../components/ProductStory';
 import WhoIsThisFor from '../components/WhoIsThisFor';
 import HowItWorks from '../components/HowItWorks';
 import WhyThisMatters from '../components/WhyThisMatters';
+import FinalCTA from '../components/FinalCTA';
 import InputPanel from '../components/InputPanel';
 import SettingsPanel from '../components/SettingsPanel';
 import LoadingArea from '../components/LoadingArea';
@@ -465,17 +467,23 @@ const GeneratorPage = () => {
             {/* 4. Key Features */}
             <Features />
 
-            {/* 5. Real QA Pain Points, Solved */}
+            {/* 5. Product Story — Transformation Pipeline */}
+            <ProductStory />
+
+            {/* 6. Real QA Pain Points */}
             <PainPoints />
 
-            {/* 5. How Testnexa AI Works */}
+            {/* 7. How Testnexa AI Works */}
             <HowItWorks />
 
-            {/* 6. Who is this for? */}
+            {/* 8. Who is this for? */}
             <WhoIsThisFor />
 
-            {/* 7. Why This Matters */}
+            {/* 9. Metrics */}
             <WhyThisMatters />
+
+            {/* 10. Final CTA */}
+            <FinalCTA />
 
             {/* Login Modal */}
             <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />

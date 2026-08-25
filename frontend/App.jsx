@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import AntigravityBackground from './components/AntigravityBackground';
+import AnimatedBackground from './components/AnimatedBackground';
 import GeneratorPage from './pages/GeneratorPage';
 import HistoryPage from './pages/HistoryPage';
 import HelpPage from './pages/HelpPage';
@@ -33,7 +33,7 @@ function App() {
     <Router>
       <ScrollToTop />
       <div className={`app-container sidebar-has-rail ${isSidebarOpen ? 'sidebar-is-open' : ''}`}>
-        <AntigravityBackground />
+        <AnimatedBackground />
         <HistorySidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
