@@ -1,125 +1,122 @@
 import React from 'react';
-import { Target, Users, GraduationCap, CheckCircle2 } from 'lucide-react';
+import { Braces, CheckCircle2, ClipboardList, GraduationCap, Sparkles, FileText, ArrowRight } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-/* ────────────────────────────────────────────
-   Mini UI Visualizations for each role
-   ──────────────────────────────────────────── */
-const SdetViz = () => (
-    <div className="tn-role-viz" aria-hidden="true">
-        <div className="tn-role-viz__row">
-            <span className="tn-role-viz__tag tn-role-viz__tag--teal">Automation</span>
-            <span className="tn-role-viz__tag tn-role-viz__tag--dim">API</span>
-        </div>
-        <div className="tn-role-viz__code">
-            <code>describe('Password Reset', () =&gt; {'{'}</code>
-            <code>  it('should send reset email', …)</code>
-            <code>  it('should reject expired token', …)</code>
-            <code>{'}'})</code>
-        </div>
-    </div>
-);
-
-const PmViz = () => (
-    <div className="tn-role-viz" aria-hidden="true">
-        <div className="tn-role-viz__checklist">
-            <div className="tn-role-viz__check tn-role-viz__check--done">
-                <CheckCircle2 size={12} />
-                <span>Happy path defined</span>
-            </div>
-            <div className="tn-role-viz__check tn-role-viz__check--warn">
-                <span className="tn-role-viz__warn-dot" />
-                <span>Edge case gap detected</span>
-            </div>
-            <div className="tn-role-viz__check tn-role-viz__check--done">
-                <CheckCircle2 size={12} />
-                <span>Acceptance criteria mapped</span>
-            </div>
-        </div>
-    </div>
-);
-
-const FresherViz = () => (
-    <div className="tn-role-viz" aria-hidden="true">
-        <div className="tn-role-viz__learn">
-            <div className="tn-role-viz__concept">
-                <span className="tn-role-viz__concept-label">Positive Test</span>
-                <div className="tn-role-viz__bar tn-role-viz__bar--full" />
-            </div>
-            <div className="tn-role-viz__concept">
-                <span className="tn-role-viz__concept-label">Negative Test</span>
-                <div className="tn-role-viz__bar tn-role-viz__bar--most" />
-            </div>
-            <div className="tn-role-viz__concept">
-                <span className="tn-role-viz__concept-label">Boundary Test</span>
-                <div className="tn-role-viz__bar tn-role-viz__bar--half" />
-            </div>
-        </div>
-    </div>
-);
-
-const personas = [
+const roles = [
     {
-        icon: Target,
-        role: 'SDETs',
-        value: 'Accelerate test design and automation planning',
-        color: 'var(--tn-teal)',
-        Viz: SdetViz,
+        title: 'SDETs & Automation Engineers',
+        text: 'Production-ready test cases with unique IDs, preconditions, and automation execution hooks.',
+        icon: Braces,
+        tags: ['Gherkin syntax ready', 'ID & Priority mapping', 'Edge condition asserts'],
     },
     {
-        icon: Users,
-        role: 'Product Managers',
-        value: 'Identify requirement gaps before development starts',
-        color: 'var(--tn-violet)',
-        Viz: PmViz,
+        title: 'Product Managers',
+        text: 'Requirement ambiguities and logic gaps surfaced before stories are groomed or committed.',
+        icon: ClipboardList,
+        tags: ['Acceptance criteria audit', 'Unresolved assumption flags', 'Scope risk rating'],
     },
     {
+        title: 'QA Engineers & Testers',
+        text: 'Deep multi-path suites that accelerate manual testing while eliminating blind spots.',
         icon: GraduationCap,
-        role: 'QA Freshers',
-        value: 'Learn testing fundamentals while building real test cases',
-        color: 'var(--tn-blue)',
-        Viz: FresherViz,
+        tags: ['Negative & Boundary cases', 'Security attack vectors', 'Fast regression packs'],
     },
 ];
 
 const WhoIsThisFor = () => {
-    const headerReveal = useScrollReveal({ threshold: 0.2 });
-    const gridReveal = useScrollReveal({ threshold: 0.08 });
+    const reveal = useScrollReveal({ threshold: 0.08 });
 
     return (
         <section id="who-is-this-for" className="tn-audience" aria-labelledby="audience-heading">
-            <div className="container">
+            <div className="tn-container">
                 <div
-                    ref={headerReveal.ref}
-                    className={`tn-section-header scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
+                    ref={reveal.ref}
+                    className={`tn-audience-split scroll-reveal-fade-up ${reveal.isVisible ? 'revealed' : ''}`}
                 >
-                    <span className="tn-section-label">Audience</span>
-                    <h2 id="audience-heading" className="tn-section-title">
-                        Who is this for?
-                    </h2>
-                    <p className="tn-section-subtitle">
-                        Testnexa AI adapts to your role, delivering insights that matter to you.
-                    </p>
-                </div>
-
-                <div
-                    ref={gridReveal.ref}
-                    className={`tn-audience__grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
-                >
-                    {personas.map((persona) => (
-                        <div key={persona.role} className="tn-audience__card">
-                            <div className="tn-audience__card-header">
-                                <div className="tn-audience__icon" style={{ color: persona.color }}>
-                                    <persona.icon size={24} />
+                    {/* LEFT COLUMN: Unified Requirement Visual */}
+                    <div className="tn-audience-visual">
+                        <div className="tn-audience-card">
+                            <div className="tn-audience-card__bar">
+                                <div className="tn-audience-card__title">
+                                    <FileText size={16} />
+                                    <span>Single Source of Truth</span>
                                 </div>
-                                <h3 className="tn-audience__role">{persona.role}</h3>
+                                <span className="tn-audience-card__badge">Live Spec</span>
                             </div>
-                            <p className="tn-audience__value">{persona.value}</p>
-                            <div className="tn-audience__viz-wrap">
-                                <persona.Viz />
+
+                            <div className="tn-audience-card__source">
+                                <span className="tn-audience-card__source-label">Raw Requirement Input</span>
+                                <p>"Users can reset their password using their registered email address."</p>
+                            </div>
+
+                            <div className="tn-audience-card__tree">
+                                <div className="tn-audience-card__tree-title">
+                                    <Sparkles size={14} />
+                                    <span>Multi-Stakeholder Synthesis</span>
+                                </div>
+                                
+                                <div className="tn-audience-branch tn-audience-branch--sdet">
+                                    <div className="tn-audience-branch__icon"><Braces size={14} /></div>
+                                    <div className="tn-audience-branch__text">
+                                        <strong>SDET View:</strong>
+                                        <span>TC-001 &rarr; POST /api/auth/reset-password [200 OK]</span>
+                                    </div>
+                                </div>
+
+                                <div className="tn-audience-branch tn-audience-branch--pm">
+                                    <div className="tn-audience-branch__icon"><ClipboardList size={14} /></div>
+                                    <div className="tn-audience-branch__text">
+                                        <strong>PM View:</strong>
+                                        <span>Acceptance Criteria: Token expiration & lockout logic verified</span>
+                                    </div>
+                                </div>
+
+                                <div className="tn-audience-branch tn-audience-branch--qa">
+                                    <div className="tn-audience-branch__icon"><GraduationCap size={14} /></div>
+                                    <div className="tn-audience-branch__text">
+                                        <strong>QA View:</strong>
+                                        <span>18 Matrix Tests (8 Functional, 5 Negative, 3 Boundary, 2 Sec)</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* RIGHT COLUMN: Section Header + 3 Stakeholder Output Cards */}
+                    <div className="tn-audience-content">
+                        <div className="tn-audience-header">
+                            <span className="tn-section-kicker">Built For QA Teams</span>
+                            <h2 id="audience-heading">One requirement, different views for every stakeholder.</h2>
+                            <p className="tn-audience-header__desc">
+                                Different roles require different outputs from the same specification.
+                                Testnexa generates specialized views tailored for engineering, product, and QA.
+                            </p>
+                        </div>
+
+                        <div className="tn-audience-roles">
+                            {roles.map((role) => (
+                                <div className="tn-role-card" key={role.title}>
+                                    <div className="tn-role-card__header">
+                                        <div className="tn-role-card__icon">
+                                            <role.icon size={20} />
+                                        </div>
+                                        <div>
+                                            <h3>{role.title}</h3>
+                                            <p>{role.text}</p>
+                                        </div>
+                                    </div>
+                                    <div className="tn-role-card__tags">
+                                        {role.tags.map((tag) => (
+                                            <span className="tn-role-tag" key={tag}>
+                                                <CheckCircle2 size={12} />
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

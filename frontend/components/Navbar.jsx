@@ -11,11 +11,11 @@ import ProfileModal from './ProfileModal';
 import UpgradeModal from './UpgradeModal';
 
 const NAV_SECTIONS = [
-    { id: 'features', label: 'Features' },
+    { id: 'features', label: 'Product' },
     { id: 'problem-vs-solution', label: 'Solutions' },
     { id: 'engineering-maturity', label: 'How It Works' },
-    { id: 'who-is-this-for', label: 'Audience' },
-    { id: 'why-this-matters', label: 'Why Us' },
+    { id: 'why-this-matters', label: 'Resources' },
+    { id: 'who-is-this-for', label: 'Company' },
 ];
 
 const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {

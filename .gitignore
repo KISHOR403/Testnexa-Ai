@@ -34,3 +34,4 @@ backend/test_gemini.js
 *.njsproj
 *.sln
 *.sw?
+testnexa-*.png

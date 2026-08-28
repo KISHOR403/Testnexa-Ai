@@ -11,7 +11,7 @@ const Footer = () => {
             <div className="tn-footer__border" aria-hidden="true" />
             <div
                 ref={footerReveal.ref}
-                className={`container tn-footer__inner scroll-reveal-fade-up ${footerReveal.isVisible ? 'revealed' : ''}`}
+                className={`tn-container tn-footer__inner scroll-reveal-fade-up ${footerReveal.isVisible ? 'revealed' : ''}`}
             >
                 {/* Brand column */}
                 <div className="tn-footer__brand">
@@ -74,7 +74,7 @@ const Footer = () => {
 
             {/* Bottom bar */}
             <div className="tn-footer__bottom">
-                <div className="container tn-footer__bottom-inner">
+                <div className="tn-container tn-footer__bottom-inner">
                     <p>&copy; {new Date().getFullYear()} Testnexa AI. All rights reserved.</p>
                     <div className="tn-footer__status">
                         <span className="tn-footer__status-dot" />

@@ -412,7 +412,7 @@ const GeneratorPage = () => {
             {/* 1. Hero - What is Testnexa AI? */}
             <Hero />
 
-            <div className="container" style={{ paddingBottom: '8rem' }}>
+            <div className="tn-container" style={{ paddingBottom: '6rem' }}>
                 {/* 2. Requirement Input */}
                 <div
                     ref={inputReveal.ref}

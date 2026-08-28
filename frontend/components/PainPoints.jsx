@@ -1,76 +1,68 @@
 import React from 'react';
-import { X, Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-const COMPARISONS = [
-    {
-        before: 'Missing edge cases',
-        after: 'Complete scenario coverage',
-    },
-    {
-        before: 'Ambiguous requirements',
-        after: 'AI-detected ambiguity',
-    },
-    {
-        before: 'Manual test creation',
-        after: 'Prioritized test suites',
-    },
-];
+const before = ['Missing edge cases & boundary bugs', 'Manual test creation takes days', 'Vague requirements lead to rework', 'Inconsistent coverage across QA engineers'];
+const after = ['Complete multi-category coverage', 'Instant AI-generated test suites', 'Automated ambiguity detection', 'Risk-based priority ranking'];
 
 const PainPoints = () => {
-    const headerReveal = useScrollReveal({ threshold: 0.2 });
-    const gridReveal = useScrollReveal({ threshold: 0.1 });
+    const reveal = useScrollReveal({ threshold: 0.1 });
 
     return (
         <section id="problem-vs-solution" className="tn-pain" aria-labelledby="pain-heading">
-            <div className="container">
+            <div className="tn-container">
                 <div
-                    ref={headerReveal.ref}
-                    className={`tn-section-header scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
+                    ref={reveal.ref}
+                    className={`tn-pain__split scroll-reveal-fade-up ${reveal.isVisible ? 'revealed' : ''}`}
                 >
-                    <span className="tn-section-label">Problem vs Solution</span>
-                    <h2 id="pain-heading" className="tn-section-title">
-                        QA Work Shouldn't Start<br />
-                        With Guesswork.
-                    </h2>
-                </div>
+                    {/* LEFT 45% */}
+                    <div className="tn-pain__copy">
+                        <span className="tn-section-kicker">Before and After</span>
+                        <h2 id="pain-heading">QA planning should not depend on who happened to read the requirement first.</h2>
+                        <p className="tn-pain__desc">
+                            Manual test case design is subjective, slow, and full of blind spots.
+                            Testnexa turns requirements into structured, high-coverage test suites with standardized quality criteria.
+                        </p>
+                    </div>
 
-                <div
-                    ref={gridReveal.ref}
-                    className={`tn-pain__grid scroll-reveal-stagger ${gridReveal.isVisible ? 'revealed' : ''}`}
-                >
-                    {COMPARISONS.map((comp, i) => (
-                        <div key={i} className="tn-pain__block">
-                            {/* Before */}
-                            <div className="tn-pain__side tn-pain__side--before">
-                                <span className="tn-pain__side-label">BEFORE</span>
-                                <div className="tn-pain__item">
-                                    <div className="tn-pain__icon tn-pain__icon--before">
-                                        <X size={14} />
-                                    </div>
-                                    <span>{comp.before}</span>
-                                </div>
+                    {/* RIGHT 55% */}
+                    <div className="tn-compare">
+                        <div className="tn-compare__side tn-compare__side--before">
+                            <div className="tn-compare__side-header">
+                                <span className="tn-compare__status-dot tn-compare__status-dot--red" />
+                                <span>Without Testnexa</span>
                             </div>
-
-                            {/* Divider */}
-                            <div className="tn-pain__divider" aria-hidden="true">
-                                <div className="tn-pain__divider-line" />
-                                <div className="tn-pain__divider-dot" />
-                                <div className="tn-pain__divider-line" />
-                            </div>
-
-                            {/* After */}
-                            <div className="tn-pain__side tn-pain__side--after">
-                                <span className="tn-pain__side-label tn-pain__side-label--after">AFTER TESTNEXA</span>
-                                <div className="tn-pain__item">
-                                    <div className="tn-pain__icon tn-pain__icon--after">
-                                        <Check size={14} />
+                            <div className="tn-compare__list">
+                                {before.map((item) => (
+                                    <div className="tn-compare-row" key={item}>
+                                        <div className="tn-compare-icon-wrap tn-compare-icon-wrap--cross">
+                                            <X size={15} />
+                                        </div>
+                                        <p>{item}</p>
                                     </div>
-                                    <span>{comp.after}</span>
-                                </div>
+                                ))}
                             </div>
                         </div>
-                    ))}
+
+                        <div className="tn-compare__divider">VS</div>
+
+                        <div className="tn-compare__side tn-compare__side--after">
+                            <div className="tn-compare__side-header">
+                                <span className="tn-compare__status-dot tn-compare__status-dot--green" />
+                                <span>With Testnexa AI</span>
+                            </div>
+                            <div className="tn-compare__list">
+                                {after.map((item) => (
+                                    <div className="tn-compare-row" key={item}>
+                                        <div className="tn-compare-icon-wrap tn-compare-icon-wrap--check">
+                                            <Check size={15} />
+                                        </div>
+                                        <p>{item}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

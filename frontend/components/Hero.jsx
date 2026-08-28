@@ -1,265 +1,206 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowRight, Play, CheckCircle2, Shield, AlertTriangle, Layers, Zap } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    ArrowRight,
+    CheckCircle2,
+    CircleDot,
+    FileText,
+    Layers3,
+    Play,
+    ShieldCheck,
+    Sparkles,
+} from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-/* ────────────────────────────────────────────
-   Hero Product Demo — Animated SaaS Interface
-   ──────────────────────────────────────────── */
+const requirement = 'Users can reset their password using their registered email.';
 
-const REQUIREMENT_TEXT = 'Users can reset their password using their registered email.';
-
-const ANALYSIS_STEPS = [
-    'Analyzing requirement…',
-    'Identifying scenarios…',
-    'Generating test coverage…',
+const analysisSteps = [
+    'Requirement reconstructed',
+    'Ambiguity checked',
+    'Scenarios generated',
 ];
 
-const GENERATED_RESULTS = [
-    { icon: CheckCircle2, label: 'Functional scenarios', color: 'var(--tn-teal)' },
-    { icon: AlertTriangle, label: 'Negative scenarios', color: 'var(--tn-amber)' },
-    { icon: Layers, label: 'Boundary cases', color: 'var(--tn-blue)' },
-    { icon: Shield, label: 'Security scenarios', color: 'var(--tn-violet)' },
-    { icon: Zap, label: 'Priority classification', color: 'var(--tn-teal)' },
+const testRows = [
+    { id: 'TC-001', title: 'Valid registered email receives reset link', type: 'Functional', priority: 'High' },
+    { id: 'TC-002', title: 'Unregistered email returns safe confirmation', type: 'Negative', priority: 'High' },
+    { id: 'TC-003', title: 'Expired reset token blocks password update', type: 'Boundary', priority: 'Medium' },
+    { id: 'TC-004', title: 'Email field rejects injection payloads', type: 'Security', priority: 'High' },
 ];
 
-const META_ITEMS = [
-    { label: 'Coverage', value: '94%' },
-    { label: 'Scenarios', value: '18' },
-    { label: 'High Priority', value: '6' },
+const suiteStats = [
+    ['Functional Tests', '8'],
+    ['Negative Tests', '5'],
+    ['Boundary Tests', '3'],
+    ['Security Tests', '2'],
 ];
 
-/* Typing animation hook */
-const useTypingAnimation = (text, speed = 35, startDelay = 800) => {
-    const [displayed, setDisplayed] = useState('');
-    const [isDone, setIsDone] = useState(false);
-    const [hasStarted, setHasStarted] = useState(false);
+const useHeroSequence = () => {
+    const [stage, setStage] = useState(0);
 
     useEffect(() => {
-        const startTimeout = setTimeout(() => setHasStarted(true), startDelay);
-        return () => clearTimeout(startTimeout);
-    }, [startDelay]);
+        const timers = [700, 1500, 2300, 3100, 3800, 4300].map((delay, index) =>
+            setTimeout(() => setStage(index + 1), delay)
+        );
+        return () => timers.forEach(clearTimeout);
+    }, []);
 
-    useEffect(() => {
-        if (!hasStarted) return;
-        if (displayed.length >= text.length) {
-            setIsDone(true);
-            return;
-        }
-        const timeout = setTimeout(() => {
-            setDisplayed(text.slice(0, displayed.length + 1));
-        }, speed);
-        return () => clearTimeout(timeout);
-    }, [displayed, text, speed, hasStarted]);
-
-    return { displayed, isDone, hasStarted };
+    return stage;
 };
 
-/* The interactive product demo panel */
-const ProductDemo = () => {
-    const { displayed: typedReq, isDone: typingDone } = useTypingAnimation(REQUIREMENT_TEXT, 30, 1200);
-    const [analysisStep, setAnalysisStep] = useState(-1);
-    const [analysisDone, setAnalysisDone] = useState(false);
-    const [visibleResults, setVisibleResults] = useState(0);
-    const [showMeta, setShowMeta] = useState(false);
-
-    // Run analysis steps after typing completes
-    useEffect(() => {
-        if (!typingDone) return;
-        let step = 0;
-        const interval = setInterval(() => {
-            if (step < ANALYSIS_STEPS.length) {
-                setAnalysisStep(step);
-                step++;
-            } else {
-                clearInterval(interval);
-                setAnalysisDone(true);
-            }
-        }, 900);
-        return () => clearInterval(interval);
-    }, [typingDone]);
-
-    // Reveal results sequentially after analysis
-    useEffect(() => {
-        if (!analysisDone) return;
-        let count = 0;
-        const interval = setInterval(() => {
-            count++;
-            setVisibleResults(count);
-            if (count >= GENERATED_RESULTS.length) {
-                clearInterval(interval);
-                setTimeout(() => setShowMeta(true), 400);
-            }
-        }, 250);
-        return () => clearInterval(interval);
-    }, [analysisDone]);
+export const ProductWorkbench = ({ compact = false }) => {
+    const stage = useHeroSequence();
+    const typedRequirement = useMemo(() => {
+        const visibleChars = Math.min(requirement.length, Math.max(0, stage) * 18);
+        return stage >= 3 ? requirement : requirement.slice(0, visibleChars);
+    }, [stage]);
 
     return (
-        <div className="tn-demo" role="img" aria-label="Product demonstration showing AI test case generation">
-            {/* Window chrome */}
-            <div className="tn-demo__chrome">
-                <div className="tn-demo__dots">
-                    <span /><span /><span />
+        <div className={`tn-workbench ${compact ? 'tn-workbench--compact' : ''}`}>
+            <div className="tn-workbench__topbar">
+                <div>
+                    <strong>Testnexa AI</strong>
+                    <span>Requirement Analyzer</span>
                 </div>
-                <span className="tn-demo__title">Testnexa AI — Test Generator</span>
-                <div className="tn-demo__dots" style={{ visibility: 'hidden' }}>
-                    <span /><span /><span />
+                <div className="tn-workbench__status">
+                    <span />
+                    AI Ready
                 </div>
             </div>
 
-            <div className="tn-demo__body">
-                {/* Left panel — Requirement input */}
-                <div className="tn-demo__panel tn-demo__panel--left">
-                    <div className="tn-demo__panel-header">
-                        <span className="tn-demo__panel-label">REQUIREMENT</span>
-                    </div>
-                    <div className="tn-demo__input-area">
-                        <p className="tn-demo__typed-text">
-                            {typedReq}
-                            {!typingDone && <span className="tn-demo__cursor">|</span>}
-                        </p>
+            <div className="tn-workbench__content">
+                <aside className="tn-workbench__rail" aria-label="Analysis tools">
+                    <button className="is-active"><FileText size={17} /></button>
+                    <button><Sparkles size={17} /></button>
+                    <button><Layers3 size={17} /></button>
+                    <button><ShieldCheck size={17} /></button>
+                </aside>
+
+                <section className="tn-workbench__left">
+                    <div className="tn-panel-label">Requirement</div>
+                    <div className="tn-requirement-box">
+                        <p>{typedRequirement}<span className={stage < 3 ? 'tn-caret' : ''} /></p>
                     </div>
 
-                    {/* Analysis progress */}
-                    {typingDone && !analysisDone && (
-                        <div className="tn-demo__analysis">
-                            {ANALYSIS_STEPS.map((step, i) => (
-                                <div
-                                    key={i}
-                                    className={`tn-demo__analysis-step ${i <= analysisStep ? 'tn-demo__analysis-step--active' : ''}`}
-                                >
-                                    <div className={`tn-demo__analysis-dot ${i <= analysisStep ? 'tn-demo__analysis-dot--pulse' : ''}`} />
-                                    <span>{step}</span>
+                    <div className="tn-analysis-stack">
+                        <div className="tn-analysis-title">AI Analysis</div>
+                        {analysisSteps.map((item, index) => {
+                            const done = stage >= index + 3;
+                            return (
+                                <div className={`tn-analysis-row ${done ? 'is-done' : ''}`} key={item}>
+                                    {done ? <CheckCircle2 size={16} /> : <CircleDot size={16} />}
+                                    <span>{done ? item : index === 0 && stage >= 2 ? 'Analyzing requirement...' : item}</span>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {analysisDone && (
-                        <div className="tn-demo__analysis-complete">
-                            <CheckCircle2 size={14} />
-                            <span>Analysis complete</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Right panel — Generated results */}
-                <div className="tn-demo__panel tn-demo__panel--right">
-                    <div className="tn-demo__panel-header">
-                        <span className="tn-demo__panel-label">GENERATED RESULTS</span>
-                        {showMeta && <span className="tn-demo__status-badge">Complete</span>}
+                            );
+                        })}
                     </div>
 
-                    <div className="tn-demo__results">
-                        {GENERATED_RESULTS.map((result, i) => (
-                            <div
-                                key={i}
-                                className={`tn-demo__result-item ${i < visibleResults ? 'tn-demo__result-item--visible' : ''}`}
-                            >
-                                <result.icon size={15} style={{ color: result.color, flexShrink: 0 }} />
-                                <span>{result.label}</span>
+                    <div className="tn-intel-grid">
+                        <div>
+                            <span>Intent</span>
+                            <strong>Password recovery</strong>
+                        </div>
+                        <div>
+                            <span>Actor</span>
+                            <strong>Registered user</strong>
+                        </div>
+                        <div>
+                            <span>Gap</span>
+                            <strong>Token expiry undefined</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="tn-workbench__right">
+                    <div className="tn-suite-header">
+                        <div>
+                            <div className="tn-panel-label">Generated Test Suite</div>
+                            <h3>Password reset coverage</h3>
+                        </div>
+                        <span className="tn-priority-pill">High priority</span>
+                    </div>
+
+                    <div className="tn-suite-stats">
+                        {suiteStats.map(([label, value]) => (
+                            <div key={label}>
+                                <span>{label}</span>
+                                <strong>{value}</strong>
                             </div>
                         ))}
-
-                        {!analysisDone && visibleResults === 0 && (
-                            <div className="tn-demo__results-placeholder">
-                                <div className="tn-demo__skeleton" />
-                                <div className="tn-demo__skeleton tn-demo__skeleton--short" />
-                                <div className="tn-demo__skeleton tn-demo__skeleton--medium" />
-                            </div>
-                        )}
                     </div>
 
-                    {/* Metadata pills */}
-                    {showMeta && (
-                        <div className="tn-demo__meta">
-                            {META_ITEMS.map((item, i) => (
-                                <div key={i} className="tn-demo__meta-pill">
-                                    <span className="tn-demo__meta-value">{item.value}</span>
-                                    <span className="tn-demo__meta-label">{item.label}</span>
-                                </div>
-                            ))}
+                    <div className="tn-suite-meter">
+                        <div className="tn-suite-meter__top">
+                            <span>Coverage</span>
+                            <strong>94%</strong>
                         </div>
-                    )}
-                </div>
+                        <div className="tn-suite-meter__track">
+                            <span />
+                        </div>
+                    </div>
+
+                    <div className="tn-test-table">
+                        {testRows.map((row, index) => (
+                            <div
+                                className={`tn-test-row ${stage >= index + 3 ? 'is-visible' : ''}`}
+                                key={row.id}
+                                style={{ transitionDelay: `${index * 80}ms` }}
+                            >
+                                <code>{row.id}</code>
+                                <span>{row.title}</span>
+                                <em>{row.type}</em>
+                                <b>{row.priority}</b>
+                            </div>
+                        ))}
+                    </div>
+                </section>
             </div>
         </div>
     );
 };
 
-/* ────────────────────────────────────────────
-   Main Hero Component
-   ──────────────────────────────────────────── */
 const Hero = () => {
     const headerReveal = useScrollReveal({ threshold: 0.1 });
     const demoReveal = useScrollReveal({ threshold: 0.05 });
 
     const scrollToSection = useCallback((id) => {
         const el = document.getElementById(id);
-        if (el) {
-            const y = el.getBoundingClientRect().top + window.pageYOffset - 100;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-        }
+        if (!el) return;
+        const y = el.getBoundingClientRect().top + window.pageYOffset - 96;
+        window.scrollTo({ top: y, behavior: 'smooth' });
     }, []);
 
     return (
         <section className="tn-hero" aria-labelledby="hero-heading">
-            {/* Ambient glow behind hero */}
             <div className="tn-hero__glow" aria-hidden="true" />
-
-            <div className="container tn-hero__inner">
-                {/* Text content */}
+            <div className="tn-container tn-hero__inner">
                 <div
                     ref={headerReveal.ref}
                     className={`tn-hero__text scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
                 >
-                    {/* Eyebrow badge */}
-                    <div className="tn-hero__badge">
-                        <span className="tn-hero__badge-dot" />
-                        <span>AI-POWERED TEST DESIGN</span>
-                    </div>
-
-                    {/* Headline */}
+                    <div className="tn-eyebrow">AI-powered QA engine</div>
                     <h1 id="hero-heading" className="tn-hero__headline">
-                        Turn Requirements Into{' '}
-                        <span className="tn-hero__headline-gradient">Production-Ready</span>{' '}
-                        Test Suites.
+                        Turn Requirements Into <span>Production-Ready</span> Test Suites.
                     </h1>
-
-                    {/* Supporting text */}
                     <p className="tn-hero__subtext">
-                        Testnexa AI transforms natural-language requirements into comprehensive,
-                        prioritized test scenarios — including functional, negative, edge and
-                        boundary cases.
+                        Transform messy product requirements into complete, prioritized test coverage
+                        with AI-powered analysis.
                     </p>
-
-                    {/* CTAs */}
                     <div className="tn-hero__ctas">
-                        <a href="/login" className="tn-btn tn-btn--primary">
-                            Generate Test Cases
-                            <ArrowRight size={16} />
+                        <a href="/login" className="tn-btn tn-btn--primary tn-btn--lg">
+                            Generate Test Suite
+                            <ArrowRight size={18} />
                         </a>
-                        <button
-                            className="tn-btn tn-btn--ghost"
-                            onClick={() => scrollToSection('engineering-maturity')}
-                        >
-                            <Play size={14} />
+                        <button className="tn-btn tn-btn--secondary tn-btn--lg" onClick={() => scrollToSection('engineering-maturity')}>
+                            <Play size={17} />
                             See How It Works
                         </button>
                     </div>
-
-                    {/* Trust line */}
-                    <p className="tn-hero__trust">
-                        No credit card required · Free to start · Instant results
-                    </p>
                 </div>
 
-                {/* Product demo panel */}
                 <div
                     ref={demoReveal.ref}
                     className={`tn-hero__demo-wrap scroll-reveal-fade-up ${demoReveal.isVisible ? 'revealed' : ''}`}
-                    style={{ transitionDelay: '0.2s' }}
                 >
-                    <ProductDemo />
+                    <ProductWorkbench />
                 </div>
             </div>
         </section>
