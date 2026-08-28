@@ -2191,7 +2191,28 @@ body {
 }
 
 /* Generator page container match */
+.generator-page-container {
+  width: var(--tn-container-width);
+  max-width: var(--tn-container-max);
+  margin-inline: auto;
+  padding-bottom: 96px;
+}
+
 .generator-content-wrapper {
+  width: 100% !important;
+  max-width: 1240px !important;
+  margin-inline: auto !important;
+}
+
+.ip-2026 {
+  width: 100% !important;
+  max-width: 1240px !important;
+  margin: 0 auto !important;
+  border-radius: 18px !important;
+  box-sizing: border-box !important;
+}
+
+.output-section-wrapper {
   width: 100% !important;
   max-width: 1240px !important;
   margin-inline: auto !important;
