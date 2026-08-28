@@ -20,12 +20,25 @@ import {
     Terminal,
     ChevronRight,
     Layers,
-    ListFilter
+    ListFilter,
+    Sparkles,
+    CheckCheck,
+    Code,
+    Edit3,
+    Plus,
+    Trash2,
+    Send,
+    Bot,
+    User,
+    X,
+    XCircle,
+    Info,
+    CheckCircle2
 } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 // Realistic QA Test Suite Demo Data
-const DEMO_TEST_CASES = [
+const INITIAL_DEMO_TESTS = [
     {
         id: 'TC-001',
         title: 'Reset password with valid registered email',
@@ -33,7 +46,7 @@ const DEMO_TEST_CASES = [
         type: 'Functional',
         priority: 'High',
         severity: 'Critical',
-        status: 'Ready',
+        status: 'Needs Review',
         reqId: 'REQ-001',
         preconditions: 'User account exists with verified email address (active in DB).',
         steps: [
@@ -51,7 +64,7 @@ const DEMO_TEST_CASES = [
         type: 'Negative',
         priority: 'High',
         severity: 'Major',
-        status: 'Ready',
+        status: 'Needs Review',
         reqId: 'REQ-001',
         preconditions: 'Password recovery form is accessible in browser.',
         steps: [
@@ -68,7 +81,7 @@ const DEMO_TEST_CASES = [
         type: 'Validation',
         priority: 'Medium',
         severity: 'Minor',
-        status: 'Ready',
+        status: 'Needs Review',
         reqId: 'REQ-001',
         preconditions: 'User on forgot-password page.',
         steps: [
@@ -85,7 +98,7 @@ const DEMO_TEST_CASES = [
         type: 'Edge Case',
         priority: 'High',
         severity: 'Critical',
-        status: 'Ready',
+        status: 'Needs Review',
         reqId: 'REQ-001',
         preconditions: 'A previously generated reset token exists and has exceeded the 15-minute TTL window.',
         steps: [
@@ -102,7 +115,7 @@ const DEMO_TEST_CASES = [
         type: 'Security',
         priority: 'High',
         severity: 'Critical',
-        status: 'Ready',
+        status: 'Needs Review',
         reqId: 'REQ-001',
         preconditions: 'Reset token was already successfully redeemed in a prior session.',
         steps: [
@@ -122,8 +135,8 @@ const COVERAGE_ITEMS = [
 ];
 
 const RISK_ITEMS = [
-    { level: 'High', title: 'Expired Token Invalidation Gap', category: 'Security', linkedTc: 'TC-004', desc: 'Failure to enforce server-side expiration allows indefinite password reset window.' },
-    { level: 'High', title: 'Token Replay / Nonce Reuse', category: 'Security', linkedTc: 'TC-005', desc: 'Tokens not invalidated immediately after first successful consumption expose replay vulnerability.' },
+    { level: 'Critical', title: 'Expired Token Invalidation Gap', category: 'Security', linkedTc: 'TC-004', desc: 'Failure to enforce server-side expiration allows indefinite password reset window.' },
+    { level: 'Critical', title: 'Token Replay / Nonce Reuse', category: 'Security', linkedTc: 'TC-005', desc: 'Tokens not invalidated immediately after first successful consumption expose replay vulnerability.' },
     { level: 'Medium', title: 'Email Address Enumeration Timing', category: 'Privacy', linkedTc: 'TC-001', desc: 'Different response times for existing vs non-existing emails expose user directory.' }
 ];
 
@@ -135,40 +148,213 @@ const TRACE_ITEMS = [
     }
 ];
 
+// Helper to format Gherkin
+const formatGherkinDemo = (tc) => {
+    if (!tc) return '';
+    return `@${tc.type.toLowerCase().replace(/\s+/g, '_')} @${tc.priority.toLowerCase()}
+Scenario: ${tc.title}
+    Given ${tc.preconditions}
+    When ${tc.steps[0]?.action || 'the scenario triggers'}
+    Then ${tc.steps[0]?.expected || 'verification passes'}
+    ${tc.steps[1] ? `And ${tc.steps[1].action}\n    Then ${tc.steps[1].expected}` : ''}
+    Then ${tc.expectedResult}`;
+};
+
 export const ProductWorkbench = ({ compact = false }) => {
+    const [testCases, setTestCases] = useState(INITIAL_DEMO_TESTS);
+    const [suiteStatus, setSuiteStatus] = useState('Needs Review'); // 'Needs Review' | 'Approved'
     const [activeTab, setActiveTab] = useState('tests'); // 'tests' | 'coverage' | 'risks' | 'traceability'
     const [selectedTcId, setSelectedTcId] = useState('TC-004');
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
+    const [priorityFilter, setPriorityFilter] = useState('All');
+    const [statusFilter, setStatusFilter] = useState('All');
     const [selectedRows, setSelectedRows] = useState(['TC-001', 'TC-002', 'TC-003', 'TC-004', 'TC-005']);
-    const [copied, setCopied] = useState(false);
+    const [showGherkin, setShowGherkin] = useState(false);
+
+    // Modals and Drawers
+    const [showAiCopilot, setShowAiCopilot] = useState(false);
+    const [showAiInsightsDrawer, setShowAiInsightsDrawer] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingTc, setEditingTc] = useState(null);
+    const [showRegenModal, setShowRegenModal] = useState(false);
+    const [regenGoal, setRegenGoal] = useState('Add security attack vectors & payload checks');
+    const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportFormat, setExportFormat] = useState('json');
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareRole, setShareRole] = useState('Reviewer');
+    const [copiedLink, setCopiedLink] = useState(false);
+
+    // AI Copilot Chat State
+    const [chatInput, setChatInput] = useState('');
+    const [isAiThinking, setIsAiThinking] = useState(false);
+    const [chatMessages, setChatMessages] = useState([
+        {
+            sender: 'assistant',
+            text: `I'm Testnexa Copilot. I've audited the Password Reset suite (REQ-001). I can detect coverage gaps, suggest security boundary tests, inspect selected test cases, or generate Gherkin scenarios.`,
+            suggestions: [
+                'Are we missing any security scenarios?',
+                'Is the selected test sufficient?',
+                'Explain requirement coverage gaps',
+                'Generate rate limiting tests'
+            ]
+        }
+    ]);
 
     const selectedTc = useMemo(() => {
-        return DEMO_TEST_CASES.find(tc => tc.id === selectedTcId) || DEMO_TEST_CASES[3];
-    }, [selectedTcId]);
+        return testCases.find(tc => tc.id === selectedTcId) || testCases[0];
+    }, [testCases, selectedTcId]);
 
     const filteredTests = useMemo(() => {
-        return DEMO_TEST_CASES.filter(tc => {
+        return testCases.filter(tc => {
             const matchesSearch = tc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 tc.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 tc.scenario.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesType = typeFilter === 'All' || tc.type === typeFilter;
-            return matchesSearch && matchesType;
+            const matchesPriority = priorityFilter === 'All' || tc.priority === priorityFilter;
+            const matchesStatus = statusFilter === 'All' ||
+                (statusFilter === 'Approved' && tc.status === 'Approved') ||
+                (statusFilter === 'Needs Review' && tc.status === 'Needs Review');
+            return matchesSearch && matchesType && matchesPriority && matchesStatus;
         });
-    }, [searchQuery, typeFilter]);
+    }, [testCases, searchQuery, typeFilter, priorityFilter, statusFilter]);
 
     const toggleRowSelect = (id) => {
         setSelectedRows(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
     };
 
-    const handleCopy = () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    // Bulk Actions
+    const handleBulkApprove = () => {
+        setTestCases(prev => prev.map(tc => selectedRows.includes(tc.id) ? { ...tc, status: 'Approved' } : tc));
+        setSelectedRows([]);
+    };
+
+    const handleBulkPriority = (newPriority) => {
+        setTestCases(prev => prev.map(tc => selectedRows.includes(tc.id) ? { ...tc, priority: newPriority } : tc));
+        setSelectedRows([]);
+    };
+
+    // Single Test Handlers
+    const handleApproveSingle = (id) => {
+        setTestCases(prev => prev.map(tc => tc.id === id ? { ...tc, status: tc.status === 'Approved' ? 'Needs Review' : 'Approved' } : tc));
+    };
+
+    const handleApproveSuite = () => {
+        setTestCases(prev => prev.map(tc => ({ ...tc, status: 'Approved' })));
+        setSuiteStatus('Approved');
+        setShowApproveModal(false);
+    };
+
+    const handleOpenEdit = (tc) => {
+        setEditingTc(JSON.parse(JSON.stringify(tc)));
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = () => {
+        if (!editingTc) return;
+        setTestCases(prev => prev.map(tc => tc.id === editingTc.id ? editingTc : tc));
+        setShowEditModal(false);
+    };
+
+    const handleExecuteSingleRegen = () => {
+        setIsRegeneratingSingle(true);
+        setTimeout(() => {
+            setTestCases(prev => prev.map(tc => {
+                if (tc.id === editingTc.id) {
+                    return {
+                        ...tc,
+                        title: `${tc.title} (Enhanced with ${regenGoal.toLowerCase()})`,
+                        priority: 'High',
+                        severity: 'Critical',
+                        status: 'Needs Review',
+                        steps: [
+                            ...tc.steps,
+                            { num: String(tc.steps.length + 1).padStart(2, '0'), action: `Verify security boundary assertion for ${regenGoal.toLowerCase()}.`, expected: 'Payload blocked with structured telemetry log.' }
+                        ]
+                    };
+                }
+                return tc;
+            }));
+            setIsRegeneratingSingle(false);
+            setShowRegenModal(false);
+        }, 1000);
+    };
+
+    const handleAddMissingTests = () => {
+        const newTests = [
+            {
+                id: `TC-006`,
+                title: 'Enforce rate limiting on repeated reset dispatches',
+                scenario: 'Block brute-force mail server flooding via 5+ requests in 60s',
+                type: 'Security',
+                priority: 'High',
+                severity: 'Critical',
+                status: 'Needs Review',
+                reqId: 'REQ-001',
+                preconditions: 'User or automated client on /forgot-password endpoint.',
+                steps: [
+                    { num: '01', action: 'Submit 5 consecutive password reset requests within 30 seconds.', expected: 'First 3 requests process normally; 4th and 5th return HTTP 429 Too Many Requests.' },
+                    { num: '02', action: 'Inspect retry-after header.', expected: 'Header contains "Retry-After: 60" cooldown window.' }
+                ],
+                expectedResult: 'API gateway throttles excessive reset requests and logs anomaly event.',
+                testData: 'rateLimit: "3 req/min", clientIP: "198.51.100.42"'
+            }
+        ];
+
+        setTestCases(prev => [...prev, ...newTests]);
+        setSelectedTcId('TC-006');
+        setActiveTab('tests');
+        setShowAiInsightsDrawer(false);
+    };
+
+    const handleSendChatMessage = (textToSend) => {
+        const text = textToSend || chatInput;
+        if (!text.trim()) return;
+
+        const userMsg = { sender: 'user', text };
+        setChatMessages(prev => [...prev, userMsg]);
+        setChatInput('');
+        setIsAiThinking(true);
+
+        setTimeout(() => {
+            let replyText = '';
+            let action = null;
+
+            const lower = text.toLowerCase();
+            if (lower.includes('security') || lower.includes('missing')) {
+                replyText = `I analyzed the suite against OWASP ASVS v4.0. Currently, **TC-004** and **TC-005** cover token expiration and reuse, but **Rate Limiting (HTTP 429)** and **Timing-Attack Anti-Enumeration** are not covered.`;
+                action = { label: 'Generate Rate Limiting Test', type: 'add_missing' };
+            } else if (lower.includes('sufficient') || lower.includes('tc-004') || lower.includes('selected')) {
+                replyText = `**${selectedTc.id}: ${selectedTc.title}** covers the expiration TTL window correctly. However, I recommend adding an explicit check for concurrent redemption while token expiration evaluates.`;
+            } else {
+                replyText = `Requirement **REQ-001** has 94% coverage. 18 test cases are mapped. The remaining 6% gap is in distributed cache token invalidation.`;
+            }
+
+            setChatMessages(prev => [...prev, {
+                sender: 'assistant',
+                text: replyText,
+                action
+            }]);
+            setIsAiThinking(false);
+        }, 700);
+    };
+
+    const handleExport = () => {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(testCases, null, 2));
+        const anchor = document.createElement('a');
+        anchor.setAttribute('href', dataStr);
+        anchor.setAttribute('download', `TestSuite_REQ-001.${exportFormat}`);
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setShowExportModal(false);
     };
 
     return (
         <div className={`tn-app-workspace ${compact ? 'tn-app-workspace--compact' : ''}`}>
-            {/* ─── Product Workspace Header ─── */}
+            {/* ─── 1. Product Workspace Header ─── */}
             <div className="tn-app-header">
                 <div className="tn-app-header__identity">
                     <div className="tn-app-header__breadcrumbs">
@@ -178,30 +364,62 @@ export const ProductWorkbench = ({ compact = false }) => {
                     </div>
                     <div className="tn-app-header__tags">
                         <span className="tn-tag tn-tag--req">REQ-001</span>
-                        <span className="tn-tag tn-tag--ready">Ready for Execution</span>
+                        <span className={`tn-tag ${suiteStatus === 'Approved' ? 'tn-tag--ready' : 'tn-tag--alert'}`}>
+                            <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? '✓ Approved' : 'Needs Review'}
+                        </span>
                     </div>
                 </div>
 
                 <div className="tn-app-header__actions">
-                    <button className="tn-app-btn tn-app-btn--secondary" onClick={handleCopy}>
-                        {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                        <span>{copied ? 'Copied' : 'Share'}</span>
+                    {/* Subtle Ask Testnexa AI Copilot Button */}
+                    <button
+                        className={`tn-app-btn ${showAiCopilot ? 'tn-app-btn--primary' : 'tn-app-btn--secondary'}`}
+                        onClick={() => setShowAiCopilot(!showAiCopilot)}
+                        title="Open context-aware AI QA copilot"
+                    >
+                        <Sparkles size={14} />
+                        <span>Ask Testnexa</span>
                     </button>
-                    <button className="tn-app-btn tn-app-btn--secondary">
+
+                    <button
+                        className="tn-app-btn tn-app-btn--secondary"
+                        onClick={() => setShowShareModal(true)}
+                        title="Share test suite"
+                    >
+                        <Share2 size={14} />
+                        <span>Share</span>
+                    </button>
+
+                    <button
+                        className="tn-app-btn tn-app-btn--secondary"
+                        onClick={() => setShowExportModal(true)}
+                        title="Export suite"
+                    >
                         <Download size={14} />
                         <span>Export</span>
                     </button>
-                    <button className="tn-app-btn tn-app-btn--primary">
-                        <RefreshCw size={14} />
-                        <span>Regenerate</span>
-                    </button>
+
+                    {suiteStatus !== 'Approved' ? (
+                        <button
+                            className="tn-app-btn tn-app-btn--primary"
+                            onClick={() => setShowApproveModal(true)}
+                            title="Approve all test cases for execution"
+                        >
+                            <CheckCheck size={14} />
+                            <span>Approve Suite</span>
+                        </button>
+                    ) : (
+                        <span className="tn-app-approved-tag">
+                            <Check size={14} /> Ready for Execution
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* ─── Compact Summary Metrics Row ─── */}
+            {/* ─── 2. Compact Summary Metrics Row ─── */}
             <div className="tn-app-summary-bar">
                 <div className="tn-app-stat">
-                    <span className="tn-app-stat__num">18</span>
+                    <span className="tn-app-stat__num">{testCases.length}</span>
                     <span className="tn-app-stat__label">Test Cases</span>
                 </div>
                 <div className="tn-app-stat-divider" />
@@ -221,12 +439,30 @@ export const ProductWorkbench = ({ compact = false }) => {
                 </div>
                 <div className="tn-app-stat-divider" />
                 <div className="tn-app-stat">
-                    <span className="tn-app-stat__num tn-app-stat__num--emerald">0</span>
-                    <span className="tn-app-stat__label">Ambiguity Flags</span>
+                    <span className="tn-app-stat__num tn-app-stat__num--emerald">
+                        {testCases.filter(t => t.status === 'Approved').length} / {testCases.length}
+                    </span>
+                    <span className="tn-app-stat__label">Approved</span>
                 </div>
             </div>
 
-            {/* ─── Application Navigation Tabs ─── */}
+            {/* ─── 3. Suite-Level AI Insights Bar ─── */}
+            <div className="tn-ai-insights-bar">
+                <div className="tn-ai-insights-bar__left">
+                    <span className="tn-ai-sparkle-pill"><Sparkles size={12} /> AI INSIGHTS</span>
+                    <p className="tn-ai-insights-text">
+                        <strong>2 coverage gaps detected</strong> &bull; 1 security scenario (Rate Limiting) needs verification.
+                    </p>
+                </div>
+                <button
+                    className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                    onClick={() => setShowAiInsightsDrawer(true)}
+                >
+                    Review Insights &rarr;
+                </button>
+            </div>
+
+            {/* ─── 4. Application Navigation Tabs ─── */}
             <div className="tn-app-tabs">
                 <button
                     className={`tn-app-tab ${activeTab === 'tests' ? 'is-active' : ''}`}
@@ -234,7 +470,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                 >
                     <FileText size={15} />
                     <span>Test Cases</span>
-                    <span className="tn-app-tab__badge">18</span>
+                    <span className="tn-app-tab__badge">{testCases.length}</span>
                 </button>
                 <button
                     className={`tn-app-tab ${activeTab === 'coverage' ? 'is-active' : ''}`}
@@ -261,7 +497,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                 </button>
             </div>
 
-            {/* ─── Main Viewport Area ─── */}
+            {/* ─── 5. Main Viewport Area ─── */}
             <div className="tn-app-viewport">
                 {activeTab === 'tests' && (
                     <div className="tn-app-tests-view">
@@ -276,6 +512,11 @@ export const ProductWorkbench = ({ compact = false }) => {
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
+                                    {searchQuery && (
+                                        <button className="tn-app-search__clear" onClick={() => setSearchQuery('')}>
+                                            <XCircle size={14} />
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="tn-app-filter-pills">
                                     {['All', 'Functional', 'Negative', 'Edge Case', 'Security'].map((t) => (
@@ -290,9 +531,53 @@ export const ProductWorkbench = ({ compact = false }) => {
                                 </div>
                             </div>
                             <div className="tn-app-toolbar__right">
+                                <div className="tn-app-select-filter">
+                                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                                        <option value="All">All Statuses</option>
+                                        <option value="Needs Review">Needs Review</option>
+                                        <option value="Approved">Approved</option>
+                                    </select>
+                                </div>
                                 <span className="tn-app-count-label">{filteredTests.length} tests displayed</span>
                             </div>
                         </div>
+
+                        {/* Floating Bulk Actions Bar */}
+                        {selectedRows.length > 0 && (
+                            <div className="tn-bulk-floating animate-slide-up">
+                                <span className="tn-bulk-count">
+                                    <strong>{selectedRows.length}</strong> selected
+                                </span>
+                                <div className="tn-bulk-actions">
+                                    <button
+                                        className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
+                                        onClick={handleBulkApprove}
+                                    >
+                                        <Check size={13} />
+                                        <span>Approve ({selectedRows.length})</span>
+                                    </button>
+                                    <div className="tn-app-select-filter tn-app-select-filter--compact">
+                                        <select onChange={(e) => e.target.value && handleBulkPriority(e.target.value)} defaultValue="">
+                                            <option value="" disabled>Change Priority...</option>
+                                            <option value="Critical">Critical</option>
+                                            <option value="High">High</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="Low">Low</option>
+                                        </select>
+                                    </div>
+                                    <button
+                                        className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                                        onClick={() => setShowExportModal(true)}
+                                    >
+                                        <Download size={13} />
+                                        <span>Export</span>
+                                    </button>
+                                    <button className="tn-bulk-close" onClick={() => setSelectedRows([])}>
+                                        <X size={15} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Master-Detail Split Workspace */}
                         <div className="tn-app-split-workspace">
@@ -304,15 +589,16 @@ export const ProductWorkbench = ({ compact = false }) => {
                                             <th style={{ width: '36px' }}>
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedRows.length === DEMO_TEST_CASES.length}
-                                                    onChange={() => setSelectedRows(selectedRows.length === DEMO_TEST_CASES.length ? [] : DEMO_TEST_CASES.map(t => t.id))}
+                                                    checked={filteredTests.length > 0 && selectedRows.length === filteredTests.length}
+                                                    onChange={() => setSelectedRows(selectedRows.length === filteredTests.length ? [] : filteredTests.map(t => t.id))}
+                                                    aria-label="Select all"
                                                 />
                                             </th>
                                             <th style={{ width: '84px' }}>ID</th>
                                             <th>Test Scenario & Title</th>
                                             <th style={{ width: '100px' }}>Type</th>
                                             <th style={{ width: '90px' }}>Priority</th>
-                                            <th style={{ width: '80px' }}>Status</th>
+                                            <th style={{ width: '110px' }}>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -330,6 +616,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                                                             type="checkbox"
                                                             checked={isChecked}
                                                             onChange={() => toggleRowSelect(tc.id)}
+                                                            aria-label={`Select ${tc.id}`}
                                                         />
                                                     </td>
                                                     <td>
@@ -352,9 +639,9 @@ export const ProductWorkbench = ({ compact = false }) => {
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span className="tn-status-pill">
+                                                        <span className={`tn-status-pill tn-status-pill--${tc.status === 'Approved' ? 'approved' : 'review'}`}>
                                                             <span className="tn-status-dot" />
-                                                            {tc.status}
+                                                            {tc.status === 'Approved' ? '✓ Approved' : 'Needs Review'}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -371,15 +658,45 @@ export const ProductWorkbench = ({ compact = false }) => {
                                         <div className="tn-detail-meta-top">
                                             <span className="tn-tc-id-lg">{selectedTc.id}</span>
                                             <span className="tn-detail-req">{selectedTc.reqId}</span>
-                                            <span className="tn-status-pill tn-status-pill--ready">
-                                                <span className="tn-status-dot" /> Ready
+                                            <span className={`tn-status-pill tn-status-pill--${selectedTc.status === 'Approved' ? 'approved' : 'review'}`}>
+                                                <span className="tn-status-dot" /> {selectedTc.status === 'Approved' ? '✓ Approved' : 'Needs Review'}
                                             </span>
                                         </div>
                                         <h4 className="tn-detail-title">{selectedTc.title}</h4>
                                     </div>
                                     <div className="tn-detail-quick-actions">
-                                        <button className="tn-btn-icon" title="Copy Test Case"><Copy size={14} /></button>
-                                        <button className="tn-btn-icon" title="External Export"><ExternalLink size={14} /></button>
+                                        <button
+                                            className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
+                                            onClick={() => handleApproveSingle(selectedTc.id)}
+                                            title="Toggle approval status"
+                                        >
+                                            <Check size={13} />
+                                            <span>{selectedTc.status === 'Approved' ? 'Revoke' : 'Approve'}</span>
+                                        </button>
+                                        <button
+                                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                                            onClick={() => handleOpenEdit(selectedTc)}
+                                            title="Edit test case"
+                                        >
+                                            <Edit3 size={13} />
+                                            <span>Edit</span>
+                                        </button>
+                                        <button
+                                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                                            onClick={() => { setEditingTc(selectedTc); setShowRegenModal(true); }}
+                                            title="Regenerate / enhance test"
+                                        >
+                                            <RefreshCw size={13} />
+                                            <span>Regen</span>
+                                        </button>
+                                        <button
+                                            className={`tn-app-btn tn-app-btn--sm ${showGherkin ? 'tn-app-btn--primary' : 'tn-app-btn--secondary'}`}
+                                            onClick={() => setShowGherkin(!showGherkin)}
+                                            title="Toggle BDD Gherkin"
+                                        >
+                                            <Code size={13} />
+                                            <span>BDD</span>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -402,42 +719,53 @@ export const ProductWorkbench = ({ compact = false }) => {
                                     </div>
                                 </div>
 
-                                <div className="tn-detail-body">
-                                    <div className="tn-detail-section">
-                                        <h5>PRECONDITIONS</h5>
-                                        <p>{selectedTc.preconditions}</p>
+                                {showGherkin ? (
+                                    <div className="tn-gherkin-view">
+                                        <div className="tn-gherkin-header">
+                                            <span>Cucumber / Behave Gherkin Feature</span>
+                                        </div>
+                                        <pre className="tn-gherkin-code">
+                                            <code>{formatGherkinDemo(selectedTc)}</code>
+                                        </pre>
                                     </div>
+                                ) : (
+                                    <div className="tn-detail-body">
+                                        <div className="tn-detail-section">
+                                            <h5>PRECONDITIONS</h5>
+                                            <p className="tn-precon-text">{selectedTc.preconditions}</p>
+                                        </div>
 
-                                    <div className="tn-detail-section">
-                                        <h5>TEST STEPS</h5>
-                                        <div className="tn-detail-steps">
-                                            {selectedTc.steps.map((st) => (
-                                                <div key={st.num} className="tn-step-item">
-                                                    <span className="tn-step-num">{st.num}</span>
-                                                    <div className="tn-step-content">
-                                                        <p className="tn-step-action"><strong>Action:</strong> {st.action}</p>
-                                                        <p className="tn-step-expected"><strong>Expected:</strong> {st.expected}</p>
+                                        <div className="tn-detail-section">
+                                            <h5>TEST STEPS ({selectedTc.steps?.length || 0})</h5>
+                                            <div className="tn-detail-steps">
+                                                {selectedTc.steps.map((st, i) => (
+                                                    <div key={i} className="tn-step-item">
+                                                        <span className="tn-step-num">{st.num || String(i + 1).padStart(2, '0')}</span>
+                                                        <div className="tn-step-content">
+                                                            <p className="tn-step-action"><strong>Action:</strong> {st.action}</p>
+                                                            <p className="tn-step-expected"><strong>Expected:</strong> {st.expected}</p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="tn-detail-section">
-                                        <h5>EXPECTED RESULT</h5>
-                                        <div className="tn-expected-box">
-                                            <CheckSquare size={15} className="text-teal-400 shrink-0" />
-                                            <p>{selectedTc.expectedResult}</p>
+                                        <div className="tn-detail-section">
+                                            <h5>EXPECTED RESULT</h5>
+                                            <div className="tn-expected-box">
+                                                <CheckSquare size={15} className="text-teal-400 shrink-0" />
+                                                <p>{selectedTc.expectedResult}</p>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="tn-detail-section">
-                                        <h5>TEST PARAMETERS</h5>
-                                        <div className="tn-data-snippet">
-                                            <code>{selectedTc.testData}</code>
+                                        <div className="tn-detail-section">
+                                            <h5>TEST PARAMETERS</h5>
+                                            <div className="tn-data-snippet">
+                                                <code>{selectedTc.testData}</code>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -469,6 +797,25 @@ export const ProductWorkbench = ({ compact = false }) => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Uncovered Gaps Callout */}
+                        <div className="tn-uncovered-box">
+                            <div className="tn-uncovered-header">
+                                <AlertTriangle size={18} className="text-amber-400" />
+                                <div>
+                                    <h5>Uncovered Specification Areas (2)</h5>
+                                    <p>Identified logic gaps where additional boundary assertions are recommended:</p>
+                                </div>
+                            </div>
+                            <ul className="tn-uncovered-list">
+                                <li><strong>Rate Limiting:</strong> Repeated password reset requests from single IP or target account.</li>
+                                <li><strong>Concurrent Redemptions:</strong> Dual redemption of identical token across race conditions.</li>
+                            </ul>
+                            <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
+                                <Sparkles size={13} />
+                                <span>Generate Missing Tests (2)</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
@@ -481,17 +828,17 @@ export const ProductWorkbench = ({ compact = false }) => {
                             </div>
                         </div>
                         <div className="tn-risks-grid">
-                            {RISK_ITEMS.map((risk, idx) => (
-                                <div key={idx} className={`tn-risk-card tn-risk-card--${risk.level.toLowerCase()}`}>
+                            {RISK_ITEMS.map((r, i) => (
+                                <div key={i} className={`tn-risk-card tn-risk-card--${r.level.toLowerCase()}`}>
                                     <div className="tn-risk-card__top">
-                                        <span className={`tn-risk-badge tn-risk-badge--${risk.level.toLowerCase()}`}>
-                                            {risk.level} Risk
+                                        <span className={`tn-risk-badge tn-risk-badge--${r.level.toLowerCase()}`}>{r.level} Risk</span>
+                                        <span className="tn-risk-cat">{r.category}</span>
+                                        <span className="tn-risk-linked" onClick={() => { setSelectedTcId(r.linkedTc); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
+                                            Linked: {r.linkedTc} &rarr;
                                         </span>
-                                        <span className="tn-risk-cat">{risk.category}</span>
-                                        <span className="tn-risk-linked">Linked: {risk.linkedTc}</span>
                                     </div>
-                                    <h5>{risk.title}</h5>
-                                    <p>{risk.desc}</p>
+                                    <h5>{r.title}</h5>
+                                    <p>{r.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -505,18 +852,18 @@ export const ProductWorkbench = ({ compact = false }) => {
                             <p>End-to-end traceability graph from raw product requirement to verification test suite.</p>
                         </div>
                         <div className="tn-trace-tree">
-                            {TRACE_ITEMS.map((trace) => (
-                                <div key={trace.reqId} className="tn-trace-root">
+                            {TRACE_ITEMS.map((tr) => (
+                                <div key={tr.reqId} className="tn-trace-root">
                                     <div className="tn-trace-root__node">
-                                        <span className="tn-tc-id">{trace.reqId}</span>
-                                        <strong>{trace.title}</strong>
+                                        <span className="tn-tc-id">{tr.reqId}</span>
+                                        <strong>{tr.title}</strong>
                                         <span className="tn-trace-status">Source Requirement</span>
                                     </div>
                                     <div className="tn-trace-branches">
-                                        {trace.children.map((child, i) => (
-                                            <div key={i} className="tn-trace-leaf">
+                                        {tr.children.map((ch, idx) => (
+                                            <div key={idx} className="tn-trace-leaf">
                                                 <span className="tn-trace-leaf__connector" />
-                                                <code>{child}</code>
+                                                <code>{ch}</code>
                                             </div>
                                         ))}
                                     </div>
@@ -526,57 +873,471 @@ export const ProductWorkbench = ({ compact = false }) => {
                     </div>
                 )}
             </div>
+
+            {/* ─── 6. Context-Aware "Ask Testnexa" Right-Side Drawer ─── */}
+            {showAiCopilot && (
+                <div className="tn-ai-drawer animate-slide-left">
+                    <div className="tn-ai-drawer__header">
+                        <div className="tn-ai-drawer__title">
+                            <Bot size={18} className="text-teal-400" />
+                            <strong>Ask Testnexa Copilot</strong>
+                        </div>
+                        <button className="tn-btn-icon" onClick={() => setShowAiCopilot(false)} title="Close Copilot">
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    <div className="tn-ai-drawer__context-pill">
+                        <span className="tn-context-dot" />
+                        <span>Context: <strong>{selectedTc.id || 'REQ-001'}</strong> ({selectedTc.title?.slice(0, 30)}...)</span>
+                    </div>
+
+                    <div className="tn-ai-drawer__messages">
+                        {chatMessages.map((msg, i) => (
+                            <div key={i} className={`tn-chat-msg tn-chat-msg--${msg.sender}`}>
+                                <div className="tn-chat-avatar">
+                                    {msg.sender === 'assistant' ? <Bot size={14} /> : <User size={14} />}
+                                </div>
+                                <div className="tn-chat-bubble">
+                                    <p>{msg.text}</p>
+                                    {msg.suggestions && (
+                                        <div className="tn-chat-suggestions">
+                                            {msg.suggestions.map((sug, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    className="tn-suggestion-chip"
+                                                    onClick={() => handleSendChatMessage(sug)}
+                                                >
+                                                    {sug} &rarr;
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {msg.action && (
+                                        <div className="tn-chat-action-wrap">
+                                            <button
+                                                className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
+                                                onClick={handleAddMissingTests}
+                                            >
+                                                <Sparkles size={13} />
+                                                <span>{msg.action.label}</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {isAiThinking && (
+                            <div className="tn-chat-msg tn-chat-msg--assistant">
+                                <div className="tn-chat-avatar"><Bot size={14} /></div>
+                                <div className="tn-chat-bubble tn-chat-thinking">
+                                    <Loader2 size={14} className="animate-spin" />
+                                    <span>Analyzing test suite context...</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="tn-ai-drawer__input-wrap">
+                        <input
+                            type="text"
+                            placeholder="Ask about coverage, security gaps, or selected test..."
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
+                        />
+                        <button
+                            className="tn-chat-send-btn"
+                            onClick={() => handleSendChatMessage()}
+                            disabled={!chatInput.trim()}
+                        >
+                            <Send size={15} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── 7. AI Insights Review Drawer ─── */}
+            {showAiInsightsDrawer && (
+                <div className="tn-ai-drawer animate-slide-left">
+                    <div className="tn-ai-drawer__header">
+                        <div className="tn-ai-drawer__title">
+                            <Sparkles size={18} className="text-teal-400" />
+                            <strong>AI Suite Insights & Gaps</strong>
+                        </div>
+                        <button className="tn-btn-icon" onClick={() => setShowAiInsightsDrawer(false)}>
+                            <X size={16} />
+                        </button>
+                    </div>
+
+                    <div className="tn-ai-insights-content">
+                        <div className="tn-insight-item">
+                            <div className="tn-insight-badge">Coverage Gap</div>
+                            <h5>Rate limiting is not covered</h5>
+                            <p><strong>Why it matters:</strong> Repeated password reset requests allow abuse and brute-force email enumeration.</p>
+                            <div className="tn-insight-actions">
+                                <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
+                                    <Plus size={13} />
+                                    <span>Generate Test</span>
+                                </button>
+                                <button className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm" onClick={() => setShowAiInsightsDrawer(false)}>
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="tn-insight-item">
+                            <div className="tn-insight-badge tn-insight-badge--sec">Security Gap</div>
+                            <h5>Token reuse across race conditions</h5>
+                            <p><strong>Why it matters:</strong> Concurrent requests before database write completion could redeem token twice.</p>
+                            <div className="tn-insight-actions">
+                                <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
+                                    <Plus size={13} />
+                                    <span>Generate Test</span>
+                                </button>
+                                <button className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm" onClick={() => setShowAiInsightsDrawer(false)}>
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── 8. Edit Test Case Modal ─── */}
+            {showEditModal && editingTc && (
+                <div className="tn-modal-backdrop">
+                    <div className="tn-modal tn-modal--edit animate-scale-in">
+                        <div className="tn-modal__header">
+                            <div>
+                                <span className="tn-tc-id">{editingTc.id}</span>
+                                <h3>Edit Test Case</h3>
+                            </div>
+                            <button className="tn-btn-icon" onClick={() => setShowEditModal(false)}><X size={18} /></button>
+                        </div>
+
+                        <div className="tn-modal__body">
+                            <div className="tn-form-group">
+                                <label>Title / Scenario</label>
+                                <input
+                                    type="text"
+                                    value={editingTc.title}
+                                    onChange={(e) => setEditingTc({ ...editingTc, title: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="tn-form-row">
+                                <div className="tn-form-group">
+                                    <label>Type</label>
+                                    <select
+                                        value={editingTc.type}
+                                        onChange={(e) => setEditingTc({ ...editingTc, type: e.target.value })}
+                                    >
+                                        <option value="Functional">Functional</option>
+                                        <option value="Negative">Negative</option>
+                                        <option value="Edge Case">Edge Case</option>
+                                        <option value="Security">Security</option>
+                                        <option value="Validation">Validation</option>
+                                    </select>
+                                </div>
+                                <div className="tn-form-group">
+                                    <label>Priority</label>
+                                    <select
+                                        value={editingTc.priority}
+                                        onChange={(e) => setEditingTc({ ...editingTc, priority: e.target.value })}
+                                    >
+                                        <option value="Critical">Critical</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                                <div className="tn-form-group">
+                                    <label>Status</label>
+                                    <select
+                                        value={editingTc.status}
+                                        onChange={(e) => setEditingTc({ ...editingTc, status: e.target.value })}
+                                    >
+                                        <option value="Needs Review">Needs Review</option>
+                                        <option value="Approved">Approved</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="tn-form-group">
+                                <label>Preconditions</label>
+                                <textarea
+                                    rows={2}
+                                    value={editingTc.preconditions}
+                                    onChange={(e) => setEditingTc({ ...editingTc, preconditions: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="tn-form-group">
+                                <label>Expected Result</label>
+                                <textarea
+                                    rows={2}
+                                    value={editingTc.expectedResult}
+                                    onChange={(e) => setEditingTc({ ...editingTc, expectedResult: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="tn-modal__footer">
+                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowEditModal(false)}>
+                                Cancel
+                            </button>
+                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleSaveEdit}>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── 9. Single Test Regenerate Modal ─── */}
+            {showRegenModal && editingTc && (
+                <div className="tn-modal-backdrop">
+                    <div className="tn-modal tn-modal--sm animate-scale-in">
+                        <div className="tn-modal__header">
+                            <div>
+                                <span className="tn-tc-id">{editingTc.id}</span>
+                                <h3>Regenerate & Enhance Test</h3>
+                            </div>
+                            <button className="tn-btn-icon" onClick={() => setShowRegenModal(false)}><X size={18} /></button>
+                        </div>
+
+                        <div className="tn-modal__body">
+                            <p className="tn-modal-desc">Select optimization objective for <strong>{editingTc.id}</strong>:</p>
+                            <div className="tn-radio-group">
+                                {[
+                                    'Improve scenario clarity and add boundary asserts',
+                                    'Increase security attack vectors & payload checks',
+                                    'Add edge cases around token TTL and network failures',
+                                    'Rewrite in strict Gherkin BDD format'
+                                ].map((opt) => (
+                                    <label key={opt} className={`tn-radio-card ${regenGoal === opt ? 'is-selected' : ''}`}>
+                                        <input
+                                            type="radio"
+                                            name="regenGoal"
+                                            checked={regenGoal === opt}
+                                            onChange={() => setRegenGoal(opt)}
+                                        />
+                                        <span>{opt}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="tn-modal__footer">
+                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowRegenModal(false)}>
+                                Cancel
+                            </button>
+                            <button
+                                className="tn-app-btn tn-app-btn--primary"
+                                onClick={handleExecuteSingleRegen}
+                                disabled={isRegeneratingSingle}
+                            >
+                                {isRegeneratingSingle ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── 10. Approve Suite Modal ─── */}
+            {showApproveModal && (
+                <div className="tn-modal-backdrop">
+                    <div className="tn-modal tn-modal--sm animate-scale-in">
+                        <div className="tn-modal__header">
+                            <div className="flex items-center gap-2">
+                                <CheckCheck size={20} className="text-emerald-400" />
+                                <h3>Approve Test Suite</h3>
+                            </div>
+                            <button className="tn-btn-icon" onClick={() => setShowApproveModal(false)}><X size={18} /></button>
+                        </div>
+
+                        <div className="tn-modal__body">
+                            <p className="tn-modal-desc">
+                                Approving this test suite will certify all <strong>{testCases.length} test cases</strong> for production execution and CI/CD integration.
+                            </p>
+                            <div className="tn-approval-summary">
+                                <div><span>Total Tests:</span> <strong>{testCases.length}</strong></div>
+                                <div><span>Requirement:</span> <strong>REQ-001</strong></div>
+                                <div><span>Coverage:</span> <strong className="text-teal-400">94%</strong></div>
+                            </div>
+                        </div>
+
+                        <div className="tn-modal__footer">
+                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowApproveModal(false)}>
+                                Cancel
+                            </button>
+                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleApproveSuite}>
+                                <Check size={14} />
+                                <span>Approve Suite</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── 11. Export Modal ─── */}
+            {showExportModal && (
+                <div className="tn-modal-backdrop">
+                    <div className="tn-modal tn-modal--sm animate-scale-in">
+                        <div className="tn-modal__header">
+                            <div className="flex items-center gap-2">
+                                <Download size={18} className="text-teal-400" />
+                                <h3>Export Test Suite</h3>
+                            </div>
+                            <button className="tn-btn-icon" onClick={() => setShowExportModal(false)}><X size={18} /></button>
+                        </div>
+
+                        <div className="tn-modal__body">
+                            <div className="tn-form-group">
+                                <label>Export Format</label>
+                                <div className="tn-format-pills">
+                                    {['json', 'csv', 'excel', 'pdf'].map(fmt => (
+                                        <button
+                                            key={fmt}
+                                            className={`tn-format-pill ${exportFormat === fmt ? 'is-active' : ''}`}
+                                            onClick={() => setExportFormat(fmt)}
+                                        >
+                                            {fmt.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="tn-modal__footer">
+                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowExportModal(false)}>
+                                Cancel
+                            </button>
+                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleExport}>
+                                <Download size={14} />
+                                <span>Download {exportFormat.toUpperCase()}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ─── 12. Share Modal ─── */}
+            {showShareModal && (
+                <div className="tn-modal-backdrop">
+                    <div className="tn-modal tn-modal--sm animate-scale-in">
+                        <div className="tn-modal__header">
+                            <div className="flex items-center gap-2">
+                                <Share2 size={18} className="text-teal-400" />
+                                <h3>Share Test Suite</h3>
+                            </div>
+                            <button className="tn-btn-icon" onClick={() => setShowShareModal(false)}><X size={18} /></button>
+                        </div>
+
+                        <div className="tn-modal__body">
+                            <div className="tn-form-group">
+                                <label>Access Role</label>
+                                <select value={shareRole} onChange={(e) => setShareRole(e.target.value)}>
+                                    <option value="Viewer">Viewer (Read-only)</option>
+                                    <option value="Reviewer">Reviewer (Approve / Comment)</option>
+                                    <option value="Editor">Editor (Edit / Regenerate)</option>
+                                </select>
+                            </div>
+
+                            <div className="tn-form-group">
+                                <label>Shareable Workspace Link</label>
+                                <div className="tn-copy-input-wrap">
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={`https://app.testnexa.ai/suites/pwd-reset-req-001?role=${shareRole.toLowerCase()}`}
+                                    />
+                                    <button
+                                        className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`https://app.testnexa.ai/suites/pwd-reset-req-001?role=${shareRole.toLowerCase()}`);
+                                            setCopiedLink(true);
+                                            setTimeout(() => setCopiedLink(false), 2000);
+                                        }}
+                                    >
+                                        {copiedLink ? <Check size={13} /> : <Copy size={13} />}
+                                        <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-const Hero = () => {
-    const headerReveal = useScrollReveal({ threshold: 0.1 });
-    const demoReveal = useScrollReveal({ threshold: 0.05 });
+// ─── Main Hero Section ───
+const Hero = ({ onOpenGenerator }) => {
+    const reveal = useScrollReveal({ threshold: 0.1 });
 
-    const scrollToSection = useCallback((id) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const y = el.getBoundingClientRect().top + window.pageYOffset - 96;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-    }, []);
+    const handleAction = useCallback(() => {
+        if (typeof onOpenGenerator === 'function') {
+            onOpenGenerator();
+        } else {
+            const inputSection = document.getElementById('input-section');
+            if (inputSection) {
+                inputSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    }, [onOpenGenerator]);
 
     return (
-        <section className="tn-hero" aria-labelledby="hero-heading">
-            <div className="tn-hero__glow" aria-hidden="true" />
-            <div className="tn-container tn-hero__inner">
-                <div
-                    ref={headerReveal.ref}
-                    className={`tn-hero__text scroll-reveal-fade-up ${headerReveal.isVisible ? 'revealed' : ''}`}
-                >
-                    <div className="tn-eyebrow">Enterprise Test Management Workspace</div>
-                    <h1 id="hero-heading" className="tn-hero__headline">
-                        Turn Requirements Into <span>Production-Ready</span> Test Suites.
+        <header className="tn-hero" aria-labelledby="hero-heading">
+            <div
+                ref={reveal.ref}
+                className={`tn-container tn-hero__layout scroll-reveal-fade-up ${reveal.isVisible ? 'revealed' : ''}`}
+            >
+                {/* ─── Hero Text Content ─── */}
+                <div className="tn-hero__content">
+                    <div className="tn-eyebrow" aria-label="Product Badge">
+                        <span className="tn-eyebrow__dot" />
+                        <span className="tn-eyebrow__text">ENTERPRISE QA INTELLIGENCE ENGINE</span>
+                    </div>
+
+                    <h1 id="hero-heading" className="tn-hero__title">
+                        Turn Requirements Into <span className="tn-gradient-text">Production-Ready</span> Test Suites.
                     </h1>
-                    <p className="tn-hero__subtext">
-                        Transform ambiguous product requirements into structured, high-confidence test suites
-                        with automated edge cases, risk analysis, and full requirement traceability.
+
+                    <p className="tn-hero__lead">
+                        AI-powered test case generation for QA engineers, SDETs and engineering teams.
+                        Eliminate manual test writing, prevent missing edge cases, and catch logic flaws before code is written.
                     </p>
-                    <div className="tn-hero__ctas">
-                        <a href="/login" className="tn-btn tn-btn--primary tn-btn--lg">
-                            Generate Test Suite
+
+                    <div className="tn-hero__actions">
+                        <button
+                            type="button"
+                            className="tn-btn tn-btn--primary tn-btn--lg"
+                            onClick={handleAction}
+                            id="hero-generate-btn"
+                        >
+                            Generate Test Cases
                             <ArrowRight size={18} />
-                        </a>
-                        <button className="tn-btn tn-btn--secondary tn-btn--lg" onClick={() => scrollToSection('engineering-maturity')}>
-                            <Play size={17} />
-                            See How It Works
                         </button>
+                        <a
+                            href="#how-it-works"
+                            className="tn-btn tn-btn--secondary tn-btn--lg"
+                        >
+                            <Play size={16} fill="currentColor" />
+                            How It Works
+                        </a>
                     </div>
                 </div>
 
-                <div
-                    ref={demoReveal.ref}
-                    className={`tn-hero__demo-wrap scroll-reveal-fade-up ${demoReveal.isVisible ? 'revealed' : ''}`}
-                >
+                {/* ─── Hero Product Interface Visual ─── */}
+                <div className="tn-hero__visual">
                     <ProductWorkbench />
                 </div>
             </div>
-        </section>
+        </header>
     );
 };
 
