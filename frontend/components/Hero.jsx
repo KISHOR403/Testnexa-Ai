@@ -1292,27 +1292,28 @@ const Hero = ({ onOpenGenerator }) => {
 
     return (
         <header className="tn-hero" aria-labelledby="hero-heading">
+            <div className="tn-hero__glow" aria-hidden="true" />
             <div
                 ref={reveal.ref}
-                className={`tn-container tn-hero__layout scroll-reveal-fade-up ${reveal.isVisible ? 'revealed' : ''}`}
+                className={`tn-container tn-hero__inner scroll-reveal-fade-up ${reveal.isVisible ? 'revealed' : ''}`}
             >
                 {/* ─── Hero Text Content ─── */}
-                <div className="tn-hero__content">
+                <div className="tn-hero__text">
                     <div className="tn-eyebrow" aria-label="Product Badge">
                         <span className="tn-eyebrow__dot" />
                         <span className="tn-eyebrow__text">ENTERPRISE QA INTELLIGENCE ENGINE</span>
                     </div>
 
-                    <h1 id="hero-heading" className="tn-hero__title">
-                        Turn Requirements Into <span className="tn-gradient-text">Production-Ready</span> Test Suites.
+                    <h1 id="hero-heading" className="tn-hero__headline">
+                        Turn Requirements Into <span>Production-Ready</span> Test Suites.
                     </h1>
 
-                    <p className="tn-hero__lead">
+                    <p className="tn-hero__subtext">
                         AI-powered test case generation for QA engineers, SDETs and engineering teams.
                         Eliminate manual test writing, prevent missing edge cases, and catch logic flaws before code is written.
                     </p>
 
-                    <div className="tn-hero__actions">
+                    <div className="tn-hero__ctas">
                         <button
                             type="button"
                             className="tn-btn tn-btn--primary tn-btn--lg"
@@ -1330,11 +1331,6 @@ const Hero = ({ onOpenGenerator }) => {
                             How It Works
                         </a>
                     </div>
-                </div>
-
-                {/* ─── Hero Product Interface Visual ─── */}
-                <div className="tn-hero__visual">
-                    <ProductWorkbench />
                 </div>
             </div>
         </header>
