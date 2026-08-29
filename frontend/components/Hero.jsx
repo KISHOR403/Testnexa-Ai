@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
     ArrowRight,
-    Play,
     Search,
     Download,
     Share2,
@@ -33,7 +32,8 @@ import {
     X,
     XCircle,
     Info,
-    CheckCircle2
+    CheckCircle2,
+    Loader2
 } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
@@ -1276,6 +1276,148 @@ export const ProductWorkbench = ({ compact = false }) => {
 };
 
 // ─── Main Hero Section ───
+const HERO_INTELLIGENCE_ITEMS = [
+    'Functional flow',
+    'Validation rules',
+    'Negative scenarios',
+    'Security requirements',
+    'Edge cases'
+];
+
+const HERO_ANALYSIS_ITEMS = [
+    'Functional scenarios',
+    'Negative scenarios',
+    'Security scenarios',
+    'Edge cases',
+    'Boundary conditions'
+];
+
+const HERO_TEST_ROWS = [
+    { id: 'TC-001', title: 'Reset password with valid registered email', type: 'Functional', priority: 'High' },
+    { id: 'TC-002', title: 'Reset password with invalid email format', type: 'Negative', priority: 'High' },
+    { id: 'TC-003', title: 'Submit empty email payload', type: 'Validation', priority: 'Medium' },
+    { id: 'TC-004', title: 'Use expired reset link beyond TTL', type: 'Edge Case', priority: 'High' },
+    { id: 'TC-005', title: 'Reuse previously consumed reset token', type: 'Security', priority: 'High' }
+];
+
+const HeroProductVisualization = () => (
+    <div className="tn-hero-product" aria-label="Requirement to generated test suite workflow">
+        <div className="tn-hero-product__halo" aria-hidden="true" />
+
+        <div className="tn-hero-metric tn-hero-metric--coverage">
+            <strong>94%</strong>
+            <span>Requirement Coverage</span>
+        </div>
+        <div className="tn-hero-metric tn-hero-metric--risk">
+            <strong>6</strong>
+            <span>High Risk Scenarios</span>
+        </div>
+        <div className="tn-hero-metric tn-hero-metric--tests">
+            <strong>18</strong>
+            <span>Generated Tests</span>
+        </div>
+
+        <div className="tn-hero-workspace">
+            <div className="tn-hero-workspace__topbar">
+                <div className="tn-hero-workspace__brand">
+                    <span className="tn-hero-workspace__logo">T</span>
+                    <span>Testnexa AI</span>
+                </div>
+                <div className="tn-hero-workspace__path">
+                    <span>Requirement</span>
+                    <ChevronRight size={14} />
+                    <span>Test Suite</span>
+                </div>
+            </div>
+
+            <div className="tn-hero-flow">
+                <section className="tn-hero-stage tn-hero-stage--requirement">
+                    <div className="tn-hero-stage__label">Requirement</div>
+                    <div className="tn-hero-requirement-card">
+                        <span>Password Reset</span>
+                        <p>"Users can reset their password using their registered email address."</p>
+                    </div>
+
+                    <div className="tn-hero-intelligence">
+                        <div className="tn-hero-intelligence__header">
+                            <span>Requirement Intelligence</span>
+                            <span className="tn-hero-processing">
+                                <Loader2 size={12} />
+                                Processing
+                            </span>
+                        </div>
+                        <div className="tn-hero-intelligence__list">
+                            {HERO_INTELLIGENCE_ITEMS.map((item, index) => (
+                                <div className="tn-hero-check-row" style={{ '--tn-row-delay': `${index * 0.16}s` }} key={item}>
+                                    <Check size={13} />
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                <div className="tn-hero-connector tn-hero-connector--one" aria-hidden="true">
+                    <span />
+                </div>
+
+                <section className="tn-hero-stage tn-hero-stage--analysis">
+                    <div className="tn-hero-stage__label">AI Analysis</div>
+                    <div className="tn-hero-analysis-panel">
+                        <div className="tn-hero-analysis-panel__status">
+                            <Sparkles size={14} />
+                            <span>Understanding requirement...</span>
+                        </div>
+                        <div className="tn-hero-analysis-list">
+                            {HERO_ANALYSIS_ITEMS.map((item, index) => (
+                                <div className="tn-hero-analysis-row" style={{ '--tn-row-delay': `${0.35 + index * 0.14}s` }} key={item}>
+                                    <span>{item}</span>
+                                    <CheckCircle2 size={14} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                <div className="tn-hero-connector tn-hero-connector--two" aria-hidden="true">
+                    <span />
+                </div>
+
+                <section className="tn-hero-stage tn-hero-stage--suite">
+                    <div className="tn-hero-stage__label">Generated Test Suite</div>
+                    <div className="tn-hero-suite-panel">
+                        <div className="tn-hero-suite-header">
+                            <div>
+                                <span>Password Reset Suite</span>
+                                <strong>Execution-ready coverage map</strong>
+                            </div>
+                            <span className="tn-hero-suite-ready">Ready</span>
+                        </div>
+
+                        <div className="tn-hero-suite-stats">
+                            <div><strong>18</strong><span>Test Cases</span></div>
+                            <div><strong>94%</strong><span>Coverage</span></div>
+                            <div><strong>6</strong><span>High Priority</span></div>
+                            <div><strong>4</strong><span>Edge Cases</span></div>
+                        </div>
+
+                        <div className="tn-hero-test-table">
+                            {HERO_TEST_ROWS.map((test, index) => (
+                                <div className="tn-hero-test-row" style={{ '--tn-row-delay': `${0.8 + index * 0.13}s` }} key={test.id}>
+                                    <span className="tn-hero-test-row__id">{test.id}</span>
+                                    <span className="tn-hero-test-row__title">{test.title}</span>
+                                    <span className="tn-hero-chip">{test.type}</span>
+                                    <span className={`tn-hero-priority tn-hero-priority--${test.priority.toLowerCase()}`}>{test.priority}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+);
+
 const Hero = ({ onOpenGenerator }) => {
     const reveal = useScrollReveal({ threshold: 0.1 });
 
@@ -1301,7 +1443,7 @@ const Hero = ({ onOpenGenerator }) => {
                 <div className="tn-hero__text">
                     <div className="tn-eyebrow" aria-label="Product Badge">
                         <span className="tn-eyebrow__dot" />
-                        <span className="tn-eyebrow__text">ENTERPRISE QA INTELLIGENCE ENGINE</span>
+                        <span className="tn-eyebrow__text">AI-POWERED QA ENGINEERING</span>
                     </div>
 
                     <h1 id="hero-heading" className="tn-hero__headline">
@@ -1309,8 +1451,8 @@ const Hero = ({ onOpenGenerator }) => {
                     </h1>
 
                     <p className="tn-hero__subtext">
-                        AI-powered test case generation for QA engineers, SDETs and engineering teams.
-                        Eliminate manual test writing, prevent missing edge cases, and catch logic flaws before code is written.
+                        Transform ambiguous requirements into complete, prioritized and execution-ready test suites with
+                        AI-powered requirement intelligence.
                     </p>
 
                     <div className="tn-hero__ctas">
@@ -1320,18 +1462,25 @@ const Hero = ({ onOpenGenerator }) => {
                             onClick={handleAction}
                             id="hero-generate-btn"
                         >
-                            Generate Test Cases
+                            Generate Test Suite
                             <ArrowRight size={18} />
                         </button>
                         <a
-                            href="#how-it-works"
+                            href="#engineering-maturity"
                             className="tn-btn tn-btn--secondary tn-btn--lg"
                         >
-                            <Play size={16} fill="currentColor" />
-                            How It Works
+                            Explore How It Works
                         </a>
                     </div>
+
+                    <div className="tn-hero__trust" aria-label="Product assurances">
+                        <span>No setup required</span>
+                        <span>AI-powered</span>
+                        <span>Export-ready</span>
+                    </div>
                 </div>
+
+                <HeroProductVisualization />
             </div>
         </header>
     );
