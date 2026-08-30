@@ -126,9 +126,6 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
         <>
             <nav className={`floating-navbar ${scrolled ? 'floating-navbar-scrolled' : ''}`} ref={navRef}>
                 <div className="navbar-left-group">
-                    <button className="sidebar-toggle-btn" onClick={onToggleSidebar}>
-                        <Menu size={20} />
-                    </button>
                     {/* Logo */}
                     <NavLink to="/" className="floating-nav-logo" onClick={(e) => {
                         if (location.pathname === '/') {
@@ -301,9 +298,14 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                             )}
                         </div>
                     ) : (
-                        <NavLink to="/login" className="floating-nav-cta">
+                        <a
+                            href="/app/workspace"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="floating-nav-cta"
+                        >
                             Get Started
-                        </NavLink>
+                        </a>
                     )}
                 </div>
             </nav>

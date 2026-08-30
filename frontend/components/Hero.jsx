@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight,
     Search,
@@ -1420,17 +1421,15 @@ const HeroProductVisualization = () => (
 
 const Hero = ({ onOpenGenerator }) => {
     const reveal = useScrollReveal({ threshold: 0.1 });
+    const navigate = useNavigate();
 
     const handleAction = useCallback(() => {
         if (typeof onOpenGenerator === 'function') {
             onOpenGenerator();
         } else {
-            const inputSection = document.getElementById('input-section');
-            if (inputSection) {
-                inputSection.scrollIntoView({ behavior: 'smooth' });
-            }
+            navigate('/app/workspace');
         }
-    }, [onOpenGenerator]);
+    }, [onOpenGenerator, navigate]);
 
     return (
         <header className="tn-hero" aria-labelledby="hero-heading">
@@ -1456,15 +1455,16 @@ const Hero = ({ onOpenGenerator }) => {
                     </p>
 
                     <div className="tn-hero__ctas">
-                        <button
-                            type="button"
+                        <a
+                            href="/app/workspace"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="tn-btn tn-btn--primary tn-btn--lg"
-                            onClick={handleAction}
                             id="hero-generate-btn"
                         >
                             Generate Test Suite
                             <ArrowRight size={18} />
-                        </button>
+                        </a>
                         <a
                             href="#engineering-maturity"
                             className="tn-btn tn-btn--secondary tn-btn--lg"

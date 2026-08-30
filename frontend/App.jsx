@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import AnimatedBackground from './components/AnimatedBackground';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Layouts
+import MarketingLayout from './layouts/MarketingLayout';
+import AppLayout from './layouts/AppLayout';
+
+// Marketing Pages
 import GeneratorPage from './pages/GeneratorPage';
-import HistoryPage from './pages/HistoryPage';
 import HelpPage from './pages/HelpPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
@@ -15,55 +18,57 @@ import ContactPage from './pages/ContactPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import HistorySidebar from './components/HistorySidebar';
-import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
-import { useAuth } from './context/AuthContext';
+
+// Application Pages (Inside App Shell with Sidebar)
+import WorkspacePage from './pages/app/WorkspacePage';
+import TestSuitesListPage from './pages/app/TestSuitesListPage';
+import TestSuiteDetailPage from './pages/app/TestSuiteDetailPage';
+import CoveragePage from './pages/app/CoveragePage';
+import RisksPage from './pages/app/RisksPage';
+import TraceabilityPage from './pages/app/TraceabilityPage';
+import AppSettingsPage from './pages/app/AppSettingsPage';
 
 function App() {
-  const { isAuthenticated } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
-
-  const handleNewAnalysis = () => {
-    setResetKey(prev => prev + 1);
-  };
-
   return (
     <Router>
-      <ScrollToTop />
-      <div className={`app-container sidebar-has-rail ${isSidebarOpen ? 'sidebar-is-open' : ''}`}>
-        <AnimatedBackground />
-        <HistorySidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          onOpen={() => setIsSidebarOpen(true)}
-          onNewAnalysis={handleNewAnalysis}
-        />
-        <Navbar
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          onNewAnalysis={handleNewAnalysis}
-        />
-        <main>
-          <Routes>
-            <Route path="/" element={<GeneratorPage key={resetKey} />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/help" element={<HelpPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/api-reference" element={<ApiReferencePage />} />
-            <Route path="/best-practices" element={<BestPracticesPage />} />
-            <Route path="/about" element={<AboutUsPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <Routes>
+        {/* ─── PUBLIC MARKETING WEBSITE (No Application Sidebar) ─── */}
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<GeneratorPage />} />
+          <Route path="/features" element={<GeneratorPage />} />
+          <Route path="/solutions" element={<GeneratorPage />} />
+          <Route path="/how-it-works" element={<GeneratorPage />} />
+          <Route path="/audience" element={<GeneratorPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/api-reference" element={<ApiReferencePage />} />
+          <Route path="/best-practices" element={<BestPracticesPage />} />
+          <Route path="/about" element={<AboutUsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+        </Route>
+
+        {/* ─── ENTERPRISE APPLICATION SHELL (Dedicated Sidebar + Header) ─── */}
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<Navigate to="/app/workspace" replace />} />
+          <Route path="workspace" element={<WorkspacePage />} />
+          <Route path="test-suites" element={<TestSuitesListPage />} />
+          <Route path="test-suites/:id" element={<TestSuiteDetailPage />} />
+          <Route path="coverage" element={<CoveragePage />} />
+          <Route path="risks" element={<RisksPage />} />
+          <Route path="traceability" element={<TraceabilityPage />} />
+          <Route path="settings" element={<AppSettingsPage />} />
+        </Route>
+
+        {/* ─── DIRECT REDIRECTS FOR CONVENIENCE ─── */}
+        <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
+        <Route path="/history" element={<Navigate to="/app/test-suites" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 }

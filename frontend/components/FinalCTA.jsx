@@ -181,21 +181,16 @@ const FinalCTA = ({ onOpenGenerator }) => {
                     </p>
                     
                     <div className="tn-cta__actions">
-                        {typeof onOpenGenerator === 'function' ? (
-                            <button
-                                type="button"
-                                className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary"
-                                onClick={onOpenGenerator}
-                            >
-                                <span>Generate Test Suite</span>
-                                <ArrowRight size={18} className="tn-cta__btn-arrow" />
-                            </button>
-                        ) : (
-                            <Link to="/login" className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary">
-                                <span>Try Testnexa AI</span>
-                                <ArrowRight size={18} className="tn-cta__btn-arrow" />
-                            </Link>
-                        )}
+                        <a
+                            href="/app/workspace"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary"
+                            id="final-cta-generate-btn"
+                        >
+                            <span>Generate Test Suite</span>
+                            <ArrowRight size={18} className="tn-cta__btn-arrow" />
+                        </a>
                         <a href="#features" className="tn-btn tn-btn--secondary tn-btn--lg tn-cta__btn-secondary">
                             Explore Features
                         </a>
