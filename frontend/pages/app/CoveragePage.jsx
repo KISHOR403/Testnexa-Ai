@@ -31,22 +31,22 @@ const CoveragePage = () => {
             </div>
 
             {/* Overview Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div style={{ background: '#090d16', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>OVERALL COVERAGE</span>
-                    <h2 style={{ fontSize: '2rem', color: '#00f2de', margin: '0.25rem 0 0', fontWeight: '700' }}>94.2%</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '1rem' }}>
+                <div style={{ background: '#090d16', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>OVERALL COVERAGE</span>
+                    <h2 style={{ fontSize: '1.75rem', color: '#00f2de', margin: '0.25rem 0 0', fontWeight: '700' }}>94.2%</h2>
                 </div>
-                <div style={{ background: '#090d16', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>TOTAL TEST SCENARIOS</span>
-                    <h2 style={{ fontSize: '2rem', color: '#ffffff', margin: '0.25rem 0 0', fontWeight: '700' }}>22</h2>
+                <div style={{ background: '#090d16', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>TOTAL TEST SCENARIOS</span>
+                    <h2 style={{ fontSize: '1.75rem', color: '#ffffff', margin: '0.25rem 0 0', fontWeight: '700' }}>22</h2>
                 </div>
-                <div style={{ background: '#090d16', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>COVERED REQUIREMENTS</span>
-                    <h2 style={{ fontSize: '2rem', color: '#10b981', margin: '0.25rem 0 0', fontWeight: '700' }}>5 / 5</h2>
+                <div style={{ background: '#090d16', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>COVERED REQUIREMENTS</span>
+                    <h2 style={{ fontSize: '1.75rem', color: '#10b981', margin: '0.25rem 0 0', fontWeight: '700' }}>5 / 5</h2>
                 </div>
-                <div style={{ background: '#090d16', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>UNTESTED GAPS</span>
-                    <h2 style={{ fontSize: '2rem', color: '#f59e0b', margin: '0.25rem 0 0', fontWeight: '700' }}>0</h2>
+                <div style={{ background: '#090d16', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: '600' }}>UNTESTED GAPS</span>
+                    <h2 style={{ fontSize: '1.75rem', color: '#f59e0b', margin: '0.25rem 0 0', fontWeight: '700' }}>0</h2>
                 </div>
             </div>
 
@@ -63,30 +63,32 @@ const CoveragePage = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.75rem',
                                 padding: '1rem 1.25rem',
                                 borderBottom: '1px solid rgba(255,255,255,0.04)'
                             }}
                         >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <span style={{ color: '#00f2de', fontWeight: '700', fontSize: '0.8rem', minWidth: '70px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: '220px', flex: '1' }}>
+                                <span style={{ color: '#00f2de', fontWeight: '700', fontSize: '0.8rem', minWidth: '65px' }}>
                                     {item.req}
                                 </span>
                                 <div>
-                                    <div style={{ color: '#ffffff', fontWeight: '500', fontSize: '0.9rem' }}>{item.label}</div>
-                                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{item.type}</span>
+                                    <div style={{ color: '#ffffff', fontWeight: '500', fontSize: '0.88rem' }}>{item.label}</div>
+                                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{item.type}</span>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                                <div style={{ width: '120px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
+                                <div style={{ width: '100px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '0.25rem' }}>
                                         <span>{item.coverage}%</span>
                                     </div>
                                     <div style={{ height: '5px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
                                         <div style={{ height: '100%', width: `${item.coverage}%`, background: '#00f2de' }} />
                                     </div>
                                 </div>
-                                <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', minWidth: '60px' }}>{item.tests} tests</span>
+                                <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', minWidth: '55px' }}>{item.tests} tests</span>
                             </div>
                         </div>
                     ))}

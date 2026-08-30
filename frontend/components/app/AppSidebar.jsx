@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     Sparkles, Layers, ShieldCheck, AlertTriangle, GitBranch,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
-    FileText, LogOut, ArrowLeft, Home, User, CheckCircle2
+    FileText, LogOut, ArrowLeft, Home, User, CheckCircle2, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -47,15 +47,26 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     )}
                 </NavLink>
 
-                <button
-                    type="button"
-                    className="app-sidebar__collapse-btn"
-                    onClick={onToggleCollapse}
-                    title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                    aria-label="Toggle Sidebar Collapse"
-                >
-                    {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                        type="button"
+                        className="app-sidebar__collapse-btn"
+                        onClick={onToggleCollapse}
+                        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-label="Toggle Sidebar Collapse"
+                    >
+                        {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+                    </button>
+                    <button
+                        type="button"
+                        className="app-sidebar__mobile-close-btn"
+                        onClick={onCloseMobile}
+                        title="Close sidebar"
+                        aria-label="Close mobile sidebar"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
             </div>
 
             {/* + New Test Suite CTA */}

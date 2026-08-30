@@ -808,33 +808,139 @@
 @media (max-width: 768px) {
     .tn-workspace-overlay {
         padding: 0;
+        align-items: stretch;
     }
 
     .tn-workspace-modal {
+        height: 100dvh;
         height: 100vh;
-        max-height: 100vh;
+        max-height: 100dvh;
+        min-height: 100dvh;
         border-radius: 0;
         border: none;
+        box-shadow: none;
+    }
+
+    .tn-workspace-header {
+        padding: 0.75rem 1rem;
+        padding-top: max(0.75rem, env(safe-area-inset-top));
     }
 
     .tn-workspace-body {
-        padding: 1.25rem 1rem;
+        padding: 1rem 1rem 1.25rem;
+        gap: 1rem;
+    }
+
+    .tn-workspace-textarea {
+        min-height: 150px;
+        font-size: 16px !important;
     }
 
     .tn-workspace-footer {
         flex-direction: column-reverse;
         align-items: stretch;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        background: #090d16;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tn-workspace-pipeline-summary {
+        font-size: 0.72rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .tn-workspace-pipeline-steps {
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: 0.72rem;
     }
 
     .tn-workspace-generate-btn {
         width: 100%;
         justify-content: center;
+        min-height: 48px;
+        font-size: 0.95rem;
     }
 
     .tn-workspace-examples-menu {
-        right: 1rem;
-        left: 1rem;
+        right: 0.75rem;
+        left: 0.75rem;
         width: auto;
+        max-width: none;
+    }
+
+    .tn-workspace-stepper-card {
+        padding: 1.15rem 1rem;
+    }
+
+    .tn-workspace-step-row {
+        gap: 0.65rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .tn-workspace-header__left {
+        gap: 0.5rem;
+    }
+
+    .tn-workspace-header__sep {
+        display: none;
+    }
+
+    .tn-workspace-header__badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.45rem;
+    }
+
+    .tn-workspace-prompt-title {
+        font-size: 1rem;
+    }
+
+    .tn-workspace-prompt-subtitle {
+        font-size: 0.75rem;
+    }
+
+    .tn-workspace-segmented {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .tn-workspace-segment-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.45rem 0.5rem;
+        font-size: 0.75rem;
+        min-width: 60px;
+    }
+
+    .tn-workspace-depth-pill {
+        flex: 1;
+    }
+
+    .tn-workspace-depth-pill .tn-workspace-segment-btn {
+        width: 100%;
+    }
+
+    .tn-workspace-tags-list {
+        gap: 0.3rem;
+    }
+
+    .tn-workspace-tag {
+        font-size: 0.68rem;
+        padding: 0.25rem 0.45rem;
+    }
+
+    .tn-workspace-processing-title {
+        font-size: 1.25rem;
+    }
+
+    .tn-workspace-processing-sub {
+        font-size: 0.8rem;
     }
 }
 
@@ -961,11 +1067,24 @@
     .tn-suite-summary-banner {
         flex-direction: column;
         align-items: flex-start;
+        padding: 1rem;
     }
     .tn-suite-summary-stats {
         width: 100%;
         display: grid;
         grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    .tn-suite-stat-pill {
+        min-width: 0;
+        width: 100%;
+    }
+    .tn-suite-summary-actions {
+        width: 100%;
+    }
+    .tn-btn-new-suite {
+        width: 100%;
+        justify-content: center;
     }
 }
 

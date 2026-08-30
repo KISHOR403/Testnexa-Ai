@@ -63,11 +63,12 @@ const AppSettingsPage = () => {
                     />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem' }}>
                     <button
                         type="button"
                         onClick={handleSave}
                         className="tn-btn-new-suite"
+                        style={{ minHeight: '44px', width: 'auto' }}
                     >
                         {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
                         <span>{saved ? 'Saved!' : 'Save Preferences'}</span>

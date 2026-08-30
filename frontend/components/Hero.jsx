@@ -1446,7 +1446,7 @@ const Hero = ({ onOpenGenerator }) => {
                     </div>
 
                     <h1 id="hero-heading" className="tn-hero__headline">
-                        Turn Requirements Into <span>Production-Ready</span> Test Suites.
+                        Turn Requirements Into <span className="tn-hero__headline-accent">Production-Ready</span> Test Suites.
                     </h1>
 
                     <p className="tn-hero__subtext">

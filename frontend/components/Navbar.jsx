@@ -4,23 +4,24 @@ import {
     HelpCircle, LogIn, LogOut, Sparkles,
     ChevronDown, ChevronRight, Settings, MessageSquare,
     FileText, Download, Keyboard, Zap,
-    ArrowRight, Menu
+    ArrowRight, Menu, X, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ProfileModal from './ProfileModal';
 import UpgradeModal from './UpgradeModal';
 
 const NAV_SECTIONS = [
-    { id: 'features', label: 'Product' },
+    { id: 'features', label: 'Features' },
     { id: 'problem-vs-solution', label: 'Solutions' },
     { id: 'engineering-maturity', label: 'How It Works' },
-    { id: 'why-this-matters', label: 'Resources' },
-    { id: 'who-is-this-for', label: 'Company' },
+    { id: 'who-is-this-for', label: 'Audience' },
+    { id: 'why-this-matters', label: 'Why Us' },
 ];
 
 const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
     const { user, isAuthenticated, logout } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [activeSubMenu, setActiveSubMenu] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
@@ -122,6 +123,11 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, [isDropdownOpen]);
 
+    // Close mobile nav on route change
+    useEffect(() => {
+        setIsMobileNavOpen(false);
+    }, [location.pathname]);
+
     return (
         <>
             <nav className={`floating-navbar ${scrolled ? 'floating-navbar-scrolled' : ''}`} ref={navRef}>
@@ -143,7 +149,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                     </NavLink>
                 </div>
 
-                {/* Center Nav Links */}
+                {/* Center Nav Links - Desktop */}
                 <div className="floating-nav-links">
                     {NAV_SECTIONS.map((section, index) => (
                         <button
@@ -224,6 +230,13 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                                 <ArrowRight size={14} className="action-arrow" />
                                             </button>
 
+                                            <NavLink to="/app/workspace" className="dropdown-action" onClick={() => setIsDropdownOpen(false)} style={{ textDecoration: 'none' }}>
+                                                <div className="action-icon-wrap">
+                                                    <LayoutDashboard size={14} />
+                                                </div>
+                                                <span>AI Workspace</span>
+                                            </NavLink>
+
                                             <button className="dropdown-action" onClick={(e) => { e.stopPropagation(); setIsProfileOpen(true); setIsDropdownOpen(false); }}>
                                                 <div className="action-icon-wrap">
                                                     <Zap size={14} />
@@ -298,17 +311,148 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                             )}
                         </div>
                     ) : (
-                        <a
-                            href="/app/workspace"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <NavLink
+                            to="/app/workspace"
                             className="floating-nav-cta"
                         >
                             Get Started
-                        </a>
+                        </NavLink>
                     )}
+
+                    {/* Mobile Hamburger Toggle */}
+                    <button
+                        type="button"
+                        className="floating-nav-mobile-toggle"
+                        onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+                        aria-label="Toggle mobile menu"
+                        aria-expanded={isMobileNavOpen}
+                    >
+                        {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+                    </button>
                 </div>
             </nav>
+
+            {/* Mobile Navigation Drawer Overlay */}
+            {isMobileNavOpen && (
+                <div
+                    className="floating-mobile-menu-overlay"
+                    onClick={() => setIsMobileNavOpen(false)}
+                >
+                    <div
+                        className="floating-mobile-menu-card"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="floating-mobile-menu-header">
+                            <div className="floating-logo-text">
+                                <span className="floating-logo-brand">Navigation</span>
+                            </div>
+                            <button
+                                type="button"
+                                className="floating-mobile-close-btn"
+                                onClick={() => setIsMobileNavOpen(false)}
+                                aria-label="Close navigation"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="floating-mobile-nav-list">
+                            {NAV_SECTIONS.map((section, index) => (
+                                <button
+                                    key={`mob-${section.id}-${index}`}
+                                    className={`floating-mobile-nav-item ${activeSection === section.id ? 'is-active' : ''}`}
+                                    onClick={() => {
+                                        scrollToSection(section.id);
+                                        setIsMobileNavOpen(false);
+                                    }}
+                                >
+                                    <span>{section.label}</span>
+                                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="floating-mobile-menu-divider" />
+
+                        <div className="floating-mobile-actions">
+                            <NavLink
+                                to="/app/workspace"
+                                className="floating-mobile-primary-btn"
+                                onClick={() => setIsMobileNavOpen(false)}
+                            >
+                                <Sparkles size={16} />
+                                <span>Open AI Workspace</span>
+                            </NavLink>
+
+                            {!isAuthenticated ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                    <NavLink
+                                        to="/login"
+                                        className="floating-mobile-secondary-btn"
+                                        onClick={() => setIsMobileNavOpen(false)}
+                                    >
+                                        <LogIn size={15} />
+                                        <span>Sign In</span>
+                                    </NavLink>
+                                    <NavLink
+                                        to="/signup"
+                                        className="floating-mobile-secondary-btn"
+                                        onClick={() => setIsMobileNavOpen(false)}
+                                    >
+                                        <span>Sign Up</span>
+                                    </NavLink>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                                    <NavLink
+                                        to="/app/test-suites"
+                                        className="floating-mobile-secondary-btn"
+                                        onClick={() => setIsMobileNavOpen(false)}
+                                    >
+                                        <span>All Test Suites</span>
+                                    </NavLink>
+                                    <button
+                                        type="button"
+                                        className="floating-mobile-secondary-btn"
+                                        onClick={() => {
+                                            setIsMobileNavOpen(false);
+                                            logout();
+                                        }}
+                                        style={{ color: '#ef4444' }}
+                                    >
+                                        <LogOut size={15} />
+                                        <span>Log Out</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.25rem', marginTop: '0.85rem' }}>
+                                <NavLink
+                                    to="/help"
+                                    className="floating-mobile-link"
+                                    onClick={() => setIsMobileNavOpen(false)}
+                                >
+                                    Help
+                                </NavLink>
+                                <NavLink
+                                    to="/terms"
+                                    className="floating-mobile-link"
+                                    onClick={() => setIsMobileNavOpen(false)}
+                                >
+                                    Terms
+                                </NavLink>
+                                <NavLink
+                                    to="/privacy"
+                                    className="floating-mobile-link"
+                                    onClick={() => setIsMobileNavOpen(false)}
+                                >
+                                    Privacy
+                                </NavLink>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ProfileModal
                 isOpen={isProfileOpen}

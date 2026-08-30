@@ -27,7 +27,7 @@ const RisksPage = () => {
                 </NavLink>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
                 {RISK_ITEMS.map((item, idx) => (
                     <div
                         key={idx}

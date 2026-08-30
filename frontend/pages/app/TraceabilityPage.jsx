@@ -54,7 +54,7 @@ const TraceabilityPage = () => {
                             <span style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: '600' }}>{req.status}</span>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1.5rem', borderLeft: '2px solid rgba(0,242,222,0.2)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1rem', borderLeft: '2px solid rgba(0,242,222,0.2)' }}>
                             {req.tests.map((tc) => (
                                 <div
                                     key={tc.id}
@@ -62,17 +62,19 @@ const TraceabilityPage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
+                                        flexWrap: 'wrap',
+                                        gap: '0.5rem',
                                         background: 'rgba(255,255,255,0.02)',
                                         padding: '0.65rem 0.85rem',
                                         borderRadius: '8px',
                                         border: '1px solid rgba(255,255,255,0.04)'
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <span style={{ color: '#ffffff', fontWeight: '600', fontSize: '0.8rem' }}>{tc.id}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem' }}>{tc.title}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: '1', minWidth: '180px' }}>
+                                        <span style={{ color: '#00f2de', fontWeight: '600', fontSize: '0.78rem' }}>{tc.id}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem' }}>{tc.title}</span>
                                     </div>
-                                    <span style={{ fontSize: '0.75rem', color: '#00f2de', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(0,242,222,0.08)' }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#00f2de', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(0,242,222,0.08)', flexShrink: 0 }}>
                                         {tc.type}
                                     </span>
                                 </div>

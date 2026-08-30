@@ -444,6 +444,130 @@
 @media (max-width: 900px) {
     .app-workspace-controls-grid {
         grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-workspace-container {
         gap: 1rem;
+    }
+
+    .app-workspace-hero {
+        align-items: flex-start;
+    }
+
+    .app-workspace-title {
+        font-size: 1.35rem;
+    }
+
+    .app-workspace-subtitle {
+        font-size: 0.82rem;
+    }
+
+    .app-workspace-card {
+        padding: 1.25rem 1rem;
+        border-radius: 12px;
+        gap: 1.15rem;
+    }
+
+    .app-workspace-textarea-wrap {
+        padding: 1rem;
+    }
+
+    .app-workspace-textarea {
+        min-height: 160px;
+        font-size: 16px !important;
+    }
+
+    .app-workspace-controls-grid {
+        padding: 1rem;
+    }
+
+    .app-workspace-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .app-workspace-pipeline {
+        justify-content: center;
+        font-size: 0.72rem;
+        flex-wrap: wrap;
+    }
+
+    .app-workspace-pipeline-steps {
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: 0.72rem;
+    }
+
+    .app-workspace-generate-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 48px;
+        font-size: 0.95rem;
+    }
+
+    .app-workspace-processing {
+        padding: 2.25rem 1rem;
+        gap: 1.5rem;
+    }
+
+    .app-workspace-processing-title {
+        font-size: 1.35rem;
+    }
+
+    .app-workspace-stepper {
+        padding: 1.25rem 1rem;
+        gap: 0.85rem;
+    }
+
+    .app-workspace-step {
+        gap: 0.65rem;
+        font-size: 0.82rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-workspace-title {
+        font-size: 1.2rem;
+    }
+
+    .app-workspace-segmented {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .app-workspace-seg-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.45rem 0.5rem;
+        font-size: 0.75rem;
+        min-width: 60px;
+    }
+
+    .app-workspace-depth-pill {
+        flex: 1;
+    }
+
+    .app-workspace-depth-pill .app-workspace-seg-btn {
+        width: 100%;
+    }
+
+    .app-workspace-tags-list {
+        gap: 0.3rem;
+    }
+
+    .app-workspace-tag {
+        font-size: 0.68rem;
+        padding: 0.25rem 0.45rem;
+    }
+
+    .app-workspace-quality-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
     }
 }
