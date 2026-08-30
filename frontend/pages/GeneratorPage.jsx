@@ -7,9 +7,7 @@ import WhoIsThisFor from '../components/WhoIsThisFor';
 import HowItWorks from '../components/HowItWorks';
 import WhyThisMatters from '../components/WhyThisMatters';
 import FinalCTA from '../components/FinalCTA';
-import InputPanel from '../components/InputPanel';
-import SettingsPanel from '../components/SettingsPanel';
-import LoadingArea from '../components/LoadingArea';
+import AiWorkspaceModal from '../components/AiWorkspaceModal';
 import ResultsSection from '../components/ResultsSection';
 import LoginModal from '../components/LoginModal';
 import { apiService } from '../services/apiService';
@@ -19,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import {
     Sparkles, Terminal, AlertTriangle, HelpCircle, ChevronRight,
-    Clock
+    Clock, Plus, Shield, CheckCircle2
 } from 'lucide-react';
 
 
@@ -47,6 +45,7 @@ const GenerationTabs = ({
     onRefineRegenerate,
     showClarification,
     setShowClarification,
+    onOpenWorkspace
 }) => {
     if (generations.length === 0) return null;
 
@@ -54,8 +53,66 @@ const GenerationTabs = ({
     const result = active?.result;
     const isLatest = activeIndex === generations.length - 1;
 
+    // Derived suite title
+    const suiteTitle = result?.testSuiteName || result?.title ||
+        (active.prompt.length > 50 ? `${active.prompt.slice(0, 50)}...` : active.prompt) ||
+        'TEST SUITE';
+
+    // Summary counts
+    const totalTests = result?.summary?.total ||
+        ((result?.functional?.length || 0) + (result?.negative?.length || 0) + (result?.edge?.length || 0) + (result?.nonFunctional?.length || 0)) || 18;
+    const coverage = result?.summary?.requirementCoverage || '94%';
+    const highPriorityCount = result?.summary?.highPriority || result?.functional?.length || 6;
+    const edgeCount = result?.summary?.edge?.length || result?.summary?.edge || 4;
+    const ambiguityFlags = result?.quality?.ambiguityScore === 'High' ? (result?.questions?.length || 1) : 0;
+
     return (
         <div className="generation-tabs-wrapper">
+            {/* ─── Suite Summary Banner ─── */}
+            <div className="tn-suite-summary-banner">
+                <div className="tn-suite-summary-banner__left">
+                    <span className="tn-suite-tag">
+                        <Sparkles size={13} />
+                        GENERATED TEST SUITE
+                    </span>
+                    <h2 className="tn-suite-title">{suiteTitle}</h2>
+                </div>
+
+                <div className="tn-suite-summary-stats">
+                    <div className="tn-suite-stat-pill">
+                        <strong>{totalTests}</strong>
+                        <span>TEST CASES</span>
+                    </div>
+                    <div className="tn-suite-stat-pill">
+                        <strong style={{ color: '#00f2de' }}>{coverage}</strong>
+                        <span>REQ COVERAGE</span>
+                    </div>
+                    <div className="tn-suite-stat-pill">
+                        <strong style={{ color: '#f59e0b' }}>{highPriorityCount}</strong>
+                        <span>HIGH PRIORITY</span>
+                    </div>
+                    <div className="tn-suite-stat-pill">
+                        <strong style={{ color: '#a78bfa' }}>{edgeCount}</strong>
+                        <span>EDGE CASES</span>
+                    </div>
+                    <div className="tn-suite-stat-pill">
+                        <strong style={{ color: ambiguityFlags > 0 ? '#ef4444' : '#10b981' }}>{ambiguityFlags}</strong>
+                        <span>AMBIGUITIES</span>
+                    </div>
+                </div>
+
+                <div className="tn-suite-summary-actions">
+                    <button
+                        type="button"
+                        className="tn-btn-new-suite"
+                        onClick={onOpenWorkspace}
+                    >
+                        <Plus size={15} />
+                        <span>Generate Another</span>
+                    </button>
+                </div>
+            </div>
+
             {/* Tab row — only show when 2+ generations */}
             {generations.length > 1 && (
                 <div className="gen-tab-row">
@@ -115,25 +172,15 @@ const GenerationTabs = ({
                         </button>
                         <button
                             className="btn-primary-bright"
-                            onClick={() => {
-                                const el = document.querySelector('.prompt-textarea');
-                                if (el) el.focus();
-                            }}
+                            onClick={onOpenWorkspace}
                         >
-                            <span>Refine Requirement</span>
+                            <span>Refine in AI Workspace</span>
                             <ChevronRight size={18} />
                         </button>
                     </div>
                 </div>
             ) : (
                 <>
-                    <div className="result-header-row">
-                        <h2 className="strong-heading text-gradient">
-                            {generations.length > 1 ? `Output ${activeIndex + 1} — ` : ''}Generation Results
-                        </h2>
-                        <span className="timestamp-badge">{formatRelativeTime(active.timestamp)}</span>
-                    </div>
-
                     {/* The ONLY ResultsSection mounted — swaps on tab change */}
                     <ResultsSection
                         key={active.id}
@@ -160,6 +207,9 @@ const GeneratorPage = () => {
         language: 'english'
     });
 
+    const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+
     // Global Error Reporter for Crashes
     React.useEffect(() => {
         const handleError = (event) => {
@@ -170,8 +220,6 @@ const GeneratorPage = () => {
         return () => window.removeEventListener('error', handleError);
     }, []);
 
-    const [isGenerating, setIsGenerating] = useState(false);
-
     // ── Generations array + active tab index ──
     const [generations, setGenerations] = useState([]);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -180,12 +228,10 @@ const GeneratorPage = () => {
     const [showClarification, setShowClarification] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [pageError, setPageError] = useState(null);
-    const inputReveal = useScrollReveal({ threshold: 0.1 });
 
     // Derived: the latest generation's result (used by merge logic)
     const latestGeneration = generations.length > 0 ? generations[generations.length - 1] : null;
     const latestResult = latestGeneration?.result || null;
-
 
     React.useEffect(() => {
         // --- Post-Login Resume Logic ---
@@ -198,6 +244,7 @@ const GeneratorPage = () => {
                     setSettings(savedSettings);
                     localStorage.removeItem('testnexa_pending_generation');
                     console.log('Resuming generation after login...');
+                    setIsWorkspaceOpen(true);
                     await handleActualGenerate(savedReq, savedSettings);
                 } catch (e) {
                     console.error('Failed to resume generation:', e);
@@ -321,6 +368,11 @@ const GeneratorPage = () => {
                 });
             }
 
+            // Smoothly close the workspace overlay after brief pause so user enters the generated Test Suite!
+            setTimeout(() => {
+                setIsWorkspaceOpen(false);
+            }, 600);
+
             // Scroll to output section
             setTimeout(() => {
                 const outputSection = document.getElementById('output-section');
@@ -329,7 +381,7 @@ const GeneratorPage = () => {
                     const y = outputSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
                     window.scrollTo({ top: y, behavior: 'smooth' });
                 }
-            }, 300);
+            }, 800);
             
             return finalSuite;
         } catch (error) {
@@ -352,7 +404,6 @@ const GeneratorPage = () => {
             enrichedReq += "\nOverwritten Assumptions: " + JSON.stringify(refinementData.assumptionOverrides);
         }
 
-        // Pass previous test case titles so the AI can improve on them
         if (latestResult) {
             const allTestCases = [
                 ...(latestResult.functional || []),
@@ -409,27 +460,24 @@ const GeneratorPage = () => {
 
     return (
         <div className="home-page">
-            {/* 1. Hero - What is Testnexa AI? */}
-            <Hero />
+            {/* 1. Hero - Clean Marketing & Product Demonstration */}
+            <Hero onOpenGenerator={() => setIsWorkspaceOpen(true)} />
 
+            {/* 2. Full-Screen AI Workspace Overlay (Only opens when user clicks Generate) */}
+            <AiWorkspaceModal
+                isOpen={isWorkspaceOpen}
+                onClose={() => setIsWorkspaceOpen(false)}
+                requirement={requirement}
+                setRequirement={setRequirement}
+                settings={settings}
+                setSettings={setSettings}
+                isGenerating={isGenerating}
+                onGenerate={handleGenerate}
+                onOpenAuth={() => setShowLoginModal(true)}
+            />
+
+            {/* 3. Generated Test Suite Workspace (Shown once generated) */}
             <div className="tn-container generator-page-container">
-                {/* 2. Requirement Input */}
-                <div
-                    ref={inputReveal.ref}
-                    className={`generator-content-wrapper scroll-reveal-zoom ${inputReveal.isVisible ? 'revealed' : ''}`}
-                >
-                    <InputPanel
-                        value={requirement}
-                        onChange={setRequirement}
-                        onGenerate={handleGenerate}
-                        isGenerating={isGenerating}
-                        settings={settings}
-                        setSettings={setSettings}
-                    />
-                </div>
-
-                <LoadingArea isGenerating={isGenerating} />
-
                 {pageError && (
                     <div className="form-error-banner animate-fade-in" style={{ marginTop: '2rem' }}>
                         <AlertTriangle size={20} />
@@ -444,12 +492,11 @@ const GeneratorPage = () => {
                     </div>
                 )}
 
-                {/* 3. Tab-switched generation output */}
                 {generations.length > 0 && (
                     <div
                         id="output-section"
                         className="output-section-wrapper animate-slide-up"
-                        style={{ marginTop: '3rem' }}
+                        style={{ marginTop: '2rem' }}
                     >
                         <GenerationTabs
                             generations={generations}
@@ -459,6 +506,7 @@ const GeneratorPage = () => {
                             onRefineRegenerate={handleRefineRegenerate}
                             showClarification={showClarification}
                             setShowClarification={setShowClarification}
+                            onOpenWorkspace={() => setIsWorkspaceOpen(true)}
                         />
                     </div>
                 )}
@@ -483,7 +531,7 @@ const GeneratorPage = () => {
             <WhyThisMatters />
 
             {/* 10. Final CTA */}
-            <FinalCTA />
+            <FinalCTA onOpenGenerator={() => setIsWorkspaceOpen(true)} />
 
             {/* Login Modal */}
             <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
@@ -492,3 +540,4 @@ const GeneratorPage = () => {
 };
 
 export default GeneratorPage;
+

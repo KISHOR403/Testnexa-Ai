@@ -1,0 +1,971 @@
+/* ==========================================================================
+   AI WORKSPACE FULL-SCREEN MODAL OVERLAY (Enterprise Dark SaaS Theme)
+   ========================================================================== */
+
+/* ─── Backdrop Overlay ─── */
+.tn-workspace-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(3, 7, 18, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 1.5rem;
+    animation: tnOverlayFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    overflow-y: auto;
+}
+
+@keyframes tnOverlayFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ─── Main Workspace Card ─── */
+.tn-workspace-modal {
+    position: relative;
+    width: 100%;
+    max-width: 1360px;
+    height: 88vh;
+    min-height: 580px;
+    max-height: 880px;
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow:
+        0 24px 72px -12px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(0, 242, 222, 0.06),
+        0 0 60px -20px rgba(0, 242, 222, 0.12);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #e2e8f0;
+    animation: tnModalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tnModalScaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Top glowing accent line */
+.tn-workspace-modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 242, 222, 0.45), rgba(91, 108, 255, 0.45), transparent);
+    z-index: 10;
+}
+
+/* ─── Workspace Header ─── */
+.tn-workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(13, 18, 30, 0.75);
+    backdrop-filter: blur(8px);
+    flex-shrink: 0;
+    z-index: 5;
+}
+
+.tn-workspace-header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.tn-workspace-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
+.tn-workspace-header__logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.tn-workspace-header__sep {
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.9rem;
+}
+
+.tn-workspace-header__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(0, 242, 222, 0.08);
+    border: 1px solid rgba(0, 242, 222, 0.2);
+    color: #00f2de;
+    letter-spacing: 0.02em;
+}
+
+.tn-workspace-header__badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00f2de;
+    box-shadow: 0 0 8px #00f2de;
+}
+
+.tn-workspace-header__right {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    position: relative;
+}
+
+/* Examples dropdown button */
+.tn-workspace-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-workspace-btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+}
+
+.tn-workspace-btn-ghost.is-active {
+    background: rgba(0, 242, 222, 0.1);
+    border-color: rgba(0, 242, 222, 0.3);
+    color: #00f2de;
+}
+
+.tn-workspace-btn-ghost:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Close button */
+.tn-workspace-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-workspace-close-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+/* ─── Examples Dropdown Menu ─── */
+.tn-workspace-examples-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 40px;
+    width: 280px;
+    background: #0f1523;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.7);
+    padding: 0.5rem;
+    z-index: 100;
+    animation: tnDropdownSlide 0.15s ease-out;
+}
+
+@keyframes tnDropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tn-workspace-examples-menu__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 0.35rem 0.65rem 0.25rem;
+}
+
+.tn-workspace-example-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.82rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.tn-workspace-example-item:hover {
+    background: rgba(0, 242, 222, 0.08);
+    color: #00f2de;
+}
+
+.tn-workspace-example-item svg {
+    color: rgba(0, 242, 222, 0.6);
+    flex-shrink: 0;
+}
+
+/* ─── Main Workspace Body (Scrollable) ─── */
+.tn-workspace-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ─── Prompt / Requirement Section ─── */
+.tn-workspace-prompt-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.tn-workspace-prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tn-workspace-prompt-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tn-workspace-prompt-subtitle {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.15rem;
+}
+
+.tn-workspace-textarea-wrap {
+    position: relative;
+    background: rgba(4, 7, 14, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    transition: all 0.2s ease;
+}
+
+.tn-workspace-textarea-wrap:focus-within {
+    border-color: rgba(0, 242, 222, 0.35);
+    box-shadow: 0 0 0 3px rgba(0, 242, 222, 0.06), inset 0 2px 10px rgba(0, 0, 0, 0.4);
+    background: rgba(4, 7, 14, 0.85);
+}
+
+.tn-workspace-textarea {
+    width: 100%;
+    min-height: 180px;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    resize: vertical;
+    outline: none;
+}
+
+.tn-workspace-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.28);
+    font-size: 0.92rem;
+}
+
+.tn-workspace-textarea-actions {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.tn-workspace-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-workspace-icon-btn:hover {
+    background: rgba(0, 242, 222, 0.12);
+    border-color: rgba(0, 242, 222, 0.25);
+    color: #00f2de;
+}
+
+.tn-workspace-icon-btn.is-danger:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+/* Character & Quality Bar */
+.tn-workspace-quality-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tn-workspace-char-count {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-variant-numeric: tabular-nums;
+}
+
+.tn-workspace-quality-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.tn-workspace-quality-indicator.quality-low {
+    color: #f59e0b;
+}
+
+.tn-workspace-quality-indicator.quality-medium {
+    color: #00f2de;
+}
+
+.tn-workspace-quality-indicator.quality-high {
+    color: #10b981;
+}
+
+/* ─── Config Row (Context, Depth, AI Analyzes) ─── */
+.tn-workspace-config-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+.tn-workspace-config-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.tn-workspace-config-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* Segmented Control Chips */
+.tn-workspace-segmented {
+    display: inline-flex;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.tn-workspace-segment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-workspace-segment-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.tn-workspace-segment-btn.is-active {
+    background: rgba(0, 242, 222, 0.14);
+    color: #00f2de;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Depth pill with tooltip */
+.tn-workspace-depth-pill {
+    position: relative;
+    display: inline-flex;
+}
+
+.tn-workspace-depth-hint {
+    display: inline-block;
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: 0.35rem;
+}
+
+/* Informational AI Analyzes Tags */
+.tn-workspace-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.tn-workspace-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.tn-workspace-tag svg {
+    color: #00f2de;
+}
+
+/* ─── Footer Controls & Generation Trigger ─── */
+.tn-workspace-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.5rem;
+    flex-shrink: 0;
+}
+
+.tn-workspace-pipeline-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.tn-workspace-pipeline-summary svg {
+    color: #00f2de;
+    flex-shrink: 0;
+}
+
+.tn-workspace-pipeline-steps {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.tn-workspace-pipeline-steps span {
+    font-weight: 500;
+}
+
+.tn-workspace-pipeline-steps .sep {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* Primary Action Button */
+.tn-workspace-generate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.6rem;
+    background: linear-gradient(135deg, #00f2de 0%, #06b6d4 50%, #5b6cff 100%);
+    border: none;
+    border-radius: 10px;
+    color: #040812;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0, 242, 222, 0.3);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tn-workspace-generate-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(0, 242, 222, 0.45);
+    filter: brightness(1.08);
+}
+
+.tn-workspace-generate-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    box-shadow: none;
+    filter: grayscale(0.5);
+}
+
+/* ─── IN-WORKSPACE AI PROCESSING STATE ─── */
+.tn-workspace-processing-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    gap: 2rem;
+}
+
+.tn-workspace-processing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 9999px;
+    background: rgba(0, 242, 222, 0.08);
+    border: 1px solid rgba(0, 242, 222, 0.25);
+    color: #00f2de;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.tn-workspace-processing-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.tn-workspace-processing-sub {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    max-width: 520px;
+    margin: 0.35rem 0 0;
+}
+
+/* Multi-stage Progress Stepper Card */
+.tn-workspace-stepper-card {
+    width: 100%;
+    max-width: 640px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.tn-workspace-step-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.88rem;
+    transition: all 0.2s ease;
+}
+
+.tn-workspace-step-row.is-completed {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.tn-workspace-step-row.is-active {
+    color: #00f2de;
+    font-weight: 600;
+}
+
+.tn-workspace-step-indicator {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.tn-workspace-step-row.is-completed .tn-workspace-step-indicator {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10b981;
+}
+
+.tn-workspace-step-row.is-active .tn-workspace-step-indicator {
+    background: rgba(0, 242, 222, 0.2);
+    border-color: rgba(0, 242, 222, 0.5);
+    color: #00f2de;
+    box-shadow: 0 0 12px rgba(0, 242, 222, 0.4);
+}
+
+.tn-workspace-step-label {
+    flex: 1;
+}
+
+.tn-workspace-step-status {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.tn-workspace-step-row.is-active .tn-workspace-step-status {
+    color: #00f2de;
+}
+
+/* Progress bar inside processing */
+.tn-workspace-progress-bar-wrap {
+    width: 100%;
+    max-width: 640px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.tn-workspace-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00f2de, #5b6cff);
+    border-radius: 9999px;
+    transition: width 0.4s ease;
+}
+
+/* ─── DISCARD CONFIRMATION DIALOG ─── */
+.tn-discard-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: tnOverlayFadeIn 0.15s ease;
+}
+
+.tn-discard-card {
+    width: 100%;
+    max-width: 420px;
+    background: #111726;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+}
+
+.tn-discard-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.tn-discard-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+}
+
+.tn-discard-desc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.tn-discard-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.tn-discard-btn-cancel {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-discard-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tn-discard-btn-confirm {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    background: #ef4444;
+    border: none;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-discard-btn-confirm:hover {
+    background: #dc2626;
+}
+
+/* ─── Responsive Adjustments ─── */
+@media (max-width: 992px) {
+    .tn-workspace-config-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .tn-workspace-overlay {
+        padding: 0;
+    }
+
+    .tn-workspace-modal {
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        border: none;
+    }
+
+    .tn-workspace-body {
+        padding: 1.25rem 1rem;
+    }
+
+    .tn-workspace-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .tn-workspace-generate-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tn-workspace-examples-menu {
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+    }
+}
+
+/* ==========================================================================
+   TEST SUITE SUMMARY HEADER BANNER
+   ========================================================================== */
+.tn-suite-summary-banner {
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+}
+
+.tn-suite-summary-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 242, 222, 0.4), rgba(91, 108, 255, 0.4), transparent);
+}
+
+.tn-suite-summary-banner__left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.tn-suite-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #00f2de;
+}
+
+.tn-suite-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.tn-suite-summary-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.tn-suite-stat-pill {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.85rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    min-width: 95px;
+    text-align: center;
+}
+
+.tn-suite-stat-pill strong {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+.tn-suite-stat-pill span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.2rem;
+}
+
+.tn-suite-summary-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tn-btn-new-suite {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.1rem;
+    background: linear-gradient(135deg, rgba(0, 242, 222, 0.15), rgba(91, 108, 255, 0.15));
+    border: 1px solid rgba(0, 242, 222, 0.35);
+    border-radius: 8px;
+    color: #00f2de;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.tn-btn-new-suite:hover {
+    background: linear-gradient(135deg, #00f2de, #06b6d4);
+    color: #040812;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 242, 222, 0.35);
+}
+
+@media (max-width: 768px) {
+    .tn-suite-summary-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .tn-suite-summary-stats {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+

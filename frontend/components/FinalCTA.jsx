@@ -156,7 +156,7 @@ const CtaProductPreview = () => {
     );
 };
 
-const FinalCTA = () => {
+const FinalCTA = ({ onOpenGenerator }) => {
     const reveal = useScrollReveal({ threshold: 0.12 });
 
     return (
@@ -181,13 +181,24 @@ const FinalCTA = () => {
                     </p>
                     
                     <div className="tn-cta__actions">
-                        <Link to="/login" className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary">
-                            <span>Try Testnexa AI</span>
-                            <ArrowRight size={18} className="tn-cta__btn-arrow" />
-                        </Link>
-                        <Link to="/" className="tn-btn tn-btn--secondary tn-btn--lg tn-cta__btn-secondary">
-                            Explore the Product
-                        </Link>
+                        {typeof onOpenGenerator === 'function' ? (
+                            <button
+                                type="button"
+                                className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary"
+                                onClick={onOpenGenerator}
+                            >
+                                <span>Generate Test Suite</span>
+                                <ArrowRight size={18} className="tn-cta__btn-arrow" />
+                            </button>
+                        ) : (
+                            <Link to="/login" className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary">
+                                <span>Try Testnexa AI</span>
+                                <ArrowRight size={18} className="tn-cta__btn-arrow" />
+                            </Link>
+                        )}
+                        <a href="#features" className="tn-btn tn-btn--secondary tn-btn--lg tn-cta__btn-secondary">
+                            Explore Features
+                        </a>
                     </div>
 
                     <div className="tn-cta__trust-pills">
