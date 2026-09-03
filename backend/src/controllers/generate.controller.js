@@ -114,6 +114,7 @@ const generateTestCases = async (req, res) => {
             // Save in background — don't slow down the response
             const saveHistory = async () => {
                 try {
+                    // Legacy TestHistory save (backward compatibility)
                     await TestHistory.create({
                         userId: req.user._id,
                         requirement,
@@ -138,14 +139,80 @@ const generateTestCases = async (req, res) => {
                         model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
                     });
 
+                    // WorkspaceSession: create or update
+                    const WorkspaceSession = require('../models/workspaceSession.model');
+                    const sessionId = req.body.sessionId;
+                    const summaryData = {
+                        total: result.metadata.totalTestCases,
+                        functional: result.functional.length,
+                        negative: result.negative.length,
+                        edge: result.edge.length,
+                        nonFunctional: result.nonFunctional.length,
+                        apiChecklist: result.apiChecklist.length
+                    };
+                    const qualityData = {
+                        confidenceLevel: result.quality.confidenceLevel || '',
+                        ambiguityScore: result.quality.ambiguityScore || '',
+                        coverageConfidence: result.quality.coverageConfidence || 0
+                    };
+
+                    if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
+                        // Update existing session
+                        const session = await WorkspaceSession.findOne({ _id: sessionId, userId: req.user._id });
+                        if (session) {
+                            // Snapshot previous version if suite already exists
+                            if (session.suiteData) {
+                                const newVersion = (session.currentVersion || 0) + 1;
+                                session.versions.push({
+                                    versionNumber: session.currentVersion || 1,
+                                    suiteData: session.suiteData,
+                                    summary: session.summary,
+                                    createdAt: new Date()
+                                });
+                                session.currentVersion = newVersion;
+                            } else {
+                                session.currentVersion = 1;
+                            }
+                            session.suiteData = response.data;
+                            session.summary = summaryData;
+                            session.quality = qualityData;
+                            session.status = 'Generated';
+                            session.messages.push({
+                                role: 'assistant',
+                                content: `Generated ${result.metadata.totalTestCases} test cases for "${result.understanding.feature}".`,
+                                timestamp: new Date()
+                            });
+                            await session.save();
+                        }
+                    } else {
+                        // Create new session
+                        const title = result.understanding.feature || requirement.split(/[.!?\n]/)[0].trim().slice(0, 50) || 'Generated Suite';
+                        await WorkspaceSession.create({
+                            userId: req.user._id,
+                            title,
+                            status: 'Generated',
+                            requirement,
+                            context: appType || 'web',
+                            depth: detailLevel === 'basic' ? 'Essential' : detailLevel === 'detailed' ? 'Comprehensive' : 'Standard',
+                            messages: [
+                                { role: 'user', content: requirement, timestamp: new Date() },
+                                { role: 'assistant', content: `Generated ${result.metadata.totalTestCases} test cases for "${title}".`, timestamp: new Date() }
+                            ],
+                            suiteData: response.data,
+                            currentVersion: 1,
+                            summary: summaryData,
+                            quality: qualityData
+                        });
+                    }
+
                     // Increment user's total test count
                     await User.findByIdAndUpdate(req.user._id, {
                         $inc: { totalTestsGenerated: result.metadata.totalTestCases }
                     });
 
-                    logger.info('Test history saved for user', { userId: req.user._id });
+                    logger.info('Test history + session saved for user', { userId: req.user._id });
                 } catch (historyErr) {
-                    logger.error('Failed to save test history', historyErr);
+                    logger.error('Failed to save test history/session', historyErr);
                 }
             };
 

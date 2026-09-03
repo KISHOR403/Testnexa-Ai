@@ -21,6 +21,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // Application Pages (Inside App Shell with Sidebar)
 import WorkspacePage from './pages/app/WorkspacePage';
+import HistoryPage from './pages/app/HistoryPage';
 import TestSuitesListPage from './pages/app/TestSuitesListPage';
 import TestSuiteDetailPage from './pages/app/TestSuiteDetailPage';
 import CoveragePage from './pages/app/CoveragePage';
@@ -56,6 +57,8 @@ function App() {
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="/app/workspace" replace />} />
           <Route path="workspace" element={<WorkspacePage />} />
+          <Route path="workspace/:sessionId" element={<WorkspacePage />} />
+          <Route path="history" element={<HistoryPage />} />
           <Route path="test-suites" element={<TestSuitesListPage />} />
           <Route path="test-suites/:id" element={<TestSuiteDetailPage />} />
           <Route path="coverage" element={<CoveragePage />} />
@@ -66,7 +69,7 @@ function App() {
 
         {/* ─── DIRECT REDIRECTS FOR CONVENIENCE ─── */}
         <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
-        <Route path="/history" element={<Navigate to="/app/test-suites" replace />} />
+        <Route path="/history" element={<Navigate to="/app/history" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

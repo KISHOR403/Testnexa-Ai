@@ -1,0 +1,751 @@
+/* ==========================================================================
+   TESTNEXA WORKSPACE HISTORY PAGE STYLES
+   Enterprise Dark SaaS Aesthetic
+   ========================================================================== */
+
+.tn-history-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ─── Header ─── */
+.tn-history-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.tn-history-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #00f2de;
+    background: rgba(0, 242, 222, 0.08);
+    border: 1px solid rgba(0, 242, 222, 0.2);
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    margin-bottom: 0.45rem;
+}
+
+.tn-history-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.tn-history-subtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0.35rem 0 0;
+    max-width: 650px;
+    line-height: 1.45;
+}
+
+.tn-history-new-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 1.15rem;
+    background: linear-gradient(135deg, #00f2de 0%, #00b4d8 100%);
+    color: #040914;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 15px rgba(0, 242, 222, 0.25);
+    white-space: nowrap;
+}
+
+.tn-history-new-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 242, 222, 0.35);
+}
+
+/* ─── Controls Bar (Search + Tabs + Selects) ─── */
+.tn-history-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    background: #090d16;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.tn-history-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+    flex: 1;
+    min-width: 240px;
+    transition: all 0.15s ease;
+}
+
+.tn-history-search-wrap:focus-within {
+    border-color: rgba(0, 242, 222, 0.4);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.tn-history-search-icon {
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+
+.tn-history-search-input {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 0.84rem;
+    width: 100%;
+    outline: none;
+}
+
+.tn-history-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.tn-history-search-clear {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0.1rem;
+    display: flex;
+    align-items: center;
+}
+
+.tn-history-search-clear:hover {
+    color: #ffffff;
+}
+
+/* ─── Status Tabs ─── */
+.tn-history-tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.25rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tn-history-tab {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-history-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.tn-history-tab.active {
+    color: #00f2de;
+    background: rgba(0, 242, 222, 0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Selects ─── */
+.tn-history-selects {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tn-history-select {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.tn-history-select:focus {
+    border-color: rgba(0, 242, 222, 0.4);
+}
+
+.tn-history-select option {
+    background: #0d1322;
+    color: #ffffff;
+}
+
+/* ─── Sessions List ─── */
+.tn-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.tn-history-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 1.15rem 1.35rem;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.tn-history-card:hover {
+    border-color: rgba(0, 242, 222, 0.3);
+    background: #0c1220;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tn-history-card.is-archived {
+    opacity: 0.65;
+    background: #070a12;
+}
+
+.tn-history-card.is-archived:hover {
+    opacity: 0.95;
+}
+
+.tn-history-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Card Top: Title + Badges */
+.tn-history-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.tn-history-card-title-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.tn-history-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tn-history-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tn-history-card:hover .tn-history-card-title {
+    color: #00f2de;
+}
+
+.tn-history-rename-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.15s ease;
+}
+
+.tn-history-card:hover .tn-history-rename-btn {
+    opacity: 1;
+}
+
+.tn-history-rename-btn:hover {
+    color: #00f2de;
+    background: rgba(0, 242, 222, 0.1);
+}
+
+/* Inline Edit */
+.tn-history-inline-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.tn-history-edit-input {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid #00f2de;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.95rem;
+    padding: 0.25rem 0.55rem;
+    outline: none;
+    min-width: 250px;
+}
+
+.tn-history-edit-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 0.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.15s ease;
+}
+
+.tn-history-edit-btn.confirm:hover {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border-color: #10b981;
+}
+
+.tn-history-edit-btn.cancel:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* Badges */
+.tn-history-card-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.tn-history-status-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.18rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.tn-history-status-pill.generated {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.tn-history-status-pill.draft {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.tn-history-status-pill.archived {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.tn-history-context-pill {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 0.18rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(0, 242, 222, 0.08);
+    color: #00f2de;
+    border: 1px solid rgba(0, 242, 222, 0.2);
+}
+
+/* Requirement Text Excerpt */
+.tn-history-card-requirement {
+    font-size: 0.84rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tn-history-empty-req {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+}
+
+/* Card Meta (Stats + Updated time) */
+.tn-history-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tn-history-meta-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.tn-history-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.18rem 0.55rem;
+    border-radius: 5px;
+}
+
+.tn-history-stat-pill strong {
+    color: #ffffff;
+}
+
+.tn-history-stat-pill.sub {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.tn-history-stat-pill.version {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+    font-weight: 700;
+}
+
+.tn-history-stat-pill.confidence {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    font-weight: 600;
+}
+
+.tn-history-timestamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+}
+
+/* Card Actions */
+.tn-history-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.tn-history-action-btn.primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(0, 242, 222, 0.1);
+    color: #00f2de;
+    border: 1px solid rgba(0, 242, 222, 0.25);
+    border-radius: 7px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.tn-history-action-btn.primary:hover {
+    background: rgba(0, 242, 222, 0.2);
+    border-color: #00f2de;
+    color: #ffffff;
+}
+
+.tn-history-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.5);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-history-icon-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tn-history-icon-btn.is-archived {
+    color: #00f2de;
+    border-color: rgba(0, 242, 222, 0.3);
+}
+
+.tn-history-icon-btn.danger:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ─── Skeleton Loading ─── */
+.tn-history-skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.tn-history-skeleton-card {
+    height: 98px;
+    background: linear-gradient(90deg, #090d16 25%, #0e1626 50%, #090d16 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.6s infinite ease-in-out;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@keyframes skeleton-pulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ─── Empty & Error States ─── */
+.tn-history-empty-card,
+.tn-history-error-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+}
+
+.tn-history-empty-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(0, 242, 222, 0.08);
+    border: 1px solid rgba(0, 242, 222, 0.2);
+    color: #00f2de;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+}
+
+.tn-history-empty-card h3,
+.tn-history-error-card h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.5rem;
+}
+
+.tn-history-empty-card p,
+.tn-history-error-card p {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.5);
+    max-width: 440px;
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+}
+
+.tn-history-retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-history-retry-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Delete Confirmation Modal ─── */
+.tn-history-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+    padding: 1rem;
+}
+
+.tn-history-modal {
+    background: #0d1322;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    animation: modal-scale 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-scale {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.tn-history-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.35rem 1.35rem 0.85rem;
+}
+
+.tn-history-modal-icon-danger {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.tn-history-modal-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.25rem;
+}
+
+.tn-history-modal-subtitle {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    word-break: break-word;
+}
+
+.tn-history-modal-body {
+    padding: 0 1.35rem 1.25rem;
+    font-size: 0.84rem;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.5;
+}
+
+.tn-history-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding: 0.85rem 1.35rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tn-history-modal-btn {
+    padding: 0.55rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-history-modal-btn.cancel {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.tn-history-modal-btn.cancel:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tn-history-modal-btn.delete {
+    background: #ef4444;
+    border: none;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.tn-history-modal-btn.delete:hover {
+    background: #dc2626;
+}
+
+.tn-history-modal-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+    .tn-history-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.85rem;
+    }
+
+    .tn-history-card-actions {
+        justify-content: flex-end;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 0.65rem;
+    }
+
+    .tn-history-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tn-history-selects {
+        flex-direction: column;
+    }
+
+    .tn-history-tabs {
+        overflow-x: auto;
+    }
+}

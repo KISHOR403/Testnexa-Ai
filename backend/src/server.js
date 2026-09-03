@@ -73,6 +73,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', apiRoutes);
+app.use('/api/v1/sessions', require('./routes/session.routes'));
 
 
 

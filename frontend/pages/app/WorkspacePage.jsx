@@ -1,14 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useParams, NavLink } from 'react-router-dom';
 import {
     Sparkles, Lightbulb, ChevronDown, Trash2, Clipboard,
-    Globe, Smartphone, Server, Gauge, Target, Rocket,
-    Check, AlertTriangle, CheckCircle2, Loader2
+    Globe, Smartphone, Server, Check, AlertTriangle, CheckCircle2,
+    Loader2, Clock, History, FileText, ArrowRight, RefreshCw,
+    Layers, Plus, Edit3, Shield
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
 import { apiService } from '../../services/apiService';
+import { sessionService } from '../../services/sessionService';
 import '../../styles/app/WorkspacePage.css';
+import '../../styles/app/WorkspacePage.session.css';
 
 const EXAMPLE_REQUIREMENTS = [
     {
@@ -47,9 +50,20 @@ const GENERATION_STEPS = [
 ];
 
 const WorkspacePage = () => {
+    const { sessionId: routeSessionId } = useParams();
     const navigate = useNavigate();
     const { isAuthenticated, canGenerateAsGuest, incrementGuestUsage } = useAuth();
-    const { saveToHistory } = useHistory();
+    const { saveToHistory, loadHistory: refreshSidebarHistory } = useHistory();
+
+    // Session State
+    const [currentSessionId, setCurrentSessionId] = useState(routeSessionId || null);
+    const [sessionTitle, setSessionTitle] = useState('New Session');
+    const [sessionStatus, setSessionStatus] = useState('Draft');
+    const [currentVersion, setCurrentVersion] = useState(1);
+    const [messages, setMessages] = useState([]);
+    const [suiteData, setSuiteData] = useState(null);
+    const [isLoadingSession, setIsLoadingSession] = useState(!!routeSessionId);
+    const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
 
     const [requirement, setRequirement] = useState('');
     const [settings, setSettings] = useState({
@@ -65,6 +79,59 @@ const WorkspacePage = () => {
     const [error, setError] = useState(null);
     const textareaRef = useRef(null);
     const maxLength = 2000;
+
+    // Track initial load to avoid premature auto-save triggers
+    const isInitialMount = useRef(true);
+    const lastSavedData = useRef({ requirement: '', settings: '' });
+
+    // Load session when routeSessionId is present
+    useEffect(() => {
+        if (!routeSessionId) {
+            setCurrentSessionId(null);
+            setSessionTitle('New Session');
+            setSessionStatus('Draft');
+            setMessages([]);
+            setSuiteData(null);
+            setRequirement('');
+            setIsLoadingSession(false);
+            return;
+        }
+
+        const fetchSession = async () => {
+            setIsLoadingSession(true);
+            setError(null);
+            try {
+                const res = await sessionService.get(routeSessionId);
+                if (res.success && res.data) {
+                    const session = res.data;
+                    setCurrentSessionId(session._id);
+                    setSessionTitle(session.title || 'Untitled Session');
+                    setSessionStatus(session.status || 'Draft');
+                    setCurrentVersion(session.currentVersion || 1);
+                    setRequirement(session.requirement || '');
+                    setSettings({
+                        type: session.context || 'web',
+                        level: session.depth || 'Standard',
+                        language: 'english'
+                    });
+                    setMessages(session.messages || []);
+                    setSuiteData(session.suiteData || null);
+
+                    lastSavedData.current = {
+                        requirement: session.requirement || '',
+                        settings: JSON.stringify({ type: session.context || 'web', level: session.depth || 'Standard' })
+                    };
+                }
+            } catch (err) {
+                console.error('Failed to load session:', err);
+                setError('Could not load session. It may have been deleted.');
+            } finally {
+                setIsLoadingSession(false);
+            }
+        };
+
+        fetchSession();
+    }, [routeSessionId]);
 
     // In-page generation progress stepper
     useEffect(() => {
@@ -84,6 +151,64 @@ const WorkspacePage = () => {
         return () => intervals.forEach(clearTimeout);
     }, [isGenerating]);
 
+    // Debounced Auto-Save
+    useEffect(() => {
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        if (!isAuthenticated || isLoadingSession || isGenerating) return;
+
+        const currentSettingsStr = JSON.stringify({ type: settings.type, level: settings.level });
+        if (
+            requirement === lastSavedData.current.requirement &&
+            currentSettingsStr === lastSavedData.current.settings
+        ) {
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            try {
+                setSaveStatus('saving');
+                if (currentSessionId) {
+                    await sessionService.update(currentSessionId, {
+                        requirement,
+                        context: settings.type,
+                        depth: settings.level
+                    });
+                    lastSavedData.current = { requirement, settings: currentSettingsStr };
+                    setSaveStatus('saved');
+                    refreshSidebarHistory();
+                } else if (requirement.trim().length > 15) {
+                    // Automatically create draft session
+                    const createRes = await sessionService.create({
+                        requirement,
+                        context: settings.type,
+                        depth: settings.level,
+                        title: requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) || 'Draft Session'
+                    });
+                    if (createRes.success && createRes.data?._id) {
+                        setCurrentSessionId(createRes.data._id);
+                        setSessionTitle(createRes.data.title);
+                        setSessionStatus('Draft');
+                        window.history.replaceState(null, '', `/app/workspace/${createRes.data._id}`);
+                        lastSavedData.current = { requirement, settings: currentSettingsStr };
+                        setSaveStatus('saved');
+                        refreshSidebarHistory();
+                    }
+                }
+            } catch (saveErr) {
+                console.warn('Auto-save error:', saveErr);
+                setSaveStatus('idle');
+            } finally {
+                setTimeout(() => setSaveStatus('idle'), 2500);
+            }
+        }, 1400);
+
+        return () => clearTimeout(timer);
+    }, [requirement, settings, isAuthenticated, currentSessionId, isLoadingSession, isGenerating]);
+
     const handleSelectExample = (text) => {
         setRequirement(text);
         setShowExamples(false);
@@ -97,6 +222,32 @@ const WorkspacePage = () => {
         } catch (err) {
             console.error('Paste failed:', err);
         }
+    };
+
+    const handleNewSession = async () => {
+        try {
+            if (isAuthenticated) {
+                const res = await sessionService.create({
+                    requirement: '',
+                    context: 'web',
+                    depth: 'Standard',
+                    title: 'New Session'
+                });
+                if (res.success && res.data?._id) {
+                    navigate(`/app/workspace/${res.data._id}`);
+                    return;
+                }
+            }
+        } catch (e) {
+            // fallback
+        }
+        navigate('/app/workspace');
+        setRequirement('');
+        setCurrentSessionId(null);
+        setSessionTitle('New Session');
+        setSessionStatus('Draft');
+        setMessages([]);
+        setSuiteData(null);
     };
 
     const handleGenerate = async () => {
@@ -114,14 +265,18 @@ const WorkspacePage = () => {
         setError(null);
 
         try {
-            const generatedSuite = await apiService.generateTestSuite(requirement, settings);
-            
-            // Create a slug for the generated suite URL
-            const slug = requirement.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30).replace(/^-|-$/g, '') || 'suite';
-            const suiteId = `${slug}-${Date.now().toString().slice(-4)}`;
+            const generatedSuite = await apiService.generateTestSuite(requirement, {
+                ...settings,
+                sessionId: currentSessionId
+            });
 
             // Save to history so it's accessible across the app
-            saveToHistory(generatedSuite, requirement, settings);
+            saveToHistory(generatedSuite, requirement, settings, currentSessionId);
+            refreshSidebarHistory();
+
+            // Create a slug for the generated suite URL
+            const slug = requirement.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30).replace(/^-|-$/g, '') || 'suite';
+            const suiteId = currentSessionId || `${slug}-${Date.now().toString().slice(-4)}`;
 
             // Navigate directly to the Test Suite page in the application shell
             setTimeout(() => {
@@ -129,7 +284,8 @@ const WorkspacePage = () => {
                     state: {
                         suite: generatedSuite,
                         prompt: requirement,
-                        settings: settings
+                        settings: settings,
+                        sessionId: currentSessionId
                     }
                 });
             }, 800);
@@ -150,6 +306,56 @@ const WorkspacePage = () => {
 
     return (
         <div className="app-workspace-container">
+            {/* Top Session Status Bar */}
+            <div className="app-workspace-session-bar">
+                <div className="app-workspace-session-info">
+                    <History size={15} color="#00f2de" />
+                    <span className="app-workspace-session-title" title={sessionTitle}>
+                        {sessionTitle}
+                    </span>
+                    <span className={`app-workspace-status-badge ${sessionStatus.toLowerCase()}`}>
+                        {sessionStatus}
+                    </span>
+                    {currentVersion > 1 && (
+                        <span className="app-workspace-version-pill">
+                            v{currentVersion}
+                        </span>
+                    )}
+                    {saveStatus === 'saving' && (
+                        <span className="app-workspace-save-indicator saving">
+                            <Loader2 size={11} className="animate-spin" />
+                            <span>Saving...</span>
+                        </span>
+                    )}
+                    {saveStatus === 'saved' && (
+                        <span className="app-workspace-save-indicator saved">
+                            <Check size={11} />
+                            <span>Saved</span>
+                        </span>
+                    )}
+                </div>
+
+                <div className="app-workspace-session-actions">
+                    <button
+                        type="button"
+                        className="app-workspace-session-btn"
+                        onClick={handleNewSession}
+                        title="Start a fresh workspace session"
+                    >
+                        <Plus size={13} />
+                        <span>New Session</span>
+                    </button>
+                    <NavLink
+                        to="/app/history"
+                        className="app-workspace-session-btn"
+                        title="View all saved sessions"
+                    >
+                        <History size={13} />
+                        <span>All Sessions</span>
+                    </NavLink>
+                </div>
+            </div>
+
             {/* Header Hero */}
             <div className="app-workspace-hero">
                 <div>
@@ -203,6 +409,80 @@ const WorkspacePage = () => {
                 </div>
             )}
 
+            {/* Previous Suite Quick-Access (If Resumed Session already has a generated suite) */}
+            {suiteData && !isGenerating && (
+                <div className="app-workspace-suite-card">
+                    <div className="app-workspace-suite-info">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                            <CheckCircle2 size={16} color="#00f2de" />
+                            <h3 className="app-workspace-suite-title">
+                                {suiteData.feature || sessionTitle}
+                            </h3>
+                        </div>
+                        <div className="app-workspace-suite-meta">
+                            <span><strong>{suiteData.summary?.total || 0}</strong> Test Cases</span>
+                            <span>•</span>
+                            <span><strong>{suiteData.summary?.functional || 0}</strong> Functional</span>
+                            <span>•</span>
+                            <span><strong>{suiteData.summary?.edge || 0}</strong> Edge</span>
+                            {suiteData.quality?.confidenceLevel && (
+                                <>
+                                    <span>•</span>
+                                    <span>Confidence: <strong>{suiteData.quality.confidenceLevel}</strong></span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <NavLink
+                        to={`/app/test-suites/${currentSessionId || 'active'}`}
+                        state={{ suite: suiteData, prompt: requirement, settings }}
+                        className="app-workspace-session-btn primary"
+                        style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem' }}
+                    >
+                        <span>Open Generated Suite</span>
+                        <ArrowRight size={14} />
+                    </NavLink>
+                </div>
+            )}
+
+            {/* Conversation History Thread (if multi-turn or previous interactions exist) */}
+            {messages.length > 1 && !isGenerating && (
+                <div className="app-workspace-thread">
+                    <div className="app-workspace-thread-header">
+                        <span className="app-workspace-thread-title">
+                            <History size={14} />
+                            Session History & Iterations ({messages.length} messages)
+                        </span>
+                    </div>
+
+                    <div className="app-workspace-thread-list">
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`app-workspace-turn ${msg.role}`}>
+                                <div className="app-workspace-turn-avatar">
+                                    {msg.role === 'user' ? 'U' : 'AI'}
+                                </div>
+                                <div className="app-workspace-turn-content">
+                                    <div className="app-workspace-turn-header">
+                                        <span className="app-workspace-turn-role">
+                                            {msg.role === 'user' ? 'Requirement Input' : 'Testnexa AI'}
+                                        </span>
+                                        {msg.timestamp && (
+                                            <span className="app-workspace-turn-time">
+                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="app-workspace-turn-text">
+                                        {msg.content}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {isGenerating ? (
                 /* ─── In-Page Processing State ─── */
                 <div className="app-workspace-processing">
@@ -249,6 +529,8 @@ const WorkspacePage = () => {
                         })}
                     </div>
                 </div>
+            ) : isLoadingSession ? (
+                <div className="app-workspace-loading-skeleton" />
             ) : (
                 /* ─── Main Workspace Card ─── */
                 <div className="app-workspace-card">
@@ -382,7 +664,9 @@ const WorkspacePage = () => {
                             id="workspace-generate-btn"
                         >
                             <Sparkles size={17} />
-                            <span>✦ Analyze & Generate Tests</span>
+                            <span>
+                                {suiteData ? '✦ Re-analyze & Update Suite' : '✦ Analyze & Generate Tests'}
+                            </span>
                         </button>
                     </div>
                 </div>

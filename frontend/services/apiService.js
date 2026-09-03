@@ -33,6 +33,7 @@ export const apiService = {
                     detailLevel: mappedDetailLevel,
                     testFocus: settings.testFocus || 'mixed', // NEW: Test type focus
                     language: settings.language || 'en-US',
+                    sessionId: settings.sessionId || undefined,
                 }),
             });
 

@@ -1,0 +1,287 @@
+/* ==========================================================================
+   WORKSPACE SESSION RESUMPTION & THREAD STYLES
+   ========================================================================== */
+
+/* ─── Top Session Status Bar ─── */
+.app-workspace-session-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.55rem 0.85rem;
+    flex-wrap: wrap;
+}
+
+.app-workspace-session-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.app-workspace-session-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    max-width: 320px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-workspace-version-pill {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(167, 139, 250, 0.12);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.25);
+    letter-spacing: 0.04em;
+}
+
+.app-workspace-status-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.app-workspace-status-badge.generated {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.app-workspace-status-badge.draft {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* ─── Auto-Save Indicator ─── */
+.app-workspace-save-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.app-workspace-save-indicator.saving {
+    color: #00f2de;
+}
+
+.app-workspace-save-indicator.saved {
+    color: #10b981;
+}
+
+.app-workspace-session-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-left: auto;
+}
+
+.app-workspace-session-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.app-workspace-session-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.app-workspace-session-btn.primary {
+    color: #00f2de;
+    background: rgba(0, 242, 222, 0.08);
+    border-color: rgba(0, 242, 222, 0.25);
+}
+
+.app-workspace-session-btn.primary:hover {
+    background: rgba(0, 242, 222, 0.15);
+    color: #ffffff;
+}
+
+/* ─── Conversation / Turn History Thread ─── */
+.app-workspace-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 1.15rem;
+}
+
+.app-workspace-thread-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.app-workspace-thread-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #00f2de;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.app-workspace-thread-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 0.35rem;
+}
+
+.app-workspace-turn {
+    display: flex;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.app-workspace-turn.user {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.app-workspace-turn.assistant {
+    background: rgba(0, 242, 222, 0.04);
+    border: 1px solid rgba(0, 242, 222, 0.12);
+}
+
+.app-workspace-turn-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.app-workspace-turn.user .app-workspace-turn-avatar {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.app-workspace-turn.assistant .app-workspace-turn-avatar {
+    background: rgba(0, 242, 222, 0.15);
+    color: #00f2de;
+}
+
+.app-workspace-turn-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-workspace-turn-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.2rem;
+}
+
+.app-workspace-turn-role {
+    font-weight: 700;
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.app-workspace-turn-time {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.app-workspace-turn-text {
+    color: rgba(255, 255, 255, 0.75);
+    margin: 0;
+    word-break: break-word;
+}
+
+/* ─── Suite Preview Card (When Session already has Suite) ─── */
+.app-workspace-suite-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: linear-gradient(135deg, rgba(0, 242, 222, 0.08) 0%, rgba(13, 19, 34, 0.8) 100%);
+    border: 1px solid rgba(0, 242, 222, 0.25);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    flex-wrap: wrap;
+}
+
+.app-workspace-suite-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.app-workspace-suite-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.app-workspace-suite-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.6);
+    flex-wrap: wrap;
+}
+
+.app-workspace-suite-meta strong {
+    color: #00f2de;
+}
+
+/* Loading skeleton for session resumption */
+.app-workspace-loading-skeleton {
+    height: 180px;
+    background: linear-gradient(90deg, #090d16 25%, #0e1626 50%, #090d16 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.6s infinite ease-in-out;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}

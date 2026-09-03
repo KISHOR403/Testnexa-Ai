@@ -1,33 +1,36 @@
-import React, { useState } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
     Sparkles, Layers, ShieldCheck, AlertTriangle, GitBranch,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
-    FileText, LogOut, ArrowLeft, Home, User, CheckCircle2, X
+    Home, X, History, Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
 import '../../styles/app/AppSidebar.css';
 
+const formatTimeAgo = (dateInput) => {
+    if (!dateInput) return 'Recently';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return 'Recently';
+    const now = new Date();
+    const diffSec = Math.floor((now - d) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) => {
-    const { user, isAuthenticated, logout } = useAuth();
-    const { history } = useHistory();
+    const { user } = useAuth();
+    const { history, recentSessions } = useHistory();
     const location = useLocation();
-    const navigate = useNavigate();
 
     const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0).toUpperCase();
-
-    const recentSuites = history.slice(0, 3).map((item, idx) => ({
-        id: item.id || `suite-${idx + 1}`,
-        title: item.feature || item.requirement?.slice(0, 26) || `Test Suite #${idx + 1}`,
-        path: `/app/test-suites/${item.id || 'password-reset'}`
-    }));
-
-    // Fallback recent if history is empty
-    const displayRecents = recentSuites.length > 0 ? recentSuites : [
-        { id: 'password-reset', title: 'Password Reset Suite', path: '/app/test-suites/password-reset' },
-        { id: 'user-auth', title: 'User Auth & 2FA Flow', path: '/app/test-suites/user-auth' }
-    ];
 
     const handleNavClick = () => {
         if (onCloseMobile) onCloseMobile();
@@ -90,6 +93,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
 
                     <NavLink
                         to="/app/workspace"
+                        end
                         className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
                         onClick={handleNavClick}
                         title="AI Workspace"
@@ -107,20 +111,54 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                         <Layers size={17} className="app-sidebar__item-icon" />
                         <span>Test Suites</span>
                     </NavLink>
+                </div>
 
-                    {!isCollapsed && displayRecents.length > 0 && (
-                        <div className="app-sidebar__sublist">
-                            {displayRecents.map((suite) => (
+                {/* HISTORY GROUP */}
+                <div className="app-sidebar__group">
+                    <span className="app-sidebar__group-label">History</span>
+
+                    <NavLink
+                        to="/app/history"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/history') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Workspace History"
+                    >
+                        <History size={17} className="app-sidebar__item-icon" />
+                        <span>History</span>
+                        {!isCollapsed && history.length > 0 && (
+                            <span className="app-sidebar__badge">{history.length}</span>
+                        )}
+                    </NavLink>
+
+                    {!isCollapsed && recentSessions.length > 0 && (
+                        <div className="app-sidebar__history-list">
+                            {recentSessions.map((session) => (
                                 <NavLink
-                                    key={suite.id}
-                                    to={suite.path}
-                                    className={({ isActive }) => `app-sidebar__subitem ${isActive ? 'active' : ''}`}
+                                    key={session.id}
+                                    to={`/app/workspace/${session.id}`}
+                                    className={({ isActive }) => `app-sidebar__history-item ${isActive ? 'active' : ''}`}
                                     onClick={handleNavClick}
-                                    title={suite.title}
+                                    title={session.title}
                                 >
-                                    {suite.title}
+                                    <div className="app-sidebar__history-item-top">
+                                        <span className="app-sidebar__history-item-title">{session.title}</span>
+                                    </div>
+                                    <div className="app-sidebar__history-item-meta">
+                                        <span className="app-sidebar__history-context">{session.context || 'web'}</span>
+                                        <span>•</span>
+                                        <span>{session.totalCases || session.summary?.total || 0} tests</span>
+                                        <span>•</span>
+                                        <span>{formatTimeAgo(session.date)}</span>
+                                    </div>
                                 </NavLink>
                             ))}
+                            <NavLink
+                                to="/app/history"
+                                className="app-sidebar__view-all-link"
+                                onClick={handleNavClick}
+                            >
+                                View all history →
+                            </NavLink>
                         </div>
                     )}
                 </div>
