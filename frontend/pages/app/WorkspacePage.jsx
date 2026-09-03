@@ -177,13 +177,13 @@ const WorkspacePage = () => {
                         </button>
 
                         {showExamples && (
-                            <div className="tn-workspace-examples-menu" style={{ right: 0, width: '290px' }}>
-                                <div className="tn-workspace-examples-menu__label">Templates</div>
+                            <div className="app-workspace-examples-menu">
+                                <div className="app-workspace-examples-menu__label">Quick Templates</div>
                                 {EXAMPLE_REQUIREMENTS.map((ex, idx) => (
                                     <button
                                         key={idx}
                                         type="button"
-                                        className="tn-workspace-example-item"
+                                        className="app-workspace-example-item"
                                         onClick={() => handleSelectExample(ex.text)}
                                     >
                                         <Sparkles size={13} />

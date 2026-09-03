@@ -150,6 +150,69 @@
     color: #ef4444;
 }
 
+/* ─── Examples Dropdown Menu ─── */
+.app-workspace-examples-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 290px;
+    background: #0f1523;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow:
+        0 16px 40px -8px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(0, 242, 222, 0.05);
+    padding: 0.5rem;
+    z-index: 100;
+    animation: appDropdownSlide 0.15s ease-out;
+}
+
+@keyframes appDropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.app-workspace-examples-menu__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 0.35rem 0.65rem 0.25rem;
+}
+
+.app-workspace-example-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.82rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.app-workspace-example-item:hover {
+    background: rgba(0, 242, 222, 0.08);
+    color: #00f2de;
+}
+
+.app-workspace-example-item svg {
+    color: rgba(0, 242, 222, 0.6);
+    flex-shrink: 0;
+}
+
 /* Quality & Char Counter */
 .app-workspace-quality-row {
     display: flex;
