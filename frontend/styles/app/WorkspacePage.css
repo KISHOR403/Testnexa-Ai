@@ -1,5 +1,6 @@
 /* ==========================================================================
    WORKSPACE PAGE STYLES (Dedicated /app/workspace Environment)
+   True Black / Neutral Black Enterprise QA Platform
    ========================================================================== */
 
 .app-workspace-container {
@@ -30,7 +31,7 @@
     flex-wrap: wrap;
     gap: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid #1A1A1A;
 }
 
 .app-workspace-eyebrow {
@@ -41,61 +42,51 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00f2de;
+    color: #00D9C0;
     margin-bottom: 0.35rem;
 }
 
 .app-workspace-title {
     font-size: 1.6rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #F5F5F5;
     letter-spacing: -0.02em;
     margin: 0;
 }
 
 .app-workspace-subtitle {
     font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #A3A3A3;
     margin: 0.35rem 0 0;
 }
 
 /* Card */
 .app-workspace-card {
-    background: #090d16;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: #0A0A0A;
+    border: 1px solid #1C1C1C;
     border-radius: 14px;
     padding: 1.75rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     position: relative;
-}
-
-.app-workspace-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 10%;
-    right: 10%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 242, 222, 0.4), rgba(91, 108, 255, 0.4), transparent);
 }
 
 /* Textarea Wrap */
 .app-workspace-textarea-wrap {
     position: relative;
-    background: rgba(4, 7, 14, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #080808;
+    border: 1px solid #222222;
     border-radius: 12px;
     padding: 1.25rem;
     transition: all 0.2s ease;
 }
 
 .app-workspace-textarea-wrap:focus-within {
-    border-color: rgba(0, 242, 222, 0.35);
-    box-shadow: 0 0 0 3px rgba(0, 242, 222, 0.06), inset 0 2px 10px rgba(0, 0, 0, 0.4);
-    background: rgba(4, 7, 14, 0.9);
+    border-color: #00D9C0;
+    box-shadow: 0 0 0 2px rgba(0, 217, 192, 0.12), inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    background: #050505;
 }
 
 .app-workspace-textarea {
@@ -103,7 +94,7 @@
     min-height: 220px;
     background: transparent;
     border: none;
-    color: #ffffff;
+    color: #F5F5F5;
     font-family: inherit;
     font-size: 0.95rem;
     line-height: 1.7;
@@ -112,7 +103,7 @@
 }
 
 .app-workspace-textarea::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: #666666;
 }
 
 .app-workspace-textarea-actions {
@@ -131,17 +122,17 @@
     width: 32px;
     height: 32px;
     border-radius: 7px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.6);
+    background: #111111;
+    border: 1px solid #222222;
+    color: #A3A3A3;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .app-workspace-icon-btn:hover {
-    background: rgba(0, 242, 222, 0.12);
-    border-color: rgba(0, 242, 222, 0.25);
-    color: #00f2de;
+    background: rgba(0, 217, 192, 0.1);
+    border-color: rgba(0, 217, 192, 0.3);
+    color: #00D9C0;
 }
 
 .app-workspace-icon-btn.is-danger:hover {
@@ -156,12 +147,10 @@
     top: calc(100% + 8px);
     right: 0;
     width: 290px;
-    background: #0f1523;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0D0D0D;
+    border: 1px solid #1C1C1C;
     border-radius: 12px;
-    box-shadow:
-        0 16px 40px -8px rgba(0, 0, 0, 0.7),
-        0 0 0 1px rgba(0, 242, 222, 0.05);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
     padding: 0.5rem;
     z-index: 100;
     animation: appDropdownSlide 0.15s ease-out;
@@ -183,7 +172,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
     padding: 0.35rem 0.65rem 0.25rem;
 }
 
@@ -196,7 +185,7 @@
     border-radius: 8px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.8);
+    color: #A3A3A3;
     font-size: 0.82rem;
     text-align: left;
     cursor: pointer;
@@ -204,12 +193,12 @@
 }
 
 .app-workspace-example-item:hover {
-    background: rgba(0, 242, 222, 0.08);
-    color: #00f2de;
+    background: rgba(0, 217, 192, 0.08);
+    color: #00D9C0;
 }
 
 .app-workspace-example-item svg {
-    color: rgba(0, 242, 222, 0.6);
+    color: #00D9C0;
     flex-shrink: 0;
 }
 
@@ -220,12 +209,12 @@
     justify-content: space-between;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid #161616;
 }
 
 .app-workspace-char-count {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: #737373;
     font-variant-numeric: tabular-nums;
 }
 
@@ -238,7 +227,7 @@
 }
 
 .app-workspace-quality-indicator.quality-low { color: #f59e0b; }
-.app-workspace-quality-indicator.quality-medium { color: #00f2de; }
+.app-workspace-quality-indicator.quality-medium { color: #00D9C0; }
 .app-workspace-quality-indicator.quality-high { color: #10b981; }
 
 /* Config Controls */
@@ -248,8 +237,8 @@
     gap: 1.5rem;
     align-items: center;
     padding: 1.1rem 1.35rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #050505;
+    border: 1px solid #161616;
     border-radius: 12px;
 }
 
@@ -264,14 +253,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: rgba(255, 255, 255, 0.45);
+    color: #737373;
 }
 
 /* Segmented button */
 .app-workspace-segmented {
     display: inline-flex;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #000000;
+    border: 1px solid #1C1C1C;
     border-radius: 8px;
     padding: 3px;
     gap: 2px;
@@ -285,7 +274,7 @@
     border-radius: 6px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.65);
+    color: #A3A3A3;
     font-size: 0.82rem;
     font-weight: 500;
     cursor: pointer;
@@ -293,15 +282,15 @@
 }
 
 .app-workspace-seg-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.04);
+    color: #F5F5F5;
+    background: #111111;
 }
 
 .app-workspace-seg-btn.is-active {
-    background: rgba(0, 242, 222, 0.14);
-    color: #00f2de;
+    background: rgba(0, 217, 192, 0.1);
+    color: #00D9C0;
     font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 217, 192, 0.25);
 }
 
 /* AI Analyzes Tags */
@@ -317,14 +306,14 @@
     gap: 0.3rem;
     padding: 0.35rem 0.65rem;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #080808;
+    border: 1px solid #1A1A1A;
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: #A3A3A3;
 }
 
 .app-workspace-tag svg {
-    color: #00f2de;
+    color: #00D9C0;
 }
 
 /* Footer / Trigger Bar */
@@ -342,11 +331,11 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: #A3A3A3;
 }
 
 .app-workspace-pipeline svg {
-    color: #00f2de;
+    color: #00D9C0;
     flex-shrink: 0;
 }
 
@@ -357,7 +346,7 @@
 }
 
 .app-workspace-pipeline-steps .sep {
-    color: rgba(255, 255, 255, 0.25);
+    color: #525252;
 }
 
 .app-workspace-generate-btn {
@@ -365,35 +354,34 @@
     align-items: center;
     gap: 0.65rem;
     padding: 0.85rem 1.85rem;
-    background: linear-gradient(135deg, #00f2de 0%, #06b6d4 50%, #5b6cff 100%);
+    background: #00D9C0;
     border: none;
     border-radius: 10px;
-    color: #040812;
+    color: #000000;
     font-size: 0.95rem;
     font-weight: 700;
     letter-spacing: -0.01em;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0, 242, 222, 0.35);
+    box-shadow: 0 4px 20px rgba(0, 217, 192, 0.25);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .app-workspace-generate-btn:hover:not(:disabled) {
+    background: #14E5CC;
     transform: translateY(-1px);
-    box-shadow: 0 8px 28px rgba(0, 242, 222, 0.5);
-    filter: brightness(1.08);
+    box-shadow: 0 6px 24px rgba(0, 217, 192, 0.4);
 }
 
 .app-workspace-generate-btn:disabled {
     opacity: 0.35;
     cursor: not-allowed;
     box-shadow: none;
-    filter: grayscale(0.5);
 }
 
 /* ─── In-Page Processing State ─── */
 .app-workspace-processing {
-    background: #090d16;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0A0A0A;
+    border: 1px solid #1C1C1C;
     border-radius: 14px;
     padding: 3.5rem 2rem;
     text-align: center;
@@ -401,7 +389,7 @@
     flex-direction: column;
     align-items: center;
     gap: 2rem;
-    box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
 .app-workspace-processing-badge {
@@ -410,9 +398,9 @@
     gap: 0.5rem;
     padding: 0.35rem 0.9rem;
     border-radius: 9999px;
-    background: rgba(0, 242, 222, 0.08);
-    border: 1px solid rgba(0, 242, 222, 0.25);
-    color: #00f2de;
+    background: rgba(0, 217, 192, 0.08);
+    border: 1px solid rgba(0, 217, 192, 0.25);
+    color: #00D9C0;
     font-size: 0.78rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -422,14 +410,14 @@
 .app-workspace-processing-title {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #F5F5F5;
     letter-spacing: -0.02em;
     margin: 0;
 }
 
 .app-workspace-processing-sub {
     font-size: 0.92rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #A3A3A3;
     margin: 0.35rem 0 0;
     max-width: 540px;
 }
@@ -437,8 +425,8 @@
 .app-workspace-stepper {
     width: 100%;
     max-width: 640px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #050505;
+    border: 1px solid #161616;
     border-radius: 14px;
     padding: 1.5rem 1.75rem;
     text-align: left;
@@ -451,17 +439,17 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
     font-size: 0.88rem;
     transition: all 0.2s ease;
 }
 
 .app-workspace-step.is-completed {
-    color: rgba(255, 255, 255, 0.85);
+    color: #F5F5F5;
 }
 
 .app-workspace-step.is-active {
-    color: #00f2de;
+    color: #00D9C0;
     font-weight: 600;
 }
 
@@ -472,23 +460,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #111111;
+    border: 1px solid #222222;
     font-size: 0.75rem;
     flex-shrink: 0;
 }
 
 .app-workspace-step.is-completed .app-workspace-step-num {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.4);
-    color: #10b981;
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #22C55E;
 }
 
 .app-workspace-step.is-active .app-workspace-step-num {
-    background: rgba(0, 242, 222, 0.2);
-    border-color: rgba(0, 242, 222, 0.5);
-    color: #00f2de;
-    box-shadow: 0 0 12px rgba(0, 242, 222, 0.4);
+    background: rgba(0, 217, 192, 0.15);
+    border-color: rgba(0, 217, 192, 0.5);
+    color: #00D9C0;
 }
 
 .app-workspace-step-text {
@@ -497,11 +484,11 @@
 
 .app-workspace-step-badge {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
 }
 
 .app-workspace-step.is-active .app-workspace-step-badge {
-    color: #00f2de;
+    color: #00D9C0;
 }
 
 @media (max-width: 900px) {
@@ -609,14 +596,6 @@
         padding: 0.45rem 0.5rem;
         font-size: 0.75rem;
         min-width: 60px;
-    }
-
-    .app-workspace-depth-pill {
-        flex: 1;
-    }
-
-    .app-workspace-depth-pill .app-workspace-seg-btn {
-        width: 100%;
     }
 
     .app-workspace-tags-list {

@@ -215,7 +215,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                                         <span style={{ color: '#00f2de', fontWeight: '600' }}>342 / 1000</span>
                                                     </div>
                                                     <div className="dropdown-usage-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                                                        <div className="dropdown-usage-progress" style={{ width: '34.2%', height: '100%', background: 'linear-gradient(90deg, #00f2de, #5b6cff)', borderRadius: '2px' }} />
+                                                        <div className="dropdown-usage-progress" style={{ width: '34.2%', height: '100%', background: '#00D9C0', borderRadius: '2px' }} />
                                                     </div>
                                                 </div>
                                             </div>

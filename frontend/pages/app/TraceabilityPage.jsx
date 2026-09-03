@@ -22,15 +22,15 @@ const TraceabilityPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#F5F5F5', margin: 0 }}>
                         Requirement Traceability Graph
                     </h1>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.5)', margin: '0.25rem 0 0' }}>
+                    <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
                         End-to-end bidirectional traceability between business requirements and execution test cases
                     </p>
                 </div>
 
-                <NavLink to="/app/workspace" className="tn-btn-new-suite">
+                <NavLink to="/app/workspace" className="app-workspace-session-btn primary" style={{ padding: '0.65rem 1.15rem' }}>
                     <span>+ New Traceability Map</span>
                 </NavLink>
             </div>
@@ -40,21 +40,21 @@ const TraceabilityPage = () => {
                     <div
                         key={req.reqId}
                         style={{
-                            background: '#090d16',
+                            background: '#0A0A0A',
                             borderRadius: '12px',
-                            border: '1px solid rgba(255,255,255,0.07)',
+                            border: '1px solid #1C1C1C',
                             padding: '1.25rem'
                         }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ color: '#00f2de', fontWeight: '700', fontSize: '0.85rem' }}>{req.reqId}</span>
-                                <h3 style={{ color: '#ffffff', fontSize: '1.1rem', margin: 0, fontWeight: '600' }}>{req.title}</h3>
+                                <span style={{ color: '#00D9C0', fontWeight: '700', fontSize: '0.85rem' }}>{req.reqId}</span>
+                                <h3 style={{ color: '#F5F5F5', fontSize: '1.1rem', margin: 0, fontWeight: '600' }}>{req.title}</h3>
                             </div>
-                            <span style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: '600' }}>{req.status}</span>
+                            <span style={{ color: '#22C55E', fontSize: '0.75rem', fontWeight: '600' }}>{req.status}</span>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1rem', borderLeft: '2px solid rgba(0,242,222,0.2)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1rem', borderLeft: '2px solid rgba(0, 217, 192, 0.25)' }}>
                             {req.tests.map((tc) => (
                                 <div
                                     key={tc.id}
@@ -64,17 +64,17 @@ const TraceabilityPage = () => {
                                         justifyContent: 'space-between',
                                         flexWrap: 'wrap',
                                         gap: '0.5rem',
-                                        background: 'rgba(255,255,255,0.02)',
+                                        background: '#050505',
                                         padding: '0.65rem 0.85rem',
                                         borderRadius: '8px',
-                                        border: '1px solid rgba(255,255,255,0.04)'
+                                        border: '1px solid #161616'
                                     }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: '1', minWidth: '180px' }}>
-                                        <span style={{ color: '#00f2de', fontWeight: '600', fontSize: '0.78rem' }}>{tc.id}</span>
-                                        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.82rem' }}>{tc.title}</span>
+                                        <span style={{ color: '#00D9C0', fontWeight: '600', fontSize: '0.78rem' }}>{tc.id}</span>
+                                        <span style={{ color: '#A3A3A3', fontSize: '0.82rem' }}>{tc.title}</span>
                                     </div>
-                                    <span style={{ fontSize: '0.72rem', color: '#00f2de', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(0,242,222,0.08)', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#00D9C0', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(0, 217, 192, 0.08)', border: '1px solid rgba(0, 217, 192, 0.2)', flexShrink: 0 }}>
                                         {tc.type}
                                     </span>
                                 </div>

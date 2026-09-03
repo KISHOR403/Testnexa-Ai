@@ -76,7 +76,7 @@ const AppHeader = ({ onToggleMobile }) => {
                 <div
                     className="app-header__btn"
                     title="User Profile"
-                    style={{ background: 'linear-gradient(135deg, rgba(0, 242, 222, 0.2), rgba(91, 108, 255, 0.2))', color: '#00f2de', fontWeight: '700', fontSize: '0.78rem' }}
+                    style={{ background: '#111111', border: '1px solid #1C1C1C', color: '#00D9C0', fontWeight: '700', fontSize: '0.78rem' }}
                 >
                     {initials}
                 </div>

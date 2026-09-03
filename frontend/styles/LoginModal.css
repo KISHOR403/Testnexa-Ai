@@ -31,12 +31,10 @@
     width: 100%;
     max-width: 440px;
     padding: 2.5rem;
-    background: rgba(15, 15, 20, 0.95);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: #0D0D0D;
+    border: 1px solid #1C1C1C;
     border-radius: 20px;
-    box-shadow:
-        0 0 60px rgba(139, 92, 246, 0.15),
-        0 20px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
     animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

@@ -1,6 +1,6 @@
 /* ==========================================================================
    TESTNEXA WORKSPACE HISTORY PAGE STYLES
-   Enterprise Dark SaaS Aesthetic
+   True Black / Neutral Black Enterprise QA Platform Design System
    ========================================================================== */
 
 .tn-history-page {
@@ -28,9 +28,9 @@
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.08em;
-    color: #00f2de;
-    background: rgba(0, 242, 222, 0.08);
-    border: 1px solid rgba(0, 242, 222, 0.2);
+    color: #00D9C0;
+    background: rgba(0, 217, 192, 0.08);
+    border: 1px solid rgba(0, 217, 192, 0.2);
     padding: 0.2rem 0.55rem;
     border-radius: 20px;
     margin-bottom: 0.45rem;
@@ -39,14 +39,14 @@
 .tn-history-title {
     font-size: 1.75rem;
     font-weight: 800;
-    color: #ffffff;
+    color: #F5F5F5;
     letter-spacing: -0.02em;
     margin: 0;
 }
 
 .tn-history-subtitle {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: #A3A3A3;
     margin: 0.35rem 0 0;
     max-width: 650px;
     line-height: 1.45;
@@ -57,22 +57,24 @@
     align-items: center;
     gap: 0.45rem;
     padding: 0.65rem 1.15rem;
-    background: linear-gradient(135deg, #00f2de 0%, #00b4d8 100%);
-    color: #040914;
+    background: #00D9C0;
+    color: #000000;
     font-weight: 700;
     font-size: 0.85rem;
-    border: none;
+    border: 1px solid #00D9C0;
     border-radius: 8px;
     cursor: pointer;
     text-decoration: none;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 15px rgba(0, 242, 222, 0.25);
+    box-shadow: 0 4px 15px rgba(0, 217, 192, 0.2);
     white-space: nowrap;
 }
 
 .tn-history-new-btn:hover {
+    background: #14E5CC;
+    border-color: #14E5CC;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 242, 222, 0.35);
+    box-shadow: 0 6px 20px rgba(0, 217, 192, 0.35);
 }
 
 /* ─── Controls Bar (Search + Tabs + Selects) ─── */
@@ -82,18 +84,18 @@
     justify-content: space-between;
     gap: 0.85rem;
     flex-wrap: wrap;
-    background: #090d16;
+    background: #0A0A0A;
     padding: 0.85rem 1rem;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid #1C1C1C;
 }
 
 .tn-history-search-wrap {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #050505;
+    border: 1px solid #222222;
     border-radius: 8px;
     padding: 0.45rem 0.75rem;
     flex: 1;
@@ -102,32 +104,32 @@
 }
 
 .tn-history-search-wrap:focus-within {
-    border-color: rgba(0, 242, 222, 0.4);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: #00D9C0;
+    background: #000000;
 }
 
 .tn-history-search-icon {
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
     flex-shrink: 0;
 }
 
 .tn-history-search-input {
     background: transparent;
     border: none;
-    color: #ffffff;
+    color: #F5F5F5;
     font-size: 0.84rem;
     width: 100%;
     outline: none;
 }
 
 .tn-history-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: #666666;
 }
 
 .tn-history-search-clear {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
     cursor: pointer;
     padding: 0.1rem;
     display: flex;
@@ -135,23 +137,23 @@
 }
 
 .tn-history-search-clear:hover {
-    color: #ffffff;
+    color: #F5F5F5;
 }
 
 /* ─── Status Tabs ─── */
 .tn-history-tabs {
     display: flex;
     gap: 0.25rem;
-    background: rgba(255, 255, 255, 0.03);
+    background: #050505;
     padding: 0.25rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid #1A1A1A;
 }
 
 .tn-history-tab {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.55);
+    color: #A3A3A3;
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.4rem 0.75rem;
@@ -161,14 +163,14 @@
 }
 
 .tn-history-tab:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.04);
+    color: #F5F5F5;
+    background: #111111;
 }
 
 .tn-history-tab.active {
-    color: #00f2de;
-    background: rgba(0, 242, 222, 0.1);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    color: #00D9C0;
+    background: rgba(0, 217, 192, 0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* ─── Selects ─── */
@@ -179,9 +181,9 @@
 }
 
 .tn-history-select {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
+    background: #050505;
+    border: 1px solid #222222;
+    color: #A3A3A3;
     font-size: 0.8rem;
     padding: 0.45rem 0.75rem;
     border-radius: 8px;
@@ -191,12 +193,13 @@
 }
 
 .tn-history-select:focus {
-    border-color: rgba(0, 242, 222, 0.4);
+    border-color: #00D9C0;
+    color: #F5F5F5;
 }
 
 .tn-history-select option {
-    background: #0d1322;
-    color: #ffffff;
+    background: #0A0A0A;
+    color: #F5F5F5;
 }
 
 /* ─── Sessions List ─── */
@@ -211,8 +214,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 1.25rem;
-    background: #090d16;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: #0A0A0A;
+    border: 1px solid #1C1C1C;
     border-radius: 12px;
     padding: 1.15rem 1.35rem;
     cursor: pointer;
@@ -221,19 +224,19 @@
 }
 
 .tn-history-card:hover {
-    border-color: rgba(0, 242, 222, 0.3);
-    background: #0c1220;
+    border-color: #292929;
+    background: #121212;
     transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
 }
 
 .tn-history-card.is-archived {
-    opacity: 0.65;
-    background: #070a12;
+    opacity: 0.6;
+    background: #070707;
 }
 
 .tn-history-card.is-archived:hover {
-    opacity: 0.95;
+    opacity: 0.9;
 }
 
 .tn-history-card-body {
@@ -266,7 +269,7 @@
 .tn-history-card-title {
     font-size: 1.05rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #F5F5F5;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -274,13 +277,13 @@
 }
 
 .tn-history-card:hover .tn-history-card-title {
-    color: #00f2de;
+    color: #00D9C0;
 }
 
 .tn-history-rename-btn {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.3);
+    color: #737373;
     cursor: pointer;
     padding: 0.2rem;
     border-radius: 4px;
@@ -295,8 +298,8 @@
 }
 
 .tn-history-rename-btn:hover {
-    color: #00f2de;
-    background: rgba(0, 242, 222, 0.1);
+    color: #00D9C0;
+    background: rgba(0, 217, 192, 0.1);
 }
 
 /* Inline Edit */
@@ -307,10 +310,10 @@
 }
 
 .tn-history-edit-input {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid #00f2de;
+    background: #050505;
+    border: 1px solid #00D9C0;
     border-radius: 6px;
-    color: #ffffff;
+    color: #F5F5F5;
     font-size: 0.95rem;
     padding: 0.25rem 0.55rem;
     outline: none;
@@ -318,21 +321,21 @@
 }
 
 .tn-history-edit-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #111111;
+    border: 1px solid #222222;
     border-radius: 5px;
     padding: 0.3rem;
     cursor: pointer;
     display: flex;
     align-items: center;
-    color: rgba(255, 255, 255, 0.7);
+    color: #A3A3A3;
     transition: all 0.15s ease;
 }
 
 .tn-history-edit-btn.confirm:hover {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
-    border-color: #10b981;
+    background: rgba(34, 197, 94, 0.2);
+    color: #22C55E;
+    border-color: #22C55E;
 }
 
 .tn-history-edit-btn.cancel:hover {
@@ -356,26 +359,27 @@
     letter-spacing: 0.05em;
     padding: 0.18rem 0.5rem;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
+    background: #111111;
+    color: #737373;
+    border: 1px solid #222222;
 }
 
 .tn-history-status-pill.generated {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    background: rgba(34, 197, 94, 0.1);
+    color: #22C55E;
+    border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
 .tn-history-status-pill.draft {
-    background: rgba(245, 158, 11, 0.12);
-    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
     border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .tn-history-status-pill.archived {
-    background: rgba(148, 163, 184, 0.12);
-    color: #94a3b8;
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: #111111;
+    color: #737373;
+    border: 1px solid #1C1C1C;
 }
 
 .tn-history-context-pill {
@@ -384,15 +388,15 @@
     letter-spacing: 0.06em;
     padding: 0.18rem 0.45rem;
     border-radius: 4px;
-    background: rgba(0, 242, 222, 0.08);
-    color: #00f2de;
-    border: 1px solid rgba(0, 242, 222, 0.2);
+    background: rgba(0, 217, 192, 0.08);
+    color: #00D9C0;
+    border: 1px solid rgba(0, 217, 192, 0.2);
 }
 
 /* Requirement Text Excerpt */
 .tn-history-card-requirement {
     font-size: 0.84rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: #A3A3A3;
     margin: 0;
     line-height: 1.45;
     white-space: nowrap;
@@ -401,7 +405,7 @@
 }
 
 .tn-history-empty-req {
-    color: rgba(255, 255, 255, 0.3);
+    color: #525252;
     font-style: italic;
 }
 
@@ -412,7 +416,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding-top: 0.35rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    border-top: 1px solid #161616;
 }
 
 .tn-history-meta-stats {
@@ -427,29 +431,32 @@
     align-items: center;
     gap: 0.35rem;
     font-size: 0.74rem;
-    color: rgba(255, 255, 255, 0.75);
-    background: rgba(255, 255, 255, 0.03);
+    color: #A3A3A3;
+    background: #050505;
+    border: 1px solid #1A1A1A;
     padding: 0.18rem 0.55rem;
     border-radius: 5px;
 }
 
 .tn-history-stat-pill strong {
-    color: #ffffff;
+    color: #F5F5F5;
 }
 
 .tn-history-stat-pill.sub {
-    color: rgba(255, 255, 255, 0.45);
+    color: #737373;
 }
 
 .tn-history-stat-pill.version {
-    color: #a78bfa;
-    background: rgba(167, 139, 250, 0.1);
+    color: #00D9C0;
+    background: #111111;
+    border: 1px solid rgba(0, 217, 192, 0.25);
     font-weight: 700;
 }
 
 .tn-history-stat-pill.confidence {
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
+    color: #22C55E;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
     font-weight: 600;
 }
 
@@ -458,7 +465,7 @@
     align-items: center;
     gap: 0.35rem;
     font-size: 0.74rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: #737373;
     flex-shrink: 0;
 }
 
@@ -477,18 +484,18 @@
     padding: 0.45rem 0.85rem;
     font-size: 0.8rem;
     font-weight: 700;
-    background: rgba(0, 242, 222, 0.1);
-    color: #00f2de;
-    border: 1px solid rgba(0, 242, 222, 0.25);
+    background: #111111;
+    color: #00D9C0;
+    border: 1px solid #252525;
     border-radius: 7px;
     text-decoration: none;
     transition: all 0.15s ease;
 }
 
 .tn-history-action-btn.primary:hover {
-    background: rgba(0, 242, 222, 0.2);
-    border-color: #00f2de;
-    color: #ffffff;
+    background: #00D9C0;
+    border-color: #00D9C0;
+    color: #000000;
 }
 
 .tn-history-icon-btn {
@@ -497,23 +504,23 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.5);
+    background: #111111;
+    border: 1px solid #222222;
+    color: #737373;
     border-radius: 7px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .tn-history-icon-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    color: #F5F5F5;
+    background: #181818;
+    border-color: #333333;
 }
 
 .tn-history-icon-btn.is-archived {
-    color: #00f2de;
-    border-color: rgba(0, 242, 222, 0.3);
+    color: #00D9C0;
+    border-color: rgba(0, 217, 192, 0.3);
 }
 
 .tn-history-icon-btn.danger:hover {
@@ -531,11 +538,11 @@
 
 .tn-history-skeleton-card {
     height: 98px;
-    background: linear-gradient(90deg, #090d16 25%, #0e1626 50%, #090d16 75%);
+    background: linear-gradient(90deg, #0A0A0A 25%, #151515 50%, #0A0A0A 75%);
     background-size: 200% 100%;
     animation: skeleton-pulse 1.6s infinite ease-in-out;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid #1C1C1C;
 }
 
 @keyframes skeleton-pulse {
@@ -552,8 +559,8 @@
     justify-content: center;
     text-align: center;
     padding: 3.5rem 1.5rem;
-    background: #090d16;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: #0A0A0A;
+    border: 1px solid #1C1C1C;
     border-radius: 14px;
 }
 
@@ -561,9 +568,9 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: rgba(0, 242, 222, 0.08);
-    border: 1px solid rgba(0, 242, 222, 0.2);
-    color: #00f2de;
+    background: rgba(0, 217, 192, 0.08);
+    border: 1px solid rgba(0, 217, 192, 0.2);
+    color: #00D9C0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -574,14 +581,14 @@
 .tn-history-error-card h3 {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #F5F5F5;
     margin: 0 0 0.5rem;
 }
 
 .tn-history-empty-card p,
 .tn-history-error-card p {
     font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #737373;
     max-width: 440px;
     margin: 0 0 1.5rem;
     line-height: 1.5;
@@ -592,9 +599,9 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.55rem 1rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    background: #111111;
+    border: 1px solid #222222;
+    color: #F5F5F5;
     font-size: 0.82rem;
     font-weight: 600;
     border-radius: 7px;
@@ -603,14 +610,15 @@
 }
 
 .tn-history-retry-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: #181818;
+    border-color: #333333;
 }
 
 /* ─── Delete Confirmation Modal ─── */
 .tn-history-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(5px);
     display: flex;
     align-items: center;
@@ -620,12 +628,12 @@
 }
 
 .tn-history-modal {
-    background: #0d1322;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0D0D0D;
+    border: 1px solid #222222;
     border-radius: 14px;
     max-width: 460px;
     width: 100%;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
     overflow: hidden;
     animation: modal-scale 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -658,13 +666,13 @@
 .tn-history-modal-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #F5F5F5;
     margin: 0 0 0.25rem;
 }
 
 .tn-history-modal-subtitle {
     font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: #A3A3A3;
     margin: 0;
     word-break: break-word;
 }
@@ -672,7 +680,7 @@
 .tn-history-modal-body {
     padding: 0 1.35rem 1.25rem;
     font-size: 0.84rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: #737373;
     line-height: 1.5;
 }
 
@@ -682,8 +690,8 @@
     justify-content: flex-end;
     gap: 0.65rem;
     padding: 0.85rem 1.35rem;
-    background: rgba(0, 0, 0, 0.25);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: #080808;
+    border-top: 1px solid #1A1A1A;
 }
 
 .tn-history-modal-btn {
@@ -697,13 +705,13 @@
 
 .tn-history-modal-btn.cancel {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #222222;
+    color: #A3A3A3;
 }
 
 .tn-history-modal-btn.cancel:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.05);
+    color: #F5F5F5;
+    background: #111111;
 }
 
 .tn-history-modal-btn.delete {
@@ -732,7 +740,7 @@
 
     .tn-history-card-actions {
         justify-content: flex-end;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        border-top: 1px solid #161616;
         padding-top: 0.65rem;
     }
 

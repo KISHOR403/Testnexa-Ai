@@ -47,10 +47,10 @@ const TestSuitesListPage = () => {
         id: item.id || `suite-${idx + 1}`,
         title: item.feature || item.requirement?.slice(0, 40) || `Test Suite #${idx + 1}`,
         reqId: `REQ-00${idx + 1}`,
-        testsCount: item.suite?.summary?.total || 18,
+        testsCount: item.suite?.summary?.total || item.totalCases || 18,
         coverage: item.suite?.summary?.requirementCoverage || '94%',
         highRisk: item.suite?.summary?.highPriority || 3,
-        status: 'Needs Review',
+        status: item.status || 'Needs Review',
         date: new Date(item.date || Date.now()).toLocaleDateString()
     }));
 
@@ -66,29 +66,29 @@ const TestSuitesListPage = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#F5F5F5', margin: 0 }}>
                         All Test Suites
                     </h1>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.5)', margin: '0.25rem 0 0' }}>
+                    <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
                         Manage, review and export generated enterprise test suites
                     </p>
                 </div>
 
-                <NavLink to="/app/workspace" className="tn-btn-new-suite">
+                <NavLink to="/app/workspace" className="app-workspace-session-btn primary" style={{ padding: '0.65rem 1.15rem' }}>
                     <Plus size={16} />
                     <span>+ New Test Suite</span>
                 </NavLink>
             </div>
 
             {/* Search Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#090d16', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <Search size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#0A0A0A', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #1C1C1C' }}>
+                <Search size={16} style={{ color: '#737373' }} />
                 <input
                     type="text"
                     placeholder="Search test suites by title or requirement ID..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    style={{ background: 'transparent', border: 'none', color: '#ffffff', outline: 'none', width: '100%', fontSize: '0.88rem' }}
+                    style={{ background: 'transparent', border: 'none', color: '#F5F5F5', outline: 'none', width: '100%', fontSize: '0.88rem' }}
                 />
             </div>
 
@@ -98,8 +98,8 @@ const TestSuitesListPage = () => {
                     <div
                         key={suite.id}
                         style={{
-                            background: '#090d16',
-                            border: '1px solid rgba(255,255,255,0.07)',
+                            background: '#0A0A0A',
+                            border: '1px solid #1C1C1C',
                             borderRadius: '12px',
                             padding: '1.25rem',
                             display: 'flex',
@@ -109,15 +109,16 @@ const TestSuitesListPage = () => {
                         }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#00f2de', letterSpacing: '0.05em' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#00D9C0', letterSpacing: '0.05em' }}>
                                 {suite.reqId}
                             </span>
                             <span style={{
                                 fontSize: '0.72rem',
                                 padding: '0.15rem 0.5rem',
                                 borderRadius: '4px',
-                                background: suite.status === 'Approved' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                                color: suite.status === 'Approved' ? '#10b981' : '#f59e0b',
+                                background: suite.status === 'Approved' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
+                                color: suite.status === 'Approved' ? '#22C55E' : '#F59E0B',
+                                border: suite.status === 'Approved' ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(245,158,11,0.25)',
                                 fontWeight: '600'
                             }}>
                                 {suite.status}
@@ -125,23 +126,23 @@ const TestSuitesListPage = () => {
                         </div>
 
                         <div>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#ffffff', margin: 0 }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
                                 {suite.title}
                             </h3>
-                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem', display: 'block' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem', display: 'block' }}>
                                 Generated {suite.date}
                             </span>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid #161616', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
                             <div>
-                                <strong style={{ color: '#ffffff' }}>{suite.testsCount}</strong> <span style={{ color: 'rgba(255,255,255,0.4)' }}>Tests</span>
+                                <strong style={{ color: '#F5F5F5' }}>{suite.testsCount}</strong> <span style={{ color: '#737373' }}>Tests</span>
                             </div>
                             <div>
-                                <strong style={{ color: '#00f2de' }}>{suite.coverage}</strong> <span style={{ color: 'rgba(255,255,255,0.4)' }}>Coverage</span>
+                                <strong style={{ color: '#00D9C0' }}>{suite.coverage}</strong> <span style={{ color: '#737373' }}>Coverage</span>
                             </div>
                             <div>
-                                <strong style={{ color: '#f59e0b' }}>{suite.highRisk}</strong> <span style={{ color: 'rgba(255,255,255,0.4)' }}>High Risk</span>
+                                <strong style={{ color: '#F59E0B' }}>{suite.highRisk}</strong> <span style={{ color: '#737373' }}>High Risk</span>
                             </div>
                         </div>
 
@@ -153,7 +154,7 @@ const TestSuitesListPage = () => {
                                     alignItems: 'center',
                                     gap: '0.35rem',
                                     fontSize: '0.82rem',
-                                    color: '#00f2de',
+                                    color: '#00D9C0',
                                     textDecoration: 'none',
                                     fontWeight: '600'
                                 }}

@@ -14,15 +14,15 @@ const RisksPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#F5F5F5', margin: 0 }}>
                         Risk Vectors & Security Analysis
                     </h1>
-                    <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.5)', margin: '0.25rem 0 0' }}>
+                    <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
                         Automated AI vulnerability surface detection and mitigation test suites
                     </p>
                 </div>
 
-                <NavLink to="/app/workspace" className="tn-btn-new-suite">
+                <NavLink to="/app/workspace" className="app-workspace-session-btn primary" style={{ padding: '0.65rem 1.15rem' }}>
                     <span>+ New Security Audit</span>
                 </NavLink>
             </div>
@@ -32,8 +32,8 @@ const RisksPage = () => {
                     <div
                         key={idx}
                         style={{
-                            background: '#090d16',
-                            border: '1px solid rgba(255,255,255,0.07)',
+                            background: '#0A0A0A',
+                            border: '1px solid #1C1C1C',
                             borderRadius: '12px',
                             padding: '1.25rem',
                             display: 'flex',
@@ -48,25 +48,26 @@ const RisksPage = () => {
                                 borderRadius: '4px',
                                 background: item.level === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
                                 color: item.level === 'Critical' ? '#ef4444' : '#f59e0b',
-                                fontWeight: '700'
+                                fontWeight: '700',
+                                border: item.level === 'Critical' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(245,158,11,0.25)'
                             }}>
                                 {item.level} Risk
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{item.category}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#737373' }}>{item.category}</span>
                         </div>
 
                         <div>
-                            <h3 style={{ fontSize: '1.05rem', fontWeight: '600', color: '#ffffff', margin: '0 0 0.4rem' }}>
+                            <h3 style={{ fontSize: '1.05rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.4rem' }}>
                                 {item.title}
                             </h3>
-                            <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)', margin: 0, lineHeight: 1.5 }}>
+                            <p style={{ fontSize: '0.82rem', color: '#A3A3A3', margin: 0, lineHeight: 1.5 }}>
                                 {item.desc}
                             </p>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
-                            <span style={{ color: '#00f2de', fontWeight: '600' }}>Linked Test: {item.linkedTc}</span>
-                            <NavLink to="/app/test-suites/password-reset" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #161616', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
+                            <span style={{ color: '#00D9C0', fontWeight: '600' }}>Linked Test: {item.linkedTc}</span>
+                            <NavLink to="/app/test-suites/password-reset" style={{ color: '#737373', textDecoration: 'none' }}>
                                 Inspect Test →
                             </NavLink>
                         </div>

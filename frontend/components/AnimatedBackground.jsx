@@ -10,10 +10,8 @@ const AnimatedBackground = () => {
         <div className="tn-bg-root" aria-hidden="true">
             {/* Base gradient layer */}
             <div className="tn-bg-base" />
-            {/* Teal radial glow — top center */}
+            {/* Subtle cyan ambient glow — top center */}
             <div className="tn-bg-glow tn-bg-glow--teal" />
-            {/* Violet radial glow — bottom right */}
-            <div className="tn-bg-glow tn-bg-glow--violet" />
             {/* Subtle dot grid */}
             <div className="tn-bg-grid" />
             {/* Noise/grain texture overlay */}
