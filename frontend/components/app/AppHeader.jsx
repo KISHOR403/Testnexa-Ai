@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { useLocation, NavLink } from 'react-router-dom';
+import React from 'react';
+import { useLocation, NavLink, useNavigate } from 'react-router-dom';
 import {
     Menu, ChevronRight, HelpCircle, Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import ProfileModal from '../ProfileModal';
 
 const AppHeader = ({ onToggleMobile }) => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { user } = useAuth();
 
-    // Determine breadcrumbs based on pathname
+    // Determine breadcrumbs based on pathname and search
     const getBreadcrumb = () => {
         const path = location.pathname;
         if (path.includes('/app/workspace')) {
@@ -34,15 +34,24 @@ const AppHeader = ({ onToggleMobile }) => {
             return { section: 'Analysis', current: 'Requirement Traceability', link: '/app/traceability' };
         }
         if (path.includes('/app/settings')) {
-            return { section: 'System', current: 'Settings', link: '/app/settings' };
+            const searchParams = new URLSearchParams(location.search);
+            const tab = searchParams.get('tab') || 'profile';
+            const tabLabels = {
+                profile: 'Profile',
+                preferences: 'Preferences',
+                billing: 'Billing & Usage',
+                security: 'Security',
+                workspace: 'Workspace Settings',
+                members: 'Members',
+                integrations: 'Integrations'
+            };
+            return { section: 'Settings', current: tabLabels[tab] || 'Profile', link: '/app/settings' };
         }
         return { section: 'Application', current: 'Workspace', link: '/app/workspace' };
     };
 
     const breadcrumb = getBreadcrumb();
     const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0).toUpperCase();
-
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     return (
         <header className="app-header">
@@ -78,8 +87,8 @@ const AppHeader = ({ onToggleMobile }) => {
                 <button
                     type="button"
                     className="app-header__btn"
-                    title="Profile & Settings"
-                    onClick={() => setIsProfileModalOpen(true)}
+                    title="Account Settings"
+                    onClick={() => navigate('/app/settings?tab=profile')}
                     style={{
                         background: '#111111',
                         border: '1px solid #1C1C1C',
@@ -91,11 +100,6 @@ const AppHeader = ({ onToggleMobile }) => {
                 >
                     {initials}
                 </button>
-
-                <ProfileModal
-                    isOpen={isProfileModalOpen}
-                    onClose={() => setIsProfileModalOpen(false)}
-                />
             </div>
         </header>
     );

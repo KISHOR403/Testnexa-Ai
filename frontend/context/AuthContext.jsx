@@ -191,9 +191,45 @@ export const AuthProvider = ({ children }) => {
         return guestGenerationsUsed < GUEST_LIMIT;
     };
 
+    const updateProfile = async (data) => {
+        try {
+            const token = localStorage.getItem('testnexa_token');
+            const response = await axios.put(`${API_URL}/auth/update-profile`, data, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data.success) {
+                setUser(response.data.user);
+                localStorage.setItem('testnexa_user', JSON.stringify(response.data.user));
+                return { success: true, user: response.data.user };
+            }
+            return { success: false, message: response.data.message || 'Update failed' };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Failed to update profile'
+            };
+        }
+    };
+
+    const changePassword = async (passwords) => {
+        try {
+            const token = localStorage.getItem('testnexa_token');
+            const response = await axios.put(`${API_URL}/auth/change-password`, passwords, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Failed to update password'
+            };
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
+            setUser,
             isAuthenticated,
             isLoading,
             login,
@@ -203,6 +239,8 @@ export const AuthProvider = ({ children }) => {
             logout,
             forgotPassword,
             resetPassword,
+            updateProfile,
+            changePassword,
             checkAuth,
             pendingAction,
             setPendingAction,

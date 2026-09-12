@@ -223,3 +223,72 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+exports.updateProfile = async (req, res) => {
+    try {
+        checkConnection();
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+        const { name } = req.body;
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        if (name && name.trim()) {
+            user.name = name.trim();
+            user.displayName = name.trim();
+        }
+        await user.save();
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name || user.displayName,
+                email: user.email,
+                avatar: user.avatar,
+                provider: user.provider || 'email',
+                lastLogin: user.lastLogin,
+                loginCount: user.loginCount,
+                totalTestsGenerated: user.totalTestsGenerated,
+                createdAt: user.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        checkConnection();
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+        const { currentPassword, newPassword } = req.body;
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+        }
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        if (user.password) {
+            if (!currentPassword) {
+                return res.status(400).json({ success: false, message: 'Please provide your current password' });
+            }
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+            }
+        }
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+        res.json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

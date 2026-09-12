@@ -71,4 +71,8 @@ router.post('/logout', (req, res) => {
 // Get Current User Route
 router.get('/me', protect, authController.getMe);
 
+// Update Profile & Password
+router.put('/update-profile', protect, authController.updateProfile);
+router.put('/change-password', protect, authController.changePassword);
+
 module.exports = router;

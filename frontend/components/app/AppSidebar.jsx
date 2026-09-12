@@ -7,8 +7,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
-import ProfileModal from '../ProfileModal';
-import UpgradeModal from '../UpgradeModal';
 import '../../styles/app/AppSidebar.css';
 
 const formatTimeAgo = (dateInput) => {
@@ -34,8 +32,6 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
     const navigate = useNavigate();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const userMenuRef = useRef(null);
 
     // Close menu when clicking outside or pressing Escape
@@ -288,28 +284,14 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             className="gpt-profile-popup-item"
                             onClick={() => {
                                 setIsMenuOpen(false);
-                                setIsProfileModalOpen(true);
+                                navigate('/app/settings?tab=profile');
+                                if (onCloseMobile) onCloseMobile();
                             }}
                         >
                             <div className="gpt-popup-icon-wrap">
                                 <User size={15} />
                             </div>
-                            <span>Profile & Account</span>
-                            <ArrowRight size={13} className="gpt-popup-arrow" />
-                        </button>
-
-                        <button
-                            type="button"
-                            className="gpt-profile-popup-item gpt-upgrade-item"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                setIsUpgradeModalOpen(true);
-                            }}
-                        >
-                            <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
-                                <Award size={15} />
-                            </div>
-                            <span style={{ color: '#00D9C0', fontWeight: 600 }}>Upgrade Plan</span>
+                            <span>Profile</span>
                             <ArrowRight size={13} className="gpt-popup-arrow" />
                         </button>
 
@@ -318,7 +300,55 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             className="gpt-profile-popup-item"
                             onClick={() => {
                                 setIsMenuOpen(false);
-                                navigate('/app/settings');
+                                navigate('/app/settings?tab=preferences');
+                                if (onCloseMobile) onCloseMobile();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap">
+                                <Settings size={15} />
+                            </div>
+                            <span>Preferences</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item gpt-upgrade-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                navigate('/app/settings?tab=billing');
+                                if (onCloseMobile) onCloseMobile();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
+                                <Award size={15} />
+                            </div>
+                            <span style={{ color: '#00D9C0', fontWeight: 600 }}>Billing & Usage</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                navigate('/app/settings?tab=security');
+                                if (onCloseMobile) onCloseMobile();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap">
+                                <ShieldCheck size={15} />
+                            </div>
+                            <span>Security</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                navigate('/app/settings?tab=workspace');
                                 if (onCloseMobile) onCloseMobile();
                             }}
                         >
@@ -358,7 +388,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             <div className="gpt-popup-icon-wrap gpt-logout-icon">
                                 <LogOut size={15} />
                             </div>
-                            <span>Log out</span>
+                            <span>Sign out</span>
                         </button>
                     </div>
                 )}
@@ -396,16 +426,6 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                         </>
                     )}
                 </div>
-
-                {/* Account Modals */}
-                <ProfileModal
-                    isOpen={isProfileModalOpen}
-                    onClose={() => setIsProfileModalOpen(false)}
-                />
-                <UpgradeModal
-                    isOpen={isUpgradeModalOpen}
-                    onClose={() => setIsUpgradeModalOpen(false)}
-                />
             </div>
         </aside>
     );

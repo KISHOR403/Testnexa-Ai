@@ -80,6 +80,7 @@ function App() {
         <Route path="/suites" element={<Navigate to="/app/test-suites/password-reset" replace />} />
         <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
         <Route path="/history" element={<Navigate to="/app/history" replace />} />
+        <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
