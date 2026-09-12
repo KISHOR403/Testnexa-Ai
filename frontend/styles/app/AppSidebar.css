@@ -407,21 +407,32 @@
     flex-direction: column;
     gap: 0.5rem;
     flex-shrink: 0;
+    position: relative;
 }
 
 .app-sidebar__user {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    padding: 0.4rem 0.4rem;
+    padding: 0.45rem 0.5rem;
     border-radius: 8px;
     text-decoration: none;
     color: #F5F5F5;
-    transition: background 0.15s ease;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    border: 1px solid transparent;
 }
 
 .app-sidebar__user:hover {
     background: #111111;
+    border-color: #1F1F1F;
+}
+
+.app-sidebar__user:focus-visible {
+    outline: 2px solid rgba(0, 217, 192, 0.5);
+    outline-offset: 1px;
 }
 
 .app-sidebar__user-avatar {
@@ -460,13 +471,34 @@
     color: #00D9C0;
 }
 
-.app-sidebar.is-collapsed .app-sidebar__user-info {
+.app-sidebar__user-chevron {
+    color: #737373;
+    margin-left: auto;
+    flex-shrink: 0;
+    transform: rotate(180deg);
+    transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.app-sidebar__user-chevron.is-open {
+    transform: rotate(0deg);
+    color: #00D9C0;
+}
+
+.app-sidebar.is-collapsed .app-sidebar__user-info,
+.app-sidebar.is-collapsed .app-sidebar__user-chevron {
     display: none;
 }
 
 .app-sidebar.is-collapsed .app-sidebar__footer {
     padding: 0.75rem 0;
     align-items: center;
+}
+
+.app-sidebar.is-collapsed .gpt-profile-popup {
+    left: calc(100% + 8px);
+    bottom: 0.5rem;
+    right: auto;
+    width: 240px;
 }
 
 /* ─── Top Application Header ─── */

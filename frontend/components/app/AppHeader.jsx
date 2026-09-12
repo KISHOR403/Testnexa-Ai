@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, NavLink } from 'react-router-dom';
 import {
     Menu, ChevronRight, HelpCircle, Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import ProfileModal from '../ProfileModal';
 
 const AppHeader = ({ onToggleMobile }) => {
     const location = useLocation();
@@ -41,6 +42,8 @@ const AppHeader = ({ onToggleMobile }) => {
     const breadcrumb = getBreadcrumb();
     const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0).toUpperCase();
 
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
     return (
         <header className="app-header">
             <div className="app-header__left">
@@ -72,13 +75,27 @@ const AppHeader = ({ onToggleMobile }) => {
                     <HelpCircle size={16} />
                 </NavLink>
 
-                <div
+                <button
+                    type="button"
                     className="app-header__btn"
-                    title="User Profile"
-                    style={{ background: '#111111', border: '1px solid #1C1C1C', color: '#00D9C0', fontWeight: '700', fontSize: '0.78rem' }}
+                    title="Profile & Settings"
+                    onClick={() => setIsProfileModalOpen(true)}
+                    style={{
+                        background: '#111111',
+                        border: '1px solid #1C1C1C',
+                        color: '#00D9C0',
+                        fontWeight: '700',
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                    }}
                 >
                     {initials}
-                </div>
+                </button>
+
+                <ProfileModal
+                    isOpen={isProfileModalOpen}
+                    onClose={() => setIsProfileModalOpen(false)}
+                />
             </div>
         </header>
     );

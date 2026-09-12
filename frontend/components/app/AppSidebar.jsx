@@ -1,12 +1,14 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
-    Home, X, History, Clock
+    Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
+import ProfileModal from '../ProfileModal';
+import UpgradeModal from '../UpgradeModal';
 import '../../styles/app/AppSidebar.css';
 
 const formatTimeAgo = (dateInput) => {
@@ -26,9 +28,37 @@ const formatTimeAgo = (dateInput) => {
 };
 
 const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const { history, recentSessions } = useHistory();
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const userMenuRef = useRef(null);
+
+    // Close menu when clicking outside or pressing Escape
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setIsMenuOpen(false);
+            }
+        };
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleKeyDown);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isMenuOpen]);
 
     const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0).toUpperCase();
 
@@ -234,20 +264,148 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
             </nav>
 
             {/* User Footer */}
-            <div className="app-sidebar__footer">
-                <div className="app-sidebar__user">
+            <div className="app-sidebar__footer" ref={userMenuRef}>
+                {/* Popup Menu */}
+                {isMenuOpen && (
+                    <div className="gpt-profile-popup" role="menu" aria-label="User Account Menu">
+                        <div className="gpt-profile-popup-glow" />
+
+                        {/* User info header inside popup */}
+                        <div style={{ padding: '0.65rem 0.75rem 0.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '0.25rem' }}>
+                            <div style={{ fontSize: '0.84rem', fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {user?.name || user?.email?.split('@')[0] || 'Enterprise QA'}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#888888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
+                                {user?.email || 'user@testnexa.ai'}
+                            </div>
+                            <div style={{ marginTop: '0.45rem', display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(0, 217, 192, 0.12)', color: '#00D9C0', border: '1px solid rgba(0, 217, 192, 0.25)', letterSpacing: '0.04em' }}>
+                                PRO WORKSPACE
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                setIsProfileModalOpen(true);
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap">
+                                <User size={15} />
+                            </div>
+                            <span>Profile & Account</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item gpt-upgrade-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                setIsUpgradeModalOpen(true);
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
+                                <Award size={15} />
+                            </div>
+                            <span style={{ color: '#00D9C0', fontWeight: 600 }}>Upgrade Plan</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                navigate('/app/settings');
+                                if (onCloseMobile) onCloseMobile();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap">
+                                <Settings size={15} />
+                            </div>
+                            <span>Workspace Settings</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                navigate('/help');
+                                if (onCloseMobile) onCloseMobile();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap">
+                                <HelpCircle size={15} />
+                            </div>
+                            <span>Help & Docs</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <div className="gpt-profile-popup-divider" />
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item gpt-logout-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                logout();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap gpt-logout-icon">
+                                <LogOut size={15} />
+                            </div>
+                            <span>Log out</span>
+                        </button>
+                    </div>
+                )}
+
+                <div
+                    className="app-sidebar__user"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsMenuOpen(prev => !prev)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setIsMenuOpen(prev => !prev);
+                        }
+                    }}
+                    title={isCollapsed ? (user?.name || user?.email || 'Account Menu') : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={isMenuOpen}
+                >
                     <div className="app-sidebar__user-avatar">
                         {initials}
                     </div>
                     {!isCollapsed && (
-                        <div className="app-sidebar__user-info">
-                            <span className="app-sidebar__user-name">
-                                {user?.name || user?.email?.split('@')[0] || 'Enterprise QA'}
-                            </span>
-                            <span className="app-sidebar__user-plan">Pro Workspace</span>
-                        </div>
+                        <>
+                            <div className="app-sidebar__user-info">
+                                <span className="app-sidebar__user-name">
+                                    {user?.name || user?.email?.split('@')[0] || 'Enterprise QA'}
+                                </span>
+                                <span className="app-sidebar__user-plan">Pro Workspace</span>
+                            </div>
+                            <ChevronUp
+                                size={14}
+                                className={`app-sidebar__user-chevron ${isMenuOpen ? 'is-open' : ''}`}
+                            />
+                        </>
                     )}
                 </div>
+
+                {/* Account Modals */}
+                <ProfileModal
+                    isOpen={isProfileModalOpen}
+                    onClose={() => setIsProfileModalOpen(false)}
+                />
+                <UpgradeModal
+                    isOpen={isUpgradeModalOpen}
+                    onClose={() => setIsUpgradeModalOpen(false)}
+                />
             </div>
         </aside>
     );
