@@ -1644,24 +1644,32 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
                             <div className="tn-form-group">
                                 <label>Shareable Workspace Link</label>
-                                <div className="tn-copy-input-wrap">
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={`https://app.testnexa.ai/suites/pwd-reset-req-001?role=${shareRole.toLowerCase()}`}
-                                    />
-                                    <button
-                                        className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(`https://app.testnexa.ai/suites/pwd-reset-req-001?role=${shareRole.toLowerCase()}`);
-                                            setCopiedLink(true);
-                                            setTimeout(() => setCopiedLink(false), 2000);
-                                        }}
-                                    >
-                                        {copiedLink ? <Check size={13} /> : <Copy size={13} />}
-                                        <span>{copiedLink ? 'Copied' : 'Copy'}</span>
-                                    </button>
-                                </div>
+                                {(() => {
+                                    const shareSlug = result?.id || (result?.feature ? result.feature.toLowerCase().replace(/\s+/g, '-') : 'password-reset');
+                                    const shareUrl = typeof window !== 'undefined'
+                                        ? `${window.location.origin}/app/test-suites/${shareSlug}?role=${shareRole.toLowerCase()}`
+                                        : `/app/test-suites/${shareSlug}?role=${shareRole.toLowerCase()}`;
+                                    return (
+                                        <div className="tn-copy-input-wrap">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={shareUrl}
+                                            />
+                                            <button
+                                                className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(shareUrl);
+                                                    setCopiedLink(true);
+                                                    setTimeout(() => setCopiedLink(false), 2000);
+                                                }}
+                                            >
+                                                {copiedLink ? <Check size={13} /> : <Copy size={13} />}
+                                                <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>

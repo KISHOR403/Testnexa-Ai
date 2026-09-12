@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 
 // Layouts
 import MarketingLayout from './layouts/MarketingLayout';
@@ -29,11 +29,19 @@ import RisksPage from './pages/app/RisksPage';
 import TraceabilityPage from './pages/app/TraceabilityPage';
 import AppSettingsPage from './pages/app/AppSettingsPage';
 
+// Suite share link redirect helper (handles shared workspace links)
+const SuiteShareRedirect = () => {
+  const { id } = useParams();
+  const location = useLocation();
+  const targetId = (!id || id === 'pwd-reset-req-001') ? 'password-reset' : id;
+  return <Navigate to={`/app/test-suites/${targetId}${location.search}`} replace />;
+};
+
 function App() {
   return (
     <Router>
       <Routes>
-        {/* ─── PUBLIC MARKETING WEBSITE (No Application Sidebar) ─── */}
+        {/* ─── PUBLIC MARKETING & AUTH PAGES ─── */}
         <Route element={<MarketingLayout />}>
           <Route path="/" element={<GeneratorPage />} />
           <Route path="/features" element={<GeneratorPage />} />
@@ -53,7 +61,7 @@ function App() {
           <Route path="/contact" element={<ContactPage />} />
         </Route>
 
-        {/* ─── ENTERPRISE APPLICATION SHELL (Dedicated Sidebar + Header) ─── */}
+        {/* ─── APPLICATION / WORKSPACE PAGES ─── */}
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="/app/workspace" replace />} />
           <Route path="workspace" element={<WorkspacePage />} />
@@ -67,7 +75,9 @@ function App() {
           <Route path="settings" element={<AppSettingsPage />} />
         </Route>
 
-        {/* ─── DIRECT REDIRECTS FOR CONVENIENCE ─── */}
+        {/* ─── DIRECT REDIRECTS FOR CONVENIENCE & SHARE LINKS ─── */}
+        <Route path="/suites/:id" element={<SuiteShareRedirect />} />
+        <Route path="/suites" element={<Navigate to="/app/test-suites/password-reset" replace />} />
         <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
         <Route path="/history" element={<Navigate to="/app/history" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
