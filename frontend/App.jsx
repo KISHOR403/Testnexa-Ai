@@ -56,6 +56,10 @@ function App() {
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/cookie-policy" element={<TermsPage defaultDocId="cookies" />} />
+          <Route path="/api-terms" element={<TermsPage defaultDocId="api-terms" />} />
+          <Route path="/acceptable-use" element={<TermsPage defaultDocId="acceptable-use" />} />
+          <Route path="/legal" element={<TermsPage />} />
           <Route path="/api-reference" element={<ApiReferencePage />} />
           <Route path="/best-practices" element={<BestPracticesPage />} />
           <Route path="/about" element={<AboutUsPage />} />
