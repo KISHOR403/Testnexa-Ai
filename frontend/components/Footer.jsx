@@ -46,8 +46,8 @@ const Footer = () => {
                         <h4>Product</h4>
                         <ul>
                             <li><Link to="/">Generator</Link></li>
-                            <li><Link to="/history">History</Link></li>
-                            <li><Link to="/#features">Features</Link></li>
+                            <li><Link to="/app/test-suites">Test Suites</Link></li>
+                            <li><Link to="/app/history">History</Link></li>
                         </ul>
                     </div>
 
@@ -74,12 +74,8 @@ const Footer = () => {
 
             {/* Bottom bar */}
             <div className="tn-footer__bottom">
-                <div className="tn-container tn-footer__bottom-inner">
+                <div className="tn-container tn-footer__bottom-inner" style={{ justifyContent: 'center' }}>
                     <p>&copy; {new Date().getFullYear()} Testnexa AI. All rights reserved.</p>
-                    <div className="tn-footer__status">
-                        <span className="tn-footer__status-dot" />
-                        <span>All systems operational</span>
-                    </div>
                 </div>
             </div>
         </footer>

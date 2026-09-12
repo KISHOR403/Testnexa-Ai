@@ -49,6 +49,7 @@ function App() {
           <Route path="/how-it-works" element={<GeneratorPage />} />
           <Route path="/audience" element={<GeneratorPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/help/:articleId" element={<HelpPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
