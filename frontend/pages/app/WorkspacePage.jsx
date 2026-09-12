@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, NavLink } from 'react-router-dom';
 import {
-    Sparkles, Lightbulb, ChevronDown, Trash2, Clipboard,
-    Globe, Smartphone, Server, Check, AlertTriangle, CheckCircle2,
-    Loader2, Clock, History, FileText, ArrowRight, RefreshCw,
-    Layers, Plus, Edit3, Shield
+    ChevronDown, Trash2, Clipboard, Globe, Smartphone,
+    Server, Check, AlertTriangle, Loader2, Clock, ArrowRight,
+    Layers, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -13,57 +12,64 @@ import { sessionService } from '../../services/sessionService';
 import '../../styles/app/WorkspacePage.css';
 import '../../styles/app/WorkspacePage.session.css';
 
-const EXAMPLE_REQUIREMENTS = [
+const QUICK_EXAMPLES = [
     {
-        title: 'Password reset flow',
-        text: 'Users can reset their password using their registered email address. The system sends a one-time reset link valid for 15 minutes. Link expires after single use and rate limits multiple requests.'
+        title: 'Password Reset',
+        description: 'Users can reset their password using their registered email address. The system sends a single-use token valid for 15 minutes. Link expires after single use and rate limits multiple requests.'
     },
     {
-        title: 'User authentication flow',
-        text: 'As a user, I want to log in with my email and password with optional 2FA SMS code. Ensure lockout after 5 failed attempts, password complexity validation, and session token renewal.'
+        title: 'User Authentication',
+        description: 'As a user, I want to log in with my email and password with optional 2FA SMS code. Ensure lockout after 5 failed attempts, password complexity validation, and session token renewal.'
     },
     {
-        title: 'Payment processing',
-        text: 'Process credit card and Stripe checkout with 3D Secure verification. Handle successful charges, card declines, insufficient funds, network timeouts, and idempotent retry dispatches.'
+        title: 'Checkout Flow',
+        description: 'Process credit card and Stripe checkout with 3D Secure verification. Handle successful charges, card declines, insufficient funds, network timeouts, and idempotent retry dispatches.'
     },
     {
-        title: 'API rate limiting',
-        text: 'Endpoint /api/v1/checkout enforces rate limit of 60 requests/min per IP. Returns HTTP 429 Too Many Requests with Retry-After header and logs suspicious burst traffic to telemetry.'
-    },
-    {
-        title: 'Shopping cart & coupon logic',
-        text: 'Customers can add products, update quantities, and apply discount codes. Cart recalculates subtotal, shipping fees, tax, and rejects expired or minimum-spend invalid coupons.'
-    },
-    {
-        title: 'Secure file upload',
-        text: 'Users can upload documents in PDF, PNG, or JPEG format up to 10MB. System validates file magic bytes, scans for malware, generates thumbnail previews, and enforces tenant isolation.'
+        title: 'API Rate Limiting',
+        description: 'Endpoint /api/v1/checkout enforces rate limit of 60 requests/min per IP. Returns HTTP 429 Too Many Requests with Retry-After header and logs suspicious burst traffic to telemetry.'
     }
 ];
 
-const GENERATION_STEPS = [
-    { label: 'Understanding requirement & extracting entities', time: 700 },
-    { label: 'Detecting ambiguities & constraint gaps', time: 1600 },
-    { label: 'Assessing high-risk & security vectors', time: 2600 },
-    { label: 'Generating prioritized test scenarios', time: 3800 },
-    { label: 'Building test cases & assertions', time: 5000 },
-    { label: 'Calculating requirement coverage map', time: 6200 }
+const GENERATION_CHECKLIST = [
+    { label: 'Requirement analyzed', time: 700 },
+    { label: 'Ambiguities identified', time: 1600 },
+    { label: 'Building test scenarios', time: 2800 },
+    { label: 'Assessing risk coverage', time: 4100 },
+    { label: 'Preparing traceability', time: 5400 }
 ];
+
+const formatTimeAgo = (dateInput) => {
+    if (!dateInput) return 'Recently';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return 'Recently';
+    const now = new Date();
+    const diffSec = Math.floor((now - d) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay === 1) return 'Yesterday';
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
 
 const WorkspacePage = () => {
     const { sessionId: routeSessionId } = useParams();
     const navigate = useNavigate();
     const { isAuthenticated, canGenerateAsGuest, incrementGuestUsage } = useAuth();
-    const { saveToHistory, loadHistory: refreshSidebarHistory } = useHistory();
+    const { history, saveToHistory, loadHistory: refreshSidebarHistory } = useHistory();
 
-    // Session State
+    // Session & Requirement State
     const [currentSessionId, setCurrentSessionId] = useState(routeSessionId || null);
-    const [sessionTitle, setSessionTitle] = useState('New Session');
+    const [requirementTitle, setRequirementTitle] = useState('');
     const [sessionStatus, setSessionStatus] = useState('Draft');
     const [currentVersion, setCurrentVersion] = useState(1);
-    const [messages, setMessages] = useState([]);
     const [suiteData, setSuiteData] = useState(null);
     const [isLoadingSession, setIsLoadingSession] = useState(!!routeSessionId);
-    const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+    const [saveStatus, setSaveStatus] = useState('saved'); // 'idle' | 'saving' | 'saved'
 
     const [requirement, setRequirement] = useState('');
     const [settings, setSettings] = useState({
@@ -75,25 +81,26 @@ const WorkspacePage = () => {
     const [showExamples, setShowExamples] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [activeStepIndex, setActiveStepIndex] = useState(0);
-    const [progressPercent, setProgressPercent] = useState(10);
+    const [isGenerationComplete, setIsGenerationComplete] = useState(false);
+    const [generatedSuiteId, setGeneratedSuiteId] = useState(null);
     const [error, setError] = useState(null);
     const textareaRef = useRef(null);
     const maxLength = 2000;
 
-    // Track initial load to avoid premature auto-save triggers
+    // Auto-save tracker
     const isInitialMount = useRef(true);
-    const lastSavedData = useRef({ requirement: '', settings: '' });
+    const lastSavedData = useRef({ title: '', requirement: '', settings: '' });
 
-    // Load session when routeSessionId is present
+    // Load existing test suite session when routeSessionId is present
     useEffect(() => {
         if (!routeSessionId) {
             setCurrentSessionId(null);
-            setSessionTitle('New Session');
+            setRequirementTitle('');
             setSessionStatus('Draft');
-            setMessages([]);
             setSuiteData(null);
             setRequirement('');
             setIsLoadingSession(false);
+            setSaveStatus('saved');
             return;
         }
 
@@ -105,7 +112,7 @@ const WorkspacePage = () => {
                 if (res.success && res.data) {
                     const session = res.data;
                     setCurrentSessionId(session._id);
-                    setSessionTitle(session.title || 'Untitled Session');
+                    setRequirementTitle(session.title === 'Untitled Session' ? '' : (session.title || ''));
                     setSessionStatus(session.status || 'Draft');
                     setCurrentVersion(session.currentVersion || 1);
                     setRequirement(session.requirement || '');
@@ -114,17 +121,18 @@ const WorkspacePage = () => {
                         level: session.depth || 'Standard',
                         language: 'english'
                     });
-                    setMessages(session.messages || []);
                     setSuiteData(session.suiteData || null);
 
                     lastSavedData.current = {
+                        title: session.title || '',
                         requirement: session.requirement || '',
                         settings: JSON.stringify({ type: session.context || 'web', level: session.depth || 'Standard' })
                     };
+                    setSaveStatus('saved');
                 }
             } catch (err) {
                 console.error('Failed to load session:', err);
-                setError('Could not load session. It may have been deleted.');
+                setError('Could not load test suite. It may have been deleted.');
             } finally {
                 setIsLoadingSession(false);
             }
@@ -133,18 +141,22 @@ const WorkspacePage = () => {
         fetchSession();
     }, [routeSessionId]);
 
-    // In-page generation progress stepper
+    // Progressive generation checklist stepper
     useEffect(() => {
         if (!isGenerating) {
             setActiveStepIndex(0);
-            setProgressPercent(10);
+            setIsGenerationComplete(false);
             return;
         }
 
-        const intervals = GENERATION_STEPS.map((step, idx) => {
+        const intervals = GENERATION_CHECKLIST.map((step, idx) => {
             return setTimeout(() => {
                 setActiveStepIndex(idx);
-                setProgressPercent(Math.min(18 + idx * 16, 96));
+                if (idx === GENERATION_CHECKLIST.length - 1) {
+                    setTimeout(() => {
+                        setIsGenerationComplete(true);
+                    }, 800);
+                }
             }, step.time);
         });
 
@@ -163,6 +175,7 @@ const WorkspacePage = () => {
         const currentSettingsStr = JSON.stringify({ type: settings.type, level: settings.level });
         if (
             requirement === lastSavedData.current.requirement &&
+            requirementTitle === lastSavedData.current.title &&
             currentSettingsStr === lastSavedData.current.settings
         ) {
             return;
@@ -171,29 +184,32 @@ const WorkspacePage = () => {
         const timer = setTimeout(async () => {
             try {
                 setSaveStatus('saving');
+                const resolvedTitle = requirementTitle.trim() ||
+                    requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) ||
+                    'New Test Suite';
+
                 if (currentSessionId) {
                     await sessionService.update(currentSessionId, {
+                        title: resolvedTitle,
                         requirement,
                         context: settings.type,
                         depth: settings.level
                     });
-                    lastSavedData.current = { requirement, settings: currentSettingsStr };
+                    lastSavedData.current = { title: requirementTitle, requirement, settings: currentSettingsStr };
                     setSaveStatus('saved');
                     refreshSidebarHistory();
-                } else if (requirement.trim().length > 15) {
-                    // Automatically create draft session
+                } else if (requirement.trim().length > 10 || requirementTitle.trim().length > 2) {
                     const createRes = await sessionService.create({
+                        title: resolvedTitle,
                         requirement,
                         context: settings.type,
-                        depth: settings.level,
-                        title: requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) || 'Draft Session'
+                        depth: settings.level
                     });
                     if (createRes.success && createRes.data?._id) {
                         setCurrentSessionId(createRes.data._id);
-                        setSessionTitle(createRes.data.title);
                         setSessionStatus('Draft');
                         window.history.replaceState(null, '', `/app/workspace/${createRes.data._id}`);
-                        lastSavedData.current = { requirement, settings: currentSettingsStr };
+                        lastSavedData.current = { title: requirementTitle, requirement, settings: currentSettingsStr };
                         setSaveStatus('saved');
                         refreshSidebarHistory();
                     }
@@ -201,16 +217,15 @@ const WorkspacePage = () => {
             } catch (saveErr) {
                 console.warn('Auto-save error:', saveErr);
                 setSaveStatus('idle');
-            } finally {
-                setTimeout(() => setSaveStatus('idle'), 2500);
             }
-        }, 1400);
+        }, 1200);
 
         return () => clearTimeout(timer);
-    }, [requirement, settings, isAuthenticated, currentSessionId, isLoadingSession, isGenerating]);
+    }, [requirementTitle, requirement, settings, isAuthenticated, currentSessionId, isLoadingSession, isGenerating, refreshSidebarHistory]);
 
-    const handleSelectExample = (text) => {
-        setRequirement(text);
+    const handleSelectExample = (example) => {
+        setRequirementTitle(example.title);
+        setRequirement(example.description);
         setShowExamples(false);
         if (textareaRef.current) textareaRef.current.focus();
     };
@@ -222,32 +237,6 @@ const WorkspacePage = () => {
         } catch (err) {
             console.error('Paste failed:', err);
         }
-    };
-
-    const handleNewSession = async () => {
-        try {
-            if (isAuthenticated) {
-                const res = await sessionService.create({
-                    requirement: '',
-                    context: 'web',
-                    depth: 'Standard',
-                    title: 'New Session'
-                });
-                if (res.success && res.data?._id) {
-                    navigate(`/app/workspace/${res.data._id}`);
-                    return;
-                }
-            }
-        } catch (e) {
-            // fallback
-        }
-        navigate('/app/workspace');
-        setRequirement('');
-        setCurrentSessionId(null);
-        setSessionTitle('New Session');
-        setSessionStatus('Draft');
-        setMessages([]);
-        setSuiteData(null);
     };
 
     const handleGenerate = async () => {
@@ -262,23 +251,30 @@ const WorkspacePage = () => {
         }
 
         setIsGenerating(true);
+        setIsGenerationComplete(false);
         setError(null);
 
         try {
+            const resolvedTitle = requirementTitle.trim() ||
+                requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) ||
+                'Generated Suite';
+
             const generatedSuite = await apiService.generateTestSuite(requirement, {
                 ...settings,
                 sessionId: currentSessionId
             });
 
-            // Save to history so it's accessible across the app
-            saveToHistory(generatedSuite, requirement, settings, currentSessionId);
+            // Save to persistent history
+            await saveToHistory(generatedSuite, requirement, settings, currentSessionId, resolvedTitle);
             refreshSidebarHistory();
 
-            // Create a slug for the generated suite URL
-            const slug = requirement.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30).replace(/^-|-$/g, '') || 'suite';
+            const slug = resolvedTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30).replace(/^-|-$/g, '') || 'suite';
             const suiteId = currentSessionId || `${slug}-${Date.now().toString().slice(-4)}`;
+            setGeneratedSuiteId(suiteId);
+            setSuiteData(generatedSuite);
+            setSessionStatus('Generated');
 
-            // Navigate directly to the Test Suite page in the application shell
+            // Direct transition to Test Suite detail page after completion animation
             setTimeout(() => {
                 navigate(`/app/test-suites/${suiteId}`, {
                     state: {
@@ -288,7 +284,7 @@ const WorkspacePage = () => {
                         sessionId: currentSessionId
                     }
                 });
-            }, 800);
+            }, 6200);
         } catch (err) {
             console.error('Generation error:', err);
             setError(err.message || 'Failed to generate test suite.');
@@ -297,379 +293,356 @@ const WorkspacePage = () => {
     };
 
     const charCount = requirement.length;
-    const qualityLevel = charCount < 40 ? 'low' : charCount < 120 ? 'medium' : 'high';
-    const qualityHint = {
-        low: 'Add more detail for richer test coverage',
-        medium: 'Good clarity — ready for analysis',
-        high: 'High detail — rich edge case & risk detection'
-    }[qualityLevel];
+    const activeHeaderTitle = requirementTitle.trim() || (currentSessionId ? 'Test Suite' : 'New Test Suite');
 
     return (
         <div className="app-workspace-container">
-            {/* Top Session Status Bar */}
-            <div className="app-workspace-session-bar">
-                <div className="app-workspace-session-info">
-                    <History size={15} color="#00f2de" />
-                    <span className="app-workspace-session-title" title={sessionTitle}>
-                        {sessionTitle}
-                    </span>
-                    <span className={`app-workspace-status-badge ${sessionStatus.toLowerCase()}`}>
-                        {sessionStatus}
-                    </span>
-                    {currentVersion > 1 && (
-                        <span className="app-workspace-version-pill">
-                            v{currentVersion}
+            {/* Clean Professional Workspace Header */}
+            <header className="app-workspace-header">
+                <div className="app-workspace-header__meta">
+                    <div className="app-workspace-header__title-row">
+                        <h1 className="app-workspace-header__title">{activeHeaderTitle}</h1>
+                        <span className={`app-workspace-status-tag ${sessionStatus.toLowerCase()}`}>
+                            {sessionStatus}
                         </span>
-                    )}
-                    {saveStatus === 'saving' && (
-                        <span className="app-workspace-save-indicator saving">
-                            <Loader2 size={11} className="animate-spin" />
-                            <span>Saving...</span>
-                        </span>
-                    )}
-                    {saveStatus === 'saved' && (
-                        <span className="app-workspace-save-indicator saved">
-                            <Check size={11} />
-                            <span>Saved</span>
-                        </span>
-                    )}
-                </div>
-
-                <div className="app-workspace-session-actions">
-                    <button
-                        type="button"
-                        className="app-workspace-session-btn"
-                        onClick={handleNewSession}
-                        title="Start a fresh workspace session"
-                    >
-                        <Plus size={13} />
-                        <span>New Session</span>
-                    </button>
-                    <NavLink
-                        to="/app/history"
-                        className="app-workspace-session-btn"
-                        title="View all saved sessions"
-                    >
-                        <History size={13} />
-                        <span>All Sessions</span>
-                    </NavLink>
-                </div>
-            </div>
-
-            {/* Header Hero */}
-            <div className="app-workspace-hero">
-                <div>
-                    <div className="app-workspace-eyebrow">
-                        <Sparkles size={14} />
-                        <span>AI WORKSPACE</span>
+                        {currentVersion > 1 && (
+                            <span className="app-workspace-version-tag">
+                                v{currentVersion}
+                            </span>
+                        )}
                     </div>
-                    <h1 className="app-workspace-title">Describe your requirement</h1>
-                    <p className="app-workspace-subtitle">
-                        The AI analyzes clarity, risks & designs production-ready test suites
+                    <p className="app-workspace-header__subtitle">
+                        Create a test suite from a requirement.
                     </p>
                 </div>
 
-                {!isGenerating && (
-                    <div style={{ position: 'relative' }}>
-                        <button
-                            type="button"
-                            className="app-workspace-icon-btn"
-                            style={{ width: 'auto', padding: '0.45rem 0.85rem', gap: '0.4rem', fontSize: '0.82rem', fontWeight: '500' }}
-                            onClick={() => setShowExamples(!showExamples)}
-                        >
-                            <Lightbulb size={14} />
-                            <span>Quick Examples</span>
-                            <ChevronDown size={13} style={{ transform: showExamples ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-                        </button>
-
-                        {showExamples && (
-                            <div className="app-workspace-examples-menu">
-                                <div className="app-workspace-examples-menu__label">Quick Templates</div>
-                                {EXAMPLE_REQUIREMENTS.map((ex, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        className="app-workspace-example-item"
-                                        onClick={() => handleSelectExample(ex.text)}
-                                    >
-                                        <Sparkles size={13} />
-                                        <span>{ex.title}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                <div className="app-workspace-header__status">
+                    {saveStatus === 'saving' ? (
+                        <div className="app-workspace-saved-pill saving">
+                            <Loader2 size={12} className="animate-spin" />
+                            <span>Saving...</span>
+                        </div>
+                    ) : (
+                        <div className="app-workspace-saved-pill saved" title="All changes saved">
+                            <Check size={12} strokeWidth={2.5} />
+                            <span>Saved</span>
+                        </div>
+                    )}
+                </div>
+            </header>
 
             {error && (
                 <div className="form-error-banner animate-fade-in">
-                    <AlertTriangle size={18} />
+                    <AlertTriangle size={16} />
                     <span>{error}</span>
                 </div>
             )}
 
-            {/* Previous Suite Quick-Access (If Resumed Session already has a generated suite) */}
-            {suiteData && !isGenerating && (
-                <div className="app-workspace-suite-card">
-                    <div className="app-workspace-suite-info">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                            <CheckCircle2 size={16} color="#00f2de" />
-                            <h3 className="app-workspace-suite-title">
-                                {suiteData.feature || sessionTitle}
-                            </h3>
-                        </div>
-                        <div className="app-workspace-suite-meta">
-                            <span><strong>{suiteData.summary?.total || 0}</strong> Test Cases</span>
-                            <span>•</span>
-                            <span><strong>{suiteData.summary?.functional || 0}</strong> Functional</span>
-                            <span>•</span>
-                            <span><strong>{suiteData.summary?.edge || 0}</strong> Edge</span>
-                            {suiteData.quality?.confidenceLevel && (
-                                <>
-                                    <span>•</span>
-                                    <span>Confidence: <strong>{suiteData.quality.confidenceLevel}</strong></span>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    <NavLink
-                        to={`/app/test-suites/${currentSessionId || 'active'}`}
-                        state={{ suite: suiteData, prompt: requirement, settings }}
-                        className="app-workspace-session-btn primary"
-                        style={{ padding: '0.55rem 0.95rem', fontSize: '0.82rem' }}
-                    >
-                        <span>Open Generated Suite</span>
-                        <ArrowRight size={14} />
-                    </NavLink>
-                </div>
-            )}
-
-            {/* Conversation History Thread (if multi-turn or previous interactions exist) */}
-            {messages.length > 1 && !isGenerating && (
-                <div className="app-workspace-thread">
-                    <div className="app-workspace-thread-header">
-                        <span className="app-workspace-thread-title">
-                            <History size={14} />
-                            Session History & Iterations ({messages.length} messages)
-                        </span>
-                    </div>
-
-                    <div className="app-workspace-thread-list">
-                        {messages.map((msg, idx) => (
-                            <div key={idx} className={`app-workspace-turn ${msg.role}`}>
-                                <div className="app-workspace-turn-avatar">
-                                    {msg.role === 'user' ? 'U' : 'AI'}
-                                </div>
-                                <div className="app-workspace-turn-content">
-                                    <div className="app-workspace-turn-header">
-                                        <span className="app-workspace-turn-role">
-                                            {msg.role === 'user' ? 'Requirement Input' : 'Testnexa AI'}
-                                        </span>
-                                        {msg.timestamp && (
-                                            <span className="app-workspace-turn-time">
-                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="app-workspace-turn-text">
-                                        {msg.content}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
+            {/* In-Page Progressive Generation State */}
             {isGenerating ? (
-                /* ─── In-Page Processing State ─── */
-                <div className="app-workspace-processing">
-                    <div className="app-workspace-processing-badge">
-                        <Sparkles size={14} />
-                        <span>Synthesizing Test Suite</span>
-                    </div>
-
-                    <div>
-                        <h2 className="app-workspace-processing-title">Analyzing requirement...</h2>
-                        <p className="app-workspace-processing-sub">
-                            Parsing functional rules, identifying risk vectors, and synthesizing execution-ready test cases.
+                <div className="app-workspace-progress-view">
+                    <div className="app-workspace-progress-header">
+                        <h2 className="app-workspace-progress-heading">Generating test suite</h2>
+                        <p className="app-workspace-progress-sub">
+                            Analyzing specifications, identifying boundaries, and synthesizing execution-ready test cases.
                         </p>
                     </div>
 
-                    <div className="tn-workspace-progress-bar-wrap">
-                        <div className="tn-workspace-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
-                    </div>
-
-                    <div className="app-workspace-stepper">
-                        {GENERATION_STEPS.map((step, idx) => {
-                            const isCompleted = idx < activeStepIndex;
-                            const isActive = idx === activeStepIndex;
+                    <div className="app-workspace-checklist">
+                        {GENERATION_CHECKLIST.map((step, idx) => {
+                            const isCompleted = idx < activeStepIndex || isGenerationComplete;
+                            const isActive = idx === activeStepIndex && !isGenerationComplete;
                             return (
                                 <div
                                     key={idx}
-                                    className={`app-workspace-step ${isCompleted ? 'is-completed' : isActive ? 'is-active' : ''}`}
+                                    className={`app-workspace-check-item ${isCompleted ? 'is-complete' : isActive ? 'is-active' : 'is-pending'}`}
                                 >
-                                    <div className="app-workspace-step-num">
+                                    <div className="app-workspace-check-icon">
                                         {isCompleted ? (
-                                            <Check size={14} />
+                                            <Check size={13} strokeWidth={2.5} color="#22C55E" />
                                         ) : isActive ? (
-                                            <Loader2 size={14} className="animate-spin" />
+                                            <Loader2 size={13} className="animate-spin" color="#00D9C0" />
                                         ) : (
-                                            <span>{idx + 1}</span>
+                                            <span className="app-workspace-check-dot" />
                                         )}
                                     </div>
-                                    <span className="app-workspace-step-text">{step.label}</span>
-                                    <span className="app-workspace-step-badge">
-                                        {isCompleted ? 'Complete' : isActive ? 'In progress' : 'Pending'}
-                                    </span>
+                                    <span className="app-workspace-check-label">{step.label}</span>
                                 </div>
                             );
                         })}
                     </div>
+
+                    {isGenerationComplete && generatedSuiteId && (
+                        <div className="app-workspace-complete-action">
+                            <NavLink
+                                to={`/app/test-suites/${generatedSuiteId}`}
+                                state={{ suite: suiteData, prompt: requirement, settings }}
+                                className="app-workspace-btn-open-suite"
+                            >
+                                <span>Open Test Suite</span>
+                                <ArrowRight size={15} />
+                            </NavLink>
+                        </div>
+                    )}
                 </div>
             ) : isLoadingSession ? (
-                <div className="app-workspace-loading-skeleton" />
+                <div className="app-workspace-loading-state">
+                    <Loader2 size={24} className="animate-spin" color="#00D9C0" />
+                    <span>Loading test suite specifications...</span>
+                </div>
             ) : (
-                /* ─── Main Workspace Card ─── */
-                <div className="app-workspace-card">
-                    {/* Textarea */}
-                    <div className="app-workspace-textarea-wrap">
-                        <textarea
-                            ref={textareaRef}
-                            className="app-workspace-textarea"
-                            value={requirement}
-                            onChange={(e) => setRequirement(e.target.value)}
-                            maxLength={maxLength}
-                            placeholder={
-                                "Describe your requirement in natural language...\n\nExample: Users can reset their password using their registered email address. System sends a single-use token valid for 15 minutes."
-                            }
-                            aria-label="Requirement Input"
-                        />
+                <>
+                    {/* Active Generated Suite Alert Card (If Resumed Suite Already Exists) */}
+                    {suiteData && (
+                        <div className="app-workspace-active-suite-banner">
+                            <div className="app-workspace-active-suite-info">
+                                <div className="app-workspace-active-suite-title-row">
+                                    <Check size={15} color="#22C55E" strokeWidth={2.5} />
+                                    <span className="app-workspace-active-suite-title">
+                                        {suiteData.testSuiteName || suiteData.feature || requirementTitle || 'Generated Test Suite'}
+                                    </span>
+                                </div>
+                                <div className="app-workspace-active-suite-meta">
+                                    <span><strong>{suiteData.summary?.total || 0}</strong> Test Cases</span>
+                                    <span>•</span>
+                                    <span><strong>{suiteData.summary?.functional || 0}</strong> Functional</span>
+                                    <span>•</span>
+                                    <span><strong>{suiteData.summary?.edge || 0}</strong> Edge</span>
+                                    {suiteData.summary?.requirementCoverage && (
+                                        <>
+                                            <span>•</span>
+                                            <span>Coverage: <strong>{suiteData.summary.requirementCoverage}</strong></span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
 
-                        <div className="app-workspace-textarea-actions">
+                            <NavLink
+                                to={`/app/test-suites/${currentSessionId || 'active'}`}
+                                state={{ suite: suiteData, prompt: requirement, settings }}
+                                className="app-workspace-open-btn"
+                            >
+                                <span>Open Test Suite</span>
+                                <ArrowRight size={14} />
+                            </NavLink>
+                        </div>
+                    )}
+
+                    {/* Main Requirement Engineering Editor */}
+                    <section className="app-workspace-section">
+                        <div className="app-workspace-section-header">
+                            <span className="app-workspace-section-label">REQUIREMENT</span>
+                        </div>
+
+                        {/* Requirement Title Field */}
+                        <div className="app-workspace-field">
+                            <label htmlFor="req-title" className="app-workspace-field-label">
+                                Title
+                            </label>
+                            <input
+                                id="req-title"
+                                type="text"
+                                className="app-workspace-title-input"
+                                value={requirementTitle}
+                                onChange={(e) => setRequirementTitle(e.target.value)}
+                                placeholder="e.g. Password Reset"
+                                maxLength={120}
+                            />
+                        </div>
+
+                        {/* Requirement Description Field */}
+                        <div className="app-workspace-field">
+                            <div className="app-workspace-field-header">
+                                <label htmlFor="req-desc" className="app-workspace-field-label">
+                                    Description
+                                </label>
+
+                                {/* Quick Examples Action */}
+                                <div className="app-workspace-examples-anchor">
+                                    <button
+                                        type="button"
+                                        className="app-workspace-examples-btn"
+                                        onClick={() => setShowExamples(!showExamples)}
+                                    >
+                                        <span>Quick Examples</span>
+                                        <ChevronDown size={13} style={{ transform: showExamples ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                                    </button>
+
+                                    {showExamples && (
+                                        <div className="app-workspace-examples-menu">
+                                            <div className="app-workspace-examples-menu__label">Quick Examples</div>
+                                            {QUICK_EXAMPLES.map((ex, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    className="app-workspace-example-item"
+                                                    onClick={() => handleSelectExample(ex)}
+                                                >
+                                                    <span className="app-workspace-example-title">{ex.title}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="app-workspace-textarea-wrap">
+                                <textarea
+                                    id="req-desc"
+                                    ref={textareaRef}
+                                    className="app-workspace-textarea"
+                                    value={requirement}
+                                    onChange={(e) => setRequirement(e.target.value)}
+                                    maxLength={maxLength}
+                                    placeholder="Describe what the system should do..."
+                                    aria-label="Requirement Description"
+                                />
+
+                                <div className="app-workspace-textarea-actions">
+                                    <button
+                                        type="button"
+                                        className="app-workspace-icon-btn"
+                                        onClick={handlePaste}
+                                        title="Paste from clipboard"
+                                    >
+                                        <Clipboard size={14} />
+                                    </button>
+                                    {charCount > 0 && (
+                                        <button
+                                            type="button"
+                                            className="app-workspace-icon-btn is-danger"
+                                            onClick={() => setRequirement('')}
+                                            title="Clear description"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="app-workspace-textarea-footer">
+                                    <span className="app-workspace-char-count">
+                                        {charCount} / {maxLength}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Target & Coverage Depth Row */}
+                        <div className="app-workspace-options-grid">
+                            {/* Target Selection */}
+                            <div className="app-workspace-option-group">
+                                <span className="app-workspace-option-label">TARGET</span>
+                                <div className="app-workspace-segmented">
+                                    {[
+                                        { id: 'web', label: 'Web', icon: Globe },
+                                        { id: 'mobile', label: 'Mobile', icon: Smartphone },
+                                        { id: 'api', label: 'API', icon: Server }
+                                    ].map(({ id, label, icon: Icon }) => (
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            className={`app-workspace-seg-btn ${settings.type === id ? 'is-active' : ''}`}
+                                            onClick={() => setSettings({ ...settings, type: id })}
+                                        >
+                                            <Icon size={13} />
+                                            <span>{label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Coverage Depth Selection */}
+                            <div className="app-workspace-option-group">
+                                <span className="app-workspace-option-label">COVERAGE DEPTH</span>
+                                <div className="app-workspace-depth-row">
+                                    {[
+                                        { id: 'Essential', label: 'Essential', sub: 'Core scenarios' },
+                                        { id: 'Standard', label: 'Standard', sub: 'Recommended coverage', isRecommended: true },
+                                        { id: 'Comprehensive', label: 'Comprehensive', sub: 'Deep edge & risk coverage' }
+                                    ].map(({ id, label, sub, isRecommended }) => (
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            className={`app-workspace-depth-card ${settings.level === id ? 'is-active' : ''}`}
+                                            onClick={() => setSettings({ ...settings, level: id })}
+                                        >
+                                            <div className="app-workspace-depth-card__top">
+                                                <span className="app-workspace-depth-name">{label}</span>
+                                                {isRecommended && (
+                                                    <span className="app-workspace-recommended-badge">Recommended</span>
+                                                )}
+                                            </div>
+                                            <span className="app-workspace-depth-sub">{sub}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Footer */}
+                        <div className="app-workspace-footer">
                             <button
                                 type="button"
-                                className="app-workspace-icon-btn"
-                                onClick={handlePaste}
-                                title="Paste from clipboard"
+                                className="app-workspace-primary-btn"
+                                onClick={handleGenerate}
+                                disabled={!requirement.trim() || isGenerating}
+                                id="workspace-generate-btn"
                             >
-                                <Clipboard size={14} />
-                            </button>
-                            {charCount > 0 && (
-                                <button
-                                    type="button"
-                                    className="app-workspace-icon-btn is-danger"
-                                    onClick={() => setRequirement('')}
-                                    title="Clear"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="app-workspace-quality-row">
-                            <span className="app-workspace-char-count">
-                                {charCount} / {maxLength}
-                            </span>
-                            {charCount > 0 && (
-                                <span className={`app-workspace-quality-indicator quality-${qualityLevel}`}>
-                                    <Sparkles size={11} />
-                                    <span>{qualityHint}</span>
+                                <span>
+                                    {suiteData ? 'Regenerate Test Suite' : 'Generate Test Suite'}
                                 </span>
+                            </button>
+                        </div>
+                    </section>
+
+                    {/* Recent Work Section on Empty/Draft Workspace */}
+                    <section className="app-workspace-recent-section">
+                        <div className="app-workspace-recent-header">
+                            <span className="app-workspace-recent-label">RECENT WORK</span>
+                            {history.length > 0 && (
+                                <NavLink to="/app/history" className="app-workspace-recent-link">
+                                    View All History →
+                                </NavLink>
                             )}
                         </div>
-                    </div>
 
-                    {/* Controls Grid */}
-                    <div className="app-workspace-controls-grid">
-                        {/* Context */}
-                        <div className="app-workspace-control-group">
-                            <span className="app-workspace-control-label">CONTEXT</span>
-                            <div className="app-workspace-segmented">
-                                {[
-                                    { id: 'web', label: 'Web', icon: Globe },
-                                    { id: 'mobile', label: 'Mobile', icon: Smartphone },
-                                    { id: 'api', label: 'API', icon: Server }
-                                ].map(({ id, label, icon: Icon }) => (
-                                    <button
-                                        key={id}
-                                        type="button"
-                                        className={`app-workspace-seg-btn ${settings.type === id ? 'is-active' : ''}`}
-                                        onClick={() => setSettings({ ...settings, type: id })}
-                                    >
-                                        <Icon size={13} />
-                                        <span>{label}</span>
-                                    </button>
-                                ))}
+                        {history.length === 0 ? (
+                            <div className="app-workspace-recent-empty">
+                                No previous test suites yet.
                             </div>
-                        </div>
-
-                        {/* Depth */}
-                        <div className="app-workspace-control-group">
-                            <span className="app-workspace-control-label">DEPTH</span>
-                            <div className="app-workspace-segmented">
-                                {[
-                                    { id: 'Essential', label: 'Essential' },
-                                    { id: 'Standard', label: 'Standard' },
-                                    { id: 'Comprehensive', label: 'Comprehensive' }
-                                ].map(({ id, label }) => (
-                                    <button
-                                        key={id}
-                                        type="button"
-                                        className={`app-workspace-seg-btn ${settings.level === id ? 'is-active' : ''}`}
-                                        onClick={() => setSettings({ ...settings, level: id })}
-                                    >
-                                        <span>{label}</span>
-                                    </button>
-                                ))}
+                        ) : (
+                            <div className="app-workspace-recent-grid">
+                                {history.slice(0, 4).map((item) => {
+                                    const testCount = item.totalCases || item.summary?.total || item.suite?.summary?.total || 18;
+                                    const coverage = item.suite?.summary?.requirementCoverage || '94%';
+                                    return (
+                                        <NavLink
+                                            key={item.sessionId || item.id}
+                                            to={`/app/workspace/${item.sessionId || item.id}`}
+                                            className="app-workspace-recent-card"
+                                        >
+                                            <div className="app-workspace-recent-card-top">
+                                                <span className="app-workspace-recent-card-title">
+                                                    {item.title || 'Untitled Suite'}
+                                                </span>
+                                                <span className="app-workspace-recent-card-context">
+                                                    {item.context?.toUpperCase() || 'WEB'}
+                                                </span>
+                                            </div>
+                                            <div className="app-workspace-recent-card-meta">
+                                                <span>{testCount} tests</span>
+                                                <span>•</span>
+                                                <span>{coverage} coverage</span>
+                                                <span>•</span>
+                                                <span>Updated {formatTimeAgo(item.date || item.updatedAt)}</span>
+                                            </div>
+                                        </NavLink>
+                                    );
+                                })}
                             </div>
-                        </div>
-
-                        {/* AI Analyzes */}
-                        <div className="app-workspace-control-group">
-                            <span className="app-workspace-control-label">AI ANALYZES</span>
-                            <div className="app-workspace-tags-list">
-                                {['Clarity', 'Ambiguities', 'Risk Areas', 'Edge Cases'].map((tag) => (
-                                    <span key={tag} className="app-workspace-tag">
-                                        <CheckCircle2 size={12} />
-                                        <span>{tag}</span>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer Trigger */}
-                    <div className="app-workspace-footer">
-                        <div className="app-workspace-pipeline">
-                            <Sparkles size={14} />
-                            <div className="app-workspace-pipeline-steps">
-                                <span>Requirement understanding</span>
-                                <span className="sep">→</span>
-                                <span>Ambiguity detection</span>
-                                <span className="sep">→</span>
-                                <span>Risk assessment</span>
-                                <span className="sep">→</span>
-                                <span>Test synthesis</span>
-                            </div>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="app-workspace-generate-btn"
-                            onClick={handleGenerate}
-                            disabled={!requirement.trim() || isGenerating}
-                            id="workspace-generate-btn"
-                        >
-                            <Sparkles size={17} />
-                            <span>
-                                {suiteData ? '✦ Re-analyze & Update Suite' : '✦ Analyze & Generate Tests'}
-                            </span>
-                        </button>
-                    </div>
-                </div>
+                        )}
+                    </section>
+                </>
             )}
         </div>
     );

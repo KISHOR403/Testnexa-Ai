@@ -100,7 +100,7 @@ export const useHistory = () => {
     };
 
     // Save or update session
-    const saveToHistory = async (result, requirement, settings, existingSessionId = null) => {
+    const saveToHistory = async (result, requirement, settings, existingSessionId = null, title = null) => {
         if (!isAuthenticated || !user) return;
 
         const totalCases = result?.totalCases ||
@@ -121,10 +121,13 @@ export const useHistory = () => {
             apiChecklist: result?.apiChecklist?.length || 0
         };
 
+        const resolvedTitle = title || result?.testSuiteName || result?.feature || requirement?.slice(0, 45) || 'Generated Suite';
+
         try {
             if (existingSessionId) {
                 await sessionService.update(existingSessionId, {
                     requirement,
+                    title: resolvedTitle,
                     context: settings?.type || 'web',
                     depth: settings?.level || 'Standard',
                     suiteData: result,
@@ -136,7 +139,7 @@ export const useHistory = () => {
                     requirement,
                     context: settings?.type || 'web',
                     depth: settings?.level || 'Standard',
-                    title: result?.feature || requirement?.slice(0, 45) || 'Generated Suite'
+                    title: resolvedTitle
                 });
             }
         } catch (err) {

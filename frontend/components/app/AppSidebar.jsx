@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-    Sparkles, Layers, ShieldCheck, AlertTriangle, GitBranch,
+    FileText, Layers, ShieldCheck, AlertTriangle, GitBranch,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock
 } from 'lucide-react';
@@ -44,8 +44,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     <img src="/testnexa-logo.png" alt="Testnexa" className="app-sidebar__logo" />
                     {!isCollapsed && (
                         <div className="app-sidebar__brand-name">
-                            <span>Testnexa AI</span>
-                            <span className="app-sidebar__brand-badge">APP</span>
+                            <span>TESTNEXA AI</span>
                         </div>
                     )}
                 </NavLink>
@@ -89,7 +88,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
             <nav className="app-sidebar__nav">
                 {/* WORKSPACE GROUP */}
                 <div className="app-sidebar__group">
-                    <span className="app-sidebar__group-label">Workspace</span>
+                    <span className="app-sidebar__group-label">WORKSPACE</span>
 
                     <NavLink
                         to="/app/workspace"
@@ -98,7 +97,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                         onClick={handleNavClick}
                         title="AI Workspace"
                     >
-                        <Sparkles size={17} className="app-sidebar__item-icon" />
+                        <FileText size={17} className="app-sidebar__item-icon" />
                         <span>AI Workspace</span>
                     </NavLink>
 
@@ -113,26 +112,13 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     </NavLink>
                 </div>
 
-                {/* HISTORY GROUP */}
+                {/* RECENT WORK GROUP */}
                 <div className="app-sidebar__group">
-                    <span className="app-sidebar__group-label">History</span>
+                    <span className="app-sidebar__group-label">RECENT</span>
 
-                    <NavLink
-                        to="/app/history"
-                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/history') ? 'active' : ''}`}
-                        onClick={handleNavClick}
-                        title="Workspace History"
-                    >
-                        <History size={17} className="app-sidebar__item-icon" />
-                        <span>History</span>
-                        {!isCollapsed && history.length > 0 && (
-                            <span className="app-sidebar__badge">{history.length}</span>
-                        )}
-                    </NavLink>
-
-                    {!isCollapsed && recentSessions.length > 0 && (
+                    {!isCollapsed && recentSessions.length > 0 ? (
                         <div className="app-sidebar__history-list">
-                            {recentSessions.map((session) => (
+                            {recentSessions.slice(0, 4).map((session) => (
                                 <NavLink
                                     key={session.id}
                                     to={`/app/workspace/${session.id}`}
@@ -157,15 +143,28 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                 className="app-sidebar__view-all-link"
                                 onClick={handleNavClick}
                             >
-                                View all history →
+                                View All →
                             </NavLink>
                         </div>
+                    ) : (
+                        <NavLink
+                            to="/app/history"
+                            className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/history') ? 'active' : ''}`}
+                            onClick={handleNavClick}
+                            title="Workspace History"
+                        >
+                            <History size={17} className="app-sidebar__item-icon" />
+                            <span>History</span>
+                            {!isCollapsed && history.length > 0 && (
+                                <span className="app-sidebar__badge">{history.length}</span>
+                            )}
+                        </NavLink>
                     )}
                 </div>
 
-                {/* QA ANALYSIS GROUP */}
+                {/* ANALYSIS GROUP */}
                 <div className="app-sidebar__group">
-                    <span className="app-sidebar__group-label">QA Analysis</span>
+                    <span className="app-sidebar__group-label">ANALYSIS</span>
 
                     <NavLink
                         to="/app/coverage"

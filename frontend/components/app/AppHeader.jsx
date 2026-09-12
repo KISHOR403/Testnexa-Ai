@@ -1,8 +1,7 @@
 import React from 'react';
 import { useLocation, NavLink } from 'react-router-dom';
 import {
-    Menu, ChevronRight, Sparkles, HelpCircle, Bell,
-    Layers, ShieldCheck, AlertTriangle, GitBranch, Settings
+    Menu, ChevronRight, HelpCircle, Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -25,13 +24,13 @@ const AppHeader = ({ onToggleMobile }) => {
             return { section: 'Workspace', current: 'All Test Suites', link: '/app/test-suites' };
         }
         if (path.includes('/app/coverage')) {
-            return { section: 'QA Analysis', current: 'Coverage Matrix', link: '/app/coverage' };
+            return { section: 'Analysis', current: 'Coverage Matrix', link: '/app/coverage' };
         }
         if (path.includes('/app/risks')) {
-            return { section: 'QA Analysis', current: 'Risk Vectors & Security', link: '/app/risks' };
+            return { section: 'Analysis', current: 'Risk Vectors & Security', link: '/app/risks' };
         }
         if (path.includes('/app/traceability')) {
-            return { section: 'QA Analysis', current: 'Requirement Traceability', link: '/app/traceability' };
+            return { section: 'Analysis', current: 'Requirement Traceability', link: '/app/traceability' };
         }
         if (path.includes('/app/settings')) {
             return { section: 'System', current: 'Settings', link: '/app/settings' };
@@ -58,15 +57,15 @@ const AppHeader = ({ onToggleMobile }) => {
                     <NavLink to={breadcrumb.link} className="app-header__crumb-link">
                         {breadcrumb.section}
                     </NavLink>
-                    <ChevronRight size={13} style={{ opacity: 0.4 }} />
+                    <ChevronRight size={13} style={{ opacity: 0.35 }} />
                     <span className="app-header__crumb-current">{breadcrumb.current}</span>
                 </div>
             </div>
 
             <div className="app-header__right">
-                <div className="app-header__badge">
-                    <span className="app-header__badge-dot" />
-                    <span>AI Engine Active</span>
+                <div className="app-header__saved-badge" title="Changes saved">
+                    <Check size={13} color="#22C55E" strokeWidth={2.5} />
+                    <span>Saved</span>
                 </div>
 
                 <NavLink to="/help" className="app-header__btn" title="Documentation & Help">

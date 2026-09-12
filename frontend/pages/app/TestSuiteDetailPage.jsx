@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useParams, useLocation, NavLink, useNavigate } from 'react-router-dom';
-import { Sparkles, Plus, Layers, ArrowLeft, Clock } from 'lucide-react';
+import { Plus, Layers, ArrowLeft, Clock } from 'lucide-react';
 import { useHistory } from '../../hooks/useHistory';
 import ResultsSection from '../../components/ResultsSection';
 
@@ -135,7 +135,7 @@ const TestSuiteDetailPage = () => {
             <div className="tn-suite-summary-banner">
                 <div className="tn-suite-summary-banner__left">
                     <span className="tn-suite-tag">
-                        <Sparkles size={13} />
+                        <Layers size={13} />
                         TEST SUITE WORKBENCH
                     </span>
                     <h1 className="tn-suite-title">{suiteTitle}</h1>

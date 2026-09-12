@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-    Search, Plus, Sparkles, Filter, Calendar, Clock,
+    Search, Plus, Filter, Calendar, Clock,
     Layers, Trash2, Archive, Edit3, ArrowRight, Check,
     X, AlertCircle, RefreshCw, ChevronDown, CheckCircle2, Shield
 } from 'lucide-react';
@@ -171,22 +171,21 @@ const HistoryPage = () => {
                 <div>
                     <div className="tn-history-badge">
                         <Clock size={13} />
-                        PERSISTENT SESSIONS
+                        WORKSPACE HISTORY
                     </div>
-                    <h1 className="tn-history-title">Workspace History</h1>
+                    <h1 className="tn-history-title">Test Suite History</h1>
                     <p className="tn-history-subtitle">
-                        Browse, resume, edit and manage all your previous AI requirements and generated test suites.
+                        Browse, reopen, and manage all your requirement specifications and generated test suites.
                     </p>
                 </div>
 
-                <button
-                    type="button"
+                <NavLink
+                    to="/app/workspace"
                     className="tn-history-new-btn"
-                    onClick={handleNewSession}
                 >
                     <Plus size={16} />
-                    <span>+ New Session</span>
-                </button>
+                    <span>+ New Test Suite</span>
+                </NavLink>
             </div>
 
             {/* Controls Bar */}
@@ -197,7 +196,7 @@ const HistoryPage = () => {
                     <input
                         type="text"
                         className="tn-history-search-input"
-                        placeholder="Search sessions by title, requirement keyword..."
+                        placeholder="Search test suites by title, requirement keyword..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -289,7 +288,7 @@ const HistoryPage = () => {
             ) : error ? (
                 <div className="tn-history-error-card">
                     <AlertCircle size={24} color="#ef4444" />
-                    <h3>Failed to load sessions</h3>
+                    <h3>Failed to load test suites</h3>
                     <p>{error}</p>
                     <button type="button" className="tn-history-retry-btn" onClick={fetchSessions}>
                         <RefreshCw size={14} />
@@ -299,22 +298,21 @@ const HistoryPage = () => {
             ) : sessions.length === 0 ? (
                 <div className="tn-history-empty-card">
                     <div className="tn-history-empty-icon">
-                        <Sparkles size={28} />
+                        <Layers size={28} />
                     </div>
-                    <h3>No workspace sessions found</h3>
+                    <h3>No test suites found</h3>
                     <p>
                         {search || statusFilter !== 'active' || contextFilter !== 'all'
-                            ? 'No sessions match your search filters. Try clearing filters.'
-                            : 'Start your first AI workspace session to generate comprehensive test suites with persistent history.'}
+                            ? 'No test suites match your search filters. Try clearing filters.'
+                            : 'Create your first test suite from a requirement with persistent history and traceability.'}
                     </p>
-                    <button
-                        type="button"
+                    <NavLink
+                        to="/app/workspace"
                         className="tn-history-new-btn"
-                        onClick={handleNewSession}
                     >
                         <Plus size={16} />
-                        <span>Start New Session</span>
-                    </button>
+                        <span>+ New Test Suite</span>
+                    </NavLink>
                 </div>
             ) : (
                 <div className="tn-history-list">
@@ -367,13 +365,13 @@ const HistoryPage = () => {
                                             ) : (
                                                 <div className="tn-history-card-title-group">
                                                     <h2 className="tn-history-card-title">
-                                                        {session.title || 'Untitled Session'}
+                                                        {session.title || 'Untitled Suite'}
                                                     </h2>
                                                     <button
                                                         type="button"
                                                         className="tn-history-rename-btn"
                                                         onClick={(e) => handleStartRename(session, e)}
-                                                        title="Rename session"
+                                                        title="Rename test suite"
                                                     >
                                                         <Edit3 size={13} />
                                                     </button>
@@ -440,9 +438,9 @@ const HistoryPage = () => {
                                     <NavLink
                                         to={`/app/workspace/${session._id}`}
                                         className="tn-history-action-btn primary"
-                                        title="Resume session in AI Workspace"
+                                        title="Open in Workspace"
                                     >
-                                        <span>Resume</span>
+                                        <span>Open</span>
                                         <ArrowRight size={14} />
                                     </NavLink>
 
@@ -450,7 +448,7 @@ const HistoryPage = () => {
                                         type="button"
                                         className={`tn-history-icon-btn ${isArchived ? 'is-archived' : ''}`}
                                         onClick={(e) => handleToggleArchive(session, e)}
-                                        title={isArchived ? 'Unarchive session' : 'Archive session'}
+                                        title={isArchived ? 'Unarchive test suite' : 'Archive test suite'}
                                     >
                                         <Archive size={15} />
                                     </button>

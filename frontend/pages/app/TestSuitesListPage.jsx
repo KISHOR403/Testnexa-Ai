@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     Layers, Plus, Search, Calendar, CheckCircle2,
-    Shield, ArrowRight, Trash2, Sparkles, Filter
+    Shield, ArrowRight, Trash2, Filter
 } from 'lucide-react';
 import { useHistory } from '../../hooks/useHistory';
 
