@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     AlertCircle, CheckCircle2, ChevronRight,
     MousePointer2, Users, BarChart3, Shield,
-    Clock, Search, Cpu, ListChecks, Zap, ShieldAlert, Timer, Sparkles,
+    Clock, Search, Cpu, ListChecks, Zap, ShieldAlert, Timer,
     Target, GraduationCap
 } from 'lucide-react';
 
@@ -15,7 +15,7 @@ const IndustryInsights = () => {
             <section className="insight-section pain-section-2026">
                 <div className="pain-section-header">
                     <span className="pain-badge-label">
-                        <Sparkles size={12} />
+                        <Target size={12} />
                         Problem vs Solution
                     </span>
                     <h3 className="pain-title-2026">

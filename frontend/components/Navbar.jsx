@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-    HelpCircle, LogIn, LogOut, Sparkles,
+    HelpCircle, LogIn, LogOut,
     ChevronDown, ChevronRight, Settings, MessageSquare,
     FileText, Download, Keyboard, Zap,
     ArrowRight, Menu, X, LayoutDashboard
@@ -224,7 +224,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
 
                                             <button className="dropdown-action upgrade-action" onClick={(e) => { e.stopPropagation(); setIsUpgradeOpen(true); setIsDropdownOpen(false); }}>
                                                 <div className="action-icon-wrap upgrade-icon-wrap">
-                                                    <Sparkles size={14} />
+                                                    <Zap size={14} />
                                                 </div>
                                                 <span>Upgrade plan</span>
                                                 <ArrowRight size={14} className="action-arrow" />
@@ -380,8 +380,8 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                 className="floating-mobile-primary-btn"
                                 onClick={() => setIsMobileNavOpen(false)}
                             >
-                                <Sparkles size={16} />
-                                <span>Open AI Workspace</span>
+                                <LayoutDashboard size={16} />
+                                <span>Open Workspace</span>
                             </NavLink>
 
                             {!isAuthenticated ? (

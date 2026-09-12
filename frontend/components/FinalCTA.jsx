@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Sparkles, Check, Shield, CheckCircle2, FileText, Zap, ChevronRight, Terminal, Layers } from 'lucide-react';
+import { ArrowRight, Check, Shield, CheckCircle2, FileText, Zap, ChevronRight, Terminal, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useScrollReveal from '../hooks/useScrollReveal';
 
@@ -69,13 +69,13 @@ const CtaProductPreview = () => {
                     </div>
                 </div>
 
-                {/* AI Banner */}
+                {/* Engine Banner */}
                 <div className="tn-cta-ai-banner">
                     <div className="tn-cta-ai-banner__icon">
-                        <Sparkles size={14} />
+                        <Zap size={14} />
                     </div>
                     <div className="tn-cta-ai-banner__text">
-                        <strong>AI Test Engine Active:</strong> 5 prioritized scenarios generated &bull; 0 critical gaps
+                        <strong>Test Engine Active:</strong> 5 prioritized scenarios generated &bull; 0 critical gaps
                     </div>
                     <span className="tn-cta-ai-banner__pill">
                         <Zap size={11} /> 1.2s
@@ -168,7 +168,7 @@ const FinalCTA = ({ onOpenGenerator }) => {
                 <div className="tn-cta__content">
                     <div className="tn-cta__badge">
                         <span className="tn-cta__badge-dot" />
-                        <Sparkles size={13} className="tn-cta__badge-sparkle" />
+                        <Zap size={13} className="tn-cta__badge-sparkle" />
                         <span>READY WHEN YOU ARE</span>
                     </div>
                     

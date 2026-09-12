@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Lock, Eye, EyeOff, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ResetPasswordPage = () => {
@@ -157,7 +157,7 @@ const ResetPasswordPage = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles size={20} />
+                                        <Lock size={18} />
                                         Reset Password
                                     </>
                                 )}

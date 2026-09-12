@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    X, Check, Sparkles, ArrowRight, ChevronDown,
+    X, Check, Award, CheckCircle2, ArrowRight, ChevronDown,
     Shield, Lock, CreditCard, Zap, Users, Building2,
     Minus
 } from 'lucide-react';
@@ -36,7 +36,7 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        icon: <Sparkles size={20} />,
+        icon: <Award size={20} />,
         monthlyPrice: 999,
         annualPrice: 799,
         period: '/month',
@@ -197,7 +197,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
                 {submitted ? (
                     <div className="upgrade-success">
                         <div className="upgrade-success-icon-wrap">
-                            <Sparkles size={32} />
+                            <CheckCircle2 size={32} />
                         </div>
                         <h3>Welcome to {PLANS.find(p => p.id === selectedPlan)?.name}!</h3>
                         <p>Your account has been upgraded successfully. You now have access to all {selectedPlan} features.</p>
@@ -207,7 +207,7 @@ const UpgradeModal = ({ isOpen, onClose }) => {
                         {/* ── Header ── */}
                         <div className="upgrade-modal-header">
                             <div className="upgrade-header-badge">
-                                <Sparkles size={14} />
+                                <Award size={14} />
                                 <span>Choose Your Plan</span>
                             </div>
                             <h3>Simple, transparent pricing</h3>

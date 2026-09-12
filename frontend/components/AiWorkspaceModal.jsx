@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-    Sparkles, Lightbulb, ChevronDown, Trash2, Clipboard,
+    Zap, FileText, Lightbulb, ChevronDown, Trash2, Clipboard,
     Globe, Smartphone, Server, Gauge, Target, Rocket,
     Shield, Check, AlertTriangle, X, CheckCircle2, Loader2,
     CheckCheck, Layers, Terminal, Lock
@@ -218,7 +218,7 @@ const AiWorkspaceModal = ({
                                                 className="tn-workspace-example-item"
                                                 onClick={() => handleSelectExample(ex.text)}
                                             >
-                                                <Sparkles size={13} />
+                                                <FileText size={13} />
                                                 <span>{ex.title}</span>
                                             </button>
                                         ))}
@@ -245,8 +245,8 @@ const AiWorkspaceModal = ({
                     /* ─── IN-WORKSPACE AI PROCESSING STATE ─── */
                     <div className="tn-workspace-processing-view">
                         <div className="tn-workspace-processing-badge">
-                            <Sparkles size={13} />
-                            <span>AI Test Engine In Progress</span>
+                            <Layers size={13} />
+                            <span>Test Synthesis Engine Active</span>
                         </div>
 
                         <div>
@@ -354,7 +354,7 @@ const AiWorkspaceModal = ({
                                         <span
                                             className={`tn-workspace-quality-indicator quality-${qualityLevel}`}
                                         >
-                                            <Sparkles size={11} />
+                                            <Gauge size={11} />
                                             {qualityHint}
                                         </span>
                                     )}
@@ -435,7 +435,7 @@ const AiWorkspaceModal = ({
                         {/* Footer / Trigger */}
                         <footer className="tn-workspace-footer">
                             <div className="tn-workspace-pipeline-summary">
-                                <Sparkles size={14} />
+                                <Layers size={14} />
                                 <div className="tn-workspace-pipeline-steps">
                                     <span>Requirement understanding</span>
                                     <span className="sep">→</span>
@@ -455,8 +455,8 @@ const AiWorkspaceModal = ({
                                     disabled={!requirement.trim() || isGenerating}
                                     id="workspace-generate-submit-btn"
                                 >
-                                    <Sparkles size={16} />
-                                    <span>✦ Analyze & Generate Tests</span>
+                                    <Zap size={16} />
+                                    <span>Analyze & Generate Tests</span>
                                 </button>
                             </div>
                         </footer>

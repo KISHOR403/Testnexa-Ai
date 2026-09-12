@@ -1,5 +1,5 @@
 import React from 'react';
-import { Braces, CheckCircle2, ClipboardList, GraduationCap, Sparkles, FileText, ArrowRight } from 'lucide-react';
+import { Braces, CheckCircle2, ClipboardList, GraduationCap, Layers, FileText, ArrowRight } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 const roles = [
@@ -51,7 +51,7 @@ const WhoIsThisFor = () => {
 
                             <div className="tn-audience-card__tree">
                                 <div className="tn-audience-card__tree-title">
-                                    <Sparkles size={14} />
+                                    <Layers size={14} />
                                     <span>Multi-Stakeholder Synthesis</span>
                                 </div>
                                 

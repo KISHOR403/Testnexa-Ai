@@ -21,7 +21,7 @@ import {
     FileText,
     ChevronRight,
     ChevronDown,
-    Sparkles,
+    Lightbulb,
     Code,
     SlidersHorizontal,
     RefreshCw,
@@ -875,7 +875,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                         onClick={() => setShowAiCopilot(!showAiCopilot)}
                         title="Open context-aware AI QA copilot"
                     >
-                        <Sparkles size={14} />
+                        <MessageSquare size={14} />
                         <span>Ask Testnexa</span>
                     </button>
 
@@ -946,7 +946,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             {/* ─── 3. Suite-Level AI Insights Bar ─── */}
             <div className="tn-ai-insights-bar">
                 <div className="tn-ai-insights-bar__left">
-                    <span className="tn-ai-sparkle-pill"><Sparkles size={12} /> INSIGHTS</span>
+                    <span className="tn-ai-sparkle-pill"><Lightbulb size={12} /> INSIGHTS</span>
                     <p className="tn-ai-insights-text">
                         <strong>2 coverage gaps detected</strong> &bull; 1 security scenario (Rate Limiting) needs verification.
                     </p>
@@ -1236,7 +1236,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 </li>
                             </ul>
                             <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
-                                <Sparkles size={13} />
+                                <Zap size={13} />
                                 <span>Generate Missing Tests (2)</span>
                             </button>
                         </div>
@@ -1376,7 +1376,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                                 className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
                                                 onClick={handleAddMissingTests}
                                             >
-                                                <Sparkles size={13} />
+                                                <Zap size={13} />
                                                 <span>{msg.action.label}</span>
                                             </button>
                                         </div>
@@ -1419,7 +1419,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 <div className="tn-ai-drawer animate-slide-left">
                     <div className="tn-ai-drawer__header">
                         <div className="tn-ai-drawer__title">
-                            <Sparkles size={18} className="text-teal-400" />
+                            <Lightbulb size={18} className="text-teal-400" />
                             <strong>Suite Insights & Gaps</strong>
                         </div>
                         <button className="tn-btn-icon" onClick={() => setShowAiInsightsDrawer(false)}>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Search, Trash2, X, Plus, Clock,
-    MessageSquare, Sparkles, Menu, HelpCircle,
+    MessageSquare, Award, Menu, HelpCircle,
     Settings, Zap, LogOut, ChevronUp, ArrowRight
 } from 'lucide-react';
 import { useHistory } from '../hooks/useHistory';
@@ -162,7 +162,7 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
                                     <div className="gpt-profile-popup-glow" />
                                     <button className="gpt-profile-popup-item gpt-upgrade-item" onClick={() => { setIsUpgradeOpen(true); setIsRailProfileOpen(false); }}>
                                         <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
-                                            <Sparkles size={14} />
+                                            <Award size={14} />
                                         </div>
                                         <span>Upgrade plan</span>
                                         <ArrowRight size={14} className="gpt-popup-arrow" />
@@ -313,7 +313,7 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
                                 <div className="gpt-profile-popup-glow" />
                                 <button className="gpt-profile-popup-item gpt-upgrade-item" onClick={() => { setIsUpgradeOpen(true); setIsProfileMenuOpen(false); }}>
                                     <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
-                                        <Sparkles size={14} />
+                                        <Award size={14} />
                                     </div>
                                     <span>Upgrade plan</span>
                                     <ArrowRight size={14} className="gpt-popup-arrow" />

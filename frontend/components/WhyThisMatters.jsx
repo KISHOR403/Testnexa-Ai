@@ -1,5 +1,5 @@
 import React from 'react';
-import { GitBranch, ListChecks, Route, TimerReset, Sparkles } from 'lucide-react';
+import { GitBranch, ListChecks, Route, TimerReset } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 const values = [

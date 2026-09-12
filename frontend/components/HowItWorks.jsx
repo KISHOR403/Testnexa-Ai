@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Download, FileText, SearchCheck, WandSparkles } from 'lucide-react';
+import { BarChart3, Download, FileText, SearchCheck, Cpu } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
 const workflow = [
@@ -17,7 +17,7 @@ const workflow = [
     },
     {
         title: 'Generation',
-        icon: WandSparkles,
+        icon: Cpu,
         panelTitle: 'Multi-Category Test Generation',
         lines: ['8 Functional tests covering valid reset link delivery & token consumption', '5 Negative tests for unverified accounts, invalid tokens, and spoofing', '3 Boundary & 2 Security scenarios for token tampering & replay prevention'],
     },

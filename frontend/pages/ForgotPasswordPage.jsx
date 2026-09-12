@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, ArrowLeft, Sparkles } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ForgotPasswordPage = () => {
@@ -112,7 +112,7 @@ const ForgotPasswordPage = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles size={20} />
+                                        <Mail size={18} />
                                         Send Reset Link
                                     </>
                                 )}

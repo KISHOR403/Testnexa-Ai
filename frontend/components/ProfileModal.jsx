@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     X, History, LogOut, User, Mail, Shield, Clock, Camera,
     CreditCard, ShieldAlert, Check, Loader2, FileText, Globe, 
-    Download, Trash2, Sparkles, AlertTriangle, Key, Smartphone
+    Download, Trash2, Award, AlertTriangle, Key, Smartphone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -280,7 +280,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 <div className="profile-header-text">
                                     <h3>{user.name || user.displayName || 'Unnamed User'}</h3>
                                     <div className="plan-badge-highlight">
-                                        <Sparkles size={12} />
+                                        <Award size={12} />
                                         <span>Pro Subscriber</span>
                                     </div>
                                 </div>

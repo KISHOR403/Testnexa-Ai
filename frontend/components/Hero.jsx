@@ -21,7 +21,10 @@ import {
     ChevronRight,
     Layers,
     ListFilter,
-    Sparkles,
+    Lightbulb,
+    MessageSquare,
+    Zap,
+    Cpu,
     CheckCheck,
     Code,
     Edit3,
@@ -378,7 +381,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                         onClick={() => setShowAiCopilot(!showAiCopilot)}
                         title="Open context-aware AI QA copilot"
                     >
-                        <Sparkles size={14} />
+                        <MessageSquare size={14} />
                         <span>Ask Testnexa</span>
                     </button>
 
@@ -450,7 +453,7 @@ export const ProductWorkbench = ({ compact = false }) => {
             {/* ─── 3. Suite-Level AI Insights Bar ─── */}
             <div className="tn-ai-insights-bar">
                 <div className="tn-ai-insights-bar__left">
-                    <span className="tn-ai-sparkle-pill"><Sparkles size={12} /> AI INSIGHTS</span>
+                    <span className="tn-ai-insights-pill"><Lightbulb size={12} /> SUITE INSIGHTS</span>
                     <p className="tn-ai-insights-text">
                         <strong>2 coverage gaps detected</strong> &bull; 1 security scenario (Rate Limiting) needs verification.
                     </p>
@@ -813,7 +816,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                                 <li><strong>Concurrent Redemptions:</strong> Dual redemption of identical token across race conditions.</li>
                             </ul>
                             <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
-                                <Sparkles size={13} />
+                                <Zap size={13} />
                                 <span>Generate Missing Tests (2)</span>
                             </button>
                         </div>
@@ -920,7 +923,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                                                 className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
                                                 onClick={handleAddMissingTests}
                                             >
-                                                <Sparkles size={13} />
+                                                <Zap size={13} />
                                                 <span>{msg.action.label}</span>
                                             </button>
                                         </div>
@@ -963,8 +966,8 @@ export const ProductWorkbench = ({ compact = false }) => {
                 <div className="tn-ai-drawer animate-slide-left">
                     <div className="tn-ai-drawer__header">
                         <div className="tn-ai-drawer__title">
-                            <Sparkles size={18} className="text-teal-400" />
-                            <strong>AI Suite Insights & Gaps</strong>
+                            <Lightbulb size={18} className="text-teal-400" />
+                            <strong>Suite Insights & Gaps</strong>
                         </div>
                         <button className="tn-btn-icon" onClick={() => setShowAiInsightsDrawer(false)}>
                             <X size={16} />
@@ -1139,7 +1142,7 @@ export const ProductWorkbench = ({ compact = false }) => {
                                 onClick={handleExecuteSingleRegen}
                                 disabled={isRegeneratingSingle}
                             >
-                                {isRegeneratingSingle ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                {isRegeneratingSingle ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                 <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
                             </button>
                         </div>
@@ -1366,7 +1369,7 @@ const HeroProductVisualization = () => (
                     <div className="tn-hero-stage__label">AI Analysis</div>
                     <div className="tn-hero-analysis-panel">
                         <div className="tn-hero-analysis-panel__status">
-                            <Sparkles size={14} />
+                            <Cpu size={14} />
                             <span>Understanding requirement...</span>
                         </div>
                         <div className="tn-hero-analysis-list">

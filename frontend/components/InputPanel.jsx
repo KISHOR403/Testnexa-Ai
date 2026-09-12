@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Sparkles, Clipboard, Loader2,
+    Clipboard, Loader2,
     Layers, Zap, Trash2, Lightbulb, ChevronDown, Info,
     Globe, Smartphone, Server, Gauge, Target, Rocket
 } from 'lucide-react';
@@ -168,7 +168,7 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
                             width: `${Math.min((value.length / 200) * 100, 100)}%`
                         }} />
                         <span className="ip-quality-label">
-                            <Sparkles size={10} />
+                            <Gauge size={10} />
                             {qualityText[qualityLevel]}
                         </span>
                     </div>
@@ -256,7 +256,7 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
                         {isGenerating ? (
                             <Loader2 className="animate-spin" size={18} />
                         ) : (
-                            <Sparkles size={18} />
+                            <Zap size={18} />
                         )}
                         <span>{isGenerating ? 'Analyzing...' : 'Analyze & Generate Tests'}</span>
                     </button>
@@ -274,8 +274,8 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
 
             {/* ─── Pro Tip ─── */}
             <div className="ip-pro-tip">
-                <Sparkles size={12} />
-                <span>Multi-step AI analysis: requirement understanding → ambiguity detection → risk assessment → test synthesis</span>
+                <Info size={12} />
+                <span>Multi-step test analysis: requirement parsing → ambiguity detection → risk assessment → test synthesis</span>
             </div>
         </div>
     );
