@@ -22,7 +22,7 @@ const Footer = () => {
                         <span className="tn-footer__logo-text">Testnexa AI</span>
                     </Link>
                     <p className="tn-footer__desc">
-                        Transform requirements into comprehensive, prioritized test suites using advanced AI intelligence.
+                        Transform requirements into comprehensive, prioritized test suites for modern software teams.
                     </p>
                     <div className="tn-footer__socials">
                         <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
@@ -74,8 +74,12 @@ const Footer = () => {
 
             {/* Bottom bar */}
             <div className="tn-footer__bottom">
-                <div className="tn-container tn-footer__bottom-inner" style={{ justifyContent: 'center' }}>
+                <div className="tn-container tn-footer__bottom-inner">
                     <p>&copy; {new Date().getFullYear()} Testnexa AI. All rights reserved.</p>
+                    <div className="tn-footer__status">
+                        <span className="tn-footer__status-dot" aria-hidden="true" />
+                        <span>All systems operational</span>
+                    </div>
                 </div>
             </div>
         </footer>
