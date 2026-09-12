@@ -1,904 +1,759 @@
 {
   "feature": "Password Reset",
   "business_rules": [
-    "Users can reset password via registered email address.",
-    "System sends a one-time reset link.",
-    "Reset link is valid for 15 minutes.",
-    "Reset link expires after single use.",
-    "Multiple password reset requests are rate-limited."
+    "Users must use their registered email address to initiate a password reset.",
+    "A password reset mechanism (e.g., email with a unique link) will be sent to the registered email.",
+    "The password reset link/token must be time-limited and single-use for security.",
+    "Users must be able to set a new password after successful verification via the reset mechanism.",
+    "The system must provide clear confirmation upon successful password reset."
   ],
   "inputs": [
     {
-      "name": "email",
+      "name": "emailAddress",
       "type": "string",
-      "constraints": "Valid email format, registered in system"
+      "constraints": "Valid email format, max 254 characters"
     },
     {
       "name": "newPassword",
       "type": "string",
-      "constraints": "Min 8 chars, alphanumeric, special character"
+      "constraints": "Min 8 characters, max 64 characters, at least one uppercase, one lowercase, one number, one special character"
     },
     {
       "name": "confirmNewPassword",
       "type": "string",
       "constraints": "Must match newPassword"
+    },
+    {
+      "name": "resetToken",
+      "type": "string",
+      "constraints": "Unique, alphanumeric, typically UUID or similar, time-limited"
     }
   ],
   "outputs": [
     {
-      "name": "emailConfirmation",
+      "name": "emailSentConfirmation",
       "type": "string",
-      "structure": "Success message for email sent"
+      "structure": "Message indicating email sent (e.g., 'If an account with that email exists, a password reset link has been sent.')"
     },
     {
-      "name": "resetLink",
+      "name": "passwordResetSuccess",
       "type": "string",
-      "structure": "URL with unique token"
+      "structure": "Message confirming password update (e.g., 'Your password has been successfully reset.')"
     },
     {
-      "name": "passwordResetConfirmation",
-      "type": "string",
-      "structure": "Success message for password updated"
+      "name": "validationErrors",
+      "type": "object",
+      "structure": "{field: 'error message'}"
     },
     {
-      "name": "errorMessages",
-      "type": "string",
-      "structure": "Specific error messages for invalid inputs/states"
+      "name": "resetEmailContent",
+      "type": "object",
+      "structure": "{subject: 'Password Reset Request', body: 'Contains reset link'}"
     }
   ],
   "risk_areas": [
-    "Security",
-    "Data Integrity",
-    "Usability",
-    "Email Delivery Reliability",
-    "Rate Limiting Efficacy"
+    "Security (unauthorized password resets, token leakage, brute-force attacks, email spoofing)",
+    "Data Integrity (password not updating correctly, account lockout)",
+    "Usability (confusing flow, unclear error messages, email deliverability issues)",
+    "Compliance (data privacy for email addresses)"
   ],
   "non_functional_signals": {
-    "performance_critical": false,
+    "performance_critical": true,
     "security_sensitive": true,
     "user_facing": true
   },
   "ambiguities": [
-    "Exact password complexity rules (e.g., specific character requirements).",
-    "Specific rate limiting thresholds (e.g., how many requests per minute/hour).",
-    "Behavior if user's account is locked or disabled."
+    "Exact content and branding of the password reset email.",
+    "Specific password complexity rules (min/max length, character types).",
+    "Exact expiry duration for the password reset link/token.",
+    "Behavior when multiple password reset requests are made for the same email (does a new link invalidate old ones?).",
+    "Presence and type of CAPTCHA or other bot protection on the 'Forgot Password' form."
   ],
   "missing_information": [
-    "Detailed error messages for all failure scenarios.",
-    "Specific UI elements and their IDs/classes.",
-    "Backend logging requirements for reset attempts."
+    "Detailed password complexity requirements.",
+    "Specific rate limiting thresholds for password reset requests.",
+    "Error handling for email service failures (e.g., email not sent)."
   ],
   "assumptions": [
-    "A 'Forgot Password' link is available on the login page.",
-    "An email input field for password reset request is present on the 'Forgot Password' page.",
-    "A confirmation message is displayed on the UI after submitting the email for password reset.",
-    "The reset link is delivered to the user's registered email inbox.",
-    "The reset link navigates to a dedicated 'Reset Password' page.",
-    "The 'Reset Password' page contains fields for 'New Password' and 'Confirm New Password'.",
-    "Password complexity rules require a minimum of 8 characters, including at least one uppercase letter, one lowercase letter, one number, and one special character.",
-    "The system provides clear and distinct error messages for invalid, expired, or already-used reset links.",
-    "The system provides a clear success message upon successful password reset.",
-    "Rate limiting is implemented at the server-side to prevent brute-force attacks on email submission and link usage."
+    "There is a 'Forgot Password' link accessible from the login page.",
+    "Upon submitting a registered email, a password reset email containing a unique, time-limited link is sent.",
+    "Clicking the reset link navigates the user to a 'Set New Password' page.",
+    "The 'Set New Password' page requires entering a new password and confirming it.",
+    "Password complexity rules are enforced during new password creation.",
+    "For security, submitting an unregistered email will display a generic 'If an account exists...' message.",
+    "The password reset link/token is single-use and expires after 60 minutes.",
+    "Rate limiting is implemented on the password reset request endpoint to prevent brute-force attacks."
   ],
   "functional": [
     {
       "id": "TC_FUNC_PR_001",
-      "testScenario": "Password Reset Workflow",
+      "testScenario": "Password Reset Initiation",
       "module": "Authentication",
-      "title": "Successful Password Reset with Valid Email",
+      "title": "Successful Password Reset Request",
       "type": "Functional",
       "priority": "High",
       "severity": "Critical",
       "preconditions": [
-        "User has a registered account",
-        "User is not logged in"
+        "User account 'testuser@example.com' is registered and active."
       ],
-      "testData": "Registered Email: user1@example.com, New Password: NewPass!123, Confirm New Password: NewPass!123",
+      "testData": "Email: testuser@example.com",
       "steps": [
         {
-          "action": "Navigate to the application's login page",
-          "expected": "Login page loads successfully"
+          "action": "Navigate to the 'Forgot Password' page",
+          "expected": "'Forgot Password' page loads successfully with email input field."
         },
         {
-          "action": "Click 'Forgot Password?' link",
-          "expected": "'Forgot Password' page is displayed"
+          "action": "Enter 'testuser@example.com' into the email address field",
+          "expected": "Email field accepts input without validation errors."
         },
         {
-          "action": "Enter 'user1@example.com' in the email field",
-          "expected": "Email field accepts input without validation error"
-        },
-        {
-          "action": "Click 'Send Reset Link' button",
-          "expected": "Confirmation message 'Password reset link sent to your email' is displayed"
-        },
-        {
-          "action": "Access 'user1@example.com' email inbox",
-          "expected": "Email with password reset link is received within 60 seconds"
-        },
-        {
-          "action": "Click the password reset link in the email",
-          "expected": "'Reset Password' page loads with 'New Password' and 'Confirm New Password' fields"
-        },
-        {
-          "action": "Enter 'NewPass!123' in 'New Password' field",
-          "expected": "Field accepts input and meets complexity requirements"
-        },
-        {
-          "action": "Enter 'NewPass!123' in 'Confirm New Password' field",
-          "expected": "Field accepts input and matches 'New Password'"
-        },
-        {
-          "action": "Click 'Reset Password' button",
-          "expected": "Success message 'Your password has been reset successfully' is displayed"
-        },
-        {
-          "action": "Navigate to login page and attempt login with 'user1@example.com' and 'NewPass!123'",
-          "expected": "User is successfully logged in with the new password"
+          "action": "Click the 'Send Reset Link' button",
+          "expected": "System displays a confirmation message indicating a reset email has been sent."
         }
       ],
-      "expectedResult": "User's password is successfully reset and they can log in with the new password.",
+      "expectedResult": "A confirmation message is displayed, and a password reset email is sent to 'testuser@example.com'.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_FUNC_PR_002",
-      "testScenario": "Password Reset Link Delivery",
-      "module": "Email Service",
-      "title": "Password Reset Email Delivery",
+      "testScenario": "Password Reset Link Validation",
+      "module": "Authentication",
+      "title": "Valid Reset Link Navigation",
       "type": "Functional",
       "priority": "High",
-      "severity": "Major",
+      "severity": "Critical",
       "preconditions": [
-        "User has a registered account",
-        "Email service is operational"
+        "User account 'testuser@example.com' is registered and active.",
+        "A valid password reset email has been sent to 'testuser@example.com' containing a unique reset link."
       ],
-      "testData": "Registered Email: user2@example.com",
+      "testData": "Email: testuser@example.com, Valid Reset Link",
       "steps": [
         {
-          "action": "Navigate to 'Forgot Password' page",
-          "expected": "'Forgot Password' page is displayed"
+          "action": "Access the password reset link from the email",
+          "expected": "Browser navigates to the 'Set New Password' page."
         },
         {
-          "action": "Enter 'user2@example.com' in the email field",
-          "expected": "Email field accepts input"
-        },
-        {
-          "action": "Click 'Send Reset Link' button",
-          "expected": "Confirmation message 'Password reset link sent to your email' is displayed"
-        },
-        {
-          "action": "Access 'user2@example.com' email inbox",
-          "expected": "Email with password reset link is received"
-        },
-        {
-          "action": "Verify sender email address",
-          "expected": "Email is from a legitimate sender (e.g., no-reply@example.com)"
-        },
-        {
-          "action": "Verify email content",
-          "expected": "Email contains a clear message and a clickable reset link"
+          "action": "Verify page elements",
+          "expected": "'New Password' and 'Confirm New Password' fields are displayed."
         }
       ],
-      "expectedResult": "Password reset email is successfully delivered to the registered email address with a valid link.",
+      "expectedResult": "The 'Set New Password' page loads successfully, allowing the user to input a new password.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_FUNC_PR_003",
-      "testScenario": "Password Reset Link Validity",
+      "testScenario": "Password Update",
       "module": "Authentication",
-      "title": "Password Reset Link Valid for 15 Minutes",
+      "title": "Successful Password Update via Reset",
       "type": "Functional",
       "priority": "High",
-      "severity": "Major",
+      "severity": "Critical",
       "preconditions": [
-        "User has a registered account",
-        "Password reset link has been requested"
+        "User account 'testuser@example.com' is registered and active.",
+        "User is on the 'Set New Password' page via a valid reset link."
       ],
-      "testData": "Registered Email: user3@example.com, New Password: ValidPass!123",
+      "testData": "Email: testuser@example.com, New Password: NewPass123!, Confirm New Password: NewPass123!",
       "steps": [
         {
-          "action": "Request password reset link for 'user3@example.com'",
-          "expected": "Reset link is sent to email"
+          "action": "Enter 'NewPass123!' in the 'New Password' field",
+          "expected": "Field accepts input without error."
         },
         {
-          "action": "Wait for 14 minutes",
-          "expected": "System clock advances"
+          "action": "Enter 'NewPass123!' in the 'Confirm New Password' field",
+          "expected": "Field accepts input without error."
         },
         {
-          "action": "Click the password reset link from the email",
-          "expected": "'Reset Password' page loads successfully"
+          "action": "Click the 'Reset Password' button",
+          "expected": "System displays a success message (e.g., 'Your password has been successfully reset.')."
         },
         {
-          "action": "Enter 'ValidPass!123' in 'New Password' and 'Confirm New Password' fields",
-          "expected": "Fields accept input"
-        },
-        {
-          "action": "Click 'Reset Password' button",
-          "expected": "Password is reset successfully"
+          "action": "Attempt to log in with 'testuser@example.com' and 'NewPass123!'",
+          "expected": "User is successfully logged in."
         }
       ],
-      "expectedResult": "Password reset link remains valid and allows password reset within 15 minutes of generation.",
-      "requirementId": "REQ_PR_002"
+      "expectedResult": "Password is successfully updated, and the user can log in with the new password.",
+      "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_FUNC_PR_004",
-      "testScenario": "Password Reset Link Usage",
+      "testScenario": "Password Reset Email Content",
       "module": "Authentication",
-      "title": "Password Reset Link Single Use",
+      "title": "Password Reset Email Content Verification",
+      "type": "Functional",
+      "priority": "Medium",
+      "severity": "Major",
+      "preconditions": [
+        "User account 'testuser@example.com' is registered and active.",
+        "A password reset request has been initiated for 'testuser@example.com'."
+      ],
+      "testData": "Email: testuser@example.com",
+      "steps": [
+        {
+          "action": "Access the inbox for 'testuser@example.com'",
+          "expected": "Password reset email is received in the inbox."
+        },
+        {
+          "action": "Open the password reset email",
+          "expected": "Email subject is 'Password Reset Request' or similar."
+        },
+        {
+          "action": "Verify email body content",
+          "expected": "Email body contains a clear message, a unique reset link, and instructions."
+        },
+        {
+          "action": "Verify sender email address",
+          "expected": "Sender email address is a recognized and trusted domain (e.g., no-reply@example.com)."
+        }
+      ],
+      "expectedResult": "The password reset email is received, contains correct subject, content, and a valid reset link from a trusted sender.",
+      "requirementId": "REQ_PR_001"
+    },
+    {
+      "id": "TC_FUNC_PR_005",
+      "testScenario": "Post-Reset Link Invalidation",
+      "module": "Authentication",
+      "title": "Reset Link Invalidation After Use",
       "type": "Functional",
       "priority": "High",
       "severity": "Major",
       "preconditions": [
-        "User has a registered account",
-        "Password reset link has been requested and not yet used"
+        "User account 'testuser@example.com' is registered and active.",
+        "A password reset has been successfully completed using a valid reset link."
       ],
-      "testData": "Registered Email: user4@example.com, New Password: NewPass!123",
+      "testData": "Email: testuser@example.com, Used Reset Link",
       "steps": [
         {
-          "action": "Request password reset link for 'user4@example.com'",
-          "expected": "Reset link is sent to email"
-        },
-        {
-          "action": "Click the password reset link from the email",
-          "expected": "'Reset Password' page loads"
-        },
-        {
-          "action": "Enter 'NewPass!123' in 'New Password' and 'Confirm New Password' fields",
-          "expected": "Fields accept input"
-        },
-        {
-          "action": "Click 'Reset Password' button",
-          "expected": "Password is reset successfully"
-        },
-        {
-          "action": "Attempt to click the SAME password reset link again",
-          "expected": "System displays an error message indicating the link is expired or already used"
+          "action": "Attempt to access the same password reset link again after successful password update",
+          "expected": "System redirects to an error page or displays a message indicating the link is invalid/expired."
         }
       ],
-      "expectedResult": "Password reset link expires after a single successful use.",
-      "requirementId": "REQ_PR_003"
-    },
-    {
-      "id": "TC_FUNC_PR_005",
-      "testScenario": "Password Reset UI/UX",
-      "module": "Authentication",
-      "title": "Password Reset Page UI Elements",
-      "type": "Functional",
-      "priority": "Medium",
-      "severity": "Minor",
-      "preconditions": [
-        "User has a registered account",
-        "Valid password reset link is available"
-      ],
-      "testData": "Registered Email: user5@example.com",
-      "steps": [
-        {
-          "action": "Request password reset link for 'user5@example.com'",
-          "expected": "Reset link is sent to email"
-        },
-        {
-          "action": "Click the password reset link from the email",
-          "expected": "'Reset Password' page loads"
-        },
-        {
-          "action": "Verify presence of 'New Password' field",
-          "expected": "'New Password' input field is visible and editable"
-        },
-        {
-          "action": "Verify presence of 'Confirm New Password' field",
-          "expected": "'Confirm New Password' input field is visible and editable"
-        },
-        {
-          "action": "Verify presence of 'Reset Password' button",
-          "expected": "'Reset Password' button is visible and clickable"
-        },
-        {
-          "action": "Verify password complexity requirements hint (if applicable)",
-          "expected": "A hint or tooltip for password complexity is displayed"
-        }
-      ],
-      "expectedResult": "The 'Reset Password' page displays all necessary UI elements for password entry and submission.",
+      "expectedResult": "The used password reset link is invalidated and cannot be used again to set a new password.",
       "requirementId": "REQ_PR_001"
     }
   ],
   "negative": [
     {
       "id": "TC_NEG_PR_001",
-      "testScenario": "Password Reset Request Validation",
+      "testScenario": "Password Reset Initiation",
       "module": "Authentication",
-      "title": "Password Reset with Unregistered Email",
+      "title": "Reset Request with Unregistered Email",
       "type": "Negative",
       "priority": "High",
       "severity": "Major",
       "preconditions": [
-        "User is not logged in"
+        "No user account exists for 'unregistered@example.com'."
       ],
-      "testData": "Unregistered Email: unregistered@example.com",
+      "testData": "Email: unregistered@example.com",
       "steps": [
         {
-          "action": "Navigate to 'Forgot Password' page",
-          "expected": "'Forgot Password' page is displayed"
+          "action": "Navigate to the 'Forgot Password' page",
+          "expected": "'Forgot Password' page loads successfully."
         },
         {
-          "action": "Enter 'unregistered@example.com' in the email field",
-          "expected": "Email field accepts input"
+          "action": "Enter 'unregistered@example.com' into the email address field",
+          "expected": "Email field accepts input without immediate client-side error."
         },
         {
-          "action": "Click 'Send Reset Link' button",
-          "expected": "System displays a message indicating email not found or 'If an account exists for this email, a reset link has been sent.'"
-        },
-        {
-          "action": "Check 'unregistered@example.com' email inbox",
-          "expected": "No password reset email is received"
+          "action": "Click the 'Send Reset Link' button",
+          "expected": "System displays a generic confirmation message (e.g., 'If an account with that email exists, a password reset link has been sent.') without revealing account existence."
         }
       ],
-      "expectedResult": "System does not send a password reset link for an unregistered email address and provides appropriate feedback.",
+      "expectedResult": "A generic confirmation message is displayed, and no password reset email is sent to the unregistered email.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_NEG_PR_002",
-      "testScenario": "Password Reset Request Validation",
+      "testScenario": "Password Reset Initiation",
       "module": "Authentication",
-      "title": "Password Reset with Invalid Email Format",
+      "title": "Reset Request with Invalid Email Format",
       "type": "Negative",
       "priority": "High",
       "severity": "Major",
       "preconditions": [
-        "User is not logged in"
+        "User is on the 'Forgot Password' page."
       ],
-      "testData": "Invalid Email: invalid-email, Invalid Email: user@.com, Invalid Email: user@com",
+      "testData": "Email: invalid-email",
       "steps": [
         {
-          "action": "Navigate to 'Forgot Password' page",
-          "expected": "'Forgot Password' page is displayed"
+          "action": "Enter 'invalid-email' into the email address field",
+          "expected": "Client-side validation displays an 'Invalid email format' error message."
         },
         {
-          "action": "Enter 'invalid-email' in the email field",
-          "expected": "Email field shows client-side validation error 'Invalid email format'"
-        },
-        {
-          "action": "Click 'Send Reset Link' button",
-          "expected": "Button remains disabled or form submission is prevented by client-side validation"
-        },
-        {
-          "action": "Enter 'user@.com' in the email field",
-          "expected": "Email field shows client-side validation error 'Invalid email format'"
-        },
-        {
-          "action": "Enter 'user@com' in the email field",
-          "expected": "Email field shows client-side validation error 'Invalid email format'"
+          "action": "Click the 'Send Reset Link' button",
+          "expected": "Button remains disabled or form submission is prevented due to client-side validation."
         }
       ],
-      "expectedResult": "System prevents password reset request submission for invalid email formats with client-side validation.",
+      "expectedResult": "Client-side validation prevents submission and displays an 'Invalid email format' error.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_NEG_PR_003",
-      "testScenario": "Password Reset Link Expiration",
+      "testScenario": "Password Update",
       "module": "Authentication",
-      "title": "Password Reset with Expired Link (after 15 mins)",
-      "type": "Negative",
-      "priority": "High",
-      "severity": "Critical",
-      "preconditions": [
-        "User has a registered account",
-        "Password reset link has been requested"
-      ],
-      "testData": "Registered Email: user6@example.com",
-      "steps": [
-        {
-          "action": "Request password reset link for 'user6@example.com'",
-          "expected": "Reset link is sent to email"
-        },
-        {
-          "action": "Wait for 16 minutes",
-          "expected": "System clock advances past 15-minute validity period"
-        },
-        {
-          "action": "Click the password reset link from the email",
-          "expected": "System displays an error message 'Password reset link has expired' or similar"
-        },
-        {
-          "action": "Verify that 'Reset Password' page is not accessible or fields are disabled",
-          "expected": "User cannot proceed with password reset using the expired link"
-        }
-      ],
-      "expectedResult": "Password reset link is invalid and prevents password reset after 15 minutes of generation.",
-      "requirementId": "REQ_PR_002"
-    },
-    {
-      "id": "TC_NEG_PR_004",
-      "testScenario": "Password Reset Form Validation",
-      "module": "Authentication",
-      "title": "Password Reset with Mismatched New Passwords",
+      "title": "Password Mismatch on Reset Page",
       "type": "Negative",
       "priority": "High",
       "severity": "Major",
       "preconditions": [
-        "User has a registered account",
-        "Valid password reset link is available"
+        "User is on the 'Set New Password' page via a valid reset link."
       ],
-      "testData": "Registered Email: user7@example.com, New Password: Pass!123, Confirm New Password: Pass!321",
+      "testData": "New Password: NewPass123!, Confirm New Password: Mismatch123!",
       "steps": [
         {
-          "action": "Request password reset link for 'user7@example.com' and navigate to 'Reset Password' page",
-          "expected": "'Reset Password' page loads"
+          "action": "Enter 'NewPass123!' in the 'New Password' field",
+          "expected": "Field accepts input."
         },
         {
-          "action": "Enter 'Pass!123' in 'New Password' field",
-          "expected": "Field accepts input"
+          "action": "Enter 'Mismatch123!' in the 'Confirm New Password' field",
+          "expected": "Field accepts input."
         },
         {
-          "action": "Enter 'Pass!321' in 'Confirm New Password' field",
-          "expected": "Field accepts input"
-        },
-        {
-          "action": "Click 'Reset Password' button",
-          "expected": "System displays an error message 'Passwords do not match' or similar"
-        },
-        {
-          "action": "Verify password is not reset by attempting login with 'Pass!123'",
-          "expected": "Login fails with new password"
+          "action": "Click the 'Reset Password' button",
+          "expected": "System displays an error message 'New password and confirm password do not match'."
         }
       ],
-      "expectedResult": "System prevents password reset if 'New Password' and 'Confirm New Password' fields do not match.",
+      "expectedResult": "Password reset fails with a clear 'password mismatch' error message.",
+      "requirementId": "REQ_PR_001"
+    },
+    {
+      "id": "TC_NEG_PR_004",
+      "testScenario": "Password Update",
+      "module": "Authentication",
+      "title": "Weak New Password on Reset Page",
+      "type": "Negative",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "User is on the 'Set New Password' page via a valid reset link."
+      ],
+      "testData": "New Password: weak, Confirm New Password: weak",
+      "steps": [
+        {
+          "action": "Enter 'weak' in the 'New Password' field",
+          "expected": "Field accepts input."
+        },
+        {
+          "action": "Enter 'weak' in the 'Confirm New Password' field",
+          "expected": "Field accepts input."
+        },
+        {
+          "action": "Click the 'Reset Password' button",
+          "expected": "System displays an error message indicating password does not meet complexity requirements."
+        }
+      ],
+      "expectedResult": "Password reset fails with a clear error message about weak password.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_NEG_PR_005",
-      "testScenario": "Password Reset Form Validation",
+      "testScenario": "Password Reset Link Validation",
       "module": "Authentication",
-      "title": "Password Reset with Weak New Password",
+      "title": "Expired Reset Link Access",
       "type": "Negative",
-      "priority": "Medium",
-      "severity": "Major",
+      "priority": "High",
+      "severity": "Critical",
       "preconditions": [
-        "User has a registered account",
-        "Valid password reset link is available"
+        "A password reset link for 'testuser@example.com' has been generated and has since expired (e.g., after 60 minutes)."
       ],
-      "testData": "Registered Email: user8@example.com, New Password: weak, Confirm New Password: weak",
+      "testData": "Email: testuser@example.com, Expired Reset Link",
       "steps": [
         {
-          "action": "Request password reset link for 'user8@example.com' and navigate to 'Reset Password' page",
-          "expected": "'Reset Password' page loads"
-        },
-        {
-          "action": "Enter 'weak' in 'New Password' field",
-          "expected": "Field accepts input"
-        },
-        {
-          "action": "Enter 'weak' in 'Confirm New Password' field",
-          "expected": "Field accepts input"
-        },
-        {
-          "action": "Click 'Reset Password' button",
-          "expected": "System displays an error message 'Password does not meet complexity requirements' or similar"
-        },
-        {
-          "action": "Verify password is not reset by attempting login with 'weak'",
-          "expected": "Login fails with new password"
+          "action": "Attempt to access the expired password reset link",
+          "expected": "System redirects to an error page or displays a message 'Password reset link has expired'."
         }
       ],
-      "expectedResult": "System prevents password reset if the new password does not meet defined complexity requirements.",
+      "expectedResult": "Access to the 'Set New Password' page is denied, and an 'expired link' error is displayed.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_NEG_PR_006",
-      "testScenario": "Password Reset Rate Limiting",
+      "testScenario": "Password Reset Link Validation",
       "module": "Authentication",
-      "title": "Multiple Password Reset Requests from Same Email",
+      "title": "Invalid Reset Link Access",
       "type": "Negative",
       "priority": "High",
-      "severity": "Major",
+      "severity": "Critical",
       "preconditions": [
-        "User has a registered account"
+        "User is not logged in."
       ],
-      "testData": "Registered Email: user9@example.com",
+      "testData": "Invalid Reset Link: https://example.com/reset?token=INVALIDTOKEN123",
       "steps": [
         {
-          "action": "Navigate to 'Forgot Password' page",
-          "expected": "'Forgot Password' page is displayed"
-        },
-        {
-          "action": "Enter 'user9@example.com' and click 'Send Reset Link' (repeat 5 times rapidly)",
-          "expected": "First few requests result in confirmation message, subsequent requests within rate limit period result in a 'Too many requests' error or similar"
-        },
-        {
-          "action": "Check 'user9@example.com' email inbox",
-          "expected": "Only one or a limited number of reset emails are received, corresponding to successful requests before rate limit was hit"
+          "action": "Attempt to access a malformed or non-existent password reset link",
+          "expected": "System redirects to an error page or displays a message 'Invalid password reset link'."
         }
       ],
-      "expectedResult": "System rate-limits multiple password reset requests from the same email address within a short period.",
-      "requirementId": "REQ_PR_004"
+      "expectedResult": "Access to the 'Set New Password' page is denied, and an 'invalid link' error is displayed.",
+      "requirementId": "REQ_PR_001"
     }
   ],
   "edge": [
     {
       "id": "TC_EDGE_PR_001",
-      "testScenario": "Password Reset Link Timing",
+      "testScenario": "Password Reset Initiation",
       "module": "Authentication",
-      "title": "Password Reset Link Used at 15-Minute Mark",
+      "title": "Multiple Reset Requests for Same Email",
       "type": "Edge",
       "priority": "Medium",
       "severity": "Major",
       "preconditions": [
-        "User has a registered account",
-        "Password reset link has been requested"
+        "User account 'testuser@example.com' is registered and active."
       ],
-      "testData": "Registered Email: user10@example.com, New Password: EdgePass!123",
+      "testData": "Email: testuser@example.com",
       "steps": [
         {
-          "action": "Request password reset link for 'user10@example.com'",
-          "expected": "Reset link is sent to email"
+          "action": "Initiate password reset for 'testuser@example.com'",
+          "expected": "First reset email sent."
         },
         {
-          "action": "Wait for exactly 15 minutes (or 14 minutes 59 seconds)",
-          "expected": "System clock reaches the boundary of link validity"
+          "action": "Immediately initiate another password reset for 'testuser@example.com'",
+          "expected": "Second reset email sent, and the first link is invalidated."
         },
         {
-          "action": "Click the password reset link from the email",
-          "expected": "'Reset Password' page loads successfully, or an error message is displayed if link just expired"
+          "action": "Attempt to use the first reset link received",
+          "expected": "System displays 'Link expired/invalid' message."
         },
         {
-          "action": "If page loads, enter 'EdgePass!123' in 'New Password' and 'Confirm New Password' fields and click 'Reset Password'",
-          "expected": "Password reset is successful if link was still valid, or an error if it just expired"
+          "action": "Attempt to use the second reset link received",
+          "expected": "System navigates to 'Set New Password' page."
         }
       ],
-      "expectedResult": "Password reset link correctly handles usage at the exact 15-minute expiration boundary.",
-      "requirementId": "REQ_PR_002"
+      "expectedResult": "Only the most recent password reset link is valid; previous links are invalidated.",
+      "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_EDGE_PR_002",
-      "testScenario": "Password Reset Link Generation",
+      "testScenario": "Password Update",
       "module": "Authentication",
-      "title": "Multiple Reset Links for Same User (Newest Valid)",
+      "title": "New Password Same as Current Password",
       "type": "Edge",
       "priority": "Medium",
-      "severity": "Major",
+      "severity": "Minor",
       "preconditions": [
-        "User has a registered account"
+        "User is on the 'Set New Password' page via a valid reset link.",
+        "Current password for 'testuser@example.com' is 'CurrentPass123!'."
       ],
-      "testData": "Registered Email: user11@example.com, New Password: LatestPass!123",
+      "testData": "Email: testuser@example.com, New Password: CurrentPass123!, Confirm New Password: CurrentPass123!",
       "steps": [
         {
-          "action": "Request password reset link for 'user11@example.com' (Link A)",
-          "expected": "Link A is sent to email"
+          "action": "Enter 'CurrentPass123!' in 'New Password' and 'Confirm New Password' fields",
+          "expected": "Fields accept input."
         },
         {
-          "action": "Immediately request another password reset link for 'user11@example.com' (Link B)",
-          "expected": "Link B is sent to email, potentially invalidating Link A"
-        },
-        {
-          "action": "Click Link A from the email",
-          "expected": "System displays an error message 'Link expired/invalid' or similar, as Link B should have invalidated it"
-        },
-        {
-          "action": "Click Link B from the email",
-          "expected": "'Reset Password' page loads successfully"
-        },
-        {
-          "action": "Enter 'LatestPass!123' in 'New Password' and 'Confirm New Password' fields and click 'Reset Password'",
-          "expected": "Password reset is successful"
+          "action": "Click 'Reset Password' button",
+          "expected": "System displays an error message 'New password cannot be the same as the current password' or allows update."
         }
       ],
-      "expectedResult": "Only the most recently generated password reset link for a user is valid, invalidating previous links.",
-      "requirementId": "REQ_PR_003"
+      "expectedResult": "System either prevents setting the same password as current or allows it based on policy, with appropriate message.",
+      "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_EDGE_PR_003",
-      "testScenario": "Password Reset Email Case Sensitivity",
+      "testScenario": "Password Update",
       "module": "Authentication",
-      "title": "Password Reset with Case-Sensitive Email",
+      "title": "Minimum Length New Password",
       "type": "Edge",
-      "priority": "Low",
+      "priority": "Medium",
       "severity": "Minor",
       "preconditions": [
-        "User has a registered account with email 'User12@example.com'"
+        "User is on the 'Set New Password' page via a valid reset link.",
+        "Assumed minimum password length is 8 characters."
       ],
-      "testData": "Registered Email: User12@example.com, Input Email: user12@example.com",
+      "testData": "New Password: MinPass!, Confirm New Password: MinPass!",
       "steps": [
         {
-          "action": "Navigate to 'Forgot Password' page",
-          "expected": "'Forgot Password' page is displayed"
+          "action": "Enter 'MinPass!' (8 chars) in 'New Password' and 'Confirm New Password' fields",
+          "expected": "Fields accept input."
         },
         {
-          "action": "Enter 'user12@example.com' (lowercase) in the email field",
-          "expected": "Email field accepts input"
-        },
-        {
-          "action": "Click 'Send Reset Link' button",
-          "expected": "Confirmation message 'Password reset link sent to your email' is displayed"
-        },
-        {
-          "action": "Check 'User12@example.com' email inbox",
-          "expected": "Password reset email is received"
+          "action": "Click 'Reset Password' button",
+          "expected": "Password is successfully updated."
         }
       ],
-      "expectedResult": "System handles email addresses case-insensitively for password reset requests.",
+      "expectedResult": "Password is successfully updated with a password meeting the minimum length requirement.",
+      "requirementId": "REQ_PR_001"
+    },
+    {
+      "id": "TC_EDGE_PR_004",
+      "testScenario": "Password Update",
+      "module": "Authentication",
+      "title": "Maximum Length New Password",
+      "type": "Edge",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "User is on the 'Set New Password' page via a valid reset link.",
+        "Assumed maximum password length is 64 characters."
+      ],
+      "testData": "New Password: AVeryLongAndComplexPasswordThatMeetsAllRequirementsAndIsSixtyFourCharactersLong123!, Confirm New Password: AVeryLongAndComplexPasswordThatMeetsAllRequirementsAndIsSixtyFourCharactersLong123!",
+      "steps": [
+        {
+          "action": "Enter a 64-character password in 'New Password' and 'Confirm New Password' fields",
+          "expected": "Fields accept input up to 64 characters."
+        },
+        {
+          "action": "Click 'Reset Password' button",
+          "expected": "Password is successfully updated."
+        }
+      ],
+      "expectedResult": "Password is successfully updated with a password meeting the maximum length requirement.",
       "requirementId": "REQ_PR_001"
     }
   ],
   "apiChecklist": [
     {
       "id": "TC_API_PR_001",
-      "testScenario": "Password Reset Request API",
+      "testScenario": "Password Reset API",
       "module": "Authentication API",
-      "title": "POST /api/password/forgot - Valid Email",
+      "title": "POST /api/password/reset/request - Valid Email",
       "type": "API",
       "priority": "High",
       "severity": "Critical",
       "preconditions": [
-        "API server is running",
-        "User account 'apiuser@example.com' exists"
+        "API server is running.",
+        "User 'testuser@example.com' exists in the database."
       ],
-      "testData": "POST body: { \"email\": \"apiuser@example.com\" }",
+      "testData": "Endpoint: /api/password/reset/request, Method: POST, Body: { 'email': 'testuser@example.com' }",
       "steps": [
         {
-          "action": "Send POST request to /api/password/forgot with valid email payload",
-          "expected": "Response status 200 OK"
+          "action": "Send POST request to /api/password/reset/request with valid email",
+          "expected": "HTTP status code 200 OK."
         },
         {
           "action": "Validate response body",
-          "expected": "Body contains success message (e.g., { \"message\": \"Password reset link sent\" })"
+          "expected": "Response body contains a success message (e.g., { 'message': 'Password reset email sent.' }) and matches expected schema."
         },
         {
-          "action": "Verify email sent to 'apiuser@example.com'",
-          "expected": "Email service confirms delivery of reset link"
+          "action": "Verify email sent to 'testuser@example.com'",
+          "expected": "A password reset email is present in the email service logs/inbox."
         }
       ],
-      "expectedResult": "API returns 200 OK and sends a password reset email for a valid registered email.",
+      "expectedResult": "API returns 200 OK with success message, and a reset email is triggered.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_API_PR_002",
-      "testScenario": "Password Reset Request API",
+      "testScenario": "Password Reset API",
       "module": "Authentication API",
-      "title": "POST /api/password/forgot - Unregistered Email",
+      "title": "POST /api/password/reset/request - Unregistered Email",
       "type": "API",
       "priority": "High",
       "severity": "Major",
       "preconditions": [
-        "API server is running"
+        "API server is running.",
+        "User 'unregistered@example.com' does not exist in the database."
       ],
-      "testData": "POST body: { \"email\": \"nonexistent@example.com\" }",
+      "testData": "Endpoint: /api/password/reset/request, Method: POST, Body: { 'email': 'unregistered@example.com' }",
       "steps": [
         {
-          "action": "Send POST request to /api/password/forgot with unregistered email payload",
-          "expected": "Response status 200 OK (to prevent enumeration) or 404 Not Found"
+          "action": "Send POST request to /api/password/reset/request with unregistered email",
+          "expected": "HTTP status code 200 OK (for security reasons, to avoid user enumeration)."
         },
         {
           "action": "Validate response body",
-          "expected": "Body contains a generic success message or specific 'email not found' message (depending on security policy)"
+          "expected": "Response body contains a generic success message (e.g., { 'message': 'If an account with that email exists, a password reset link has been sent.' }) and matches expected schema."
         },
         {
-          "action": "Verify no email sent to 'nonexistent@example.com'",
-          "expected": "Email service logs confirm no email was dispatched"
+          "action": "Verify no email sent to 'unregistered@example.com'",
+          "expected": "No password reset email is present in the email service logs/inbox for this address."
         }
       ],
-      "expectedResult": "API handles unregistered email gracefully, preventing user enumeration while providing appropriate feedback.",
+      "expectedResult": "API returns 200 OK with a generic message, and no reset email is sent to the unregistered address.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_API_PR_003",
-      "testScenario": "Password Reset Request API",
+      "testScenario": "Password Reset API",
       "module": "Authentication API",
-      "title": "POST /api/password/forgot - Invalid Email Format",
+      "title": "POST /api/password/reset/confirm - Valid Token & New Password",
       "type": "API",
       "priority": "High",
-      "severity": "Major",
+      "severity": "Critical",
       "preconditions": [
-        "API server is running"
+        "API server is running.",
+        "A valid, unused reset token for 'testuser@example.com' has been generated."
       ],
-      "testData": "POST body: { \"email\": \"invalid-email\" }",
+      "testData": "Endpoint: /api/password/reset/confirm, Method: POST, Body: { 'token': 'VALID_TOKEN_123', 'newPassword': 'NewPass123!', 'confirmNewPassword': 'NewPass123!' }",
       "steps": [
         {
-          "action": "Send POST request to /api/password/forgot with invalid email format payload",
-          "expected": "Response status 400 Bad Request"
+          "action": "Send POST request to /api/password/reset/confirm with valid token and new password",
+          "expected": "HTTP status code 200 OK."
         },
         {
           "action": "Validate response body",
-          "expected": "Body contains an error message indicating invalid email format (e.g., { \"error\": \"Invalid email format\" })"
+          "expected": "Response body contains a success message (e.g., { 'message': 'Password successfully reset.' }) and matches expected schema."
+        },
+        {
+          "action": "Attempt to authenticate 'testuser@example.com' with 'NewPass123!'",
+          "expected": "Authentication is successful."
         }
       ],
-      "expectedResult": "API rejects password reset requests with invalid email formats with a 400 Bad Request status.",
+      "expectedResult": "API returns 200 OK, password is updated, and user can log in with the new password.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_API_PR_004",
       "testScenario": "Password Reset API",
       "module": "Authentication API",
-      "title": "POST /api/password/reset - Valid Token and New Password",
+      "title": "POST /api/password/reset/confirm - Invalid Token",
       "type": "API",
       "priority": "High",
       "severity": "Critical",
       "preconditions": [
-        "API server is running",
-        "Valid password reset token generated for 'apiuser2@example.com'"
+        "API server is running."
       ],
-      "testData": "POST body: { \"token\": \"valid_reset_token_123\", \"newPassword\": \"ApiPass!123\", \"confirmNewPassword\": \"ApiPass!123\" }",
+      "testData": "Endpoint: /api/password/reset/confirm, Method: POST, Body: { 'token': 'INVALID_TOKEN_XYZ', 'newPassword': 'NewPass123!', 'confirmNewPassword': 'NewPass123!' }",
       "steps": [
         {
-          "action": "Send POST request to /api/password/reset with valid token and new password payload",
-          "expected": "Response status 200 OK"
+          "action": "Send POST request to /api/password/reset/confirm with an invalid token",
+          "expected": "HTTP status code 400 Bad Request or 401 Unauthorized."
         },
         {
           "action": "Validate response body",
-          "expected": "Body contains success message (e.g., { \"message\": \"Password reset successful\" })"
-        },
-        {
-          "action": "Attempt login with 'apiuser2@example.com' and 'ApiPass!123'",
-          "expected": "Login is successful"
+          "expected": "Response body contains an error message (e.g., { 'error': 'Invalid or expired reset token.' }) and matches expected error schema."
         }
       ],
-      "expectedResult": "API successfully resets password with a valid token and new password, returning 200 OK.",
+      "expectedResult": "API returns an error status code (4xx) with a clear 'invalid token' error message.",
       "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_API_PR_005",
       "testScenario": "Password Reset API",
       "module": "Authentication API",
-      "title": "POST /api/password/reset - Expired Token",
+      "title": "POST /api/password/reset/confirm - Expired Token",
       "type": "API",
       "priority": "High",
       "severity": "Critical",
       "preconditions": [
-        "API server is running",
-        "Expired password reset token generated for 'apiuser3@example.com'"
+        "API server is running.",
+        "An expired reset token for 'testuser@example.com' exists."
       ],
-      "testData": "POST body: { \"token\": \"expired_reset_token_456\", \"newPassword\": \"NewPass!123\", \"confirmNewPassword\": \"NewPass!123\" }",
+      "testData": "Endpoint: /api/password/reset/confirm, Method: POST, Body: { 'token': 'EXPIRED_TOKEN_ABC', 'newPassword': 'NewPass123!', 'confirmNewPassword': 'NewPass123!' }",
       "steps": [
         {
-          "action": "Send POST request to /api/password/reset with expired token payload",
-          "expected": "Response status 401 Unauthorized or 403 Forbidden"
+          "action": "Send POST request to /api/password/reset/confirm with an expired token",
+          "expected": "HTTP status code 400 Bad Request or 401 Unauthorized."
         },
         {
           "action": "Validate response body",
-          "expected": "Body contains an error message indicating token expiration (e.g., { \"error\": \"Reset token expired\" })"
+          "expected": "Response body contains an error message (e.g., { 'error': 'Invalid or expired reset token.' }) and matches expected error schema."
         }
       ],
-      "expectedResult": "API rejects password reset attempts with expired tokens, returning an appropriate error status and message.",
-      "requirementId": "REQ_PR_002"
-    },
-    {
-      "id": "TC_API_PR_006",
-      "testScenario": "Password Reset API",
-      "module": "Authentication API",
-      "title": "POST /api/password/reset - Used Token",
-      "type": "API",
-      "priority": "High",
-      "severity": "Critical",
-      "preconditions": [
-        "API server is running",
-        "Password reset token for 'apiuser4@example.com' has been used once successfully"
-      ],
-      "testData": "POST body: { \"token\": \"used_reset_token_789\", \"newPassword\": \"NewPass!123\", \"confirmNewPassword\": \"NewPass!123\" }",
-      "steps": [
-        {
-          "action": "Send POST request to /api/password/reset with already used token payload",
-          "expected": "Response status 401 Unauthorized or 403 Forbidden"
-        },
-        {
-          "action": "Validate response body",
-          "expected": "Body contains an error message indicating token invalidity or prior use (e.g., { \"error\": \"Reset token already used\" })"
-        }
-      ],
-      "expectedResult": "API rejects password reset attempts with already used tokens, returning an appropriate error status and message.",
-      "requirementId": "REQ_PR_003"
-    },
-    {
-      "id": "TC_API_PR_007",
-      "testScenario": "Password Reset API Rate Limiting",
-      "module": "Authentication API",
-      "title": "POST /api/password/forgot - Rate Limit Enforcement",
-      "type": "API",
-      "priority": "High",
-      "severity": "Major",
-      "preconditions": [
-        "API server is running",
-        "Rate limiting configured for /api/password/forgot endpoint (e.g., 3 requests per 5 minutes)"
-      ],
-      "testData": "POST body: { \"email\": \"rate_limit_user@example.com\" }",
-      "steps": [
-        {
-          "action": "Send POST request to /api/password/forgot with valid email (repeat 3 times rapidly)",
-          "expected": "First 3 requests return 200 OK"
-        },
-        {
-          "action": "Send a 4th POST request to /api/password/forgot with the same email",
-          "expected": "Response status 429 Too Many Requests"
-        },
-        {
-          "action": "Validate response headers for rate limit information",
-          "expected": "Headers like 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After' are present"
-        }
-      ],
-      "expectedResult": "API enforces rate limiting for password reset requests, returning 429 Too Many Requests after exceeding the threshold.",
-      "requirementId": "REQ_PR_004"
+      "expectedResult": "API returns an error status code (4xx) with a clear 'expired token' error message.",
+      "requirementId": "REQ_PR_001"
     }
   ],
   "nonFunctional": [
     {
       "id": "TC_NF_PR_001",
-      "testScenario": "Password Reset Email Delivery Performance",
-      "module": "Email Service",
-      "title": "Password Reset Email Delivery Time",
-      "type": "Non-Functional",
-      "priority": "Medium",
-      "severity": "Major",
-      "preconditions": [
-        "Email service is operational and under normal load",
-        "Test environment configured for performance monitoring"
-      ],
-      "testData": "Registered Email: perf_user@example.com",
-      "steps": [
-        {
-          "action": "Initiate password reset request for 'perf_user@example.com'",
-          "expected": "System processes request"
-        },
-        {
-          "action": "Measure time from request submission to email receipt in inbox",
-          "expected": "Email is received within 10 seconds (P95)"
-        }
-      ],
-      "expectedResult": "Password reset email is delivered to the user's inbox within acceptable performance thresholds (e.g., < 10 seconds).",
-      "requirementId": "REQ_NF_001"
-    },
-    {
-      "id": "TC_NF_PR_002",
-      "testScenario": "Password Reset Page Load Performance",
+      "testScenario": "Password Reset Page Performance",
       "module": "Authentication UI",
       "title": "Forgot Password Page Load Time",
       "type": "Non-Functional",
       "priority": "Medium",
-      "severity": "Minor",
+      "severity": "Major",
       "preconditions": [
-        "Standard network conditions",
-        "Browser cache cleared"
+        "Standard network conditions (e.g., 4G/broadband).",
+        "Browser: Latest Chrome/Firefox."
       ],
-      "testData": "Browser: Chrome, Network: 4G",
+      "testData": "URL: /forgot-password, User: N/A",
       "steps": [
         {
           "action": "Navigate to the 'Forgot Password' page",
-          "expected": "Page renders completely within 2 seconds"
-        },
-        {
-          "action": "Measure page load time using browser developer tools",
-          "expected": "Load time is within specified SLA"
+          "expected": "Page fully loads and becomes interactive within 2 seconds."
         }
       ],
-      "expectedResult": "The 'Forgot Password' page loads and renders within the defined performance threshold (e.g., < 2 seconds).",
-      "requirementId": "REQ_NF_002"
+      "expectedResult": "The 'Forgot Password' page loads and is interactive within 2 seconds under typical network conditions.",
+      "requirementId": "REQ_PR_001"
+    },
+    {
+      "id": "TC_NF_PR_002",
+      "testScenario": "Password Reset Email Performance",
+      "module": "Email Service",
+      "title": "Password Reset Email Delivery Time",
+      "type": "Non-Functional",
+      "priority": "High",
+      "severity": "Major",
+      "preconditions": [
+        "Email service is operational.",
+        "User account 'testuser@example.com' is registered and active."
+      ],
+      "testData": "Email: testuser@example.com",
+      "steps": [
+        {
+          "action": "Initiate a password reset request for 'testuser@example.com'",
+          "expected": "System confirms email sent."
+        },
+        {
+          "action": "Monitor email inbox for 'testuser@example.com'",
+          "expected": "Password reset email is received within 10 seconds."
+        }
+      ],
+      "expectedResult": "Password reset email is delivered to the user's inbox within 10 seconds of request initiation.",
+      "requirementId": "REQ_PR_001"
     },
     {
       "id": "TC_NF_PR_003",
       "testScenario": "Password Reset Security",
-      "module": "Authentication",
-      "title": "Password Reset Link Token Entropy",
+      "module": "Authentication API",
+      "title": "Rate Limiting for Reset Requests",
       "type": "Non-Functional",
       "priority": "High",
       "severity": "Critical",
       "preconditions": [
-        "System generates password reset links"
+        "API server is running.",
+        "Rate limiting mechanism is configured for /api/password/reset/request endpoint."
       ],
-      "testData": "Multiple generated reset links",
+      "testData": "Endpoint: /api/password/reset/request, Method: POST, Email: testuser@example.com",
       "steps": [
         {
-          "action": "Generate 1000 password reset links for various users",
-          "expected": "Links are generated"
+          "action": "Send 5 password reset requests for 'testuser@example.com' within 60 seconds",
+          "expected": "First few requests return 200 OK."
         },
         {
-          "action": "Analyze the generated tokens for randomness and uniqueness",
-          "expected": "Tokens exhibit high entropy and are sufficiently long to prevent brute-force guessing"
+          "action": "Send a 6th password reset request for 'testuser@example.com' within the same 60 seconds",
+          "expected": "API returns HTTP status code 429 Too Many Requests."
         }
       ],
-      "expectedResult": "Password reset tokens are cryptographically strong, unique, and unpredictable.",
-      "requirementId": "REQ_NF_003"
+      "expectedResult": "The API endpoint /api/password/reset/request enforces rate limiting, returning 429 after exceeding the threshold.",
+      "requirementId": "REQ_PR_001"
+    },
+    {
+      "id": "TC_NF_PR_004",
+      "testScenario": "Password Reset UI Responsiveness",
+      "module": "Authentication UI",
+      "title": "Forgot Password Page Responsiveness",
+      "type": "Non-Functional",
+      "priority": "Medium",
+      "severity": "Minor",
+      "preconditions": [
+        "Browser: Chrome, Firefox, Safari.",
+        "Device: Desktop, Tablet, Mobile."
+      ],
+      "testData": "URL: /forgot-password",
+      "steps": [
+        {
+          "action": "Navigate to the 'Forgot Password' page on a desktop browser",
+          "expected": "Page layout is optimized for desktop."
+        },
+        {
+          "action": "Resize browser window to tablet dimensions",
+          "expected": "Page elements adjust gracefully, maintaining readability and usability."
+        },
+        {
+          "action": "Resize browser window to mobile dimensions",
+          "expected": "Page elements adjust gracefully, maintaining readability and usability, with appropriate touch targets."
+        }
+      ],
+      "expectedResult": "The 'Forgot Password' page displays correctly and is fully functional across various screen sizes and devices.",
+      "requirementId": "REQ_PR_001"
     }
   ],
   "questions": [
-    "Are there specific password complexity rules (e.g., minimum length, required character types) that need to be enforced?",
-    "What are the exact rate limiting thresholds for password reset requests (e.g., X requests per Y minutes/hours per IP/email)?",
-    "What is the expected behavior if a user attempts to reset the password for an account that is locked or disabled?",
-    "Should the system provide a generic 'If an account exists...' message for unregistered emails, or a more specific 'Email not found' message?",
-    "Are there any specific requirements for the content or branding of the password reset email?"
+    "What are the exact password complexity rules (minimum length, required character types)?",
+    "What is the exact expiry time for the password reset link/token?",
+    "What is the desired behavior if a user attempts to set a new password that is identical to their current password?",
+    "Are there any specific branding or content requirements for the password reset email?",
+    "What is the expected rate limiting threshold for password reset requests (e.g., X requests per Y minutes per IP/email)?"
   ]
 }

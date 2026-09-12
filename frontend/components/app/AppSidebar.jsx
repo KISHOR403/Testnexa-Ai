@@ -121,7 +121,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             {recentSessions.slice(0, 4).map((session) => (
                                 <NavLink
                                     key={session.id}
-                                    to={`/app/workspace/${session.id}`}
+                                    to={session.status === 'Draft' && !session.suite ? `/app/workspace/${session.id}` : `/app/test-suites/${session.id}`}
                                     className={({ isActive }) => `app-sidebar__history-item ${isActive ? 'active' : ''}`}
                                     onClick={handleNavClick}
                                     title={session.title}

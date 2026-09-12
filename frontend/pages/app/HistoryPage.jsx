@@ -321,12 +321,14 @@ const HistoryPage = () => {
                         const isArchived = session.status === 'Archived';
                         const totalTests = session.summary?.total || 0;
                         const confidence = session.quality?.confidenceLevel || session.quality?.coverageConfidence || null;
+                        const isGenerated = session.status === 'Generated' || session.status === 'NeedsReview' || session.status === 'Approved' || totalTests > 0 || !!session.suiteData;
+                        const targetUrl = isGenerated ? `/app/test-suites/${session._id}` : `/app/workspace/${session._id}`;
 
                         return (
                             <div
                                 key={session._id}
                                 className={`tn-history-card ${isArchived ? 'is-archived' : ''}`}
-                                onClick={() => navigate(`/app/workspace/${session._id}`)}
+                                onClick={() => navigate(targetUrl)}
                             >
                                 <div className="tn-history-card-body">
                                     {/* Top Row: Title + Status + Context */}
@@ -436,9 +438,9 @@ const HistoryPage = () => {
                                 {/* Actions Column */}
                                 <div className="tn-history-card-actions" onClick={(e) => e.stopPropagation()}>
                                     <NavLink
-                                        to={`/app/workspace/${session._id}`}
+                                        to={targetUrl}
                                         className="tn-history-action-btn primary"
-                                        title="Open in Workspace"
+                                        title={isGenerated ? "Open Test Suite" : "Open in Workspace"}
                                     >
                                         <span>Open</span>
                                         <ArrowRight size={14} />

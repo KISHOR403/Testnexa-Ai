@@ -123,6 +123,23 @@ const WorkspacePage = () => {
                     });
                     setSuiteData(session.suiteData || null);
 
+                    // If session already has a generated test suite and user is not explicitly editing:
+                    const isGenerated = session.status === 'Generated' || session.status === 'NeedsReview' || session.status === 'Approved' || (session.summary && session.summary.total > 0) || !!session.suiteData;
+                    const isExplicitEdit = new URLSearchParams(window.location.search).get('edit') === 'true';
+
+                    if (isGenerated && !isExplicitEdit) {
+                        navigate(`/app/test-suites/${session._id}`, {
+                            replace: true,
+                            state: {
+                                suite: session.suiteData,
+                                prompt: session.requirement,
+                                settings: { type: session.context || 'web', level: session.depth || 'Standard' },
+                                sessionId: session._id
+                            }
+                        });
+                        return;
+                    }
+
                     lastSavedData.current = {
                         title: session.title || '',
                         requirement: session.requirement || '',
@@ -618,7 +635,7 @@ const WorkspacePage = () => {
                                     return (
                                         <NavLink
                                             key={item.sessionId || item.id}
-                                            to={`/app/workspace/${item.sessionId || item.id}`}
+                                            to={item.status === 'Draft' && !item.suite ? `/app/workspace/${item.sessionId || item.id}` : `/app/test-suites/${item.sessionId || item.id}`}
                                             className="app-workspace-recent-card"
                                         >
                                             <div className="app-workspace-recent-card-top">

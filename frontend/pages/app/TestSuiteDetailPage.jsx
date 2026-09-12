@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useHistory } from '../../hooks/useHistory';
+import { sessionService } from '../../services/sessionService';
 import ResultsSection from '../../components/ResultsSection';
 
 // ─── Full 18-test-case fallback dataset ───
@@ -347,30 +349,99 @@ const TestSuiteDetailPage = () => {
     const navigate = useNavigate();
     const { history, saveToHistory } = useHistory();
 
-    // 1. Check if passed via navigation state
-    // 2. Check in history items
-    // 3. Fallback to demo suite
-    const suiteData = useMemo(() => {
+    const [remoteSession, setRemoteSession] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState(null);
+
+    // 1. Check if passed via navigation state or found in localStorage history
+    const localSuite = useMemo(() => {
         if (location.state?.suite) {
             return location.state.suite;
         }
 
-        const foundInHistory = history.find(item => item.id === id || item.feature?.toLowerCase().includes(id?.replace(/-/g, ' ')));
+        const foundInHistory = history.find(item =>
+            item.id === id ||
+            item.sessionId === id ||
+            item.feature?.toLowerCase().includes(id?.replace(/-/g, ' '))
+        );
         if (foundInHistory?.suite) {
             return foundInHistory.suite;
         }
 
-        return FALLBACK_DEMO_SUITE;
+        return null;
     }, [id, location.state, history]);
 
+    // 2. If not found locally, fetch session from backend sessionService
+    useEffect(() => {
+        if (localSuite) return;
+        if (!id || id === 'password-reset') return;
+
+        let isMounted = true;
+        const fetchRemoteSession = async () => {
+            setIsLoading(true);
+            setLoadError(null);
+            try {
+                const res = await sessionService.get(id);
+                if (isMounted && res.success && res.data) {
+                    setRemoteSession(res.data);
+                }
+            } catch (err) {
+                console.warn('Could not load remote session for suite detail:', err);
+                if (isMounted) setLoadError(err.message || 'Failed to load test suite');
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        fetchRemoteSession();
+        return () => { isMounted = false; };
+    }, [id, localSuite]);
+
+    const suiteData = useMemo(() => {
+        if (localSuite) {
+            return localSuite;
+        }
+
+        if (remoteSession?.suiteData) {
+            const data = { ...remoteSession.suiteData };
+            if (!data.testSuiteName && remoteSession.title) {
+                data.testSuiteName = remoteSession.title;
+            }
+            if (!data.feature && remoteSession.title) {
+                data.feature = remoteSession.title;
+            }
+            return data;
+        }
+
+        return FALLBACK_DEMO_SUITE;
+    }, [localSuite, remoteSession]);
+
     const promptText = location.state?.prompt ||
+        remoteSession?.requirement ||
         history.find(item => item.id === id)?.requirement ||
         'Users can reset their password using their registered email address.';
 
     const handleSave = (suite) => {
-        saveToHistory(suite, promptText, { type: 'web', level: 'Standard' });
+        saveToHistory(suite, promptText, { type: remoteSession?.context || 'web', level: remoteSession?.depth || 'Standard' });
         alert('Test suite saved to history!');
     };
+
+    if (isLoading) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '60vh',
+                gap: '1rem',
+                color: '#A3A3A3'
+            }}>
+                <Loader2 size={32} className="animate-spin" style={{ color: '#00D9C0' }} />
+                <span style={{ fontSize: '0.92rem', fontWeight: '500' }}>Loading test suite...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="test-suite-detail-page">
