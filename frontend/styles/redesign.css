@@ -2635,14 +2635,14 @@ body {
 .tn-app-workspace {
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
-  background: #0b0f17;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  background: #0A0A0A;
+  border: 1px solid #1C1C1C;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
   width: 100%;
   box-sizing: border-box;
-  color: #f1f5f9;
-  font-family: var(--tn-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  color: #F5F5F5;
+  font-family: 'Inter', var(--tn-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 }
 
 .tn-app-workspace--compact {
@@ -8275,4 +8275,334 @@ img, svg, video, canvas {
   .floating-mobile-menu-card {
     margin-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* ==========================================================================
+   TEST SUITE DETAIL PAGE — COLLAPSIBLE SECTIONS, INLINE EDIT, MOBILE
+   ========================================================================== */
+
+/* ─── Collapsible Section ─── */
+.tn-collapsible {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tn-collapsible:last-child {
+  border-bottom: none;
+}
+
+.tn-collapsible__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #A3A3A3;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 150ms ease;
+}
+
+.tn-collapsible__trigger:hover {
+  color: #F5F5F5;
+}
+
+.tn-collapsible__trigger h5 {
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+  color: inherit;
+}
+
+.tn-collapsible__chevron {
+  transition: transform 200ms ease;
+  flex-shrink: 0;
+}
+
+.tn-collapsible__chevron.is-rotated {
+  transform: rotate(90deg);
+}
+
+.tn-collapsible__body {
+  padding: 0 0 12px 20px;
+}
+
+/* ─── Saved Indicator (inline) ─── */
+.tn-saved-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  font-size: 0.72rem;
+  font-weight: 600;
+  animation: tn-fade-in 200ms ease forwards;
+}
+
+@keyframes tn-fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Inline Edit Badge ─── */
+.tn-inline-edit-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Inline Form (in detail panel) ─── */
+.tn-detail-inline-editor {
+  padding: 16px 20px;
+}
+
+.tn-inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.tn-inline-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Detail More Dropdown ─── */
+.tn-detail-more-wrap {
+  position: relative;
+}
+
+.tn-btn-icon-only {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.tn-detail-more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  min-width: 180px;
+  background: #111111;
+  border: 1px solid #1C1C1C;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  padding: 4px;
+  animation: tn-fade-in 120ms ease forwards;
+}
+
+.tn-detail-more-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: #A3A3A3;
+  font-size: 0.82rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 120ms ease;
+}
+
+.tn-detail-more-dropdown button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #F5F5F5;
+}
+
+/* ─── Traceability Inline (in detail panel) ─── */
+.tn-trace-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #A3A3A3;
+  flex-wrap: wrap;
+}
+
+.tn-trace-inline-label {
+  color: #737373;
+  font-size: 0.78rem;
+}
+
+/* ─── Mobile Back Button ─── */
+.tn-mobile-back-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #00D9C0;
+  font-size: 0.84rem;
+  font-weight: 550;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.tn-mobile-back-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Mobile Responsive: Test Suite Detail ─── */
+@media (max-width: 768px) {
+  .tn-app-header {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .tn-app-header__actions {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tn-app-header__actions .tn-app-btn span {
+    display: none;
+  }
+
+  .tn-app-header__actions .tn-app-btn {
+    padding: 0 8px;
+    height: 32px;
+  }
+
+  .tn-app-summary-bar {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+
+  .tn-app-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tn-app-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tn-app-toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tn-app-toolbar__left,
+  .tn-app-toolbar__right {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .tn-app-filter-pills {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .tn-app-filter-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile: Stack list/detail, show/hide based on state */
+  .tn-app-split-workspace {
+    flex-direction: column;
+  }
+
+  .tn-app-table-pane {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+
+  .tn-app-detail-pane {
+    display: none;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #0A0A0A;
+    overflow-y: auto;
+    animation: tn-slide-right-in 200ms ease forwards;
+  }
+
+  @keyframes tn-slide-right-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  .tn-mobile-detail-active .tn-app-detail-pane {
+    display: block;
+  }
+
+  .tn-mobile-detail-active .tn-app-table-pane {
+    display: block;
+  }
+
+  .tn-app-detail-pane.tn-mobile-detail-visible {
+    display: block;
+  }
+
+  .tn-mobile-back-btn {
+    display: flex;
+  }
+
+  /* Table columns — hide less important ones on mobile */
+  .tn-qa-table th:nth-child(1),
+  .tn-qa-table td:nth-child(1) {
+    display: none;
+  }
+
+  .tn-qa-table th:nth-child(4),
+  .tn-qa-table td:nth-child(4),
+  .tn-qa-table th:nth-child(6),
+  .tn-qa-table td:nth-child(6) {
+    display: none;
+  }
+
+  .tn-detail-quick-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tn-detail-badges-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* AI Drawer takes full width on mobile */
+  .tn-ai-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+    right: 0 !important;
+  }
+}
+
+/* ─── Test Suite Detail Page Container ─── */
+.test-suite-detail-page {
+  display: flex;
+  flex-direction: column;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
     Copy,
     Save,
@@ -20,6 +20,7 @@ import {
     GitBranch,
     FileText,
     ChevronRight,
+    ChevronDown,
     Sparkles,
     Code,
     SlidersHorizontal,
@@ -40,7 +41,10 @@ import {
     X,
     CheckCheck,
     Lock,
-    HelpCircle
+    HelpCircle,
+    MoreHorizontal,
+    ArrowLeft,
+    Copy as CopyIcon
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 
@@ -69,6 +73,20 @@ const PriorityBadge = ({ priority }) => {
 const TypeBadge = ({ type }) => {
     const t = (type || 'Functional').toLowerCase().replace(/\s+/g, '');
     return <span className={`tn-type-tag tn-type-tag--${t}`}>{type || 'Functional'}</span>;
+};
+
+// ─── Collapsible Section Component ───
+const CollapsibleSection = ({ title, children, defaultOpen = true, count }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+        <div className={`tn-collapsible ${isOpen ? 'is-open' : ''}`}>
+            <button className="tn-collapsible__trigger" onClick={() => setIsOpen(!isOpen)}>
+                <ChevronRight size={14} className={`tn-collapsible__chevron ${isOpen ? 'is-rotated' : ''}`} />
+                <h5>{title}{count !== undefined ? ` (${count})` : ''}</h5>
+            </button>
+            {isOpen && <div className="tn-collapsible__body">{children}</div>}
+        </div>
+    );
 };
 
 // ─── Helper to flatten test cases into initial state pool ───
@@ -133,7 +151,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         return (
             <div className="tn-app-workspace tn-empty-workspace">
                 <div className="tn-empty-content">
-                    <Sparkles size={36} className="text-teal-400" />
+                    <Layers size={36} className="text-teal-400" />
                     <h3>No Test Suite Loaded</h3>
                     <p>Enter a requirement specification above to generate a production-ready test suite.</p>
                 </div>
@@ -143,8 +161,8 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
     // ─── Interactive State ───
     const [testCases, setTestCases] = useState(() => flattenAllTestCases(result));
-    const [suiteStatus, setSuiteStatus] = useState('Needs Review'); // 'Needs Review' | 'Approved' | 'Ready for Execution'
-    const [activeTab, setActiveTab] = useState('tests'); // 'tests' | 'overview' | 'coverage' | 'risks' | 'traceability' | 'questions'
+    const [suiteStatus, setSuiteStatus] = useState('Needs Review');
+    const [activeTab, setActiveTab] = useState('tests');
     const [selectedTcId, setSelectedTcId] = useState(() => testCases[0]?.id || 'TC-001');
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
@@ -153,17 +171,28 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
     const [selectedRows, setSelectedRows] = useState([]);
     const [showGherkin, setShowGherkin] = useState(false);
 
+    // ─── Mobile detail drill-down ───
+    const [mobileShowDetail, setMobileShowDetail] = useState(false);
+
+    // ─── Inline editing in detail panel ───
+    const [isInlineEditing, setIsInlineEditing] = useState(false);
+    const [inlineEditData, setInlineEditData] = useState(null);
+    const [showSavedFeedback, setShowSavedFeedback] = useState(false);
+
+    // ─── More menu in detail panel ───
+    const [showDetailMore, setShowDetailMore] = useState(false);
+    const detailMoreRef = useRef(null);
+
     // ─── Modals and Drawers ───
     const [showAiCopilot, setShowAiCopilot] = useState(false);
     const [showAiInsightsDrawer, setShowAiInsightsDrawer] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editingTc, setEditingTc] = useState(null);
     const [showRegenModal, setShowRegenModal] = useState(false);
-    const [regenGoal, setRegenGoal] = useState('Add security attack vectors & payload checks');
+    const [editingTc, setEditingTc] = useState(null);
+    const [regenGoal, setRegenGoal] = useState('Improve scenario clarity and add boundary asserts');
     const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
-    const [exportFormat, setExportFormat] = useState('json'); // 'json' | 'csv' | 'excel' | 'pdf'
+    const [exportFormat, setExportFormat] = useState('json');
     const [exportOptions, setExportOptions] = useState({
         steps: true,
         expected: true,
@@ -199,6 +228,17 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         setSuiteStatus('Needs Review');
     }, [result]);
 
+    // Close detail more menu on outside click
+    useEffect(() => {
+        const handler = (e) => {
+            if (detailMoreRef.current && !detailMoreRef.current.contains(e.target)) {
+                setShowDetailMore(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
     // Selected Test Case Reference
     const selectedTc = useMemo(() => {
         return testCases.find(tc => tc.id === selectedTcId) || testCases[0] || {};
@@ -212,6 +252,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 (tc.title || '').toLowerCase().includes(q) ||
                 (tc.id || '').toLowerCase().includes(q) ||
                 (tc.testScenario || '').toLowerCase().includes(q) ||
+                (tc.scenario || '').toLowerCase().includes(q) ||
                 (tc.expectedResult || '').toLowerCase().includes(q) ||
                 (tc.reqId || '').toLowerCase().includes(q) ||
                 (tc.module || '').toLowerCase().includes(q);
@@ -270,16 +311,23 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         setShowApproveModal(false);
     };
 
-    // ─── Single Test Edit Handler ───
-    const handleOpenEdit = (tc) => {
-        setEditingTc(JSON.parse(JSON.stringify(tc)));
-        setShowEditModal(true);
+    // ─── Inline Edit Handlers ───
+    const handleStartInlineEdit = (tc) => {
+        setInlineEditData(JSON.parse(JSON.stringify(tc)));
+        setIsInlineEditing(true);
     };
 
-    const handleSaveEdit = () => {
-        if (!editingTc) return;
-        setTestCases(prev => prev.map(tc => tc.id === editingTc.id ? editingTc : tc));
-        setShowEditModal(false);
+    const handleSaveInlineEdit = () => {
+        if (!inlineEditData) return;
+        setTestCases(prev => prev.map(tc => tc.id === inlineEditData.id ? inlineEditData : tc));
+        setIsInlineEditing(false);
+        setShowSavedFeedback(true);
+        setTimeout(() => setShowSavedFeedback(false), 2000);
+    };
+
+    const handleCancelInlineEdit = () => {
+        setIsInlineEditing(false);
+        setInlineEditData(null);
     };
 
     // ─── Single Test Regenerate Handler ───
@@ -373,13 +421,13 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
             const lower = text.toLowerCase();
             if (lower.includes('security') || lower.includes('missing')) {
-                replyText = `I analyzed the suite against OWASP ASVS v4.0. Currently, **TC-004** and **TC-005** cover token expiration and reuse, but **Rate Limiting (HTTP 429)** and **Timing-Attack Anti-Enumeration** are not covered.`;
+                replyText = `I analyzed the suite against OWASP ASVS v4.0. Currently, **TC-014** and **TC-006** cover token expiration and reuse, but **Rate Limiting (HTTP 429)** and **Timing-Attack Anti-Enumeration** are not covered.`;
                 action = { label: 'Generate 2 Security Tests', type: 'add_missing' };
-            } else if (lower.includes('sufficient') || lower.includes('tc-004') || lower.includes('selected')) {
+            } else if (lower.includes('sufficient') || lower.includes('selected')) {
                 replyText = `**${selectedTc.id}: ${selectedTc.title}** covers the expiration TTL window correctly. However, I recommend adding an explicit check for concurrent redemption while token expiration evaluates.`;
                 action = { label: 'Enhance Selected Test', type: 'enhance_selected' };
             } else if (lower.includes('coverage') || lower.includes('gap')) {
-                replyText = `Requirement **REQ-001** has 94% coverage. 18 test cases are mapped. The remaining 6% gap is in distributed cache token invalidation and edge-network retries.`;
+                replyText = `Requirement **REQ-001** has 94% coverage. ${testCases.length} test cases are mapped. The remaining 6% gap is in distributed cache token invalidation and edge-network retries.`;
                 action = { label: 'Generate Missing Edge Cases', type: 'add_missing' };
             } else {
                 replyText = `I've audited the suite context for **${result.feature || 'REQ-001'}**. All ${testCases.length} test cases are structured with explicit preconditions and two-tier action/expected assertions.`;
@@ -452,7 +500,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     `"${tc.severity}"`,
                     `"${tc.status}"`
                 ];
-                if (exportOptions.traceability) row.push(`"${tc.reqId || 'REQ-001'}"`);
+                if (exportOptions.traceability) row.push(`"${tc.reqId}"`);
                 if (exportOptions.expected) row.push(`"${(tc.expectedResult || '').replace(/"/g, '""')}"`);
                 return row.join(',');
             });
@@ -472,6 +520,337 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         setShowExportModal(false);
     };
 
+    // ─── Mobile test case selection ───
+    const handleSelectTestMobile = (tcId) => {
+        setSelectedTcId(tcId);
+        setMobileShowDetail(true);
+        setIsInlineEditing(false);
+        setShowGherkin(false);
+    };
+
+    const handleMobileBack = () => {
+        setMobileShowDetail(false);
+        setIsInlineEditing(false);
+    };
+
+    // ─── Render Detail Panel Content (shared between desktop and mobile) ───
+    const renderDetailPanelContent = () => {
+        if (!selectedTc || !selectedTc.id) return null;
+
+        // If inline editing
+        if (isInlineEditing && inlineEditData) {
+            return (
+                <div className="tn-detail-inline-editor">
+                    <div className="tn-detail-header">
+                        <div className="tn-detail-meta-top">
+                            <span className="tn-tc-id-lg">{inlineEditData.id}</span>
+                            <span className="tn-inline-edit-badge">Editing</span>
+                        </div>
+                    </div>
+
+                    <div className="tn-inline-form">
+                        <div className="tn-form-group">
+                            <label>Title</label>
+                            <input
+                                type="text"
+                                value={inlineEditData.title}
+                                onChange={(e) => setInlineEditData({ ...inlineEditData, title: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="tn-form-row">
+                            <div className="tn-form-group">
+                                <label>Type</label>
+                                <select
+                                    value={inlineEditData.type}
+                                    onChange={(e) => setInlineEditData({ ...inlineEditData, type: e.target.value })}
+                                >
+                                    <option value="Functional">Functional</option>
+                                    <option value="Negative">Negative</option>
+                                    <option value="Edge Case">Edge Case</option>
+                                    <option value="Security">Security</option>
+                                    <option value="Validation">Validation</option>
+                                    <option value="API">API</option>
+                                </select>
+                            </div>
+                            <div className="tn-form-group">
+                                <label>Priority</label>
+                                <select
+                                    value={inlineEditData.priority}
+                                    onChange={(e) => setInlineEditData({ ...inlineEditData, priority: e.target.value })}
+                                >
+                                    <option value="Critical">Critical</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                            <div className="tn-form-group">
+                                <label>Severity</label>
+                                <select
+                                    value={inlineEditData.severity}
+                                    onChange={(e) => setInlineEditData({ ...inlineEditData, severity: e.target.value })}
+                                >
+                                    <option value="Critical">Critical</option>
+                                    <option value="Major">Major</option>
+                                    <option value="Minor">Minor</option>
+                                    <option value="Trivial">Trivial</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="tn-form-group">
+                            <label>Preconditions</label>
+                            <textarea
+                                rows={2}
+                                value={Array.isArray(inlineEditData.preconditions) ? inlineEditData.preconditions.join('\n') : inlineEditData.preconditions}
+                                onChange={(e) => setInlineEditData({ ...inlineEditData, preconditions: e.target.value.split('\n') })}
+                            />
+                        </div>
+
+                        <div className="tn-form-group">
+                            <div className="tn-form-label-row">
+                                <label>Test Steps</label>
+                                <button
+                                    type="button"
+                                    className="tn-link-btn"
+                                    onClick={() => setInlineEditData({
+                                        ...inlineEditData,
+                                        steps: [...inlineEditData.steps, { action: '', expected: '' }]
+                                    })}
+                                >
+                                    + Add Step
+                                </button>
+                            </div>
+                            <div className="tn-edit-steps-list">
+                                {inlineEditData.steps.map((st, i) => (
+                                    <div key={i} className="tn-edit-step-row">
+                                        <span className="tn-step-idx">{i + 1}</span>
+                                        <div className="tn-edit-step-inputs">
+                                            <input
+                                                type="text"
+                                                placeholder="Action step..."
+                                                value={st.action || st}
+                                                onChange={(e) => {
+                                                    const newSteps = [...inlineEditData.steps];
+                                                    newSteps[i] = { ...st, action: e.target.value };
+                                                    setInlineEditData({ ...inlineEditData, steps: newSteps });
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Expected outcome..."
+                                                value={st.expected || ''}
+                                                onChange={(e) => {
+                                                    const newSteps = [...inlineEditData.steps];
+                                                    newSteps[i] = { ...st, expected: e.target.value };
+                                                    setInlineEditData({ ...inlineEditData, steps: newSteps });
+                                                }}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="tn-delete-step-btn"
+                                            onClick={() => {
+                                                const newSteps = inlineEditData.steps.filter((_, idx) => idx !== i);
+                                                setInlineEditData({ ...inlineEditData, steps: newSteps });
+                                            }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="tn-form-group">
+                            <label>Expected Result</label>
+                            <textarea
+                                rows={2}
+                                value={inlineEditData.expectedResult}
+                                onChange={(e) => setInlineEditData({ ...inlineEditData, expectedResult: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="tn-inline-edit-actions">
+                            <button className="tn-app-btn tn-app-btn--secondary" onClick={handleCancelInlineEdit}>
+                                Cancel
+                            </button>
+                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleSaveInlineEdit}>
+                                <Check size={14} />
+                                <span>Save Changes</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Normal read-only detail view
+        return (
+            <>
+                <div className="tn-detail-header">
+                    <div>
+                        <div className="tn-detail-meta-top">
+                            <span className="tn-tc-id-lg">{selectedTc.id}</span>
+                            <span className="tn-detail-req">{selectedTc.reqId || 'REQ-001'}</span>
+                            <StatusBadge status={selectedTc.status} />
+                            {showSavedFeedback && (
+                                <span className="tn-saved-indicator">
+                                    <Check size={12} /> Saved
+                                </span>
+                            )}
+                        </div>
+                        <h4 className="tn-detail-title">{selectedTc.title}</h4>
+                    </div>
+                    <div className="tn-detail-quick-actions">
+                        <button
+                            className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
+                            onClick={() => handleApproveSingle(selectedTc.id)}
+                            title="Toggle approval status"
+                        >
+                            <Check size={13} />
+                            <span>{selectedTc.status === 'Approved' ? 'Revoke' : 'Approve'}</span>
+                        </button>
+                        <button
+                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                            onClick={() => handleStartInlineEdit(selectedTc)}
+                            title="Edit test case"
+                        >
+                            <Edit3 size={13} />
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                            onClick={() => handleOpenRegenerateSingle(selectedTc)}
+                            title="Regenerate / enhance single test"
+                        >
+                            <RefreshCw size={13} />
+                            <span>Regenerate</span>
+                        </button>
+                        <div className="tn-detail-more-wrap" ref={detailMoreRef}>
+                            <button
+                                className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm tn-btn-icon-only"
+                                onClick={() => setShowDetailMore(!showDetailMore)}
+                                title="More actions"
+                            >
+                                <MoreHorizontal size={14} />
+                            </button>
+                            {showDetailMore && (
+                                <div className="tn-detail-more-dropdown">
+                                    <button onClick={() => { setShowGherkin(!showGherkin); setShowDetailMore(false); }}>
+                                        <Code size={13} />
+                                        <span>{showGherkin ? 'Hide BDD Spec' : 'BDD Specification'}</span>
+                                    </button>
+                                    <button onClick={() => { handleCopyDetails(selectedTc); setShowDetailMore(false); }}>
+                                        <Copy size={13} />
+                                        <span>{copiedDetails ? 'Copied!' : 'Copy as Markdown'}</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Metadata Grid */}
+                <div className="tn-detail-badges-row">
+                    <div>
+                        <label>TYPE</label>
+                        <span className="tn-badge-value">{selectedTc.type}</span>
+                    </div>
+                    <div>
+                        <label>PRIORITY</label>
+                        <span className={`tn-badge-value ${selectedTc.priority === 'High' ? 'text-amber-400' : 'text-teal-400'}`}>
+                            {selectedTc.priority}
+                        </span>
+                    </div>
+                    <div>
+                        <label>SEVERITY</label>
+                        <span className="tn-badge-value">{selectedTc.severity || 'Critical'}</span>
+                    </div>
+                    <div>
+                        <label>TRACEABILITY</label>
+                        <span className="tn-badge-value text-teal-400">{selectedTc.reqId || 'REQ-001'}</span>
+                    </div>
+                </div>
+
+                {/* Gherkin View or Standard Detail Body */}
+                {showGherkin ? (
+                    <div className="tn-gherkin-view">
+                        <div className="tn-gherkin-header">
+                            <span>Cucumber / Behave Gherkin Feature</span>
+                        </div>
+                        <pre className="tn-gherkin-code">
+                            <code>{formatGherkin(selectedTc)}</code>
+                        </pre>
+                    </div>
+                ) : (
+                    <div className="tn-detail-body">
+                        <CollapsibleSection title="PRECONDITIONS" defaultOpen={true}>
+                            <p className="tn-precon-text">
+                                {Array.isArray(selectedTc.preconditions) && selectedTc.preconditions.length > 0
+                                    ? selectedTc.preconditions.join(' • ')
+                                    : (selectedTc.preconditions || 'Standard testing environment is initialized.')}
+                            </p>
+                        </CollapsibleSection>
+
+                        <CollapsibleSection title="TEST STEPS" defaultOpen={true} count={selectedTc.steps?.length || 0}>
+                            <div className="tn-detail-steps">
+                                {Array.isArray(selectedTc.steps) && selectedTc.steps.length > 0 ? (
+                                    selectedTc.steps.map((st, idx) => {
+                                        const numStr = String(idx + 1).padStart(2, '0');
+                                        const isObj = typeof st === 'object' && st !== null;
+                                        return (
+                                            <div key={idx} className="tn-step-item">
+                                                <span className="tn-step-num">{numStr}</span>
+                                                <div className="tn-step-content">
+                                                    <p className="tn-step-action">
+                                                        <strong>Action:</strong> {isObj ? (st.action || st.step) : st}
+                                                    </p>
+                                                    {isObj && st.expected && (
+                                                        <p className="tn-step-expected">
+                                                            <strong>Expected:</strong> {st.expected}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <p className="tn-detail-empty">1. Execute test scenario according to specification constraints.</p>
+                                )}
+                            </div>
+                        </CollapsibleSection>
+
+                        <CollapsibleSection title="EXPECTED RESULT" defaultOpen={true}>
+                            <div className="tn-expected-box">
+                                <CheckSquare size={16} className="text-teal-400 shrink-0" />
+                                <p>{selectedTc.expectedResult || 'System rejects the expired token, keeps credentials secure and allows the user to request a new token.'}</p>
+                            </div>
+                        </CollapsibleSection>
+
+                        {selectedTc.testData && (
+                            <CollapsibleSection title="TEST DATA & PARAMETERS" defaultOpen={false}>
+                                <div className="tn-data-snippet">
+                                    <code>{selectedTc.testData}</code>
+                                </div>
+                            </CollapsibleSection>
+                        )}
+
+                        <CollapsibleSection title="TRACEABILITY" defaultOpen={false}>
+                            <div className="tn-trace-inline">
+                                <span className="tn-tc-id">{selectedTc.reqId || 'REQ-001'}</span>
+                                <span>→</span>
+                                <span className="tn-tc-id">{selectedTc.id}</span>
+                                <span className="tn-trace-inline-label">{selectedTc.title}</span>
+                            </div>
+                        </CollapsibleSection>
+                    </div>
+                )}
+            </>
+        );
+    };
+
     return (
         <div className="tn-app-workspace">
             {/* ─── 1. Top Suite Header ─── */}
@@ -480,7 +859,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     <div className="tn-app-header__breadcrumbs">
                         <span className="tn-app-crumb-root">Test Suite</span>
                         <ChevronRight size={14} className="tn-app-crumb-sep" />
-                        <span className="tn-app-crumb-active">{result.feature || 'Password Reset Suite'}</span>
+                        <span className="tn-app-crumb-active">{result.feature || result.testSuiteName || 'Password Reset Suite'}</span>
                     </div>
                     <div className="tn-app-header__tags">
                         <span className="tn-tag tn-tag--req">REQ-001</span>
@@ -491,7 +870,6 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
 
                 <div className="tn-app-header__actions">
-                    {/* Subtle Ask Testnexa AI Copilot Button */}
                     <button
                         className={`tn-app-btn ${showAiCopilot ? 'tn-app-btn--primary' : 'tn-app-btn--secondary'}`}
                         onClick={() => setShowAiCopilot(!showAiCopilot)}
@@ -568,7 +946,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             {/* ─── 3. Suite-Level AI Insights Bar ─── */}
             <div className="tn-ai-insights-bar">
                 <div className="tn-ai-insights-bar__left">
-                    <span className="tn-ai-sparkle-pill"><Sparkles size={12} /> AI INSIGHTS</span>
+                    <span className="tn-ai-sparkle-pill"><Sparkles size={12} /> INSIGHTS</span>
                     <p className="tn-ai-insights-text">
                         <strong>2 coverage gaps detected</strong> &bull; 1 security scenario (Rate Limiting) needs verification.
                     </p>
@@ -577,7 +955,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
                     onClick={() => setShowAiInsightsDrawer(true)}
                 >
-                    Review Insights &rarr;
+                    Review &rarr;
                 </button>
             </div>
 
@@ -590,13 +968,6 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     <FileText size={15} />
                     <span>Test Cases</span>
                     <span className="tn-app-tab__badge">{totalCount}</span>
-                </button>
-                <button
-                    className={`tn-app-tab ${activeTab === 'overview' ? 'is-active' : ''}`}
-                    onClick={() => setActiveTab('overview')}
-                >
-                    <Activity size={15} />
-                    <span>Overview</span>
                 </button>
                 <button
                     className={`tn-app-tab ${activeTab === 'coverage' ? 'is-active' : ''}`}
@@ -635,7 +1006,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                     <Search size={14} />
                                     <input
                                         type="text"
-                                        placeholder="Search by ID, scenario, title, steps, requirement..."
+                                        placeholder="Search test cases..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
@@ -647,7 +1018,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 </div>
 
                                 <div className="tn-app-filter-pills">
-                                    {['All', 'Functional', 'Negative', 'Validation', 'Edge Case', 'Security'].map((t) => (
+                                    {['All', 'Functional', 'Negative', 'Edge Case', 'Security'].map((t) => (
                                         <button
                                             key={t}
                                             className={`tn-filter-pill ${typeFilter === t ? 'is-active' : ''}`}
@@ -734,7 +1105,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 </button>
                             </div>
                         ) : (
-                            <div className="tn-app-split-workspace">
+                            <div className={`tn-app-split-workspace ${mobileShowDetail ? 'tn-mobile-detail-active' : ''}`}>
                                 {/* Left: Data Table */}
                                 <div className="tn-app-table-pane">
                                     <table className="tn-qa-table">
@@ -763,7 +1134,15 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                                     <tr
                                                         key={tc.id}
                                                         className={`tn-qa-row ${isSelected ? 'is-selected' : ''}`}
-                                                        onClick={() => setSelectedTcId(tc.id)}
+                                                        onClick={() => {
+                                                            setSelectedTcId(tc.id);
+                                                            setIsInlineEditing(false);
+                                                            setShowGherkin(false);
+                                                            // On mobile, drill into detail
+                                                            if (window.innerWidth < 768) {
+                                                                handleSelectTestMobile(tc.id);
+                                                            }
+                                                        }}
                                                     >
                                                         <td onClick={(e) => e.stopPropagation()}>
                                                             <input
@@ -799,242 +1178,16 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 </div>
 
                                 {/* Right: Test Case Detail Panel */}
-                                <div className="tn-app-detail-pane">
-                                    <div className="tn-detail-header">
-                                        <div>
-                                            <div className="tn-detail-meta-top">
-                                                <span className="tn-tc-id-lg">{selectedTc.id}</span>
-                                                <span className="tn-detail-req">{selectedTc.reqId || 'REQ-001'}</span>
-                                                <StatusBadge status={selectedTc.status} />
-                                            </div>
-                                            <h4 className="tn-detail-title">{selectedTc.title}</h4>
-                                        </div>
-                                        <div className="tn-detail-quick-actions">
-                                            <button
-                                                className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
-                                                onClick={() => handleApproveSingle(selectedTc.id)}
-                                                title="Toggle approval status"
-                                            >
-                                                <Check size={13} />
-                                                <span>{selectedTc.status === 'Approved' ? 'Revoke' : 'Approve'}</span>
-                                            </button>
-                                            <button
-                                                className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                                                onClick={() => handleOpenEdit(selectedTc)}
-                                                title="Edit test case"
-                                            >
-                                                <Edit3 size={13} />
-                                                <span>Edit</span>
-                                            </button>
-                                            <button
-                                                className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                                                onClick={() => handleOpenRegenerateSingle(selectedTc)}
-                                                title="Regenerate / enhance single test"
-                                            >
-                                                <RefreshCw size={13} />
-                                                <span>Regenerate</span>
-                                            </button>
-                                            <button
-                                                className={`tn-app-btn tn-app-btn--sm ${showGherkin ? 'tn-app-btn--primary' : 'tn-app-btn--secondary'}`}
-                                                onClick={() => setShowGherkin(!showGherkin)}
-                                                title="Toggle Gherkin / BDD specification"
-                                            >
-                                                <Code size={13} />
-                                                <span>BDD</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Metadata Grid */}
-                                    <div className="tn-detail-badges-row">
-                                        <div>
-                                            <label>TYPE</label>
-                                            <span className="tn-badge-value">{selectedTc.type}</span>
-                                        </div>
-                                        <div>
-                                            <label>PRIORITY</label>
-                                            <span className={`tn-badge-value ${selectedTc.priority === 'High' ? 'text-amber-400' : 'text-teal-400'}`}>
-                                                {selectedTc.priority}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <label>SEVERITY</label>
-                                            <span className="tn-badge-value">{selectedTc.severity || 'Critical'}</span>
-                                        </div>
-                                        <div>
-                                            <label>TRACEABILITY</label>
-                                            <span className="tn-badge-value text-teal-400">{selectedTc.reqId || 'REQ-001'}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Gherkin View or Standard Detail Body */}
-                                    {showGherkin ? (
-                                        <div className="tn-gherkin-view">
-                                            <div className="tn-gherkin-header">
-                                                <span>Cucumber / Behave Gherkin Feature</span>
-                                            </div>
-                                            <pre className="tn-gherkin-code">
-                                                <code>{formatGherkin(selectedTc)}</code>
-                                            </pre>
-                                        </div>
-                                    ) : (
-                                        <div className="tn-detail-body">
-                                            <div className="tn-detail-section">
-                                                <h5>PRECONDITIONS</h5>
-                                                <p className="tn-precon-text">
-                                                    {Array.isArray(selectedTc.preconditions) && selectedTc.preconditions.length > 0
-                                                        ? selectedTc.preconditions.join(' • ')
-                                                        : (selectedTc.preconditions || 'A previously generated reset token exists and has exceeded the 15-minute TTL window.')}
-                                                </p>
-                                            </div>
-
-                                            <div className="tn-detail-section">
-                                                <h5>TEST STEPS ({selectedTc.steps?.length || 0})</h5>
-                                                <div className="tn-detail-steps">
-                                                    {Array.isArray(selectedTc.steps) && selectedTc.steps.length > 0 ? (
-                                                        selectedTc.steps.map((st, idx) => {
-                                                            const numStr = String(idx + 1).padStart(2, '0');
-                                                            const isObj = typeof st === 'object' && st !== null;
-                                                            return (
-                                                                <div key={idx} className="tn-step-item">
-                                                                    <span className="tn-step-num">{numStr}</span>
-                                                                    <div className="tn-step-content">
-                                                                        <p className="tn-step-action">
-                                                                            <strong>Action:</strong> {isObj ? (st.action || st.step) : st}
-                                                                        </p>
-                                                                        {isObj && st.expected && (
-                                                                            <p className="tn-step-expected">
-                                                                                <strong>Expected:</strong> {st.expected}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    ) : (
-                                                        <p className="tn-detail-empty">1. Execute test scenario according to specification constraints.</p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="tn-detail-section">
-                                                <h5>EXPECTED RESULT</h5>
-                                                <div className="tn-expected-box">
-                                                    <CheckSquare size={16} className="text-teal-400 shrink-0" />
-                                                    <p>{selectedTc.expectedResult || 'System rejects the expired token, keeps credentials secure and allows the user to request a new token.'}</p>
-                                                </div>
-                                            </div>
-
-                                            {selectedTc.testData && (
-                                                <div className="tn-detail-section">
-                                                    <h5>TEST DATA & PARAMETERS</h5>
-                                                    <div className="tn-data-snippet">
-                                                        <code>{selectedTc.testData}</code>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                <div className={`tn-app-detail-pane ${mobileShowDetail ? 'tn-mobile-detail-visible' : ''}`}>
+                                    {/* Mobile back button */}
+                                    <button className="tn-mobile-back-btn" onClick={handleMobileBack}>
+                                        <ArrowLeft size={16} />
+                                        <span>Back to Test Cases</span>
+                                    </button>
+                                    {renderDetailPanelContent()}
                                 </div>
                             </div>
                         )}
-                    </div>
-                )}
-
-                {/* ─── OVERVIEW TAB ─── */}
-                {activeTab === 'overview' && (
-                    <div className="tn-app-overview-view">
-                        <div className="tn-overview-grid">
-                            <div className="tn-overview-card">
-                                <h4>Test Suite Quality & Confidence</h4>
-                                <div className="tn-overview-metric-row">
-                                    <div className="tn-metric-box">
-                                        <span className="tn-metric-label">Coverage Confidence</span>
-                                        <strong className="text-teal-400">{coverageConfidence}%</strong>
-                                    </div>
-                                    <div className="tn-metric-box">
-                                        <span className="tn-metric-label">Review Status</span>
-                                        <strong className={suiteStatus === 'Approved' ? 'text-emerald-400' : 'text-amber-400'}>
-                                            {suiteStatus}
-                                        </strong>
-                                    </div>
-                                    <div className="tn-metric-box">
-                                        <span className="tn-metric-label">Execution Readiness</span>
-                                        <strong className="text-blue-400">100%</strong>
-                                    </div>
-                                </div>
-                                <div className="tn-overview-dist">
-                                    <span className="tn-dist-label">Test Type Breakdown</span>
-                                    <div className="tn-dist-bar">
-                                        <div className="tn-dist-seg tn-dist-seg--func" style={{ width: '45%' }} title="Functional" />
-                                        <div className="tn-dist-seg tn-dist-seg--neg" style={{ width: '28%' }} title="Negative" />
-                                        <div className="tn-dist-seg tn-dist-seg--edge" style={{ width: '17%' }} title="Edge Cases" />
-                                        <div className="tn-dist-seg tn-dist-seg--api" style={{ width: '10%' }} title="Security" />
-                                    </div>
-                                    <div className="tn-dist-legend">
-                                        <span><i className="bg-teal-400" /> Functional (8)</span>
-                                        <span><i className="bg-rose-400" /> Negative (5)</span>
-                                        <span><i className="bg-amber-400" /> Edge Cases (3)</span>
-                                        <span><i className="bg-blue-400" /> Security (2)</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="tn-overview-card">
-                                <h4>Inferred System Assumptions</h4>
-                                <div className="tn-assumptions-list">
-                                    <div className="tn-assumption-item">
-                                        <Info size={14} className="text-teal-400 shrink-0" />
-                                        <p>Reset tokens are cryptographically single-use with a default 15-minute TTL window.</p>
-                                    </div>
-                                    <div className="tn-assumption-item">
-                                        <Info size={14} className="text-teal-400 shrink-0" />
-                                        <p>API responses for non-existent emails return generic 200 OK to prevent user enumeration.</p>
-                                    </div>
-                                    <div className="tn-assumption-item">
-                                        <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                                        <p>All core specifications and authentication pathways mapped cleanly.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Critical Path Scenarios Table */}
-                        <div className="tn-overview-table-card">
-                            <div className="tn-overview-card-header">
-                                <h4>High-Priority Critical Path Tests</h4>
-                                <button className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm" onClick={() => setActiveTab('tests')}>
-                                    View All {totalCount} Tests &rarr;
-                                </button>
-                            </div>
-                            <table className="tn-qa-table">
-                                <thead>
-                                    <tr>
-                                        <th style={{ width: '84px' }}>ID</th>
-                                        <th>Title & Scenario</th>
-                                        <th style={{ width: '100px' }}>Type</th>
-                                        <th style={{ width: '90px' }}>Priority</th>
-                                        <th style={{ width: '100px' }}>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {testCases.slice(0, 5).map(tc => (
-                                        <tr key={tc.id} className="tn-qa-row" onClick={() => { setSelectedTcId(tc.id); setActiveTab('tests'); }}>
-                                            <td><span className="tn-tc-id">{tc.id}</span></td>
-                                            <td>
-                                                <div className="tn-tc-title-cell">
-                                                    <strong>{tc.title}</strong>
-                                                    <span>{tc.scenario || tc.testScenario}</span>
-                                                </div>
-                                            </td>
-                                            <td><TypeBadge type={tc.type} /></td>
-                                            <td><PriorityBadge priority={tc.priority} /></td>
-                                            <td><StatusBadge status={tc.status} /></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                 )}
 
@@ -1054,7 +1207,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 <div className="tn-coverage-row__meta">
                                     <span className="tn-tc-id">REQ-001</span>
                                     <strong>Password Reset Core Flow</strong>
-                                    <span className="tn-coverage-count">18 Tests Covered</span>
+                                    <span className="tn-coverage-count">{totalCount} Tests Covered</span>
                                 </div>
                                 <div className="tn-coverage-row__bar-wrap">
                                     <div className="tn-coverage-bar">
@@ -1096,7 +1249,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                         <div className="tn-risks-header">
                             <div>
                                 <h4>Security & Business Logic Risk Matrix</h4>
-                                <p>Critical boundary gaps flagged by AI requirement intelligence for priority verification.</p>
+                                <p>Critical boundary gaps flagged for priority verification.</p>
                             </div>
                         </div>
 
@@ -1105,12 +1258,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 <div className="tn-risk-card__top">
                                     <span className="tn-risk-badge tn-risk-badge--high">Critical Risk</span>
                                     <span className="tn-risk-cat">Security</span>
-                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-004'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
-                                        Linked: TC-004 &rarr;
+                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-014'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
+                                        Linked: TC-014 &rarr;
                                     </span>
                                 </div>
                                 <h5>Expired Reset Token Handling</h5>
-                                <p><strong>Why AI flagged this:</strong> Tokens that remain active beyond their 15-minute TTL allow account takeover vectors.</p>
+                                <p><strong>Why flagged:</strong> Tokens that remain active beyond their 15-minute TTL allow account takeover vectors.</p>
                                 <p className="text-slate-400 text-xs"><strong>Recommended:</strong> Assert strict token invalidation upon timeout and database cleanup.</p>
                             </div>
 
@@ -1118,12 +1271,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 <div className="tn-risk-card__top">
                                     <span className="tn-risk-badge tn-risk-badge--high">Critical Risk</span>
                                     <span className="tn-risk-cat">Security</span>
-                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-005'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
-                                        Linked: TC-005 &rarr;
+                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-006'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
+                                        Linked: TC-006 &rarr;
                                     </span>
                                 </div>
                                 <h5>Token Replay / Nonce Reuse</h5>
-                                <p><strong>Why AI flagged this:</strong> Consumed tokens not burned in atomic transaction allow session replay attacks.</p>
+                                <p><strong>Why flagged:</strong> Consumed tokens not burned in atomic transaction allow session replay attacks.</p>
                                 <p className="text-slate-400 text-xs"><strong>Recommended:</strong> Enforce one-time cryptographic nonce invalidation.</p>
                             </div>
 
@@ -1131,12 +1284,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 <div className="tn-risk-card__top">
                                     <span className="tn-risk-badge tn-risk-badge--medium">Medium Risk</span>
                                     <span className="tn-risk-cat">Validation</span>
-                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-002'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
-                                        Linked: TC-002 &rarr;
+                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-009'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
+                                        Linked: TC-009 &rarr;
                                     </span>
                                 </div>
                                 <h5>Invalid Email Format Exception Handling</h5>
-                                <p><strong>Why AI flagged this:</strong> Malformed email payloads may cause unhandled gateway 500 errors instead of clean 422 schema validation.</p>
+                                <p><strong>Why flagged:</strong> Malformed email payloads may cause unhandled gateway 500 errors instead of clean 422 schema validation.</p>
                             </div>
                         </div>
                     </div>
@@ -1267,7 +1420,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     <div className="tn-ai-drawer__header">
                         <div className="tn-ai-drawer__title">
                             <Sparkles size={18} className="text-teal-400" />
-                            <strong>AI Suite Insights & Gaps</strong>
+                            <strong>Suite Insights & Gaps</strong>
                         </div>
                         <button className="tn-btn-icon" onClick={() => setShowAiInsightsDrawer(false)}>
                             <X size={16} />
@@ -1308,154 +1461,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
             )}
 
-            {/* ─── 8. Edit Test Case Modal ─── */}
-            {showEditModal && editingTc && (
-                <div className="tn-modal-backdrop">
-                    <div className="tn-modal tn-modal--edit animate-scale-in">
-                        <div className="tn-modal__header">
-                            <div>
-                                <span className="tn-tc-id">{editingTc.id}</span>
-                                <h3>Edit Test Case</h3>
-                            </div>
-                            <button className="tn-btn-icon" onClick={() => setShowEditModal(false)}><X size={18} /></button>
-                        </div>
-
-                        <div className="tn-modal__body">
-                            <div className="tn-form-group">
-                                <label>Title / Scenario</label>
-                                <input
-                                    type="text"
-                                    value={editingTc.title}
-                                    onChange={(e) => setEditingTc({ ...editingTc, title: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="tn-form-row">
-                                <div className="tn-form-group">
-                                    <label>Type</label>
-                                    <select
-                                        value={editingTc.type}
-                                        onChange={(e) => setEditingTc({ ...editingTc, type: e.target.value })}
-                                    >
-                                        <option value="Functional">Functional</option>
-                                        <option value="Negative">Negative</option>
-                                        <option value="Edge Case">Edge Case</option>
-                                        <option value="Security">Security</option>
-                                        <option value="Validation">Validation</option>
-                                        <option value="API">API</option>
-                                    </select>
-                                </div>
-                                <div className="tn-form-group">
-                                    <label>Priority</label>
-                                    <select
-                                        value={editingTc.priority}
-                                        onChange={(e) => setEditingTc({ ...editingTc, priority: e.target.value })}
-                                    >
-                                        <option value="Critical">Critical</option>
-                                        <option value="High">High</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="Low">Low</option>
-                                    </select>
-                                </div>
-                                <div className="tn-form-group">
-                                    <label>Status</label>
-                                    <select
-                                        value={editingTc.status}
-                                        onChange={(e) => setEditingTc({ ...editingTc, status: e.target.value })}
-                                    >
-                                        <option value="Needs Review">Needs Review</option>
-                                        <option value="Approved">Approved</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="tn-form-group">
-                                <label>Preconditions</label>
-                                <textarea
-                                    rows={2}
-                                    value={Array.isArray(editingTc.preconditions) ? editingTc.preconditions.join('\n') : editingTc.preconditions}
-                                    onChange={(e) => setEditingTc({ ...editingTc, preconditions: e.target.value.split('\n') })}
-                                />
-                            </div>
-
-                            <div className="tn-form-group">
-                                <div className="tn-form-label-row">
-                                    <label>Test Steps</label>
-                                    <button
-                                        type="button"
-                                        className="tn-link-btn"
-                                        onClick={() => setEditingTc({
-                                            ...editingTc,
-                                            steps: [...editingTc.steps, { action: '', expected: '' }]
-                                        })}
-                                    >
-                                        + Add Step
-                                    </button>
-                                </div>
-                                <div className="tn-edit-steps-list">
-                                    {editingTc.steps.map((st, i) => (
-                                        <div key={i} className="tn-edit-step-row">
-                                            <span className="tn-step-idx">{i + 1}</span>
-                                            <div className="tn-edit-step-inputs">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Action step..."
-                                                    value={st.action || st}
-                                                    onChange={(e) => {
-                                                        const newSteps = [...editingTc.steps];
-                                                        newSteps[i] = { ...st, action: e.target.value };
-                                                        setEditingTc({ ...editingTc, steps: newSteps });
-                                                    }}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Expected outcome..."
-                                                    value={st.expected || ''}
-                                                    onChange={(e) => {
-                                                        const newSteps = [...editingTc.steps];
-                                                        newSteps[i] = { ...st, expected: e.target.value };
-                                                        setEditingTc({ ...editingTc, steps: newSteps });
-                                                    }}
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="tn-delete-step-btn"
-                                                onClick={() => {
-                                                    const newSteps = editingTc.steps.filter((_, idx) => idx !== i);
-                                                    setEditingTc({ ...editingTc, steps: newSteps });
-                                                }}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="tn-form-group">
-                                <label>Expected Result</label>
-                                <textarea
-                                    rows={2}
-                                    value={editingTc.expectedResult}
-                                    onChange={(e) => setEditingTc({ ...editingTc, expectedResult: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="tn-modal__footer">
-                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowEditModal(false)}>
-                                Cancel
-                            </button>
-                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleSaveEdit}>
-                                Save Changes
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ─── 9. Single Test Regenerate Modal ─── */}
+            {/* ─── 8. Single Test Regenerate Modal ─── */}
             {showRegenModal && editingTc && (
                 <div className="tn-modal-backdrop">
                     <div className="tn-modal tn-modal--sm animate-scale-in">
@@ -1468,13 +1474,13 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                         </div>
 
                         <div className="tn-modal__body">
-                            <p className="tn-modal-desc">Select how AI should optimize <strong>{editingTc.id}</strong>:</p>
+                            <p className="tn-modal-desc">Select how to optimize <strong>{editingTc.id}</strong>:</p>
                             <div className="tn-radio-group">
                                 {[
                                     'Improve scenario clarity and add boundary asserts',
-                                    'Increase security attack vectors & payload checks',
+                                    'Strengthen security attack vectors & payload checks',
                                     'Add edge cases around token TTL and network failures',
-                                    'Rewrite in strict Gherkin BDD format'
+                                    'Regenerate completely'
                                 ].map((opt) => (
                                     <label key={opt} className={`tn-radio-card ${regenGoal === opt ? 'is-selected' : ''}`}>
                                         <input
@@ -1498,7 +1504,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 onClick={handleExecuteSingleRegen}
                                 disabled={isRegeneratingSingle}
                             >
-                                {isRegeneratingSingle ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                {isRegeneratingSingle ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                 <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
                             </button>
                         </div>
@@ -1506,12 +1512,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
             )}
 
-            {/* ─── 10. Approve Suite Modal ─── */}
+            {/* ─── 9. Approve Suite Modal ─── */}
             {showApproveModal && (
                 <div className="tn-modal-backdrop">
                     <div className="tn-modal tn-modal--sm animate-scale-in">
                         <div className="tn-modal__header">
-                            <div className="flex items-center gap-2">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <CheckCheck size={20} className="text-emerald-400" />
                                 <h3>Approve Test Suite</h3>
                             </div>
@@ -1542,12 +1548,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
             )}
 
-            {/* ─── 11. Export Modal ─── */}
+            {/* ─── 10. Export Modal ─── */}
             {showExportModal && (
                 <div className="tn-modal-backdrop">
                     <div className="tn-modal tn-modal--sm animate-scale-in">
                         <div className="tn-modal__header">
-                            <div className="flex items-center gap-2">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Download size={18} className="text-teal-400" />
                                 <h3>Export Test Suite</h3>
                             </div>
@@ -1614,12 +1620,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
             )}
 
-            {/* ─── 12. Share Modal ─── */}
+            {/* ─── 11. Share Modal ─── */}
             {showShareModal && (
                 <div className="tn-modal-backdrop">
                     <div className="tn-modal tn-modal--sm animate-scale-in">
                         <div className="tn-modal__header">
-                            <div className="flex items-center gap-2">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Share2 size={18} className="text-teal-400" />
                                 <h3>Share Test Suite</h3>
                             </div>
@@ -1662,7 +1668,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
             )}
 
-            {/* ─── 13. Refine & Regenerate Dock (Docked at bottom for live API) ─── */}
+            {/* ─── 12. Refine & Regenerate Dock (Docked at bottom for live API) ─── */}
             {isLatest && onRefineRegenerate && (
                 <div className="tn-app-refine-dock">
                     <RefineRegeneratePanel
