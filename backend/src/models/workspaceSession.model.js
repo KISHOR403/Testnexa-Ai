@@ -48,6 +48,11 @@ const workspaceSessionSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    generationId: {
+        type: String,
+        index: true,
+        sparse: true
+    },
     title: {
         type: String,
         default: 'Untitled Session'

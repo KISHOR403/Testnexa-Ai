@@ -50,6 +50,16 @@ const testHistorySchema = new mongoose.Schema({
     model: {
         type: String,
         default: ''
+    },
+    generationId: {
+        type: String,
+        index: true,
+        default: ''
+    },
+    sessionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'WorkspaceSession',
+        index: true
     }
 }, {
     timestamps: true

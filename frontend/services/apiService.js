@@ -149,8 +149,16 @@ export const apiService = {
                 metadata: result.metadata || {},
             };
 
-            window.DEBUG_LAST_RESULT = normalized;
-            return normalized;
+            const finalResult = {
+                ...normalized,
+                generationId: result.generationId || null,
+                testSuiteId: result.testSuiteId || result.sessionId || null,
+                sessionId: result.sessionId || result.testSuiteId || null,
+                status: result.status || 'completed'
+            };
+
+            window.DEBUG_LAST_RESULT = finalResult;
+            return finalResult;
         } catch (error) {
             console.error('CRITICAL API ERROR:', error);
             // alert('BROWSER ERROR: ' + error.message); // REMOVED intrusive alert

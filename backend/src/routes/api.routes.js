@@ -1,5 +1,5 @@
 const express = require('express');
-const { generateTestCases, getTestHistory } = require('../controllers/generate.controller');
+const { generateTestCases, getTestHistory, getGenerationStatus } = require('../controllers/generate.controller');
 const { protect } = require('../middleware/auth.middleware');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
@@ -34,6 +34,10 @@ const optionalAuth = async (req, res, next) => {
 
 // POST /api/v1/generate - Generate test cases (optional auth to save history)
 router.post('/generate', optionalAuth, generateTestCases);
+router.post('/generations', optionalAuth, generateTestCases);
+
+// GET /api/v1/generations/:id - Get generation status
+router.get('/generations/:id', optionalAuth, getGenerationStatus);
 
 // GET /api/v1/history - Get test generation history (requires auth)
 router.get('/history', protect, getTestHistory);

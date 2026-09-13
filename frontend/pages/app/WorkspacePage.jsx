@@ -31,13 +31,6 @@ const QUICK_EXAMPLES = [
     }
 ];
 
-const GENERATION_CHECKLIST = [
-    { label: 'Requirement analyzed', time: 700 },
-    { label: 'Ambiguities identified', time: 1600 },
-    { label: 'Building test scenarios', time: 2800 },
-    { label: 'Assessing risk coverage', time: 4100 },
-    { label: 'Preparing traceability', time: 5400 }
-];
 
 const formatTimeAgo = (dateInput) => {
     if (!dateInput) return 'Recently';
@@ -80,9 +73,7 @@ const WorkspacePage = () => {
 
     const [showExamples, setShowExamples] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [activeStepIndex, setActiveStepIndex] = useState(0);
-    const [isGenerationComplete, setIsGenerationComplete] = useState(false);
-    const [generatedSuiteId, setGeneratedSuiteId] = useState(null);
+    const [generationStage, setGenerationStage] = useState('idle'); // 'idle' | 'generating' | 'saving' | 'complete'
     const [error, setError] = useState(null);
     const textareaRef = useRef(null);
     const maxLength = 2000;
@@ -158,27 +149,6 @@ const WorkspacePage = () => {
         fetchSession();
     }, [routeSessionId]);
 
-    // Progressive generation checklist stepper
-    useEffect(() => {
-        if (!isGenerating) {
-            setActiveStepIndex(0);
-            setIsGenerationComplete(false);
-            return;
-        }
-
-        const intervals = GENERATION_CHECKLIST.map((step, idx) => {
-            return setTimeout(() => {
-                setActiveStepIndex(idx);
-                if (idx === GENERATION_CHECKLIST.length - 1) {
-                    setTimeout(() => {
-                        setIsGenerationComplete(true);
-                    }, 800);
-                }
-            }, step.time);
-        });
-
-        return () => intervals.forEach(clearTimeout);
-    }, [isGenerating]);
 
     // Debounced Auto-Save
     useEffect(() => {
@@ -257,7 +227,7 @@ const WorkspacePage = () => {
     };
 
     const handleGenerate = async () => {
-        if (!requirement.trim()) return;
+        if (!requirement.trim() || isGenerating) return;
 
         if (!isAuthenticated) {
             if (!canGenerateAsGuest()) {
@@ -268,7 +238,7 @@ const WorkspacePage = () => {
         }
 
         setIsGenerating(true);
-        setIsGenerationComplete(false);
+        setGenerationStage('generating');
         setError(null);
 
         try {
@@ -276,36 +246,42 @@ const WorkspacePage = () => {
                 requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) ||
                 'Generated Suite';
 
-            const generatedSuite = await apiService.generateTestSuite(requirement, {
+            // 1. Call AI test generation on backend
+            const result = await apiService.generateTestSuite(requirement, {
                 ...settings,
                 sessionId: currentSessionId
             });
 
-            // Save to persistent history
-            await saveToHistory(generatedSuite, requirement, settings, currentSessionId, resolvedTitle);
-            refreshSidebarHistory();
+            // 2. Identify the exact persisted test suite ID returned from backend
+            const targetSuiteId = result.testSuiteId || result.sessionId || currentSessionId;
+            setGenerationStage('saving');
 
-            const slug = resolvedTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30).replace(/^-|-$/g, '') || 'suite';
-            const suiteId = currentSessionId || `${slug}-${Date.now().toString().slice(-4)}`;
-            setGeneratedSuiteId(suiteId);
-            setSuiteData(generatedSuite);
-            setSessionStatus('Generated');
+            // 3. Sync with client-side history cache
+            await saveToHistory(result, requirement, settings, targetSuiteId, resolvedTitle);
+            await refreshSidebarHistory();
 
-            // Direct transition to Test Suite detail page after completion animation
-            setTimeout(() => {
-                navigate(`/app/test-suites/${suiteId}`, {
-                    state: {
-                        suite: generatedSuite,
-                        prompt: requirement,
-                        settings: settings,
-                        sessionId: currentSessionId
-                    }
-                });
-            }, 6200);
+            setGenerationStage('complete');
+            setSuiteData(result);
+            setSessionStatus('NeedsReview');
+
+            // 4. AUTOMATIC DIRECT NAVIGATION: User immediately sees the generated Test Suite result
+            navigate(`/app/test-suites/${targetSuiteId}`, {
+                state: {
+                    suite: result,
+                    prompt: requirement,
+                    settings: settings,
+                    sessionId: targetSuiteId,
+                    generationId: result.generationId
+                }
+            });
         } catch (err) {
             console.error('Generation error:', err);
-            setError(err.message || 'Failed to generate test suite.');
+            const userSafeMsg = err.message?.includes('QUOTA_LIMIT')
+                ? 'AI service is temporarily busy. Please wait a moment and try again.'
+                : err.message || 'Failed to generate test suite. Please check your requirement and try again.';
+            setError(userSafeMsg);
             setIsGenerating(false);
+            setGenerationStage('idle');
         }
     };
 
@@ -334,7 +310,12 @@ const WorkspacePage = () => {
                 </div>
 
                 <div className="app-workspace-header__status">
-                    {saveStatus === 'saving' ? (
+                    {isGenerating ? (
+                        <div className="app-workspace-saved-pill saving">
+                            <Loader2 size={12} className="animate-spin" />
+                            <span>Generating...</span>
+                        </div>
+                    ) : saveStatus === 'saving' ? (
                         <div className="app-workspace-saved-pill saving">
                             <Loader2 size={12} className="animate-spin" />
                             <span>Saving...</span>
@@ -349,58 +330,119 @@ const WorkspacePage = () => {
             </header>
 
             {error && (
-                <div className="form-error-banner animate-fade-in">
-                    <AlertTriangle size={16} />
-                    <span>{error}</span>
+                <div className="form-error-banner animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <AlertTriangle size={16} style={{ color: '#EF4444', flexShrink: 0 }} />
+                        <span style={{ color: '#F5F5F5', fontSize: '0.88rem' }}>{error}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+                        <button
+                            type="button"
+                            onClick={handleGenerate}
+                            style={{
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '6px',
+                                background: '#00D9C0',
+                                color: '#0A0A0A',
+                                border: 'none',
+                                fontSize: '0.82rem',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Retry Generation
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setError(null)}
+                            style={{
+                                padding: '0.45rem 0.9rem',
+                                borderRadius: '6px',
+                                background: '#1C1C1C',
+                                color: '#A3A3A3',
+                                border: '1px solid #333',
+                                fontSize: '0.82rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Back to Requirement
+                        </button>
+                    </div>
                 </div>
             )}
 
-            {/* In-Page Progressive Generation State */}
+            {/* In-Page Truthful Generation Progress State */}
             {isGenerating ? (
                 <div className="app-workspace-progress-view">
                     <div className="app-workspace-progress-header">
-                        <h2 className="app-workspace-progress-heading">Generating test suite</h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <div style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '8px',
+                                background: 'rgba(0, 217, 192, 0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <Loader2 size={16} className="animate-spin" style={{ color: '#00D9C0' }} />
+                            </div>
+                            <h2 className="app-workspace-progress-heading">Generating Test Suite</h2>
+                        </div>
                         <p className="app-workspace-progress-sub">
-                            Analyzing specifications, identifying boundaries, and synthesizing execution-ready test cases.
+                            Analyzing the requirement and building structured QA coverage.
                         </p>
                     </div>
 
-                    <div className="app-workspace-checklist">
-                        {GENERATION_CHECKLIST.map((step, idx) => {
-                            const isCompleted = idx < activeStepIndex || isGenerationComplete;
-                            const isActive = idx === activeStepIndex && !isGenerationComplete;
-                            return (
-                                <div
-                                    key={idx}
-                                    className={`app-workspace-check-item ${isCompleted ? 'is-complete' : isActive ? 'is-active' : 'is-pending'}`}
-                                >
-                                    <div className="app-workspace-check-icon">
-                                        {isCompleted ? (
-                                            <Check size={13} strokeWidth={2.5} color="#22C55E" />
-                                        ) : isActive ? (
-                                            <Loader2 size={13} className="animate-spin" color="#00D9C0" />
-                                        ) : (
-                                            <span className="app-workspace-check-dot" />
-                                        )}
-                                    </div>
-                                    <span className="app-workspace-check-label">{step.label}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {isGenerationComplete && generatedSuiteId && (
-                        <div className="app-workspace-complete-action">
-                            <NavLink
-                                to={`/app/test-suites/${generatedSuiteId}`}
-                                state={{ suite: suiteData, prompt: requirement, settings }}
-                                className="app-workspace-btn-open-suite"
-                            >
-                                <span>Open Test Suite</span>
-                                <ArrowRight size={15} />
-                            </NavLink>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.85rem',
+                        background: '#050505',
+                        border: '1px solid #161616',
+                        borderRadius: '10px',
+                        padding: '1.25rem'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.88rem', color: '#F5F5F5', fontWeight: '500' }}>
+                                {generationStage === 'saving'
+                                    ? 'Saving test suite artifacts...'
+                                    : generationStage === 'complete'
+                                        ? 'Opening test suite result...'
+                                        : 'Synthesizing test scenarios & coverage matrix...'}
+                            </span>
+                            <span style={{
+                                fontSize: '0.72rem',
+                                color: '#00D9C0',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '4px',
+                                background: 'rgba(0, 217, 192, 0.08)',
+                                border: '1px solid rgba(0, 217, 192, 0.2)',
+                                fontWeight: '600'
+                            }}>
+                                Processing
+                            </span>
                         </div>
-                    )}
+
+                        <div style={{
+                            width: '100%',
+                            height: '4px',
+                            background: '#1C1C1C',
+                            borderRadius: '2px',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                width: generationStage === 'complete' ? '100%' : generationStage === 'saving' ? '85%' : '55%',
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #00D9C0, #22C55E)',
+                                transition: 'width 0.3s ease'
+                            }} />
+                        </div>
+
+                        <p style={{ fontSize: '0.78rem', color: '#737373', margin: 0 }}>
+                            Extracting functional, negative, and edge test scenarios with bidirectional traceability.
+                        </p>
+                    </div>
                 </div>
             ) : isLoadingSession ? (
                 <div className="app-workspace-loading-state">
@@ -605,9 +647,16 @@ const WorkspacePage = () => {
                                 disabled={!requirement.trim() || isGenerating}
                                 id="workspace-generate-btn"
                             >
-                                <span>
-                                    {suiteData ? 'Regenerate Test Suite' : 'Generate Test Suite'}
-                                </span>
+                                {isGenerating ? (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        <span>Generating Test Suite...</span>
+                                    </span>
+                                ) : (
+                                    <span>
+                                        {suiteData ? 'Regenerate Test Suite' : 'Generate Test Suite'}
+                                    </span>
+                                )}
                             </button>
                         </div>
                     </section>

@@ -22,6 +22,7 @@ backend/.env.*
 
 # Debug output
 backend/debug_last_result.json
+backend/debug_raw_ai_response.txt
 backend/test_gemini.js
 
 # Editor directories and files
