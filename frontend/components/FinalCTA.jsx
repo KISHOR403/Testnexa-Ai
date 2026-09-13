@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Check, Shield, CheckCircle2, FileText, Zap, ChevronRight, Terminal, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useScrollReveal from '../hooks/useScrollReveal';
+import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 const PREVIEW_TESTS = [
     {
@@ -158,6 +159,7 @@ const CtaProductPreview = () => {
 
 const FinalCTA = ({ onOpenGenerator }) => {
     const reveal = useScrollReveal({ threshold: 0.12 });
+    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
 
     return (
         <section className="tn-cta" aria-labelledby="cta-heading">
@@ -182,13 +184,18 @@ const FinalCTA = ({ onOpenGenerator }) => {
                     
                     <div className="tn-cta__actions">
                         <a
-                            href="/app/workspace"
+                            href={getTargetUrl('/app/workspace')}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary"
+                            className={`tn-btn tn-btn--primary tn-btn--lg tn-cta__btn-primary ${isOpening ? 'is-opening' : ''}`}
                             id="final-cta-generate-btn"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleWorkspaceEntry('/app/workspace');
+                            }}
+                            aria-label="Generate Test Suite"
                         >
-                            <span>Generate Test Suite</span>
+                            <span>{isOpening ? 'Opening…' : 'Generate Test Suite'}</span>
                             <ArrowRight size={18} className="tn-cta__btn-arrow" />
                         </a>
                         <a href="#features" className="tn-btn tn-btn--secondary tn-btn--lg tn-cta__btn-secondary">

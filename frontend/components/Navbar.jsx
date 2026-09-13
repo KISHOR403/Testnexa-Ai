@@ -7,6 +7,7 @@ import {
     ArrowRight, Menu, X, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 import ProfileModal from './ProfileModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -20,6 +21,7 @@ const NAV_SECTIONS = [
 
 const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
     const { user, isAuthenticated, logout, isSigningOut } = useAuth();
+    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [activeSubMenu, setActiveSubMenu] = useState(null);
@@ -330,12 +332,18 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                             )}
                         </div>
                     ) : (
-                        <NavLink
-                            to="/app/workspace"
+                        <a
+                            href={getTargetUrl('/app/workspace')}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="floating-nav-cta"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleWorkspaceEntry('/app/workspace');
+                            }}
                         >
-                            Get Started
-                        </NavLink>
+                            {isOpening ? 'Opening…' : 'Get Started'}
+                        </a>
                     )}
 
                     {/* Mobile Hamburger Toggle */}
@@ -394,19 +402,25 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                         <div className="floating-mobile-menu-divider" />
 
                         <div className="floating-mobile-actions">
-                            <NavLink
-                                to="/app/workspace"
+                            <a
+                                href={getTargetUrl('/app/workspace')}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="floating-mobile-primary-btn"
-                                onClick={() => setIsMobileNavOpen(false)}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setIsMobileNavOpen(false);
+                                    handleWorkspaceEntry('/app/workspace');
+                                }}
                             >
                                 <LayoutDashboard size={16} />
-                                <span>Open Workspace</span>
-                            </NavLink>
+                                <span>{isOpening ? 'Opening…' : 'Open Workspace'}</span>
+                            </a>
 
                             {!isAuthenticated ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
                                     <NavLink
-                                        to="/login"
+                                        to="/login?returnTo=%2Fapp%2Fworkspace"
                                         className="floating-mobile-secondary-btn"
                                         onClick={() => setIsMobileNavOpen(false)}
                                     >
@@ -414,7 +428,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                         <span>Sign In</span>
                                     </NavLink>
                                     <NavLink
-                                        to="/signup"
+                                        to="/signup?returnTo=%2Fapp%2Fworkspace"
                                         className="floating-mobile-secondary-btn"
                                         onClick={() => setIsMobileNavOpen(false)}
                                     >

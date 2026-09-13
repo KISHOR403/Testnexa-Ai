@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, User, LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getSafeReturnUrl } from '../hooks/useWorkspaceEntry';
 
 const SignUpPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { register, loginWithGoogle, loginWithGitHub } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
@@ -17,6 +19,11 @@ const SignUpPage = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Read returnTo from search params or router location state (with open-redirect protection)
+    const searchParams = new URLSearchParams(location.search);
+    const rawReturnTo = searchParams.get('returnTo') || location.state?.from?.pathname;
+    const destination = getSafeReturnUrl(rawReturnTo, '/app/workspace');
 
     const validateForm = () => {
         const newErrors = {};
@@ -71,7 +78,7 @@ const SignUpPage = () => {
         try {
             const result = await register(formData.name, formData.email, formData.password);
             if (result.success) {
-                navigate('/');
+                navigate(destination, { replace: true });
             } else {
                 setErrors({ submit: result.message });
             }
@@ -311,7 +318,7 @@ const SignUpPage = () => {
                     {/* Login Link */}
                     <div className="signup-prompt">
                         Already have an account?{' '}
-                        <Link to="/login" className="signup-link">
+                        <Link to={`/login${location.search}`} className="signup-link">
                             Sign in
                         </Link>
                     </div>

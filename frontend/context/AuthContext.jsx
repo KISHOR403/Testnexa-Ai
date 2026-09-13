@@ -115,6 +115,11 @@ export const AuthProvider = ({ children }) => {
                         if (window.location.pathname.startsWith('/app')) {
                             window.location.href = '/login';
                         }
+                    } else if (event.data?.type === 'LOGIN') {
+                        setIsAuthenticated(true);
+                        if (event.data?.user) {
+                            setUser(event.data.user);
+                        }
                     }
                 };
             }
@@ -122,12 +127,20 @@ export const AuthProvider = ({ children }) => {
             // Ignore
         }
 
-        // 2. Storage event listener (fallback for multi-tab logout)
+        // 2. Storage event listener (fallback for multi-tab logout and cross-tab login sync)
         const handleStorageChange = (e) => {
             if (e.key === 'testnexa_logout_event' || (e.key === 'testnexa_token' && !e.newValue)) {
                 clearLocalAuthState();
                 if (window.location.pathname.startsWith('/app')) {
                     window.location.href = '/login';
+                }
+            } else if (e.key === 'testnexa_token' && e.newValue) {
+                setIsAuthenticated(true);
+                const storedUser = localStorage.getItem('testnexa_user');
+                if (storedUser) {
+                    try {
+                        setUser(JSON.parse(storedUser));
+                    } catch (err) {}
                 }
             }
         };
@@ -197,6 +210,16 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+
+                // Broadcast login to other tabs (e.g., Tab A landing page)
+                try {
+                    if (window.BroadcastChannel) {
+                        const bc = new BroadcastChannel('testnexa_auth');
+                        bc.postMessage({ type: 'LOGIN', user });
+                        bc.close();
+                    }
+                } catch (e) {}
+
                 return { success: true };
             }
         } catch (error) {
@@ -216,6 +239,16 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+
+                // Broadcast login to other tabs
+                try {
+                    if (window.BroadcastChannel) {
+                        const bc = new BroadcastChannel('testnexa_auth');
+                        bc.postMessage({ type: 'LOGIN', user });
+                        bc.close();
+                    }
+                } catch (e) {}
+
                 return { success: true };
             }
         } catch (error) {

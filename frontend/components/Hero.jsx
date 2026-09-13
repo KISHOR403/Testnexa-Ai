@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 import {
     ArrowRight,
     Search,
@@ -1431,15 +1432,7 @@ const HeroProductVisualization = () => (
 
 const Hero = ({ onOpenGenerator }) => {
     const reveal = useScrollReveal({ threshold: 0.1 });
-    const navigate = useNavigate();
-
-    const handleAction = useCallback(() => {
-        if (typeof onOpenGenerator === 'function') {
-            onOpenGenerator();
-        } else {
-            navigate('/app/workspace');
-        }
-    }, [onOpenGenerator, navigate]);
+    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
 
     return (
         <header className="tn-hero" aria-labelledby="hero-heading">
@@ -1466,13 +1459,18 @@ const Hero = ({ onOpenGenerator }) => {
 
                     <div className="tn-hero__ctas">
                         <a
-                            href="/app/workspace"
+                            href={getTargetUrl('/app/workspace')}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="tn-btn tn-btn--primary tn-btn--lg"
+                            className={`tn-btn tn-btn--primary tn-btn--lg ${isOpening ? 'is-opening' : ''}`}
                             id="hero-generate-btn"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleWorkspaceEntry('/app/workspace');
+                            }}
+                            aria-label="Generate Test Suite"
                         >
-                            Generate Test Suite
+                            <span>{isOpening ? 'Opening…' : 'Generate Test Suite'}</span>
                             <ArrowRight size={18} />
                         </a>
                         <a

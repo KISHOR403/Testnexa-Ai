@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, ArrowRight, Check, Shield, FileText, Code2, Mail, ExternalLink } from 'lucide-react';
+import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 import '../styles/aboutPage.css';
 
 const WORKFLOW_STEPS = [
@@ -77,6 +78,8 @@ const PRINCIPLES = [
 ];
 
 const AboutUsPage = () => {
+    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+
     return (
         <div className="tn-about-root">
             {/* ─── Compact Header & Breadcrumb ─── */}
@@ -342,10 +345,19 @@ const AboutUsPage = () => {
                         </p>
                     </div>
                     <div className="tn-about-cta-btns">
-                        <Link to="/app/workspace" className="tn-about-btn-primary">
-                            Get Started
+                        <a
+                            href={getTargetUrl('/app/workspace')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="tn-about-btn-primary"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleWorkspaceEntry('/app/workspace');
+                            }}
+                        >
+                            {isOpening ? 'Opening…' : 'Get Started'}
                             <ArrowRight size={14} />
-                        </Link>
+                        </a>
                         <Link to="/help" className="tn-about-btn-secondary">
                             View Documentation
                         </Link>
