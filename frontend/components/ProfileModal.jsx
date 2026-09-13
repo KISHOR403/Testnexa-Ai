@@ -9,7 +9,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
 
 const ProfileModal = ({ isOpen, onClose }) => {
-    const { user, logout } = useAuth();
+    const { user, logout, isSigningOut } = useAuth();
     const { settings, saveSettingsToServer } = useSettings();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('profile');
@@ -61,10 +61,9 @@ const ProfileModal = ({ isOpen, onClose }) => {
         onClose();
     };
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
         onClose();
-        navigate('/');
+        await logout();
     };
 
     // Avatar image upload handler
@@ -340,9 +339,25 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                     <History size={16} />
                                     <span>View History</span>
                                 </button>
-                                <button className="profile-btn-new secondary logout" onClick={handleLogout}>
-                                    <LogOut size={16} />
-                                    <span>Log Out</span>
+                                <button 
+                                    className="profile-btn-new secondary logout" 
+                                    onClick={handleLogout}
+                                    disabled={isSigningOut}
+                                    style={{ opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
+                                >
+                                    {isSigningOut ? (
+                                        <div style={{
+                                            width: '14px',
+                                            height: '14px',
+                                            border: '2px solid rgba(239, 68, 68, 0.2)',
+                                            borderTopColor: '#EF4444',
+                                            borderRadius: '50%',
+                                            animation: 'spin 0.8s linear infinite'
+                                        }} />
+                                    ) : (
+                                        <LogOut size={16} />
+                                    )}
+                                    <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                                 </button>
                             </div>
                         </div>

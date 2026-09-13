@@ -13,7 +13,7 @@ import UpgradeModal from './UpgradeModal';
 
 const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
     const { history, deleteFromHistory } = useHistory();
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, isSigningOut } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [hoveredItem, setHoveredItem] = useState(null);
@@ -193,11 +193,30 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
                                         <span>Send Feedback</span>
                                     </button>
                                     <div className="gpt-profile-popup-divider" />
-                                    <button className="gpt-profile-popup-item gpt-logout-item" onClick={() => { logout(); setIsRailProfileOpen(false); }}>
+                                    <button 
+                                        className="gpt-profile-popup-item gpt-logout-item" 
+                                        disabled={isSigningOut}
+                                        onClick={async () => {
+                                            setIsRailProfileOpen(false);
+                                            await logout();
+                                        }}
+                                        style={{ opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
+                                    >
                                         <div className="gpt-popup-icon-wrap gpt-logout-icon">
-                                            <LogOut size={14} />
+                                            {isSigningOut ? (
+                                                <div style={{
+                                                    width: '12px',
+                                                    height: '12px',
+                                                    border: '2px solid rgba(239, 68, 68, 0.2)',
+                                                    borderTopColor: '#EF4444',
+                                                    borderRadius: '50%',
+                                                    animation: 'spin 0.8s linear infinite'
+                                                }} />
+                                            ) : (
+                                                <LogOut size={14} />
+                                            )}
                                         </div>
-                                        <span>Log out</span>
+                                        <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                                     </button>
                                 </div>
                             )}
@@ -344,11 +363,30 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
                                     <span>Send Feedback</span>
                                 </button>
                                 <div className="gpt-profile-popup-divider" />
-                                <button className="gpt-profile-popup-item gpt-logout-item" onClick={() => { logout(); setIsProfileMenuOpen(false); }}>
+                                <button 
+                                    className="gpt-profile-popup-item gpt-logout-item" 
+                                    disabled={isSigningOut}
+                                    onClick={async () => {
+                                        setIsProfileMenuOpen(false);
+                                        await logout();
+                                    }}
+                                    style={{ opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
+                                >
                                     <div className="gpt-popup-icon-wrap gpt-logout-icon">
-                                        <LogOut size={14} />
+                                        {isSigningOut ? (
+                                            <div style={{
+                                                width: '12px',
+                                                height: '12px',
+                                                border: '2px solid rgba(239, 68, 68, 0.2)',
+                                                borderTopColor: '#EF4444',
+                                                borderRadius: '50%',
+                                                animation: 'spin 0.8s linear infinite'
+                                            }} />
+                                        ) : (
+                                            <LogOut size={14} />
+                                        )}
                                     </div>
-                                    <span>Log out</span>
+                                    <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                                 </button>
                             </div>
                         )}

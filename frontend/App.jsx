@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocatio
 // Layouts
 import MarketingLayout from './layouts/MarketingLayout';
 import AppLayout from './layouts/AppLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Marketing Pages
 import GeneratorPage from './pages/GeneratorPage';
@@ -67,7 +68,7 @@ function App() {
         </Route>
 
         {/* ─── APPLICATION / WORKSPACE PAGES ─── */}
-        <Route path="/app" element={<AppLayout />}>
+        <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/app/workspace" replace />} />
           <Route path="workspace" element={<WorkspacePage />} />
           <Route path="workspace/:sessionId" element={<WorkspacePage />} />

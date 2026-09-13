@@ -26,7 +26,7 @@ const formatTimeAgo = (dateInput) => {
 };
 
 const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) => {
-    const { user, logout } = useAuth();
+    const { user, logout, isSigningOut } = useAuth();
     const { history, recentSessions } = useHistory();
     const location = useLocation();
     const navigate = useNavigate();
@@ -379,16 +379,29 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
 
                         <button
                             type="button"
-                            className="gpt-profile-popup-item gpt-logout-item"
-                            onClick={() => {
+                            className={`gpt-profile-popup-item gpt-logout-item ${isSigningOut ? 'is-loading' : ''}`}
+                            disabled={isSigningOut}
+                            onClick={async () => {
                                 setIsMenuOpen(false);
-                                logout();
+                                await logout();
                             }}
+                            style={{ opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
                         >
                             <div className="gpt-popup-icon-wrap gpt-logout-icon">
-                                <LogOut size={15} />
+                                {isSigningOut ? (
+                                    <div style={{
+                                        width: '13px',
+                                        height: '13px',
+                                        border: '2px solid rgba(239, 68, 68, 0.2)',
+                                        borderTopColor: '#EF4444',
+                                        borderRadius: '50%',
+                                        animation: 'spin 0.8s linear infinite'
+                                    }} />
+                                ) : (
+                                    <LogOut size={15} />
+                                )}
                             </div>
-                            <span>Sign out</span>
+                            <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                         </button>
                     </div>
                 )}

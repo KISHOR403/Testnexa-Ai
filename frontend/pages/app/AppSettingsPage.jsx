@@ -37,7 +37,7 @@ const AppSettingsPage = () => {
     const activeTab = searchParams.get('tab') || 'profile';
     const navigate = useNavigate();
 
-    const { user, updateProfile, changePassword, logout } = useAuth();
+    const { user, updateProfile, changePassword, logout, activeSessions = [], fetchSessions, revokeSession, revokeOtherSessions } = useAuth();
     const { settings, updateSetting } = useSettings();
 
     // Profile Edit State
@@ -58,9 +58,10 @@ const AppSettingsPage = () => {
     const [is2FAEnabled, setIs2FAEnabled] = useState(false);
     const [show2FAModal, setShow2FAModal] = useState(false);
 
-    // Confirmation Modals
+    // Confirmation Modals & Session Revoke State
     const [showSignoutSessionsModal, setShowSignoutSessionsModal] = useState(false);
-    const [secondarySessionsSignedOut, setSecondarySessionsSignedOut] = useState(false);
+    const [isRevokingOthers, setIsRevokingOthers] = useState(false);
+    const [revokingSessionId, setRevokingSessionId] = useState(null);
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
@@ -80,6 +81,41 @@ const AppSettingsPage = () => {
             setProfileName(user.name || user.displayName);
         }
     }, [user]);
+
+    useEffect(() => {
+        if (activeTab === 'security' && typeof fetchSessions === 'function') {
+            fetchSessions();
+        }
+    }, [activeTab, fetchSessions]);
+
+    const formatPasswordLastChanged = () => {
+        if (user?.provider && user.provider !== 'email') {
+            return `Managed via ${user.provider === 'google' ? 'Google' : 'GitHub'} (OAuth)`;
+        }
+        if (user?.passwordChangedAt) {
+            const diffMs = Date.now() - new Date(user.passwordChangedAt).getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) return 'Last changed: Today';
+            if (diffDays === 1) return 'Last changed: Yesterday';
+            return `Last changed: ${diffDays} days ago`;
+        }
+        if (user?.createdAt) {
+            return `Set on account creation (${new Date(user.createdAt).toLocaleDateString()})`;
+        }
+        return 'Password configured';
+    };
+
+    const formatRelativeTime = (dateStr) => {
+        if (!dateStr) return 'just now';
+        const diffMs = Date.now() - new Date(dateStr).getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    };
 
     const handleTabChange = (tabId) => {
         setSearchParams({ tab: tabId });
@@ -706,9 +742,9 @@ const AppSettingsPage = () => {
                                 <div className="app-settings-security-top">
                                     <div className="app-settings-security-info">
                                         <h4>Password</h4>
-                                        <p>Last changed: 30 days ago</p>
+                                        <p>{formatPasswordLastChanged()}</p>
                                     </div>
-                                    {!showPasswordForm && (
+                                    {!showPasswordForm && (!user?.provider || user?.provider === 'email') && (
                                         <button
                                             type="button"
                                             className="app-settings-btn app-settings-btn--secondary"
@@ -781,24 +817,23 @@ const AppSettingsPage = () => {
                             <div className="app-settings-security-block">
                                 <div className="app-settings-security-top">
                                     <div className="app-settings-security-info">
-                                        <h4>Two-Factor Authentication</h4>
-                                        <p>Add an additional layer of protection to your account during login.</p>
-                                        <p style={{ marginTop: '0.35rem', color: is2FAEnabled ? '#22C55E' : '#737373' }}>
-                                            Status: <strong>{is2FAEnabled ? 'Enabled (Authenticator App)' : 'Not enabled'}</strong>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <h4>Two-Factor Authentication</h4>
+                                            <span className="app-settings-status-badge inactive">Coming Soon</span>
+                                        </div>
+                                        <p>Hardware security keys and TOTP authenticator app support are scheduled for enterprise release.</p>
+                                        <p style={{ marginTop: '0.35rem', color: '#737373', fontSize: '0.78rem' }}>
+                                            Status: <strong>Not enabled</strong>
                                         </p>
                                     </div>
                                     <button
                                         type="button"
                                         className="app-settings-btn app-settings-btn--secondary"
-                                        onClick={() => {
-                                            if (is2FAEnabled) {
-                                                setIs2FAEnabled(false);
-                                            } else {
-                                                setShow2FAModal(true);
-                                            }
-                                        }}
+                                        disabled
+                                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                                        title="2FA will be available in an upcoming enterprise release"
                                     >
-                                        {is2FAEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+                                        Coming Soon
                                     </button>
                                 </div>
                             </div>
@@ -808,58 +843,61 @@ const AppSettingsPage = () => {
                                 <div className="app-settings-security-top">
                                     <div className="app-settings-security-info">
                                         <h4>Active Sessions</h4>
-                                        <p>{secondarySessionsSignedOut ? '1 active session' : '2 active sessions'}</p>
+                                        <p>{activeSessions.length} active session{activeSessions.length === 1 ? '' : 's'}</p>
                                     </div>
-                                    {!secondarySessionsSignedOut && (
+                                    {activeSessions.some(s => !s.isCurrent) && (
                                         <button
                                             type="button"
                                             className="app-settings-btn app-settings-btn--secondary"
+                                            disabled={isRevokingOthers}
                                             onClick={() => setShowSignoutSessionsModal(true)}
                                         >
-                                            Sign out all other sessions
+                                            {isRevokingOthers ? 'Signing out...' : 'Sign out all other sessions'}
                                         </button>
                                     )}
                                 </div>
 
-                                {/* Current Session */}
-                                <div className="app-settings-session-card">
-                                    <div className="app-settings-session-meta">
-                                        <Laptop size={18} color="#00D9C0" />
-                                        <div>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F5F5F5' }}>
-                                                Chrome on Windows 11
-                                            </div>
-                                            <div style={{ fontSize: '0.74rem', color: '#737373' }}>
-                                                Current session · Mumbai, India
-                                            </div>
-                                        </div>
+                                {activeSessions.length === 0 ? (
+                                    <div style={{ padding: '0.75rem 0', color: '#737373', fontSize: '0.85rem' }}>
+                                        Loading active sessions…
                                     </div>
-                                    <span className="app-settings-status-badge active">Current</span>
-                                </div>
-
-                                {/* Secondary Session (if not signed out) */}
-                                {!secondarySessionsSignedOut && (
-                                    <div className="app-settings-session-card">
-                                        <div className="app-settings-session-meta">
-                                            <Smartphone size={18} color="#A3A3A3" />
-                                            <div>
-                                                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F5F5F5' }}>
-                                                    Safari on iOS 17.5
-                                                </div>
-                                                <div style={{ fontSize: '0.74rem', color: '#737373' }}>
-                                                    Last active 2 hours ago · Bengaluru, India
+                                ) : (
+                                    activeSessions.map((session) => (
+                                        <div key={session.id} className="app-settings-session-card">
+                                            <div className="app-settings-session-meta">
+                                                {session.device?.toLowerCase().includes('iphone') || session.device?.toLowerCase().includes('android') || session.device?.toLowerCase().includes('ios') ? (
+                                                    <Smartphone size={18} color={session.isCurrent ? "#00D9C0" : "#A3A3A3"} />
+                                                ) : (
+                                                    <Laptop size={18} color={session.isCurrent ? "#00D9C0" : "#A3A3A3"} />
+                                                )}
+                                                <div>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F5F5F5' }}>
+                                                        {session.device}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.74rem', color: '#737373' }}>
+                                                        {session.isCurrent ? 'Current session' : `Last active ${formatRelativeTime(session.lastActiveAt)}`} · {session.ipAddress} ({session.location || 'Local Network'})
+                                                    </div>
                                                 </div>
                                             </div>
+                                            {session.isCurrent ? (
+                                                <span className="app-settings-status-badge active">Current</span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="app-settings-btn app-settings-btn--secondary"
+                                                    style={{ padding: '0.25rem 0.6rem', minHeight: '28px', fontSize: '0.75rem' }}
+                                                    disabled={revokingSessionId === session.id}
+                                                    onClick={async () => {
+                                                        setRevokingSessionId(session.id);
+                                                        await revokeSession(session.id);
+                                                        setRevokingSessionId(null);
+                                                    }}
+                                                >
+                                                    {revokingSessionId === session.id ? 'Signing out...' : 'Sign out'}
+                                                </button>
+                                            )}
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="app-settings-btn app-settings-btn--secondary"
-                                            style={{ padding: '0.25rem 0.6rem', minHeight: '28px', fontSize: '0.75rem' }}
-                                            onClick={() => setSecondarySessionsSignedOut(true)}
-                                        >
-                                            Sign out
-                                        </button>
-                                    </div>
+                                    ))
                                 )}
                             </div>
 
@@ -867,22 +905,19 @@ const AppSettingsPage = () => {
                             <div className="app-settings-security-block" style={{ borderBottom: 'none' }}>
                                 <div className="app-settings-security-info">
                                     <h4>Recent Login Activity</h4>
-                                    <p>Recent successful logins to your account.</p>
+                                    <p>Active authenticated sessions verified on this account.</p>
                                 </div>
 
                                 <div className="app-settings-info-list" style={{ marginTop: '0.5rem' }}>
-                                    <div className="app-settings-info-row">
-                                        <span className="app-settings-info-label">Chrome on Windows</span>
-                                        <span className="app-settings-info-value">
-                                            {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Today, 11:45 AM'}
-                                        </span>
-                                        <span style={{ fontSize: '0.74rem', color: '#737373' }}>IP 103.21.244.12</span>
-                                    </div>
-                                    <div className="app-settings-info-row">
-                                        <span className="app-settings-info-label">Safari on iOS</span>
-                                        <span className="app-settings-info-value">Sep 10, 2026, 09:20 AM</span>
-                                        <span style={{ fontSize: '0.74rem', color: '#737373' }}>IP 103.21.244.89</span>
-                                    </div>
+                                    {activeSessions.map((session) => (
+                                        <div key={session.id} className="app-settings-info-row">
+                                            <span className="app-settings-info-label">{session.device}</span>
+                                            <span className="app-settings-info-value">
+                                                {session.lastActiveAt ? new Date(session.lastActiveAt).toLocaleString() : 'Active now'}
+                                            </span>
+                                            <span style={{ fontSize: '0.74rem', color: '#737373' }}>IP {session.ipAddress}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </>
@@ -1122,18 +1157,22 @@ const AppSettingsPage = () => {
                                 type="button"
                                 className="app-settings-btn app-settings-btn--secondary"
                                 onClick={() => setShowSignoutSessionsModal(false)}
+                                disabled={isRevokingOthers}
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 className="app-settings-btn app-settings-btn--danger"
-                                onClick={() => {
-                                    setSecondarySessionsSignedOut(true);
+                                disabled={isRevokingOthers}
+                                onClick={async () => {
+                                    setIsRevokingOthers(true);
+                                    await revokeOtherSessions();
+                                    setIsRevokingOthers(false);
                                     setShowSignoutSessionsModal(false);
                                 }}
                             >
-                                Sign out
+                                {isRevokingOthers ? 'Signing out...' : 'Sign out'}
                             </button>
                         </div>
                     </div>

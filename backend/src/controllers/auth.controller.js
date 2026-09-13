@@ -1,9 +1,11 @@
 const User = require('../models/user.model');
+const AuthSession = require('../models/authSession.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
+const { parseUserAgent, parseClientIp, getLocationFromIp } = require('../utils/deviceParser');
 
 // Helper to check DB connection
 const checkConnection = () => {
@@ -12,14 +14,50 @@ const checkConnection = () => {
     }
 };
 
-// Helper to generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'secret123', {
+// Helper to generate JWT with optional sessionId
+const generateToken = (id, sessionId) => {
+    const payload = { id };
+    if (sessionId) {
+        payload.sessionId = sessionId.toString();
+    }
+    return jwt.sign(payload, process.env.JWT_SECRET || 'secret123', {
         expiresIn: '30d'
     });
 };
 
+// Helper to create an active user AuthSession
+const createAuthSession = async (userId, req) => {
+    try {
+        if (mongoose.connection.readyState !== 1) return null;
+        const userAgent = req?.headers ? (req.headers['user-agent'] || '') : '';
+        const ipAddress = parseClientIp(req);
+        const { browser, os, deviceDisplay } = parseUserAgent(userAgent);
+        const location = getLocationFromIp(ipAddress);
+        const sessionIdentifier = crypto.randomBytes(24).toString('hex');
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+        const session = await AuthSession.create({
+            userId,
+            sessionIdentifier,
+            device: deviceDisplay,
+            browser,
+            os,
+            userAgent,
+            ipAddress,
+            location,
+            lastActiveAt: new Date(),
+            expiresAt
+        });
+
+        return session;
+    } catch (err) {
+        console.error('Failed to create AuthSession:', err);
+        return null;
+    }
+};
+
 exports.generateToken = generateToken;
+exports.createAuthSession = createAuthSession;
 
 exports.register = async (req, res) => {
     try {
@@ -35,6 +73,7 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        const now = new Date();
         const user = await User.create({
             name,
             displayName: name,
@@ -42,13 +81,18 @@ exports.register = async (req, res) => {
             password: hashedPassword,
             provider: 'email',
             isVerified: false,
-            lastLogin: new Date(),
-            loginCount: 1
+            lastLogin: now,
+            loginCount: 1,
+            passwordChangedAt: now
         });
 
         if (user) {
-            // Send welcome email to new user (and wait for it)
-            await sendWelcomeEmail(name, email);
+            // Create active auth session
+            const session = await createAuthSession(user._id, req);
+            const token = generateToken(user._id, session?._id);
+
+            // Send welcome email to new user
+            await sendWelcomeEmail(name, email).catch(e => console.error('Welcome email error:', e));
 
             res.status(201).json({
                 success: true,
@@ -58,9 +102,10 @@ exports.register = async (req, res) => {
                     email: user.email,
                     avatar: user.avatar,
                     provider: user.provider,
+                    passwordChangedAt: user.passwordChangedAt,
                     createdAt: user.createdAt
                 },
-                token: generateToken(user._id)
+                token
             });
         }
     } catch (error) {
@@ -89,6 +134,10 @@ exports.login = async (req, res) => {
         user.loginCount = (user.loginCount || 0) + 1;
         await user.save();
 
+        // Create active auth session
+        const session = await createAuthSession(user._id, req);
+        const token = generateToken(user._id, session?._id);
+
         res.json({
             success: true,
             user: {
@@ -99,10 +148,11 @@ exports.login = async (req, res) => {
                 provider: user.provider || 'email',
                 lastLogin: user.lastLogin,
                 loginCount: user.loginCount,
+                passwordChangedAt: user.passwordChangedAt,
                 totalTestsGenerated: user.totalTestsGenerated,
                 createdAt: user.createdAt
             },
-            token: generateToken(user._id)
+            token
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -118,7 +168,6 @@ exports.getMe = async (req, res) => {
 
         let provider = req.user.provider || 'email';
         if (!req.user.provider) {
-            // Fallback for legacy users without provider field
             if (req.user.googleId) provider = 'google';
             else if (req.user.githubId) provider = 'github';
         }
@@ -133,12 +182,187 @@ exports.getMe = async (req, res) => {
                 provider,
                 lastLogin: req.user.lastLogin,
                 loginCount: req.user.loginCount,
+                passwordChangedAt: req.user.passwordChangedAt,
                 totalTestsGenerated: req.user.totalTestsGenerated,
                 createdAt: req.user.createdAt
             }
         });
     } catch (error) {
         console.error('GetMe error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.logout = async (req, res) => {
+    try {
+        // 1. Invalidate session in DB if sessionId is present
+        if (req.sessionId && mongoose.connection.readyState === 1) {
+            await AuthSession.findByIdAndUpdate(req.sessionId, { revokedAt: new Date() });
+        } else if (req.user?._id && mongoose.connection.readyState === 1) {
+            // Revoke current user's active session
+            await AuthSession.updateMany(
+                { userId: req.user._id, revokedAt: null },
+                { revokedAt: new Date() }
+            );
+        }
+
+        // 2. Clear Passport & Express session cleanly
+        if (typeof req.logout === 'function') {
+            req.logout({ keepSessionInfo: false }, (err) => {
+                if (req.session) {
+                    try { req.session.destroy(() => {}); } catch (e) {}
+                }
+            });
+        } else if (req.session) {
+            try { req.session.destroy(() => {}); } catch (e) {}
+        }
+
+        // 4. Clear auth cookie
+        res.clearCookie('connect.sid', {
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+        });
+
+        res.json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.json({
+            success: true,
+            message: 'Logged out with warnings'
+        });
+    }
+};
+
+exports.listSessions = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.json({ success: true, sessions: [] });
+        }
+
+        const sessions = await AuthSession.find({
+            userId: req.user._id,
+            revokedAt: null,
+            expiresAt: { $gt: new Date() }
+        }).sort({ lastActiveAt: -1 });
+
+        const currentSessionId = req.sessionId ? req.sessionId.toString() : null;
+
+        const formattedSessions = sessions.map(s => ({
+            id: s._id,
+            device: s.device,
+            browser: s.browser,
+            os: s.os,
+            ipAddress: s.ipAddress,
+            location: s.location,
+            lastActiveAt: s.lastActiveAt,
+            createdAt: s.createdAt,
+            isCurrent: currentSessionId ? (s._id.toString() === currentSessionId) : false
+        }));
+
+        // If no session explicitly matched (e.g. legacy token), mark the first/most recent as current
+        if (formattedSessions.length > 0 && !formattedSessions.some(s => s.isCurrent)) {
+            formattedSessions[0].isCurrent = true;
+        }
+
+        res.json({
+            success: true,
+            sessions: formattedSessions
+        });
+    } catch (error) {
+        console.error('List sessions error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.revokeSession = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(500).json({ success: false, message: 'Database connection unavailable' });
+        }
+
+        const { sessionId } = req.params;
+        const session = await AuthSession.findById(sessionId);
+
+        if (!session) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+
+        // Ownership enforcement: Authenticated user must own the session
+        if (session.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized to revoke this session' });
+        }
+
+        session.revokedAt = new Date();
+        await session.save();
+
+        // If user is revoking their own current session, clear passport/express sessions
+        if (req.sessionId && req.sessionId.toString() === sessionId.toString()) {
+            if (typeof req.logout === 'function') {
+                req.logout({ keepSessionInfo: false }, () => {
+                    if (req.session) {
+                        try { req.session.destroy(() => {}); } catch (e) {}
+                    }
+                });
+            } else if (req.session) {
+                try { req.session.destroy(() => {}); } catch (e) {}
+            }
+            res.clearCookie('connect.sid', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+        }
+
+        res.json({
+            success: true,
+            message: 'Session revoked successfully'
+        });
+    } catch (error) {
+        console.error('Revoke session error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.revokeOtherSessions = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(500).json({ success: false, message: 'Database connection unavailable' });
+        }
+
+        const filter = {
+            userId: req.user._id,
+            revokedAt: null
+        };
+
+        if (req.sessionId) {
+            filter._id = { $ne: req.sessionId };
+        }
+
+        const result = await AuthSession.updateMany(
+            filter,
+            { revokedAt: new Date() }
+        );
+
+        res.json({
+            success: true,
+            message: 'All other sessions revoked successfully',
+            revokedCount: result.modifiedCount
+        });
+    } catch (error) {
+        console.error('Revoke other sessions error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -209,10 +433,17 @@ exports.resetPassword = async (req, res) => {
         // Set new password
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(req.body.password, salt);
+        user.passwordChangedAt = new Date();
 
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
         await user.save();
+
+        // Invalidate all existing sessions on password reset for security
+        await AuthSession.updateMany(
+            { userId: user._id, revokedAt: null },
+            { revokedAt: new Date() }
+        );
 
         res.status(200).json({
             success: true,
@@ -250,6 +481,7 @@ exports.updateProfile = async (req, res) => {
                 provider: user.provider || 'email',
                 lastLogin: user.lastLogin,
                 loginCount: user.loginCount,
+                passwordChangedAt: user.passwordChangedAt,
                 totalTestsGenerated: user.totalTestsGenerated,
                 createdAt: user.createdAt
             }
@@ -285,7 +517,14 @@ exports.changePassword = async (req, res) => {
         }
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
+        user.passwordChangedAt = new Date();
         await user.save();
+
+        // Invalidate all other active sessions upon password change for security
+        const filter = { userId: user._id, revokedAt: null };
+        if (req.sessionId) filter._id = { $ne: req.sessionId };
+        await AuthSession.updateMany(filter, { revokedAt: new Date() });
+
         res.json({ success: true, message: 'Password updated successfully' });
     } catch (error) {
         console.error('Change password error:', error);

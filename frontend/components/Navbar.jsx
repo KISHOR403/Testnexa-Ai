@@ -19,7 +19,7 @@ const NAV_SECTIONS = [
 ];
 
 const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, isSigningOut } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [activeSubMenu, setActiveSubMenu] = useState(null);
@@ -267,11 +267,30 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                                 <ChevronRight size={13} className="action-arrow" />
                                             </button>
 
-                                            <button className="dropdown-action logout-action" onClick={logout}>
+                                            <button 
+                                                className="dropdown-action logout-action" 
+                                                onClick={async () => {
+                                                    setIsDropdownOpen(false);
+                                                    await logout();
+                                                }}
+                                                disabled={isSigningOut}
+                                                style={{ opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
+                                            >
                                                 <div className="action-icon-wrap logout-icon-wrap">
-                                                    <LogOut size={14} />
+                                                    {isSigningOut ? (
+                                                        <div style={{
+                                                            width: '12px',
+                                                            height: '12px',
+                                                            border: '2px solid rgba(239, 68, 68, 0.2)',
+                                                            borderTopColor: '#EF4444',
+                                                            borderRadius: '50%',
+                                                            animation: 'spin 0.8s linear infinite'
+                                                        }} />
+                                                    ) : (
+                                                        <LogOut size={14} />
+                                                    )}
                                                 </div>
-                                                <span>Log out</span>
+                                                <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                                             </button>
                                         </>
                                     ) : activeSubMenu === 'help' ? (
@@ -414,14 +433,26 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                                     <button
                                         type="button"
                                         className="floating-mobile-secondary-btn"
-                                        onClick={() => {
+                                        onClick={async () => {
                                             setIsMobileNavOpen(false);
-                                            logout();
+                                            await logout();
                                         }}
-                                        style={{ color: '#ef4444' }}
+                                        disabled={isSigningOut}
+                                        style={{ color: '#ef4444', opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
                                     >
-                                        <LogOut size={15} />
-                                        <span>Log Out</span>
+                                        {isSigningOut ? (
+                                            <div style={{
+                                                width: '14px',
+                                                height: '14px',
+                                                border: '2px solid rgba(239, 68, 68, 0.2)',
+                                                borderTopColor: '#EF4444',
+                                                borderRadius: '50%',
+                                                animation: 'spin 0.8s linear infinite'
+                                            }} />
+                                        ) : (
+                                            <LogOut size={15} />
+                                        )}
+                                        <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                                     </button>
                                 </div>
                             )}

@@ -1,7 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const authController = require('../controllers/auth.controller');
-const { protect } = require('../middleware/auth.middleware');
+const { protect, optionalProtect } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 // Google Auth Routes
@@ -9,7 +9,7 @@ router.get('/google', passport.authenticate('google', { scope: ['profile', 'emai
 
 router.get('/google/callback',
     (req, res, next) => {
-        passport.authenticate('google', (err, user, info) => {
+        passport.authenticate('google', async (err, user, info) => {
             if (err) {
                 console.error('Google auth error:', err);
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -19,13 +19,14 @@ router.get('/google/callback',
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
                 return res.redirect(`${frontendUrl}/login?error=authentication_failed`);
             }
-            req.logIn(user, (loginErr) => {
+            req.logIn(user, async (loginErr) => {
                 if (loginErr) {
                     console.error('Session login error:', loginErr);
                     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
                     return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(loginErr.message)}`);
                 }
-                const token = authController.generateToken(user._id);
+                const session = await authController.createAuthSession(user._id, req);
+                const token = authController.generateToken(user._id, session?._id);
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
                 res.redirect(`${frontendUrl}?token=${token}`);
             });
@@ -46,27 +47,23 @@ router.get('/github', passport.authenticate('github', { scope: ['user:email'] })
 
 router.get('/github/callback',
     passport.authenticate('github', { failureRedirect: '/login' }),
-    (req, res) => {
+    async (req, res) => {
         // Successful authentication
-        const token = authController.generateToken(req.user._id);
+        const session = await authController.createAuthSession(req.user._id, req);
+        const token = authController.generateToken(req.user._id, session?._id);
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         res.redirect(`${frontendUrl}?token=${token}`);
     }
 );
 
-// Logout Routes
-router.get('/logout', (req, res, next) => {
-    req.logout((err) => {
-        if (err) return next(err);
-        res.json({ success: true, message: 'Logged out successfully' });
-    });
-});
+// Real Logout Route (clears backend session, marks AuthSession as revoked, and clears cookie)
+router.post('/logout', optionalProtect, authController.logout);
+router.get('/logout', optionalProtect, authController.logout);
 
-router.post('/logout', (req, res) => {
-    // For JWT, the frontend just discards the token. 
-    // This endpoint is here to satisfy the requirement and can be used to blacklist tokens if needed.
-    res.json({ success: true, message: 'Logged out successfully' });
-});
+// Active Session Management Routes
+router.get('/sessions', protect, authController.listSessions);
+router.post('/sessions/revoke-others', protect, authController.revokeOtherSessions);
+router.post('/sessions/:sessionId/revoke', protect, authController.revokeSession);
 
 // Get Current User Route
 router.get('/me', protect, authController.getMe);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
@@ -15,15 +15,26 @@ export const AuthProvider = ({ children }) => {
     });
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('testnexa_token'));
     const [isLoading, setIsLoading] = useState(true);
+    const [isSigningOut, setIsSigningOut] = useState(false);
+    const [activeSessions, setActiveSessions] = useState([]);
     const [pendingAction, setPendingAction] = useState(null);
     const [guestGenerationsUsed, setGuestGenerationsUsed] = useState(() => {
         const stored = localStorage.getItem('testnexa_guest_count');
         return stored ? parseInt(stored, 10) : 0;
     });
 
+    const isSigningOutRef = useRef(false);
     const GUEST_LIMIT = 2;
 
-    const checkAuth = async () => {
+    const clearLocalAuthState = useCallback(() => {
+        localStorage.removeItem('testnexa_token');
+        localStorage.removeItem('testnexa_user');
+        setUser(null);
+        setIsAuthenticated(false);
+        setActiveSessions([]);
+    }, []);
+
+    const checkAuth = useCallback(async () => {
         const token = localStorage.getItem('testnexa_token');
         if (!token) {
             setIsLoading(false);
@@ -38,48 +49,139 @@ export const AuthProvider = ({ children }) => {
                 setUser(response.data.user);
                 setIsAuthenticated(true);
             } else {
-                // If backend says token is invalid
-                logout();
+                clearLocalAuthState();
             }
         } catch (error) {
-            console.error('Check auth error:', error);
-            logout();
+            console.warn('Check auth error (session invalid or expired):', error.response?.status || error.message);
+            clearLocalAuthState();
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [clearLocalAuthState]);
 
+    // Centralized real logout function
+    const logout = useCallback(async () => {
+        if (isSigningOutRef.current) return;
+        isSigningOutRef.current = true;
+        setIsSigningOut(true);
+
+        const token = localStorage.getItem('testnexa_token');
+
+        try {
+            // Call backend logout endpoint with credentials & Authorization header
+            await axios.post(`${API_URL}/auth/logout`, {}, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                withCredentials: true,
+                timeout: 6000
+            });
+        } catch (error) {
+            console.warn('Backend logout request note:', error.response?.data?.message || error.message);
+        } finally {
+            // Clear local auth storage and state
+            clearLocalAuthState();
+
+            // Broadcast multi-tab logout notification
+            try {
+                if (window.BroadcastChannel) {
+                    const bc = new BroadcastChannel('testnexa_auth');
+                    bc.postMessage({ type: 'LOGOUT' });
+                    bc.close();
+                }
+                localStorage.setItem('testnexa_logout_event', String(Date.now()));
+            } catch (e) {
+                // Ignore cross-tab broadcast errors
+            }
+
+            setIsSigningOut(false);
+            isSigningOutRef.current = false;
+
+            // Redirect cleanly to login page
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+    }, [clearLocalAuthState]);
+
+    // Setup multi-tab sync and Axios response interceptor for 401/SESSION_REVOKED
+    useEffect(() => {
+        // 1. Cross-tab BroadcastChannel listener
+        let bc;
+        try {
+            if (window.BroadcastChannel) {
+                bc = new BroadcastChannel('testnexa_auth');
+                bc.onmessage = (event) => {
+                    if (event.data?.type === 'LOGOUT') {
+                        clearLocalAuthState();
+                        if (window.location.pathname.startsWith('/app')) {
+                            window.location.href = '/login';
+                        }
+                    }
+                };
+            }
+        } catch (e) {
+            // Ignore
+        }
+
+        // 2. Storage event listener (fallback for multi-tab logout)
+        const handleStorageChange = (e) => {
+            if (e.key === 'testnexa_logout_event' || (e.key === 'testnexa_token' && !e.newValue)) {
+                clearLocalAuthState();
+                if (window.location.pathname.startsWith('/app')) {
+                    window.location.href = '/login';
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+
+        // 3. Axios response interceptor for automatic handling of revoked sessions
+        const interceptorId = axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response?.status === 401) {
+                    const code = error.response.data?.code;
+                    if (code === 'SESSION_REVOKED' || error.response.data?.message?.includes('revoked')) {
+                        clearLocalAuthState();
+                        if (window.location.pathname.startsWith('/app')) {
+                            window.location.href = '/login';
+                        }
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            if (bc) bc.close();
+            window.removeEventListener('storage', handleStorageChange);
+            axios.interceptors.response.eject(interceptorId);
+        };
+    }, [clearLocalAuthState]);
+
+    // Check auth on mount / handle token in URL from OAuth
     useEffect(() => {
         const handleUrlToken = async () => {
             const params = new URLSearchParams(window.location.search);
             const token = params.get('token');
 
             if (token) {
-                // Save token to localStorage
                 localStorage.setItem('testnexa_token', token);
-
-                // Remove token from URL for clean history
                 const url = new URL(window.location);
                 url.searchParams.delete('token');
                 window.history.replaceState({}, document.title, url.pathname);
-
-                // Now check auth with this new token
                 await checkAuth();
             } else {
-                // Normal check
                 await checkAuth();
             }
         };
 
         handleUrlToken();
-    }, []);
+    }, [checkAuth]);
 
     // Execute pending action after successful login
     useEffect(() => {
         if (isAuthenticated && pendingAction) {
             const action = pendingAction;
             setPendingAction(null);
-            // Execute the pending action
             if (typeof action === 'function') {
                 action();
             }
@@ -132,25 +234,69 @@ export const AuthProvider = ({ children }) => {
         window.location.href = `${API_URL}/auth/github`;
     };
 
-    const logout = async () => {
+    // Active session management APIs
+    const fetchSessions = useCallback(async () => {
+        const token = localStorage.getItem('testnexa_token');
+        if (!token) return [];
         try {
-            // Call backend logout
-            await axios.post(`${API_URL}/auth/logout`);
-
-            // Clear local state
-            localStorage.removeItem('testnexa_token');
-            localStorage.removeItem('testnexa_user');
-            setUser(null);
-            setIsAuthenticated(false);
+            const response = await axios.get(`${API_URL}/auth/sessions`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data.success) {
+                setActiveSessions(response.data.sessions || []);
+                return response.data.sessions || [];
+            }
         } catch (error) {
-            console.error('Logout failed:', error);
-            // Still clear local state on error
-            localStorage.removeItem('testnexa_token');
-            localStorage.removeItem('testnexa_user');
-            setUser(null);
-            setIsAuthenticated(false);
+            console.error('Failed to fetch active sessions:', error);
         }
-    };
+        return [];
+    }, []);
+
+    const revokeSession = useCallback(async (sessionId) => {
+        const token = localStorage.getItem('testnexa_token');
+        if (!token) return { success: false, message: 'Not authenticated' };
+        try {
+            const response = await axios.post(`${API_URL}/auth/sessions/${sessionId}/revoke`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data.success) {
+                // If revoking current session, trigger logout
+                const targetSession = activeSessions.find(s => s.id === sessionId);
+                if (targetSession?.isCurrent) {
+                    await logout();
+                } else {
+                    await fetchSessions();
+                }
+                return { success: true };
+            }
+            return { success: false, message: response.data.message || 'Failed to revoke session' };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Failed to revoke session'
+            };
+        }
+    }, [activeSessions, fetchSessions, logout]);
+
+    const revokeOtherSessions = useCallback(async () => {
+        const token = localStorage.getItem('testnexa_token');
+        if (!token) return { success: false, message: 'Not authenticated' };
+        try {
+            const response = await axios.post(`${API_URL}/auth/sessions/revoke-others`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data.success) {
+                await fetchSessions();
+                return { success: true };
+            }
+            return { success: false, message: response.data.message || 'Failed to revoke other sessions' };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Failed to revoke other sessions'
+            };
+        }
+    }, [fetchSessions]);
 
     const forgotPassword = async (email) => {
         try {
@@ -232,11 +378,16 @@ export const AuthProvider = ({ children }) => {
             setUser,
             isAuthenticated,
             isLoading,
+            isSigningOut,
             login,
             register,
             loginWithGoogle,
             loginWithGitHub,
             logout,
+            activeSessions,
+            fetchSessions,
+            revokeSession,
+            revokeOtherSessions,
             forgotPassword,
             resetPassword,
             updateProfile,
