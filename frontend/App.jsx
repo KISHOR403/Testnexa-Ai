@@ -34,8 +34,8 @@ import AppSettingsPage from './pages/app/AppSettingsPage';
 const SuiteShareRedirect = () => {
   const { id } = useParams();
   const location = useLocation();
-  const targetId = (!id || id === 'pwd-reset-req-001') ? 'password-reset' : id;
-  return <Navigate to={`/app/test-suites/${targetId}${location.search}`} replace />;
+  const targetPath = id ? `/app/test-suites/${id}${location.search}` : '/app/test-suites';
+  return <Navigate to={targetPath} replace />;
 };
 
 function App() {
@@ -83,7 +83,7 @@ function App() {
 
         {/* ─── DIRECT REDIRECTS FOR CONVENIENCE & SHARE LINKS ─── */}
         <Route path="/suites/:id" element={<SuiteShareRedirect />} />
-        <Route path="/suites" element={<Navigate to="/app/test-suites/password-reset" replace />} />
+        <Route path="/suites" element={<Navigate to="/app/test-suites" replace />} />
         <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
         <Route path="/history" element={<Navigate to="/app/history" replace />} />
         <Route path="/settings" element={<Navigate to="/app/settings" replace />} />

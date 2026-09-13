@@ -1,15 +1,43 @@
 import React from 'react';
-import { AlertTriangle, Shield, CheckCircle2, ShieldAlert, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Shield, CheckCircle2, ShieldAlert, ArrowRight, Loader2 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-
-const RISK_ITEMS = [
-    { level: 'Critical', title: 'Expired Token Invalidation Gap', category: 'Security', linkedTc: 'TC-004', desc: 'Failure to enforce server-side expiration allows indefinite password reset window.' },
-    { level: 'Critical', title: 'Token Replay / Nonce Reuse', category: 'Security', linkedTc: 'TC-005', desc: 'Tokens not invalidated immediately after first successful redemption expose replay vulnerabilities.' },
-    { level: 'Medium', title: 'Email Address Enumeration Timing', category: 'Privacy', linkedTc: 'TC-001', desc: 'Different response times for existing vs non-existing emails expose user directory.' },
-    { level: 'High', title: 'Rate Limiting Burst Flooding', category: 'API Security', linkedTc: 'TC-006', desc: 'Unrestricted endpoint triggers mail server spamming and resource exhaustion.' }
-];
+import { useHistory } from '../../hooks/useHistory';
 
 const RisksPage = () => {
+    const { history, isLoading } = useHistory();
+
+    // Extract real risk vectors from the user's generated test suites
+    const riskItems = [];
+    const userSuites = history.filter(item => item.suite);
+
+    userSuites.forEach((item) => {
+        const suite = item.suite;
+        const allCases = [
+            ...(suite.negative || []),
+            ...(suite.edge || []),
+            ...(suite.nonFunctional || []),
+            ...(suite.functional || [])
+        ];
+
+        allCases.forEach((tc) => {
+            const isHighRisk = tc.priority === 'High' ||
+                tc.severity === 'Critical' ||
+                tc.type === 'Security' ||
+                tc.type === 'Edge Case';
+
+            if (isHighRisk) {
+                riskItems.push({
+                    level: tc.severity === 'Critical' ? 'Critical' : tc.priority === 'High' ? 'High' : 'Medium',
+                    title: tc.title,
+                    category: tc.type || 'Security',
+                    linkedTc: tc.id || 'TC',
+                    desc: tc.scenario || tc.expectedResult || tc.title,
+                    suiteId: item.id || item.sessionId
+                });
+            }
+        });
+    });
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -27,53 +55,109 @@ const RisksPage = () => {
                 </NavLink>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
-                {RISK_ITEMS.map((item, idx) => (
-                    <div
-                        key={idx}
-                        style={{
-                            background: '#0A0A0A',
-                            border: '1px solid #1C1C1C',
-                            borderRadius: '12px',
-                            padding: '1.25rem',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.85rem'
-                        }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{
-                                fontSize: '0.72rem',
-                                padding: '0.15rem 0.5rem',
-                                borderRadius: '4px',
-                                background: item.level === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
-                                color: item.level === 'Critical' ? '#ef4444' : '#f59e0b',
-                                fontWeight: '700',
-                                border: item.level === 'Critical' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(245,158,11,0.25)'
-                            }}>
-                                {item.level} Risk
-                            </span>
-                            <span style={{ fontSize: '0.75rem', color: '#737373' }}>{item.category}</span>
-                        </div>
-
-                        <div>
-                            <h3 style={{ fontSize: '1.05rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.4rem' }}>
-                                {item.title}
-                            </h3>
-                            <p style={{ fontSize: '0.82rem', color: '#A3A3A3', margin: 0, lineHeight: 1.5 }}>
-                                {item.desc}
-                            </p>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #161616', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
-                            <span style={{ color: '#00D9C0', fontWeight: '600' }}>Linked Test: {item.linkedTc}</span>
-                            <NavLink to="/app/test-suites/password-reset" style={{ color: '#737373', textDecoration: 'none' }}>
-                                Inspect Test →
-                            </NavLink>
-                        </div>
+            {isLoading && riskItems.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 1rem', gap: '0.75rem', color: '#A3A3A3' }}>
+                    <Loader2 size={24} className="animate-spin" style={{ color: '#00D9C0' }} />
+                    <span>Loading risk analysis...</span>
+                </div>
+            ) : riskItems.length === 0 ? (
+                /* Empty state when user has no risk items */
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    padding: '4.5rem 2rem',
+                    background: '#0A0A0A',
+                    borderRadius: '14px',
+                    border: '1px solid #1C1C1C',
+                    gap: '1.25rem'
+                }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '14px',
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#F59E0B'
+                    }}>
+                        <ShieldAlert size={28} />
                     </div>
-                ))}
-            </div>
+
+                    <div style={{ maxWidth: '440px' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                            No risk vectors detected yet
+                        </h2>
+                        <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
+                            Run security and edge case audits on your requirements in the AI Workspace to automatically identify potential risk vectors.
+                        </p>
+                    </div>
+
+                    <NavLink
+                        to="/app/workspace"
+                        className="app-workspace-session-btn primary"
+                        style={{ padding: '0.65rem 1.25rem', textDecoration: 'none' }}
+                    >
+                        <span>+ Run Security Audit</span>
+                    </NavLink>
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
+                    {riskItems.map((item, idx) => (
+                        <div
+                            key={idx}
+                            style={{
+                                background: '#0A0A0A',
+                                border: '1px solid #1C1C1C',
+                                borderRadius: '12px',
+                                padding: '1.25rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.85rem'
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{
+                                    fontSize: '0.72rem',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '4px',
+                                    background: item.level === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
+                                    color: item.level === 'Critical' ? '#ef4444' : '#f59e0b',
+                                    fontWeight: '700',
+                                    border: item.level === 'Critical' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(245,158,11,0.25)'
+                                }}>
+                                    {item.level} Risk
+                                </span>
+                                <span style={{ fontSize: '0.75rem', color: '#737373' }}>{item.category}</span>
+                            </div>
+
+                            <div>
+                                <h3 style={{ fontSize: '1.05rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.4rem' }}>
+                                    {item.title}
+                                </h3>
+                                <p style={{ fontSize: '0.82rem', color: '#A3A3A3', margin: 0, lineHeight: 1.5 }}>
+                                    {item.desc}
+                                </p>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #161616', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
+                                <span style={{ color: '#00D9C0', fontWeight: '600' }}>Linked Test: {item.linkedTc}</span>
+                                <NavLink
+                                    to={`/app/test-suites/${item.suiteId}`}
+                                    style={{ color: '#00D9C0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem' }}
+                                >
+                                    <span>Inspect Suite</span>
+                                    <ArrowRight size={12} />
+                                </NavLink>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

@@ -115,3 +115,57 @@ export const sessionService = {
         return handleResponse(response);
     },
 };
+
+export const testSuiteService = {
+    list: async (params) => {
+        const queryParams = new URLSearchParams();
+        if (params?.search) queryParams.set('search', params.search);
+        if (params?.status) queryParams.set('status', params.status);
+        if (params?.context) queryParams.set('context', params.context);
+        if (params?.sort) queryParams.set('sort', params.sort);
+        if (params?.page) queryParams.set('page', params.page);
+        if (params?.limit) queryParams.set('limit', params.limit);
+
+        const response = await fetch(`${API_BASE_URL}/test-suites?${queryParams}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+    get: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+    create: async (data) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(data),
+        });
+        return handleResponse(response);
+    },
+    update: async (id, patch) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(patch),
+        });
+        return handleResponse(response);
+    },
+    delete: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    }
+};
+
