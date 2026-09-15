@@ -95,7 +95,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                         displayName: sbUser.display_name || sbUser.name,
                         avatar: sbUser.avatar,
                         provider: 'google',
-                        isVerified: true
+                        isVerified: true,
+                        isNewUser
                     };
                 } catch (sbErr) {
                     logger.error('Supabase Google fast upsert error:', sbErr);
@@ -117,10 +118,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                             email,
                             avatar,
                             provider: 'google',
-                            isVerified: true
+                            isVerified: true,
+                            welcomeEmailSent: false
                         });
                     }
                     authenticatedUser = mongoUser;
+                    authenticatedUser.isNewUser = isNewUser;
                 } catch (mErr) {
                     logger.warn('Mongo Google auth fallback error:', mErr.message);
                 }
@@ -134,18 +137,22 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                     displayName,
                     email,
                     avatar,
-                    isTemporary: true
+                    isTemporary: true,
+                    isNewUser
                 };
             }
+
+            authenticatedUser.isNewUser = isNewUser;
 
             // Return user immediately for fast redirect
             done(null, authenticatedUser);
 
             // 3. Background tasks (Non-blocking): MongoDB dual-sync & welcome email
             setImmediate(async () => {
+                let mongoUser = null;
                 try {
                     if (mongoose.connection.readyState === 1) {
-                        let mongoUser = await User.findOne({
+                        mongoUser = await User.findOne({
                             $or: [{ googleId: profile.id }, { email }]
                         });
                         const now = new Date();
@@ -158,7 +165,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                             await mongoUser.save();
                         } else {
                             isNewUser = true;
-                            await User.create({
+                            mongoUser = await User.create({
                                 googleId: profile.id,
                                 name: displayName,
                                 displayName,
@@ -167,16 +174,28 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                                 provider: 'google',
                                 isVerified: true,
                                 lastLogin: now,
-                                loginCount: 1
+                                loginCount: 1,
+                                welcomeEmailSent: false
                             });
                         }
                     }
-
-                    if (isNewUser && email) {
-                        sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
-                    }
                 } catch (bgErr) {
                     logger.warn('Background MongoDB sync note:', bgErr.message);
+                }
+
+                // Check if welcome email should be sent (isolated from MongoDB sync)
+                const shouldSendWelcome = isNewUser || (mongoUser && !mongoUser.welcomeEmailSent && (mongoUser.loginCount || 1) <= 2);
+                if (shouldSendWelcome && email) {
+                    try {
+                        logger.info(`[OAuth Google] Dispatching welcome email to ${email}`);
+                        const res = await sendWelcomeEmail(displayName, email);
+                        if (res && res.success && mongoUser) {
+                            mongoUser.welcomeEmailSent = true;
+                            await mongoUser.save().catch(() => {});
+                        }
+                    } catch (mailErr) {
+                        logger.warn('[OAuth Google] Welcome email error:', mailErr?.message || mailErr);
+                    }
                 }
             });
         } catch (err) {
@@ -268,14 +287,17 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                 };
             }
 
+            authenticatedUser.isNewUser = isNewUser;
+
             // Return user immediately for fast redirect
             done(null, authenticatedUser);
 
             // 3. Background tasks (Non-blocking): MongoDB dual-sync
             setImmediate(async () => {
+                let mongoUser = null;
                 try {
                     if (mongoose.connection.readyState === 1) {
-                        let mongoUser = await User.findOne({
+                        mongoUser = await User.findOne({
                             $or: [{ githubId: profile.id }, { email }]
                         });
                         const now = new Date();
@@ -288,7 +310,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                             await mongoUser.save();
                         } else {
                             isNewUser = true;
-                            await User.create({
+                            mongoUser = await User.create({
                                 githubId: profile.id,
                                 name: displayName,
                                 displayName,
@@ -297,16 +319,28 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                                 provider: 'github',
                                 isVerified: true,
                                 lastLogin: now,
-                                loginCount: 1
+                                loginCount: 1,
+                                welcomeEmailSent: false
                             });
                         }
                     }
-
-                    if (isNewUser && email) {
-                        sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
-                    }
                 } catch (bgErr) {
                     logger.warn('Background MongoDB GitHub sync note:', bgErr.message);
+                }
+
+                // Check if welcome email should be sent (isolated from MongoDB sync)
+                const shouldSendWelcome = isNewUser || (mongoUser && !mongoUser.welcomeEmailSent && (mongoUser.loginCount || 1) <= 2);
+                if (shouldSendWelcome && email) {
+                    try {
+                        logger.info(`[OAuth GitHub] Dispatching welcome email to ${email}`);
+                        const res = await sendWelcomeEmail(displayName, email);
+                        if (res && res.success && mongoUser) {
+                            mongoUser.welcomeEmailSent = true;
+                            await mongoUser.save().catch(() => {});
+                        }
+                    } catch (mailErr) {
+                        logger.warn('[OAuth GitHub] Welcome email error:', mailErr?.message || mailErr);
+                    }
                 }
             });
         } catch (err) {

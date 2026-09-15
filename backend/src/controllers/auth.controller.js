@@ -127,7 +127,8 @@ exports.register = async (req, res) => {
                     isVerified: false,
                     lastLogin: now,
                     loginCount: 1,
-                    passwordChangedAt: now
+                    passwordChangedAt: now,
+                    welcomeEmailSent: true
                 };
                 if (createdUserId && mongoose.Types.ObjectId.isValid(createdUserId)) {
                     mongoData._id = createdUserId;
