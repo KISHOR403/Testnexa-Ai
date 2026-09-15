@@ -162,7 +162,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                                 lastLogin: now,
                                 loginCount: 1
                             });
+                            if (email) {
+                                sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
+                            }
                         }
+                    } else if (email) {
+                        sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
                     }
                 } catch (bgErr) {
                     logger.warn('Background MongoDB sync note:', bgErr.message);
@@ -281,7 +286,12 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                                 lastLogin: now,
                                 loginCount: 1
                             });
+                            if (email) {
+                                sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
+                            }
                         }
+                    } else if (email) {
+                        sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
                     }
                 } catch (bgErr) {
                     logger.warn('Background MongoDB GitHub sync note:', bgErr.message);

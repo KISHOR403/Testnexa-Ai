@@ -4,27 +4,34 @@ const nodemailer = require('nodemailer');
  * Creates a Nodemailer transporter from environment variables.
  */
 const createTransporter = () => {
-    // Clean spaces from SMTP_PASS (common in Gmail App Passwords)
+    const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '';
     
+    // For Gmail accounts, using service: 'gmail' is much more reliable and standard
+    if (user && user.endsWith('@gmail.com')) {
+        return nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user, pass },
+            connectionTimeout: 10000,
+            greetingTimeout: 5000,
+            socketTimeout: 10000
+        });
+    }
+
     return nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: pass
-        },
-        // TLS options to ensure compatibility with modern Node.js and Gmail
-        tls: {
-            rejectUnauthorized: false
-        }
+        secure: parseInt(process.env.SMTP_PORT) === 465,
+        auth: { user, pass },
+        connectionTimeout: 10000,
+        greetingTimeout: 5000,
+        socketTimeout: 10000,
+        tls: { rejectUnauthorized: false }
     });
 };
 
 /**
  * Sends a welcome email to a newly registered user.
- * Now returns the result so it can be awaited.
  *
  * @param {string} name - The user's display name
  * @param {string} email - The user's email address
@@ -37,10 +44,6 @@ const sendWelcomeEmail = async (name, email) => {
         }
 
         const transporter = createTransporter();
-        
-        // Verify connection before sending
-        await transporter.verify();
-
         const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
 
         const mailOptions = {
@@ -48,22 +51,22 @@ const sendWelcomeEmail = async (name, email) => {
             to: email,
             subject: 'Welcome to Testnexa AI! 🚀',
             html: `
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f1a; border-radius: 12px; overflow: hidden;">
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f1a; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
                     <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7); padding: 40px 30px; text-align: center;">
                         <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Testnexa AI</h1>
                         <p style="color: rgba(255,255,255,0.85); margin: 10px 0 0; font-size: 16px;">AI-Powered Test Case Generation</p>
                     </div>
-                    <div style="padding: 30px; color: #e2e8f0;">
+                    <div style="padding: 30px; color: #e2e8f0; background: #13141f;">
                         <p style="font-size: 18px; margin-top: 0;">Hi <strong>${name || 'there'}</strong>,</p>
                         <p style="font-size: 15px; line-height: 1.7; color: #cbd5e1;">
                             Thanks for signing up! You now have access to our AI-powered platform for generating comprehensive test cases from your requirements.
                         </p>
                         <div style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid #6366f1; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-                            <p style="margin: 0; font-size: 14px; color: #a5b4fc;">Here's what you can do:</p>
-                            <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.8; padding-left: 20px;">
-                                <li>Generate test cases from natural language requirements</li>
-                                <li>Choose from multiple QA personas for varied coverage</li>
-                                <li>Export results and integrate into your workflow</li>
+                            <p style="margin: 0; font-size: 14px; color: #a5b4fc; font-weight: 600;">Here is what you can do:</p>
+                            <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.8; padding-left: 20px; margin: 8px 0 0;">
+                                <li>Generate complete test cases from requirements</li>
+                                <li>Select test depth, context (Web, Mobile, API), and QA focus</li>
+                                <li>Export directly into Jira, Markdown, or Excel</li>
                             </ul>
                         </div>
                         <p style="font-size: 14px; color: #94a3b8; margin-bottom: 0;">
@@ -71,7 +74,7 @@ const sendWelcomeEmail = async (name, email) => {
                             <strong style="color: #a5b4fc;">The Testnexa AI Team</strong>
                         </p>
                     </div>
-                    <div style="background: rgba(255,255,255,0.05); padding: 15px 30px; text-align: center;">
+                    <div style="background: #0a0a12; padding: 15px 30px; text-align: center;">
                         <p style="margin: 0; font-size: 12px; color: #64748b;">
                             © ${new Date().getFullYear()} Testnexa AI. All rights reserved.
                         </p>
@@ -110,11 +113,11 @@ const sendPasswordResetEmail = async (email, resetUrl) => {
             to: email,
             subject: 'Password Reset Request 🔐',
             html: `
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f1a; border-radius: 12px; overflow: hidden;">
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f1a; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
                     <div style="background: linear-gradient(135deg, #0f172a, #1e293b); padding: 40px 30px; text-align: center; border-bottom: 2px solid #00d4c1;">
                         <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700;">Password Reset</h1>
                     </div>
-                    <div style="padding: 30px; color: #e2e8f0;">
+                    <div style="padding: 30px; color: #e2e8f0; background: #13141f;">
                          <p style="font-size: 16px; margin-top: 0; line-height: 1.6;">Hello,</p>
                          <p style="font-size: 15px; line-height: 1.7; color: #cbd5e1;">
                              You are receiving this email because you (or someone else) have requested the reset of a password for your account.
@@ -141,6 +144,6 @@ const sendPasswordResetEmail = async (email, resetUrl) => {
         console.error(`❌ Failed to send password reset email to ${email}:`, error.message);
         return { success: false, message: 'Email could not be sent.' };
     }
-}
+};
 
 module.exports = { sendWelcomeEmail, sendPasswordResetEmail };
