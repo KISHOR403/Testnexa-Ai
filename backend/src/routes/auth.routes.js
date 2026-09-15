@@ -25,8 +25,9 @@ router.get('/google/callback',
                     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
                     return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(loginErr.message)}`);
                 }
-                const session = await authController.createAuthSession(user._id, req);
-                const token = authController.generateToken(user._id, session?._id);
+                const userId = user._id || user.id;
+                const session = await authController.createAuthSession(userId, req);
+                const token = authController.generateToken(userId, session?._id);
                 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
                 res.redirect(`${frontendUrl}?token=${token}`);
             });
@@ -49,8 +50,9 @@ router.get('/github/callback',
     passport.authenticate('github', { failureRedirect: '/login' }),
     async (req, res) => {
         // Successful authentication
-        const session = await authController.createAuthSession(req.user._id, req);
-        const token = authController.generateToken(req.user._id, session?._id);
+        const userId = req.user._id || req.user.id;
+        const session = await authController.createAuthSession(userId, req);
+        const token = authController.generateToken(userId, session?._id);
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         res.redirect(`${frontendUrl}?token=${token}`);
     }

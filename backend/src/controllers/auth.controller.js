@@ -64,45 +64,19 @@ exports.register = async (req, res) => {
     try {
         checkConnection();
         const { name, email, password } = req.body;
+        const now = new Date();
 
-        // Supabase registration path
+        // 1. Check if user exists in either database
+        let userExists = false;
         if (supabaseService.isAvailable) {
-            const userExists = await supabaseService.findUserByEmail(email);
-            if (userExists) {
-                return res.status(400).json({ success: false, message: 'User already exists' });
-            }
-
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-
-            const user = await supabaseService.createUser({
-                name,
-                displayName: name,
-                email,
-                password: hashedPassword,
-                provider: 'email',
-                isVerified: false
-            });
-
-            const token = generateToken(user.id);
-            await sendWelcomeEmail(name, email).catch(e => console.error('Welcome email error:', e));
-
-            return res.status(201).json({
-                success: true,
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    avatar: user.avatar,
-                    provider: user.provider,
-                    createdAt: user.created_at
-                },
-                token
-            });
+            const sbCheck = await supabaseService.findUserByEmail(email);
+            if (sbCheck) userExists = true;
+        }
+        if (!userExists && mongoose.connection.readyState === 1) {
+            const mongoCheck = await User.findOne({ email });
+            if (mongoCheck) userExists = true;
         }
 
-        // MongoDB registration path
-        const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ success: false, message: 'User already exists' });
         }
@@ -111,41 +85,85 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const now = new Date();
-        const user = await User.create({
-            name,
-            displayName: name,
-            email,
-            password: hashedPassword,
-            provider: 'email',
-            isVerified: false,
-            lastLogin: now,
-            loginCount: 1,
-            passwordChangedAt: now
-        });
+        let createdUserId = null;
+        let createdUser = null;
 
-        if (user) {
-            // Create active auth session
-            const session = await createAuthSession(user._id, req);
-            const token = generateToken(user._id, session?._id);
-
-            // Send welcome email to new user
-            await sendWelcomeEmail(name, email).catch(e => console.error('Welcome email error:', e));
-
-            res.status(201).json({
-                success: true,
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    avatar: user.avatar,
-                    provider: user.provider,
-                    passwordChangedAt: user.passwordChangedAt,
-                    createdAt: user.createdAt
-                },
-                token
-            });
+        // 2. Save to Supabase (if available)
+        if (supabaseService.isAvailable) {
+            try {
+                const sbUser = await supabaseService.createUser({
+                    name,
+                    displayName: name,
+                    email,
+                    password: hashedPassword,
+                    provider: 'email',
+                    isVerified: false
+                });
+                createdUserId = sbUser.id;
+                createdUser = {
+                    id: sbUser.id,
+                    _id: sbUser.id,
+                    name: sbUser.name,
+                    email: sbUser.email,
+                    avatar: sbUser.avatar,
+                    provider: sbUser.provider,
+                    createdAt: sbUser.created_at
+                };
+            } catch (sbErr) {
+                logger.error('Supabase register error:', sbErr);
+            }
         }
+
+        // 3. Also Save to MongoDB (if connected)
+        if (mongoose.connection.readyState === 1) {
+            try {
+                const mongoData = {
+                    name,
+                    displayName: name,
+                    email,
+                    password: hashedPassword,
+                    provider: 'email',
+                    isVerified: false,
+                    lastLogin: now,
+                    loginCount: 1,
+                    passwordChangedAt: now
+                };
+                if (createdUserId) {
+                    mongoData._id = createdUserId;
+                }
+                const mUser = await User.create(mongoData);
+                if (!createdUser) {
+                    createdUserId = mUser._id;
+                    createdUser = {
+                        id: mUser._id,
+                        _id: mUser._id,
+                        name: mUser.name,
+                        email: mUser.email,
+                        avatar: mUser.avatar,
+                        provider: mUser.provider,
+                        createdAt: mUser.createdAt
+                    };
+                }
+            } catch (mongoErr) {
+                logger.warn('MongoDB register sync error:', mongoErr.message);
+            }
+        }
+
+        if (!createdUser) {
+            return res.status(500).json({ success: false, message: 'Failed to create user account in database' });
+        }
+
+        // Active session & token
+        const session = await createAuthSession(createdUserId, req);
+        const token = generateToken(createdUserId, session?._id);
+
+        await sendWelcomeEmail(name, email).catch(e => console.error('Welcome email error:', e));
+
+        return res.status(201).json({
+            success: true,
+            user: createdUser,
+            token
+        });
     } catch (error) {
         console.error('Register error:', error);
         res.status(500).json({ success: false, message: error.message });
@@ -156,81 +174,101 @@ exports.login = async (req, res) => {
     try {
         checkConnection();
         const { email, password } = req.body;
+        const now = new Date();
 
-        // Supabase login path
+        let matchedUser = null;
+        let userSource = null;
+
+        // 1. Try Supabase lookup
         if (supabaseService.isAvailable) {
-            const user = await supabaseService.findUserByEmail(email);
-            if (!user || !user.password) {
-                return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            try {
+                const sbUser = await supabaseService.findUserByEmail(email);
+                if (sbUser && sbUser.password) {
+                    const isMatch = await bcrypt.compare(password, sbUser.password);
+                    if (isMatch) {
+                        matchedUser = sbUser;
+                        userSource = 'supabase';
+                    }
+                }
+            } catch (sbErr) {
+                logger.error('Supabase login check error:', sbErr);
             }
-
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                return res.status(401).json({ success: false, message: 'Invalid credentials' });
-            }
-
-            const now = new Date().toISOString();
-            const newCount = (user.login_count || 0) + 1;
-            await supabaseService.updateUser(user.id, {
-                last_login: now,
-                login_count: newCount
-            });
-
-            const token = generateToken(user.id);
-
-            return res.json({
-                success: true,
-                user: {
-                    id: user.id,
-                    name: user.name || user.display_name,
-                    email: user.email,
-                    avatar: user.avatar,
-                    provider: user.provider || 'email',
-                    lastLogin: now,
-                    loginCount: newCount,
-                    totalTestsGenerated: user.total_tests_generated || 0,
-                    createdAt: user.created_at
-                },
-                token
-            });
         }
 
-        // MongoDB login path
-        const user = await User.findOne({ email });
-        if (!user || !user.password) {
+        // 2. Try MongoDB lookup if not matched yet
+        if (!matchedUser && mongoose.connection.readyState === 1) {
+            try {
+                const mongoUser = await User.findOne({ email });
+                if (mongoUser && mongoUser.password) {
+                    const isMatch = await bcrypt.compare(password, mongoUser.password);
+                    if (isMatch) {
+                        matchedUser = mongoUser;
+                        userSource = 'mongodb';
+                    }
+                }
+            } catch (mongoErr) {
+                logger.warn('MongoDB login check error:', mongoErr.message);
+            }
+        }
+
+        if (!matchedUser) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        // 3. Update both databases
+        const userId = matchedUser.id || matchedUser._id;
+        const newLoginCount = (matchedUser.login_count || matchedUser.loginCount || 0) + 1;
+
+        if (supabaseService.isAvailable) {
+            if (userSource === 'supabase') {
+                await supabaseService.updateUser(userId, {
+                    last_login: now.toISOString(),
+                    login_count: newLoginCount
+                }).catch(() => {});
+            } else {
+                // User was in MongoDB only, sync them to Supabase!
+                await supabaseService.createUser({
+                    id: userId.toString(),
+                    email: matchedUser.email,
+                    password: matchedUser.password,
+                    name: matchedUser.name || matchedUser.displayName,
+                    displayName: matchedUser.displayName || matchedUser.name,
+                    avatar: matchedUser.avatar,
+                    provider: matchedUser.provider || 'email',
+                    isVerified: !!matchedUser.isVerified
+                }).catch(() => {});
+            }
         }
 
-        // Update login tracking data
-        user.lastLogin = new Date();
-        user.loginCount = (user.loginCount || 0) + 1;
-        await user.save();
+        if (mongoose.connection.readyState === 1) {
+            try {
+                await User.findOneAndUpdate(
+                    { email },
+                    { $set: { lastLogin: now }, $inc: { loginCount: 1 } }
+                );
+            } catch (mErr) {}
+        }
 
-        // Create active auth session
-        const session = await createAuthSession(user._id, req);
-        const token = generateToken(user._id, session?._id);
+        const session = await createAuthSession(userId, req);
+        const token = generateToken(userId, session?._id);
 
-        res.json({
+        return res.json({
             success: true,
             user: {
-                id: user._id,
-                name: user.name || user.displayName,
-                email: user.email,
-                avatar: user.avatar,
-                provider: user.provider || 'email',
-                lastLogin: user.lastLogin,
-                loginCount: user.loginCount,
-                passwordChangedAt: user.passwordChangedAt,
-                totalTestsGenerated: user.totalTestsGenerated,
-                createdAt: user.createdAt
+                id: userId,
+                _id: userId,
+                name: matchedUser.name || matchedUser.display_name || matchedUser.displayName,
+                email: matchedUser.email,
+                avatar: matchedUser.avatar,
+                provider: matchedUser.provider || 'email',
+                lastLogin: now,
+                loginCount: newLoginCount,
+                totalTestsGenerated: matchedUser.total_tests_generated || matchedUser.totalTestsGenerated || 0,
+                createdAt: matchedUser.created_at || matchedUser.createdAt
             },
             token
         });
+
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ success: false, message: error.message });
