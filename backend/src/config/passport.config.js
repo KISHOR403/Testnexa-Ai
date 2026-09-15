@@ -21,20 +21,14 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
     try {
-        // Handle guest/temporary users
         if (typeof id === 'string' && id.startsWith('guest_')) {
             return done(null, { _id: id, id, isTemporary: true });
         }
 
         let user = null;
 
-        // 1. Try MongoDB if connected
-        if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(id)) {
-            user = await User.findById(id);
-        }
-
-        // 2. Try Supabase if not found in Mongo or Mongo down
-        if (!user && supabaseService.isAvailable) {
+        // 1. Check Supabase first (fastest)
+        if (supabaseService.isAvailable) {
             const sbUser = await supabaseService.findUserById(id);
             if (sbUser) {
                 user = {
@@ -49,6 +43,11 @@ passport.deserializeUser(async (id, done) => {
                     createdAt: sbUser.created_at
                 };
             }
+        }
+
+        // 2. Check MongoDB if not found
+        if (!user && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(id)) {
+            user = await User.findById(id);
         }
 
         done(null, user);
@@ -70,35 +69,18 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
             const displayName = profile.displayName || (profile.name ? `${profile.name.givenName || ''} ${profile.name.familyName || ''}`.trim() : 'Google User');
             const avatar = profile.photos && profile.photos[0] ? profile.photos[0].value : null;
-            const now = new Date();
 
             let authenticatedUser = null;
-            let isNewUser = false;
 
-            // 1. Save / Update in Supabase
+            // 1. Single-shot fast upsert in Supabase
             if (supabaseService.isAvailable && email) {
                 try {
-                    let sbUser = await supabaseService.findUserByEmail(email);
-                    if (sbUser) {
-                        const newCount = (sbUser.login_count || 0) + 1;
-                        sbUser = await supabaseService.updateUser(sbUser.id, {
-                            last_login: now.toISOString(),
-                            login_count: newCount,
-                            avatar: avatar || sbUser.avatar,
-                            name: sbUser.name || displayName,
-                            provider: sbUser.provider || 'google'
-                        });
-                    } else {
-                        isNewUser = true;
-                        sbUser = await supabaseService.createUser({
-                            email,
-                            name: displayName,
-                            displayName,
-                            avatar,
-                            provider: 'google',
-                            isVerified: true
-                        });
-                    }
+                    const sbUser = await supabaseService.upsertOAuthUser({
+                        email,
+                        name: displayName,
+                        avatar,
+                        provider: 'google'
+                    });
 
                     authenticatedUser = {
                         _id: sbUser.id,
@@ -111,27 +93,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                         isVerified: true
                     };
                 } catch (sbErr) {
-                    logger.error('Supabase Google auth error:', sbErr);
+                    logger.error('Supabase Google fast upsert error:', sbErr);
                 }
             }
 
-            // 2. Also Save / Update in MongoDB (Dual-sync)
-            if (mongoose.connection.readyState === 1) {
+            // 2. MongoDB fast check if Supabase didn't run
+            if (!authenticatedUser && mongoose.connection.readyState === 1) {
                 try {
                     let mongoUser = await User.findOne({
                         $or: [{ googleId: profile.id }, { email }]
                     });
-
-                    if (mongoUser) {
-                        mongoUser.googleId = profile.id;
-                        mongoUser.lastLogin = now;
-                        mongoUser.loginCount = (mongoUser.loginCount || 0) + 1;
-                        if (!mongoUser.name) mongoUser.name = displayName;
-                        if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
-                        if (!mongoUser.provider) mongoUser.provider = 'google';
-                        await mongoUser.save();
-                    } else {
-                        isNewUser = true;
+                    if (!mongoUser) {
                         mongoUser = await User.create({
                             googleId: profile.id,
                             name: displayName,
@@ -139,21 +111,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                             email,
                             avatar,
                             provider: 'google',
-                            isVerified: true,
-                            lastLogin: now,
-                            loginCount: 1
+                            isVerified: true
                         });
                     }
-
-                    if (!authenticatedUser) {
-                        authenticatedUser = mongoUser;
-                    }
-                } catch (mongoErr) {
-                    logger.warn('MongoDB Google auth sync error:', mongoErr.message);
+                    authenticatedUser = mongoUser;
+                } catch (mErr) {
+                    logger.warn('Mongo Google auth fallback error:', mErr.message);
                 }
             }
 
-            // Fallback if neither DB connected
             if (!authenticatedUser) {
                 authenticatedUser = {
                     _id: 'guest_' + profile.id,
@@ -166,13 +132,44 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 };
             }
 
-            if (isNewUser && email) {
-                sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
-            }
-
+            // Return user immediately for fast redirect
             done(null, authenticatedUser);
+
+            // 3. Background tasks (Non-blocking): MongoDB dual-sync & welcome email
+            setImmediate(async () => {
+                try {
+                    if (mongoose.connection.readyState === 1) {
+                        let mongoUser = await User.findOne({
+                            $or: [{ googleId: profile.id }, { email }]
+                        });
+                        const now = new Date();
+                        if (mongoUser) {
+                            mongoUser.googleId = profile.id;
+                            mongoUser.lastLogin = now;
+                            mongoUser.loginCount = (mongoUser.loginCount || 0) + 1;
+                            if (!mongoUser.name) mongoUser.name = displayName;
+                            if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
+                            await mongoUser.save();
+                        } else {
+                            await User.create({
+                                googleId: profile.id,
+                                name: displayName,
+                                displayName,
+                                email,
+                                avatar,
+                                provider: 'google',
+                                isVerified: true,
+                                lastLogin: now,
+                                loginCount: 1
+                            });
+                        }
+                    }
+                } catch (bgErr) {
+                    logger.warn('Background MongoDB sync note:', bgErr.message);
+                }
+            });
         } catch (err) {
-            logger.error('Google strategy fatal error:', err);
+            logger.error('Google strategy error:', err);
             done(err, null);
         }
     }));
@@ -192,35 +189,18 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : `${profile.username}@github.com`;
             const displayName = profile.displayName || profile.username || 'GitHub User';
             const avatar = profile.photos && profile.photos[0] ? profile.photos[0].value : null;
-            const now = new Date();
 
             let authenticatedUser = null;
-            let isNewUser = false;
 
-            // 1. Save / Update in Supabase
+            // 1. Single-shot fast upsert in Supabase
             if (supabaseService.isAvailable && email) {
                 try {
-                    let sbUser = await supabaseService.findUserByEmail(email);
-                    if (sbUser) {
-                        const newCount = (sbUser.login_count || 0) + 1;
-                        sbUser = await supabaseService.updateUser(sbUser.id, {
-                            last_login: now.toISOString(),
-                            login_count: newCount,
-                            avatar: avatar || sbUser.avatar,
-                            name: sbUser.name || displayName,
-                            provider: sbUser.provider || 'github'
-                        });
-                    } else {
-                        isNewUser = true;
-                        sbUser = await supabaseService.createUser({
-                            email,
-                            name: displayName,
-                            displayName,
-                            avatar,
-                            provider: 'github',
-                            isVerified: true
-                        });
-                    }
+                    const sbUser = await supabaseService.upsertOAuthUser({
+                        email,
+                        name: displayName,
+                        avatar,
+                        provider: 'github'
+                    });
 
                     authenticatedUser = {
                         _id: sbUser.id,
@@ -233,27 +213,16 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                         isVerified: true
                     };
                 } catch (sbErr) {
-                    logger.error('Supabase GitHub auth error:', sbErr);
+                    logger.error('Supabase GitHub fast upsert error:', sbErr);
                 }
             }
 
-            // 2. Also Save / Update in MongoDB (Dual-sync)
-            if (mongoose.connection.readyState === 1) {
+            if (!authenticatedUser && mongoose.connection.readyState === 1) {
                 try {
                     let mongoUser = await User.findOne({
                         $or: [{ githubId: profile.id }, { email }]
                     });
-
-                    if (mongoUser) {
-                        mongoUser.githubId = profile.id;
-                        mongoUser.lastLogin = now;
-                        mongoUser.loginCount = (mongoUser.loginCount || 0) + 1;
-                        if (!mongoUser.name) mongoUser.name = displayName;
-                        if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
-                        if (!mongoUser.provider) mongoUser.provider = 'github';
-                        await mongoUser.save();
-                    } else {
-                        isNewUser = true;
+                    if (!mongoUser) {
                         mongoUser = await User.create({
                             githubId: profile.id,
                             name: displayName,
@@ -261,21 +230,15 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                             email,
                             avatar,
                             provider: 'github',
-                            isVerified: true,
-                            lastLogin: now,
-                            loginCount: 1
+                            isVerified: true
                         });
                     }
-
-                    if (!authenticatedUser) {
-                        authenticatedUser = mongoUser;
-                    }
-                } catch (mongoErr) {
-                    logger.warn('MongoDB GitHub auth sync error:', mongoErr.message);
+                    authenticatedUser = mongoUser;
+                } catch (mErr) {
+                    logger.warn('Mongo GitHub auth fallback error:', mErr.message);
                 }
             }
 
-            // Fallback if neither DB connected
             if (!authenticatedUser) {
                 authenticatedUser = {
                     _id: 'guest_' + profile.id,
@@ -288,13 +251,44 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                 };
             }
 
-            if (isNewUser && email) {
-                sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
-            }
-
+            // Return user immediately for fast redirect
             done(null, authenticatedUser);
+
+            // 3. Background tasks (Non-blocking): MongoDB dual-sync
+            setImmediate(async () => {
+                try {
+                    if (mongoose.connection.readyState === 1) {
+                        let mongoUser = await User.findOne({
+                            $or: [{ githubId: profile.id }, { email }]
+                        });
+                        const now = new Date();
+                        if (mongoUser) {
+                            mongoUser.githubId = profile.id;
+                            mongoUser.lastLogin = now;
+                            mongoUser.loginCount = (mongoUser.loginCount || 0) + 1;
+                            if (!mongoUser.name) mongoUser.name = displayName;
+                            if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
+                            await mongoUser.save();
+                        } else {
+                            await User.create({
+                                githubId: profile.id,
+                                name: displayName,
+                                displayName,
+                                email,
+                                avatar,
+                                provider: 'github',
+                                isVerified: true,
+                                lastLogin: now,
+                                loginCount: 1
+                            });
+                        }
+                    }
+                } catch (bgErr) {
+                    logger.warn('Background MongoDB GitHub sync note:', bgErr.message);
+                }
+            });
         } catch (err) {
-            logger.error('GitHub strategy fatal error:', err);
+            logger.error('GitHub strategy error:', err);
             done(err, null);
         }
     }));

@@ -310,6 +310,35 @@ class SupabaseDataService {
         return data;
     }
 
+    async upsertOAuthUser({ email, name, avatar, provider = 'google' }) {
+        if (!this.isAvailable) throw new Error('Supabase client is not available');
+        const now = new Date().toISOString();
+
+        // 1-shot upsert on email
+        const { data, error } = await supabase
+            .from('users')
+            .upsert({
+                email,
+                name: name || '',
+                display_name: name || '',
+                avatar: avatar || null,
+                provider,
+                is_verified: true,
+                last_login: now
+            }, { onConflict: 'email' })
+            .select()
+            .single();
+
+        if (error) {
+            logger.warn('Supabase upsertOAuthUser note, trying findUserByEmail:', error.message);
+            const existing = await this.findUserByEmail(email);
+            if (existing) return existing;
+            throw error;
+        }
+
+        return data;
+    }
+
     async createUser(userData) {
         if (!this.isAvailable) throw new Error('Supabase client is not available');
 
