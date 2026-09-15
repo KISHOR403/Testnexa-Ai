@@ -92,9 +92,9 @@ const AppHeader = ({ onToggleMobile }) => {
                     style={{
                         background: '#111111',
                         border: '1px solid #1C1C1C',
-                        color: '#00D9C0',
-                        fontWeight: '700',
-                        fontSize: '0.78rem',
+                        color: '#F5F5F5',
+                        fontWeight: '600',
+                        fontSize: '0.8rem',
                         cursor: 'pointer'
                     }}
                 >

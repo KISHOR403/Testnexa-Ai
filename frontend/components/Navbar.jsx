@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 import ProfileModal from './ProfileModal';
 import UpgradeModal from './UpgradeModal';
+import NavbarAccountMenu from './NavbarAccountMenu';
 
 const NAV_SECTIONS = [
     { id: 'features', label: 'Features' },
@@ -22,25 +23,14 @@ const NAV_SECTIONS = [
 const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
     const { user, isAuthenticated, logout, isSigningOut } = useAuth();
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-    const [activeSubMenu, setActiveSubMenu] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [activeSection, setActiveSection] = useState('');
-    const [localAvatar, setLocalAvatar] = useState(() => localStorage.getItem('testnexa_avatar_url') || null);
     const location = useLocation();
     const navigate = useNavigate();
     const navRef = useRef(null);
-
-    useEffect(() => {
-        const handleAvatarUpdate = () => {
-            setLocalAvatar(localStorage.getItem('testnexa_avatar_url'));
-        };
-        window.addEventListener('avatarUpdated', handleAvatarUpdate);
-        return () => window.removeEventListener('avatarUpdated', handleAvatarUpdate);
-    }, []);
 
     // Scroll to a section, navigating to home first if needed
     const scrollToSection = useCallback((sectionId) => {
@@ -111,20 +101,6 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            if (navRef.current && !navRef.current.contains(e.target)) {
-                setIsDropdownOpen(false);
-                setActiveSubMenu(null);
-            }
-        };
-        if (isDropdownOpen) {
-            document.addEventListener('click', handleClickOutside);
-        }
-        return () => document.removeEventListener('click', handleClickOutside);
-    }, [isDropdownOpen]);
-
     // Close mobile nav on route change
     useEffect(() => {
         setIsMobileNavOpen(false);
@@ -167,170 +143,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                 {/* Right Actions */}
                 <div className="floating-nav-actions">
                     {isAuthenticated ? (
-                        <div className="navbar-user-section">
-                            <button
-                                className="navbar-avatar-trigger"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsDropdownOpen(!isDropdownOpen);
-                                }}
-                            >
-                                <div className="navbar-avatar-wrapper">
-                                    <div className="navbar-avatar">
-                                        {localAvatar ? (
-                                            <img src={localAvatar} alt="avatar" className="navbar-avatar-img" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block', position: 'relative', zIndex: 1 }} />
-                                        ) : (
-                                            <span className="avatar-letter">{initials}</span>
-                                        )}
-                                        <span className="avatar-status-dot"></span>
-                                    </div>
-                                </div>
-                                <ChevronDown
-                                    size={13}
-                                    className={`avatar-chevron ${isDropdownOpen ? 'chevron-flipped' : ''}`}
-                                />
-                            </button>
-
-                            {isDropdownOpen && (
-                                <div className="navbar-dropdown" onClick={(e) => e.stopPropagation()}>
-                                    <div className="dropdown-glow-effect" />
-                                    {activeSubMenu === null ? (
-                                        <>
-                                            <div className="dropdown-profile-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', alignItems: 'stretch' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                                                    <div className="profile-card-avatar">
-                                                        {localAvatar ? (
-                                                            <img src={localAvatar} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                                                        ) : (
-                                                            <span>{initials}</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="profile-card-info" style={{ flex: 1, minWidth: 0 }}>
-                                                        <span className="profile-card-name" style={{ display: 'block' }}>{user?.name || user?.displayName || user?.email?.split('@')[0] || 'User'}</span>
-                                                        <span className="profile-card-email" style={{ display: 'block' }}>{user?.email || 'user@example.com'}</span>
-                                                    </div>
-                                                    <div className="profile-card-badge">Pro</div>
-                                                </div>
-                                                <div className="dropdown-usage-container" style={{ marginTop: '0.15rem' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.2rem' }}>
-                                                        <span>Generations</span>
-                                                        <span style={{ color: '#00f2de', fontWeight: '600' }}>342 / 1000</span>
-                                                    </div>
-                                                    <div className="dropdown-usage-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                                                        <div className="dropdown-usage-progress" style={{ width: '34.2%', height: '100%', background: '#00D9C0', borderRadius: '2px' }} />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="dropdown-separator" />
-
-                                            <button className="dropdown-action upgrade-action" onClick={(e) => { e.stopPropagation(); setIsUpgradeOpen(true); setIsDropdownOpen(false); }}>
-                                                <div className="action-icon-wrap upgrade-icon-wrap">
-                                                    <Zap size={14} />
-                                                </div>
-                                                <span>Upgrade plan</span>
-                                                <ArrowRight size={14} className="action-arrow" />
-                                            </button>
-
-                                            <NavLink to="/app/workspace" className="dropdown-action" onClick={() => setIsDropdownOpen(false)} style={{ textDecoration: 'none' }}>
-                                                <div className="action-icon-wrap">
-                                                    <LayoutDashboard size={14} />
-                                                </div>
-                                                <span>AI Workspace</span>
-                                            </NavLink>
-
-                                            <button className="dropdown-action" onClick={(e) => { e.stopPropagation(); setIsProfileOpen(true); setIsDropdownOpen(false); }}>
-                                                <div className="action-icon-wrap">
-                                                    <Zap size={14} />
-                                                </div>
-                                                <span>Personalization</span>
-                                            </button>
-
-                                            <button className="dropdown-action" onClick={(e) => { e.stopPropagation(); setIsProfileOpen(true); setIsDropdownOpen(false); }}>
-                                                <div className="action-icon-wrap">
-                                                    <Settings size={14} />
-                                                </div>
-                                                <span>Settings</span>
-                                            </button>
-
-                                            <div className="dropdown-separator" />
-
-                                            <button
-                                                className="dropdown-action has-submenu"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveSubMenu('help');
-                                                }}
-                                            >
-                                                <div className="action-icon-wrap">
-                                                    <HelpCircle size={14} />
-                                                </div>
-                                                <span>Help</span>
-                                                <ChevronRight size={13} className="action-arrow" />
-                                            </button>
-
-                                            <button 
-                                                className="dropdown-action logout-action" 
-                                                onClick={async () => {
-                                                    setIsDropdownOpen(false);
-                                                    await logout();
-                                                }}
-                                                disabled={isSigningOut}
-                                                style={{ opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
-                                            >
-                                                <div className="action-icon-wrap logout-icon-wrap">
-                                                    {isSigningOut ? (
-                                                        <div style={{
-                                                            width: '12px',
-                                                            height: '12px',
-                                                            border: '2px solid rgba(239, 68, 68, 0.2)',
-                                                            borderTopColor: '#EF4444',
-                                                            borderRadius: '50%',
-                                                            animation: 'spin 0.8s linear infinite'
-                                                        }} />
-                                                    ) : (
-                                                        <LogOut size={14} />
-                                                    )}
-                                                </div>
-                                                <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
-                                            </button>
-                                        </>
-                                    ) : activeSubMenu === 'help' ? (
-                                        <div className="submenu-panel">
-                                            <button className="submenu-back-btn" onClick={(e) => { e.stopPropagation(); setActiveSubMenu(null); }}>
-                                                <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} />
-                                                <span>Help</span>
-                                            </button>
-                                            <div className="dropdown-separator" />
-                                            <button className="dropdown-action" onClick={() => { navigate('/help'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
-                                                <div className="action-icon-wrap"><HelpCircle size={14} /></div>
-                                                <span>Help center</span>
-                                            </button>
-                                            <button className="dropdown-action" onClick={() => { navigate('/best-practices'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
-                                                <div className="action-icon-wrap"><Zap size={14} /></div>
-                                                <span>Release notes</span>
-                                            </button>
-                                            <button className="dropdown-action" onClick={() => { navigate('/terms'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
-                                                <div className="action-icon-wrap"><FileText size={14} /></div>
-                                                <span>Terms & policies</span>
-                                            </button>
-                                            <button className="dropdown-action" onClick={() => { navigate('/contact'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
-                                                <div className="action-icon-wrap"><MessageSquare size={14} /></div>
-                                                <span>Report Bug</span>
-                                            </button>
-                                            <button className="dropdown-action" onClick={() => { navigate('/about'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
-                                                <div className="action-icon-wrap"><Download size={14} /></div>
-                                                <span>About Us</span>
-                                            </button>
-                                            <button className="dropdown-action" onClick={() => { navigate('/privacy'); setIsDropdownOpen(false); setActiveSubMenu(null); }}>
-                                                <div className="action-icon-wrap"><Keyboard size={14} /></div>
-                                                <span>Privacy Policy</span>
-                                            </button>
-                                        </div>
-                                    ) : null}
-                                </div>
-                            )}
-                        </div>
+                        <NavbarAccountMenu showHelpLink={true} />
                     ) : (
                         <a
                             href={getTargetUrl('/app/workspace')}
