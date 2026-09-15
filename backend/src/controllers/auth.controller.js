@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
 const { parseUserAgent, parseClientIp, getLocationFromIp } = require('../utils/deviceParser');
 const supabaseService = require('../services/supabaseData.service');
+const logger = require('../utils/logger');
 
 // Helper to check DB connection
 const checkConnection = () => {
@@ -128,7 +129,7 @@ exports.register = async (req, res) => {
                     loginCount: 1,
                     passwordChangedAt: now
                 };
-                if (createdUserId) {
+                if (createdUserId && mongoose.Types.ObjectId.isValid(createdUserId)) {
                     mongoData._id = createdUserId;
                 }
                 const mUser = await User.create(mongoData);
@@ -157,7 +158,8 @@ exports.register = async (req, res) => {
         const session = await createAuthSession(createdUserId, req);
         const token = generateToken(createdUserId, session?._id);
 
-        await sendWelcomeEmail(name, email).catch(e => console.error('Welcome email error:', e));
+        // Send welcome email to new user asynchronously
+        sendWelcomeEmail(name, email).catch(e => logger.error('Welcome email error:', e?.message || e));
 
         return res.status(201).json({
             success: true,

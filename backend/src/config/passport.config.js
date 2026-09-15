@@ -72,9 +72,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
             let authenticatedUser = null;
 
+            let isNewUser = false;
+
             // 1. Single-shot fast upsert in Supabase
             if (supabaseService.isAvailable && email) {
                 try {
+                    const existingSb = await supabaseService.findUserByEmail(email);
+                    if (!existingSb) isNewUser = true;
+
                     const sbUser = await supabaseService.upsertOAuthUser({
                         email,
                         name: displayName,
@@ -104,6 +109,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                         $or: [{ googleId: profile.id }, { email }]
                     });
                     if (!mongoUser) {
+                        isNewUser = true;
                         mongoUser = await User.create({
                             googleId: profile.id,
                             name: displayName,
@@ -151,6 +157,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                             if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
                             await mongoUser.save();
                         } else {
+                            isNewUser = true;
                             await User.create({
                                 googleId: profile.id,
                                 name: displayName,
@@ -162,11 +169,10 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                                 lastLogin: now,
                                 loginCount: 1
                             });
-                            if (email) {
-                                sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
-                            }
                         }
-                    } else if (email) {
+                    }
+
+                    if (isNewUser && email) {
                         sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
                     }
                 } catch (bgErr) {
@@ -197,9 +203,14 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
 
             let authenticatedUser = null;
 
+            let isNewUser = false;
+
             // 1. Single-shot fast upsert in Supabase
             if (supabaseService.isAvailable && email) {
                 try {
+                    const existingSb = await supabaseService.findUserByEmail(email);
+                    if (!existingSb) isNewUser = true;
+
                     const sbUser = await supabaseService.upsertOAuthUser({
                         email,
                         name: displayName,
@@ -228,6 +239,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                         $or: [{ githubId: profile.id }, { email }]
                     });
                     if (!mongoUser) {
+                        isNewUser = true;
                         mongoUser = await User.create({
                             githubId: profile.id,
                             name: displayName,
@@ -275,6 +287,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                             if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
                             await mongoUser.save();
                         } else {
+                            isNewUser = true;
                             await User.create({
                                 githubId: profile.id,
                                 name: displayName,
@@ -286,11 +299,10 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                                 lastLogin: now,
                                 loginCount: 1
                             });
-                            if (email) {
-                                sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
-                            }
                         }
-                    } else if (email) {
+                    }
+
+                    if (isNewUser && email) {
                         sendWelcomeEmail(displayName, email).catch(e => logger.warn('Welcome email error:', e.message));
                     }
                 } catch (bgErr) {

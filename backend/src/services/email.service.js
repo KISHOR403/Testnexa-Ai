@@ -45,37 +45,58 @@ const sendWelcomeEmail = async (name, email) => {
 
         const transporter = createTransporter();
         const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const workspaceUrl = `${frontendUrl}/app/workspace`;
 
         const mailOptions = {
             from: `"Testnexa AI" <${fromAddress}>`,
             to: email,
-            subject: 'Welcome to Testnexa AI! 🚀',
+            subject: 'Welcome to Testnexa AI — Production-Ready QA at Scale 🚀',
             html: `
-                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f1a; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
-                    <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7); padding: 40px 30px; text-align: center;">
-                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Welcome to Testnexa AI</h1>
-                        <p style="color: rgba(255,255,255,0.85); margin: 10px 0 0; font-size: 16px;">AI-Powered Test Case Generation</p>
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0B0F19; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #090D16 0%, #111827 100%); padding: 36px 30px; text-align: center; border-bottom: 1px solid rgba(0, 212, 193, 0.2);">
+                        <div style="display: inline-block; padding: 8px 16px; background: rgba(0, 212, 193, 0.1); border: 1px solid rgba(0, 212, 193, 0.3); border-radius: 20px; margin-bottom: 14px;">
+                            <span style="color: #00d4c1; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Enterprise AI QA Platform</span>
+                        </div>
+                        <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">Welcome to Testnexa AI</h1>
+                        <p style="color: #94a3b8; margin: 8px 0 0; font-size: 15px;">Turn Requirements Into Production-Ready Test Suites</p>
                     </div>
-                    <div style="padding: 30px; color: #e2e8f0; background: #13141f;">
-                        <p style="font-size: 18px; margin-top: 0;">Hi <strong>${name || 'there'}</strong>,</p>
-                        <p style="font-size: 15px; line-height: 1.7; color: #cbd5e1;">
-                            Thanks for signing up! You now have access to our AI-powered platform for generating comprehensive test cases from your requirements.
+
+                    <!-- Body -->
+                    <div style="padding: 32px 30px; background: #0F1523;">
+                        <p style="font-size: 16px; margin-top: 0; color: #ffffff;">Hi <strong>${name || 'there'}</strong>,</p>
+                        <p style="font-size: 14px; line-height: 1.7; color: #cbd5e1; margin-bottom: 24px;">
+                            Thank you for joining <strong>Testnexa AI</strong>. Your workspace is ready to transform product specs, user stories, and API definitions into comprehensive, enterprise-grade test suites in seconds.
                         </p>
-                        <div style="background: rgba(99, 102, 241, 0.1); border-left: 4px solid #6366f1; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-                            <p style="margin: 0; font-size: 14px; color: #a5b4fc; font-weight: 600;">Here is what you can do:</p>
-                            <ul style="color: #cbd5e1; font-size: 14px; line-height: 1.8; padding-left: 20px; margin: 8px 0 0;">
-                                <li>Generate complete test cases from requirements</li>
-                                <li>Select test depth, context (Web, Mobile, API), and QA focus</li>
-                                <li>Export directly into Jira, Markdown, or Excel</li>
+
+                        <!-- CTA Button -->
+                        <div style="text-align: center; margin: 28px 0;">
+                            <a href="${workspaceUrl}" style="background: #00d4c1; color: #070a12; text-decoration: none; padding: 13px 28px; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 14px rgba(0, 212, 193, 0.35); letter-spacing: 0.2px;">
+                                Launch TestNexa Workspace →
+                            </a>
+                        </div>
+
+                        <!-- Feature Box -->
+                        <div style="background: rgba(0, 212, 193, 0.04); border: 1px solid rgba(0, 212, 193, 0.18); border-radius: 8px; padding: 20px; margin: 24px 0;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; color: #00d4c1; font-weight: 600;">What you can do right away:</p>
+                            <ul style="color: #94a3b8; font-size: 13px; line-height: 1.8; padding-left: 20px; margin: 0;">
+                                <li><strong style="color: #e2e8f0;">AI Test Generation:</strong> Generate BDD, regression, smoke, and boundary tests automatically.</li>
+                                <li><strong style="color: #e2e8f0;">Context Aware:</strong> Target Web, Mobile, API, or Microservices architectures.</li>
+                                <li><strong style="color: #e2e8f0;">One-Click Export:</strong> Export tests directly to Jira, Gherkin, Markdown, or Excel.</li>
                             </ul>
                         </div>
-                        <p style="font-size: 14px; color: #94a3b8; margin-bottom: 0;">
-                            Happy testing!<br/>
-                            <strong style="color: #a5b4fc;">The Testnexa AI Team</strong>
+
+                        <p style="font-size: 13px; line-height: 1.6; color: #64748b; margin-bottom: 0;">
+                            Need assistance or have questions? Simply reply to this email or visit our help center.<br/><br/>
+                            Best regards,<br/>
+                            <strong style="color: #e2e8f0;">The Testnexa AI Engineering Team</strong>
                         </p>
                     </div>
-                    <div style="background: #0a0a12; padding: 15px 30px; text-align: center;">
-                        <p style="margin: 0; font-size: 12px; color: #64748b;">
+
+                    <!-- Footer -->
+                    <div style="background: #090D16; padding: 18px 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <p style="margin: 0; font-size: 12px; color: #475569;">
                             © ${new Date().getFullYear()} Testnexa AI. All rights reserved.
                         </p>
                     </div>
