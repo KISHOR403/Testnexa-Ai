@@ -20,6 +20,7 @@
     "dependencies": {
         "@google/genai": "^1.38.0",
         "@google/generative-ai": "^0.24.1",
+        "@supabase/supabase-js": "^2.116.0",
         "axios": "^1.2.1",
         "bcryptjs": "^3.0.3",
         "cors": "^2.8.5",

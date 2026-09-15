@@ -6,11 +6,12 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
 const { parseUserAgent, parseClientIp, getLocationFromIp } = require('../utils/deviceParser');
+const supabaseService = require('../services/supabaseData.service');
 
 // Helper to check DB connection
 const checkConnection = () => {
-    if (mongoose.connection.readyState !== 1) {
-        throw new Error('DATABASE_CONNECTION_ERROR: The server is having trouble connecting to the database. Please check IP whitelisting on MongoDB Atlas.');
+    if (mongoose.connection.readyState !== 1 && !supabaseService.isAvailable) {
+        throw new Error('DATABASE_CONNECTION_ERROR: The server is having trouble connecting to the database. Please check IP whitelisting on MongoDB Atlas or Supabase configuration.');
     }
 };
 
@@ -64,6 +65,43 @@ exports.register = async (req, res) => {
         checkConnection();
         const { name, email, password } = req.body;
 
+        // Supabase registration path
+        if (supabaseService.isAvailable) {
+            const userExists = await supabaseService.findUserByEmail(email);
+            if (userExists) {
+                return res.status(400).json({ success: false, message: 'User already exists' });
+            }
+
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+
+            const user = await supabaseService.createUser({
+                name,
+                displayName: name,
+                email,
+                password: hashedPassword,
+                provider: 'email',
+                isVerified: false
+            });
+
+            const token = generateToken(user.id);
+            await sendWelcomeEmail(name, email).catch(e => console.error('Welcome email error:', e));
+
+            return res.status(201).json({
+                success: true,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    provider: user.provider,
+                    createdAt: user.created_at
+                },
+                token
+            });
+        }
+
+        // MongoDB registration path
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ success: false, message: 'User already exists' });
@@ -119,6 +157,45 @@ exports.login = async (req, res) => {
         checkConnection();
         const { email, password } = req.body;
 
+        // Supabase login path
+        if (supabaseService.isAvailable) {
+            const user = await supabaseService.findUserByEmail(email);
+            if (!user || !user.password) {
+                return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            }
+
+            const now = new Date().toISOString();
+            const newCount = (user.login_count || 0) + 1;
+            await supabaseService.updateUser(user.id, {
+                last_login: now,
+                login_count: newCount
+            });
+
+            const token = generateToken(user.id);
+
+            return res.json({
+                success: true,
+                user: {
+                    id: user.id,
+                    name: user.name || user.display_name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    provider: user.provider || 'email',
+                    lastLogin: now,
+                    loginCount: newCount,
+                    totalTestsGenerated: user.total_tests_generated || 0,
+                    createdAt: user.created_at
+                },
+                token
+            });
+        }
+
+        // MongoDB login path
         const user = await User.findOne({ email });
         if (!user || !user.password) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -166,6 +243,7 @@ exports.getMe = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
+        const userId = req.user.id || req.user._id;
         let provider = req.user.provider || 'email';
         if (!req.user.provider) {
             if (req.user.googleId) provider = 'google';
@@ -175,7 +253,7 @@ exports.getMe = async (req, res) => {
         res.json({
             success: true,
             user: {
-                id: req.user._id,
+                id: userId,
                 name: req.user.name || req.user.displayName,
                 email: req.user.email,
                 avatar: req.user.avatar,
@@ -183,7 +261,7 @@ exports.getMe = async (req, res) => {
                 lastLogin: req.user.lastLogin,
                 loginCount: req.user.loginCount,
                 passwordChangedAt: req.user.passwordChangedAt,
-                totalTestsGenerated: req.user.totalTestsGenerated,
+                totalTestsGenerated: req.user.totalTestsGenerated || 0,
                 createdAt: req.user.createdAt
             }
         });
