@@ -238,6 +238,15 @@ const QaCopilotDrawer = ({
 
     return (
         <>
+            {/* ─── Mobile Backdrop Overlay ─── */}
+            {isOpen && (
+                <div
+                    className="tn-copilot-mobile-overlay"
+                    onClick={onClose}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* ─── 1. Floating Trigger Button (Bottom-Right) ─── */}
             {showFloatingTrigger && (
                 <button
@@ -250,7 +259,9 @@ const QaCopilotDrawer = ({
                     <span className="tn-copilot-floating-trigger__icon">
                         {isOpen ? <X size={16} /> : <MessageSquare size={16} />}
                     </span>
-                    <span>{isOpen ? 'Close' : 'Ask Testnexa'}</span>
+                    <span className="tn-copilot-floating-trigger__text">
+                        {isOpen ? 'Close' : 'Ask Testnexa'}
+                    </span>
                 </button>
             )}
 
@@ -263,6 +274,11 @@ const QaCopilotDrawer = ({
                     aria-modal="false"
                     ref={panelRef}
                 >
+                    {/* Mobile Sheet Drag Indicator */}
+                    <div className="tn-copilot-sheet-handle-bar" onClick={onClose}>
+                        <div className="tn-copilot-sheet-handle" />
+                    </div>
+
                     {/* Header */}
                     <div className="tn-copilot-header">
                         <div className="tn-copilot-header__left">

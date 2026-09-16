@@ -41,6 +41,7 @@ import {
     Loader2
 } from 'lucide-react';
 import useScrollReveal from '../hooks/useScrollReveal';
+import QaCopilotDrawer from './copilot/QaCopilotDrawer';
 
 // Realistic QA Test Suite Demo Data
 const INITIAL_DEMO_TESTS = [
@@ -842,6 +843,25 @@ export const ProductWorkbench = ({ compact = false }) => {
                     </div>
                 )}
             </div>
+
+            {/* ─── 6. Context-Aware QA Copilot Drawer (Workbench demo) ─── */}
+            <QaCopilotDrawer
+                isOpen={showAiCopilot}
+                onClose={() => setShowAiCopilot(false)}
+                onToggle={() => setShowAiCopilot(prev => !prev)}
+                showFloatingTrigger={false}
+                suite={{
+                    title: 'Password Reset & Account Recovery',
+                    requirement: 'Self-service password reset flow with email verification and expiring tokens (REQ-001).',
+                    feature: 'Password Reset & Account Recovery',
+                    testCases
+                }}
+                selectedTestCase={selectedTc}
+                activeTab={activeTab}
+                onAddTestCase={handleCopilotAddTestCase}
+                onUpdateTestCase={handleCopilotUpdateTestCase}
+                onSwitchTab={(tab) => setActiveTab(tab)}
+            />
 
             {/* ─── 7. AI Insights Review Drawer ─── */}
             {showAiInsightsDrawer && (
