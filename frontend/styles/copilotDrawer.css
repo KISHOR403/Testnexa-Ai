@@ -1,51 +1,105 @@
 /* ==========================================================================
-   TESTNEXA QA COPILOT — Contextual QA Intelligence Layer
+   TESTNEXA QA COPILOT — Floating Bottom-Right Assistant
    Adheres to TestNexa Black Design System
    Background: #050505 | Surface: #0A0A0A | Elevated: #111111 | Border: #1C1C1C
    Accent: #00D9C0 | Primary: #F5F5F5 | Secondary: #A3A3A3 | Muted: #737373
    ========================================================================== */
 
-/* ─── Overlay Container & Backdrop ─── */
+/* ─── 1. Floating Trigger Button (Bottom-Right) ─── */
+.tn-copilot-floating-trigger {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+  height: 48px;
+  padding: 0 18px;
+  background: #0A0A0A;
+  border: 1px solid #1C1C1C;
+  border-radius: 24px;
+  color: #F5F5F5;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.tn-copilot-floating-trigger:hover {
+  background: #111111;
+  border-color: #00D9C0;
+  color: #FFFFFF;
+}
+
+.tn-copilot-floating-trigger__icon {
+  color: #00D9C0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease;
+}
+
+.tn-copilot-floating-trigger.is-open {
+  background: #141414;
+  border-color: #2E2E2E;
+  color: #D4D4D4;
+}
+
+.tn-copilot-floating-trigger.is-open:hover {
+  border-color: #EF4444;
+  color: #FFFFFF;
+}
+
+.tn-copilot-floating-trigger.is-open .tn-copilot-floating-trigger__icon {
+  color: #EF4444;
+}
+
+/* ─── 2. Floating Popover Panel (Above Button) ─── */
+.tn-copilot-floating-panel,
 .tn-copilot-drawer {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  right: 24px;
+  bottom: 84px;
   width: 380px;
-  max-width: 100vw;
-  height: 100vh;
-  max-height: 100vh;
+  min-width: 340px;
+  max-width: 420px;
+  height: 520px;
+  max-height: 600px;
   background: #0A0A0A;
-  border-left: 1px solid #1C1C1C;
-  box-shadow: -12px 0 36px rgba(0, 0, 0, 0.75);
-  z-index: 100;
+  border: 1px solid #1C1C1C;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  z-index: 95;
   display: flex;
   flex-direction: column;
   color: #F5F5F5;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  transform: translateX(0);
-  animation: tnCopilotSlideIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: tnCopilotFloatUp 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   overflow: hidden;
   box-sizing: border-box;
 }
 
-@keyframes tnCopilotSlideIn {
+@keyframes tnCopilotFloatUp {
   from {
-    transform: translateX(100%);
     opacity: 0;
+    transform: translateY(8px);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* ─── 1. Copilot Header ─── */
+/* ─── 3. Compact Header ─── */
 .tn-copilot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: #070707;
   border-bottom: 1px solid #1C1C1C;
   flex-shrink: 0;
@@ -54,25 +108,25 @@
 .tn-copilot-header__left {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .tn-copilot-header__title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.92rem;
+  gap: 6px;
+  font-size: 0.88rem;
   font-weight: 600;
   color: #F5F5F5;
   letter-spacing: -0.01em;
 }
 
 .tn-copilot-header__badge {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
   background: rgba(0, 217, 192, 0.12);
   color: #00D9C0;
@@ -80,7 +134,7 @@
 }
 
 .tn-copilot-header__subtitle {
-  font-size: 0.73rem;
+  font-size: 0.7rem;
   color: #737373;
   margin: 0;
 }
@@ -90,8 +144,8 @@
   border: 1px solid transparent;
   border-radius: 6px;
   color: #A3A3A3;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -104,11 +158,11 @@
   color: #F5F5F5;
 }
 
-/* ─── 2. Context Indicator & Scope Bar ─── */
+/* ─── 4. Context Indicator & Scope Bar ─── */
 .tn-copilot-context {
   background: #0D0D0D;
   border-bottom: 1px solid #1C1C1C;
-  padding: 10px 14px;
+  padding: 8px 12px;
   flex-shrink: 0;
 }
 
@@ -116,26 +170,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .tn-copilot-context__label {
-  font-size: 0.66rem;
+  font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #737373;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .tn-copilot-context__dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #00D9C0;
-  box-shadow: 0 0 6px rgba(0, 217, 192, 0.4);
+  box-shadow: 0 0 5px rgba(0, 217, 192, 0.4);
 }
 
 .tn-copilot-scope-selector {
@@ -149,8 +203,8 @@
   border: 1px solid #242424;
   border-radius: 4px;
   color: #A3A3A3;
-  font-size: 0.7rem;
-  padding: 2px 7px;
+  font-size: 0.68rem;
+  padding: 2px 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -166,11 +220,11 @@
 .tn-copilot-context__body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .tn-copilot-context__suite-name {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #E5E5E5;
   white-space: nowrap;
@@ -182,8 +236,8 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  font-size: 0.72rem;
+  gap: 6px;
+  font-size: 0.7rem;
   color: #888888;
 }
 
@@ -196,10 +250,10 @@
 .tn-copilot-context__chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
+  gap: 4px;
+  padding: 2px 7px;
   border-radius: 4px;
-  font-size: 0.72rem;
+  font-size: 0.69rem;
   background: #151515;
   border: 1px solid #262626;
   color: #D4D4D4;
@@ -224,7 +278,7 @@
   border: 1px solid #262626;
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
-  z-index: 70;
+  z-index: 99;
   min-width: 140px;
   padding: 4px;
   display: flex;
@@ -236,8 +290,8 @@
   background: transparent;
   border: 0;
   text-align: left;
-  padding: 6px 8px;
-  font-size: 0.75rem;
+  padding: 5px 8px;
+  font-size: 0.72rem;
   border-radius: 4px;
   color: #A3A3A3;
   cursor: pointer;
@@ -255,63 +309,7 @@
   font-weight: 600;
 }
 
-/* ─── 3. Quick Action Bar (3–5 Contextual Actions) ─── */
-.tn-copilot-actions-bar {
-  padding: 10px 14px;
-  background: #080808;
-  border-bottom: 1px solid #1C1C1C;
-  flex-shrink: 0;
-}
-
-.tn-copilot-actions-bar__label {
-  font-size: 0.67rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #737373;
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-
-.tn-copilot-action-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tn-copilot-action-chip {
-  background: #111111;
-  border: 1px solid #222222;
-  border-radius: 5px;
-  color: #D4D4D4;
-  font-size: 0.74rem;
-  padding: 5px 9px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 130ms ease;
-  white-space: nowrap;
-}
-
-.tn-copilot-action-chip:hover {
-  background: #181818;
-  border-color: #333333;
-  color: #FFFFFF;
-}
-
-.tn-copilot-action-chip.is-active {
-  background: rgba(0, 217, 192, 0.1);
-  border-color: rgba(0, 217, 192, 0.4);
-  color: #00D9C0;
-  font-weight: 500;
-}
-
-.tn-copilot-action-chip:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ─── 4. Main Scrollable Content Area ─── */
+/* ─── 5. Main Scrollable Content Area ─── */
 .tn-copilot-content {
   flex: 1 1 0;
   min-height: 0;
@@ -320,10 +318,10 @@
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 14px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   scrollbar-width: thin;
   scrollbar-color: #2E2E2E transparent;
 }
@@ -343,95 +341,110 @@
   background: #444444;
 }
 
-/* ─── Default / Empty State ─── */
-.tn-copilot-default-state {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 24px 12px;
-  color: #A3A3A3;
-}
-
-.tn-copilot-default-state__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: #111111;
-  border: 1px solid #222222;
-  display: grid;
-  place-items: center;
-  color: #00D9C0;
-  margin-bottom: 12px;
-}
-
-.tn-copilot-default-state h4 {
-  font-size: 0.94rem;
-  font-weight: 600;
-  color: #F5F5F5;
-  margin: 0 0 6px 0;
-}
-
-.tn-copilot-default-state p {
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: #737373;
-  margin: 0 0 16px 0;
-  max-width: 280px;
-}
-
-.tn-copilot-default-state__suggestions {
-  width: 100%;
+/* ─── 6. Action Rows (Compact QA Actions) ─── */
+.tn-copilot-action-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
+  flex-shrink: 0;
 }
 
-.tn-copilot-default-action-row {
-  background: #0E0E0E;
-  border: 1px solid #1F1F1F;
-  border-radius: 6px;
-  padding: 8px 12px;
-  text-align: left;
+.tn-copilot-action-group__label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #737373;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.tn-copilot-action-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.tn-copilot-action-row {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
-  transition: all 120ms ease;
-  color: #D4D4D4;
+  background: #111111;
+  border: 1px solid #1C1C1C;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #F5F5F5;
   font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 130ms ease;
+  text-align: left;
+  box-sizing: border-box;
 }
 
-.tn-copilot-default-action-row:hover {
+.tn-copilot-action-row__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #E5E5E5;
+}
+
+.tn-copilot-action-row__icon {
+  color: #00D9C0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tn-copilot-action-row__arrow {
+  color: #737373;
+  font-size: 0.85rem;
+  transition: transform 120ms ease, color 120ms ease;
+  flex-shrink: 0;
+}
+
+.tn-copilot-action-row:hover {
   background: #151515;
-  border-color: #2F2F2F;
+  border-color: #2E2E2E;
   color: #FFFFFF;
 }
 
-.tn-copilot-default-action-row span {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+.tn-copilot-action-row:hover .tn-copilot-action-row__arrow {
+  color: #00D9C0;
+  transform: translateX(2px);
 }
 
-/* ─── Loading State ─── */
+.tn-copilot-action-row.is-active {
+  background: rgba(0, 217, 192, 0.08);
+  border-color: rgba(0, 217, 192, 0.35);
+  color: #00D9C0;
+}
+
+.tn-copilot-action-row:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─── 7. Loading State ─── */
 .tn-copilot-loading {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: #0E0E0E;
   border: 1px solid #1C1C1C;
   border-radius: 8px;
   color: #A3A3A3;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
 .tn-copilot-loading__spinner {
   color: #00D9C0;
   animation: spin 1s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -439,17 +452,17 @@
   to { transform: rotate(360deg); }
 }
 
-/* ─── Error State ─── */
+/* ─── 8. Error State ─── */
 .tn-copilot-error {
   flex-shrink: 0;
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  font-size: 0.79rem;
+  gap: 8px;
+  font-size: 0.76rem;
   color: #FCA5A5;
 }
 
@@ -459,17 +472,17 @@
 }
 
 .tn-copilot-error button {
-  margin-top: 8px;
+  margin-top: 6px;
   background: #1A1A1A;
   border: 1px solid #333333;
   color: #FFFFFF;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
 }
 
-/* ─── Structured QA Analysis Cards ─── */
+/* ─── 9. Structured QA Analysis Cards ─── */
 .tn-copilot-analysis-card {
   flex-shrink: 0;
   width: 100%;
@@ -479,8 +492,8 @@
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .tn-copilot-analysis-header {
@@ -488,24 +501,48 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #181818;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.tn-copilot-analysis-header__left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tn-copilot-btn-back {
+  background: transparent;
+  border: 0;
+  color: #737373;
+  font-size: 0.68rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 120ms ease;
+}
+
+.tn-copilot-btn-back:hover {
+  color: #00D9C0;
 }
 
 .tn-copilot-analysis-title {
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #F5F5F5;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .tn-copilot-type-tag {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 4px;
   background: #181818;
   border: 1px solid #282828;
@@ -513,40 +550,40 @@
 }
 
 .tn-copilot-summary {
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 0.76rem;
+  line-height: 1.45;
   color: #CCCCCC;
   margin: 0;
   background: #080808;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 8px 10px;
+  border-radius: 5px;
   border-left: 2px solid #00D9C0;
 }
 
 /* ─── Findings Section ─── */
 .tn-copilot-section-title {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #737373;
-  margin: 4px 0 0 0;
+  margin: 2px 0 0 0;
 }
 
 .tn-copilot-findings-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .tn-copilot-finding-item {
   background: #0B0B0B;
   border: 1px solid #1F1F1F;
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-radius: 5px;
+  padding: 9px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .tn-copilot-finding-header {
@@ -556,16 +593,16 @@
 }
 
 .tn-copilot-finding-title {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #E5E5E5;
 }
 
 .tn-copilot-severity-badge {
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 3px;
 }
 
@@ -588,17 +625,17 @@
 }
 
 .tn-copilot-finding-desc {
-  font-size: 0.75rem;
-  line-height: 1.45;
+  font-size: 0.72rem;
+  line-height: 1.4;
   color: #999999;
   margin: 0;
 }
 
 .tn-copilot-finding-why {
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.7rem;
+  line-height: 1.35;
   color: #808080;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .tn-copilot-finding-why strong {
@@ -609,11 +646,11 @@
 .tn-copilot-suggested-card {
   background: #090909;
   border: 1px solid #222222;
-  border-radius: 6px;
-  padding: 12px;
+  border-radius: 5px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tn-copilot-suggested-card__header {
@@ -623,7 +660,7 @@
 }
 
 .tn-copilot-suggested-card__title {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #F5F5F5;
   margin: 0;
@@ -635,17 +672,17 @@
 }
 
 .tn-copilot-suggested-card__steps {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   color: #A3A3A3;
-  line-height: 1.4;
+  line-height: 1.35;
   background: #050505;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: 4px;
   border: 1px solid #1A1A1A;
 }
 
 .tn-copilot-suggested-card__steps p {
-  margin: 2px 0;
+  margin: 1px 0;
 }
 
 .tn-copilot-suggested-card__steps strong {
@@ -654,18 +691,18 @@
 
 .tn-copilot-btn-add {
   align-self: flex-start;
-  margin-top: 4px;
+  margin-top: 3px;
   background: #111111;
   border: 1px solid #2A2A2A;
-  border-radius: 5px;
+  border-radius: 4px;
   color: #00D9C0;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 5px 12px;
+  padding: 4px 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   transition: all 130ms ease;
 }
 
@@ -686,22 +723,22 @@
 .tn-copilot-diff-card {
   background: #090909;
   border: 1px solid #242424;
-  border-radius: 6px;
-  padding: 12px;
+  border-radius: 5px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tn-copilot-diff-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.74rem;
+  gap: 3px;
+  font-size: 0.7rem;
 }
 
 .tn-copilot-diff-label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -709,9 +746,9 @@
 }
 
 .tn-copilot-diff-content {
-  padding: 6px 10px;
+  padding: 5px 8px;
   border-radius: 4px;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .tn-copilot-diff-content--current {
@@ -728,8 +765,8 @@
 
 .tn-copilot-diff-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .tn-copilot-btn-apply {
@@ -737,13 +774,13 @@
   border: 1px solid #00D9C0;
   color: #050505;
   font-weight: 600;
-  font-size: 0.74rem;
-  padding: 5px 12px;
-  border-radius: 5px;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   transition: all 130ms ease;
 }
 
@@ -755,9 +792,9 @@
   background: #161616;
   border: 1px solid #2B2B2B;
   color: #A3A3A3;
-  font-size: 0.74rem;
-  padding: 5px 10px;
-  border-radius: 5px;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 130ms ease;
 }
@@ -767,9 +804,9 @@
   color: #FFFFFF;
 }
 
-/* ─── 5. Bottom Grounded Contextual Input ─── */
+/* ─── 10. Bottom Grounded Contextual Input ─── */
 .tn-copilot-footer {
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #070707;
   border-top: 1px solid #1C1C1C;
   flex-shrink: 0;
@@ -778,11 +815,13 @@
 .tn-copilot-input-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #0E0E0E;
   border: 1px solid #222222;
   border-radius: 6px;
-  padding: 3px 6px 3px 10px;
+  padding: 2px 4px 2px 10px;
+  height: 40px;
+  box-sizing: border-box;
   transition: border-color 120ms ease;
 }
 
@@ -792,11 +831,11 @@
 
 .tn-copilot-input-box input {
   flex: 1;
-  height: 32px;
+  height: 34px;
   background: transparent;
   border: 0;
   color: #F5F5F5;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   outline: none;
 }
 
@@ -808,13 +847,14 @@
   background: #181818;
   border: 1px solid #282828;
   color: #A3A3A3;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 5px;
   display: grid;
   place-items: center;
   cursor: pointer;
   transition: all 120ms ease;
+  flex-shrink: 0;
 }
 
 .tn-copilot-send-btn:hover:not(:disabled) {
@@ -828,18 +868,51 @@
   cursor: not-allowed;
 }
 
-/* ─── Responsive Breakpoints ─── */
+/* ─── 11. Responsive Breakpoints ─── */
 @media (max-width: 768px) {
+  .tn-copilot-floating-trigger {
+    right: 16px;
+    bottom: 16px;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
+
+  .tn-copilot-floating-trigger span {
+    display: none;
+  }
+
+  .tn-copilot-floating-panel,
   .tn-copilot-drawer {
-    width: 100vw;
-    max-width: 100vw;
-    border-left: 0;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-width: 100vw !important;
+    height: auto !important;
+    max-height: 82vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.7) !important;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
+  .tn-copilot-floating-trigger {
+    right: 18px;
+    bottom: 18px;
+  }
+
+  .tn-copilot-floating-panel,
   .tn-copilot-drawer {
-    width: 380px;
-    max-width: 420px;
+    right: 18px;
+    bottom: 76px;
+    width: 360px;
+    max-width: 390px;
+    height: 500px;
   }
 }

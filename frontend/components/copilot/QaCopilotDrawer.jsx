@@ -15,15 +15,17 @@ import {
     ChevronDown,
     Zap,
     SlidersHorizontal,
-    GitBranch,
-    RefreshCw
+    MessageSquare,
+    ChevronLeft
 } from 'lucide-react';
 import { copilotService } from '../../services/copilotService';
 import '../../styles/copilotDrawer.css';
 
 const QaCopilotDrawer = ({
-    isOpen,
+    isOpen = false,
     onClose,
+    onToggle,
+    showFloatingTrigger = true,
     suite,
     testSuiteId,
     selectedTestCase,
@@ -42,6 +44,7 @@ const QaCopilotDrawer = ({
 
     const [showScopeMenu, setShowScopeMenu] = useState(false);
     const scopeMenuRef = useRef(null);
+    const panelRef = useRef(null);
 
     // ─── Analysis State ───
     const [analysisResult, setAnalysisResult] = useState(null);
@@ -54,18 +57,27 @@ const QaCopilotDrawer = ({
     // ─── Free-form Query Input State ───
     const [queryInput, setQueryInput] = useState('');
 
-    // Update scope dynamically if selectedTestCase or activeTab changes externally
+    // Update context dynamically when selectedTestCase changes
+    const prevTcIdRef = useRef(selectedTestCase?.id);
     useEffect(() => {
-        if (selectedTestCase?.id && contextScope === 'suite') {
-            setContextScope('test_case');
+        if (selectedTestCase?.id) {
+            if (prevTcIdRef.current !== selectedTestCase.id) {
+                // Switched test case: update context and reset previous test-case-specific analysis
+                setContextScope('test_case');
+                setAppliedImprovement(false);
+                if (analysisResult?.action === 'review_test_case' || analysisResult?.action === 'improve_test_case') {
+                    setAnalysisResult(null);
+                }
+                prevTcIdRef.current = selectedTestCase.id;
+            }
         }
-    }, [selectedTestCase?.id]);
+    }, [selectedTestCase?.id, analysisResult?.action]);
 
     // Keyboard listener: Escape key closes panel
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape' && isOpen) {
-                onClose();
+                if (onClose) onClose();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -109,7 +121,6 @@ const QaCopilotDrawer = ({
         setErrorMessage(null);
         setAppliedImprovement(false);
 
-        // Action-specific loading state
         const loadingLabels = {
             review_coverage: 'Auditing coverage & requirement traceability...',
             find_missing_scenarios: 'Detecting unaddressed boundary scenarios...',
@@ -117,7 +128,8 @@ const QaCopilotDrawer = ({
             find_edge_cases: 'Checking race conditions and edge thresholds...',
             analyze_security: 'Auditing security scenarios and abuse boundaries...',
             improve_test_case: `Generating improvements for ${selectedTestCase?.id || 'test'}...`,
-            custom_query: 'Analyzing query against test context...'
+            explain_traceability: 'Analyzing requirement traceability pathways...',
+            custom_query: 'Analyzing query against authoritative test context...'
         };
         setLoadingMessage(loadingLabels[actionType] || 'Analyzing QA context...');
 
@@ -134,7 +146,7 @@ const QaCopilotDrawer = ({
             if (res.success && res.data) {
                 setAnalysisResult(res.data);
             } else {
-                setErrorMessage('Unable to complete analysis. Please try again.');
+                setErrorMessage('Unable to complete analysis. Try again.');
             }
         } catch (err) {
             console.error('Copilot analysis error:', err);
@@ -177,7 +189,6 @@ const QaCopilotDrawer = ({
             }
         } catch (err) {
             console.error('Failed to add suggested test:', err);
-            // Even if offline/local, still invoke parent callback for seamless UI updates
             setAddedTestIds(prev => new Set([...prev, testCase.id]));
             if (onAddTestCase) {
                 onAddTestCase(testCase);
@@ -217,411 +228,442 @@ const QaCopilotDrawer = ({
         }
     };
 
-    if (!isOpen) return null;
+    const handleTriggerClick = () => {
+        if (isOpen) {
+            if (onClose) onClose();
+        } else {
+            if (onToggle) onToggle();
+        }
+    };
 
     return (
-        <aside className="tn-copilot-drawer" aria-label="QA Copilot Panel">
-            {/* ─── 1. Header ─── */}
-            <div className="tn-copilot-header">
-                <div className="tn-copilot-header__left">
-                    <div className="tn-copilot-header__title">
-                        <span>QA Copilot</span>
-                        <span className="tn-copilot-header__badge">Contextual</span>
-                    </div>
-                    <p className="tn-copilot-header__subtitle">Context-aware test analysis</p>
-                </div>
+        <>
+            {/* ─── 1. Floating Trigger Button (Bottom-Right) ─── */}
+            {showFloatingTrigger && (
                 <button
-                    className="tn-copilot-close-btn"
-                    onClick={onClose}
-                    title="Close Copilot (Esc)"
-                    aria-label="Close Copilot"
+                    className={`tn-copilot-floating-trigger ${isOpen ? 'is-open' : ''}`}
+                    onClick={handleTriggerClick}
+                    aria-label={isOpen ? "Close QA Copilot" : "Open QA Copilot"}
+                    aria-expanded={isOpen}
+                    title={isOpen ? "Close QA Copilot (Esc)" : "Ask Testnexa QA Copilot"}
                 >
-                    <X size={15} />
-                </button>
-            </div>
-
-            {/* ─── 2. Context Indicator & Scope Bar ─── */}
-            <div className="tn-copilot-context">
-                <div className="tn-copilot-context__top">
-                    <span className="tn-copilot-context__label">
-                        <span className="tn-copilot-context__dot" />
-                        Context
+                    <span className="tn-copilot-floating-trigger__icon">
+                        {isOpen ? <X size={16} /> : <MessageSquare size={16} />}
                     </span>
+                    <span>{isOpen ? 'Close' : 'Ask Testnexa'}</span>
+                </button>
+            )}
 
-                    {/* Scope Selector */}
-                    <div className="tn-copilot-scope-menu" ref={scopeMenuRef}>
+            {/* ─── 2. Floating Popover Panel (Above Button) ─── */}
+            {isOpen && (
+                <div
+                    className="tn-copilot-floating-panel"
+                    role="dialog"
+                    aria-label="QA Copilot Panel"
+                    aria-modal="false"
+                    ref={panelRef}
+                >
+                    {/* Header */}
+                    <div className="tn-copilot-header">
+                        <div className="tn-copilot-header__left">
+                            <div className="tn-copilot-header__title">
+                                <span>QA Copilot</span>
+                                <span className="tn-copilot-header__badge">Contextual</span>
+                            </div>
+                            <p className="tn-copilot-header__subtitle">Context-aware test analysis</p>
+                        </div>
                         <button
-                            className="tn-copilot-scope-btn"
-                            onClick={() => setShowScopeMenu(!showScopeMenu)}
-                            title="Change context scope"
+                            className="tn-copilot-close-btn"
+                            onClick={onClose}
+                            title="Close Copilot (Esc)"
+                            aria-label="Close Copilot"
                         >
-                            <SlidersHorizontal size={11} />
-                            <span>
-                                {contextScope === 'test_case' ? 'Selected Test' :
-                                 contextScope === 'coverage' ? 'Coverage' :
-                                 contextScope === 'risks' ? 'Risks' : 'Entire Suite'}
-                            </span>
-                            <ChevronDown size={11} />
+                            <X size={15} />
                         </button>
+                    </div>
 
-                        {showScopeMenu && (
-                            <div className="tn-copilot-scope-dropdown">
+                    {/* Context Indicator & Scope Bar */}
+                    <div className="tn-copilot-context">
+                        <div className="tn-copilot-context__top">
+                            <span className="tn-copilot-context__label">
+                                <span className="tn-copilot-context__dot" />
+                                Context
+                            </span>
+
+                            {/* Scope Selector */}
+                            <div className="tn-copilot-scope-menu" ref={scopeMenuRef}>
                                 <button
-                                    className={`tn-copilot-scope-option ${contextScope === 'suite' ? 'is-active' : ''}`}
-                                    onClick={() => { setContextScope('suite'); setShowScopeMenu(false); }}
+                                    className="tn-copilot-scope-btn"
+                                    onClick={() => setShowScopeMenu(!showScopeMenu)}
+                                    title="Change context scope"
+                                    type="button"
                                 >
-                                    Entire Suite
+                                    <SlidersHorizontal size={10} />
+                                    <span>
+                                        {contextScope === 'test_case' ? 'Selected Test' :
+                                         contextScope === 'coverage' ? 'Coverage' :
+                                         contextScope === 'risks' ? 'Risks' : 'Entire Suite'}
+                                    </span>
+                                    <ChevronDown size={10} />
                                 </button>
-                                {selectedTestCase?.id && (
-                                    <button
-                                        className={`tn-copilot-scope-option ${contextScope === 'test_case' ? 'is-active' : ''}`}
-                                        onClick={() => { setContextScope('test_case'); setShowScopeMenu(false); }}
-                                    >
-                                        Selected Test ({selectedTestCase.id})
-                                    </button>
+
+                                {showScopeMenu && (
+                                    <div className="tn-copilot-scope-dropdown">
+                                        <button
+                                            className={`tn-copilot-scope-option ${contextScope === 'suite' ? 'is-active' : ''}`}
+                                            onClick={() => { setContextScope('suite'); setShowScopeMenu(false); }}
+                                            type="button"
+                                        >
+                                            Entire Suite
+                                        </button>
+                                        {selectedTestCase?.id && (
+                                            <button
+                                                className={`tn-copilot-scope-option ${contextScope === 'test_case' ? 'is-active' : ''}`}
+                                                onClick={() => { setContextScope('test_case'); setShowScopeMenu(false); }}
+                                                type="button"
+                                            >
+                                                Selected Test ({selectedTestCase.id})
+                                            </button>
+                                        )}
+                                        <button
+                                            className={`tn-copilot-scope-option ${contextScope === 'coverage' ? 'is-active' : ''}`}
+                                            onClick={() => { setContextScope('coverage'); setShowScopeMenu(false); }}
+                                            type="button"
+                                        >
+                                            Coverage
+                                        </button>
+                                        <button
+                                            className={`tn-copilot-scope-option ${contextScope === 'risks' ? 'is-active' : ''}`}
+                                            onClick={() => { setContextScope('risks'); setShowScopeMenu(false); }}
+                                            type="button"
+                                        >
+                                            Risks
+                                        </button>
+                                    </div>
                                 )}
-                                <button
-                                    className={`tn-copilot-scope-option ${contextScope === 'coverage' ? 'is-active' : ''}`}
-                                    onClick={() => { setContextScope('coverage'); setShowScopeMenu(false); }}
-                                >
-                                    Coverage
-                                </button>
-                                <button
-                                    className={`tn-copilot-scope-option ${contextScope === 'risks' ? 'is-active' : ''}`}
-                                    onClick={() => { setContextScope('risks'); setShowScopeMenu(false); }}
-                                >
-                                    Risks
-                                </button>
+                            </div>
+                        </div>
+
+                        <div className="tn-copilot-context__body">
+                            <div className="tn-copilot-context__suite-name" title={suiteTitle}>
+                                {suiteTitle}
+                            </div>
+
+                            <div className="tn-copilot-context__meta">
+                                {selectedTestCase?.id && contextScope === 'test_case' ? (
+                                    <span className="tn-copilot-context__chip tn-copilot-context__chip--active" title={selectedTestCase.title}>
+                                        {selectedTestCase.id} selected
+                                    </span>
+                                ) : (
+                                    <>
+                                        <span className="tn-copilot-context__meta-item">
+                                            {totalTestsCount} test cases
+                                        </span>
+                                        <span>&bull;</span>
+                                        <span className="tn-copilot-context__meta-item">
+                                            {coverageConfidence}% coverage
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Analysis / Content Viewport */}
+                    <div className="tn-copilot-content">
+                        {isLoading && (
+                            <div className="tn-copilot-loading">
+                                <Loader2 size={16} className="tn-copilot-loading__spinner" />
+                                <span>{loadingMessage}</span>
                             </div>
                         )}
-                    </div>
-                </div>
 
-                <div className="tn-copilot-context__body">
-                    <div className="tn-copilot-context__suite-name" title={suiteTitle}>
-                        {suiteTitle}
-                    </div>
-
-                    <div className="tn-copilot-context__meta">
-                        <span className="tn-copilot-context__meta-item">
-                            {totalTestsCount} test cases
-                        </span>
-                        <span>&bull;</span>
-                        <span className="tn-copilot-context__meta-item">
-                            {coverageConfidence}% coverage
-                        </span>
-
-                        {selectedTestCase?.id && contextScope === 'test_case' && (
-                            <span className="tn-copilot-context__chip tn-copilot-context__chip--active" title={selectedTestCase.title}>
-                                Selected: <strong>{selectedTestCase.id}</strong> ({selectedTestCase.title?.slice(0, 20)}...)
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── 3. Quick Action Bar (3–5 Contextual Actions) ─── */}
-            <div className="tn-copilot-actions-bar">
-                <div className="tn-copilot-actions-bar__label">Suggested Actions</div>
-                <div className="tn-copilot-action-chips">
-                    <button
-                        className={`tn-copilot-action-chip ${analysisResult?.action === 'review_coverage' ? 'is-active' : ''}`}
-                        onClick={() => executeAction('review_coverage')}
-                        disabled={isLoading}
-                    >
-                        <Layers size={12} />
-                        <span>Review coverage</span>
-                    </button>
-
-                    <button
-                        className={`tn-copilot-action-chip ${analysisResult?.action === 'find_missing_scenarios' ? 'is-active' : ''}`}
-                        onClick={() => executeAction('find_missing_scenarios')}
-                        disabled={isLoading}
-                    >
-                        <Search size={12} />
-                        <span>Find missing scenarios</span>
-                    </button>
-
-                    {selectedTestCase?.id && (
-                        <button
-                            className={`tn-copilot-action-chip ${analysisResult?.action === 'review_test_case' ? 'is-active' : ''}`}
-                            onClick={() => executeAction('review_test_case')}
-                            disabled={isLoading}
-                        >
-                            <FileText size={12} />
-                            <span>Review selected test</span>
-                        </button>
-                    )}
-
-                    <button
-                        className={`tn-copilot-action-chip ${analysisResult?.action === 'analyze_security' ? 'is-active' : ''}`}
-                        onClick={() => executeAction('analyze_security')}
-                        disabled={isLoading}
-                    >
-                        <Shield size={12} />
-                        <span>Analyze security risks</span>
-                    </button>
-
-                    {selectedTestCase?.id && (
-                        <button
-                            className={`tn-copilot-action-chip ${analysisResult?.action === 'improve_test_case' ? 'is-active' : ''}`}
-                            onClick={() => executeAction('improve_test_case')}
-                            disabled={isLoading}
-                        >
-                            <Zap size={12} />
-                            <span>Improve selected test</span>
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* ─── 4. Scrollable Analysis / Content Viewport ─── */}
-            <div className="tn-copilot-content">
-                {isLoading && (
-                    <div className="tn-copilot-loading">
-                        <Loader2 size={16} className="tn-copilot-loading__spinner" />
-                        <span>{loadingMessage}</span>
-                    </div>
-                )}
-
-                {errorMessage && (
-                    <div className="tn-copilot-error">
-                        <AlertCircle size={16} className="flex-shrink-0 text-red-400" />
-                        <div>
-                            <p>{errorMessage}</p>
-                            <button onClick={() => executeAction(analysisResult?.action || 'review_coverage')}>
-                                Try again
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Default State: When opened without an active analysis */}
-                {!isLoading && !errorMessage && !analysisResult && (
-                    <div className="tn-copilot-default-state">
-                        <div className="tn-copilot-default-state__icon">
-                            <SlidersHorizontal size={20} />
-                        </div>
-                        <h4>Context-Aware QA Analysis</h4>
-                        <p>
-                            Review this test suite, evaluate selected test cases, uncover coverage gaps, or audit security scenarios.
-                        </p>
-
-                        <div className="tn-copilot-default-state__suggestions">
-                            <button
-                                className="tn-copilot-default-action-row"
-                                onClick={() => executeAction('review_coverage')}
-                            >
-                                <span><Layers size={14} className="text-teal-400" /> Review requirement coverage</span>
-                                <ArrowRight size={13} className="text-neutral-500" />
-                            </button>
-                            <button
-                                className="tn-copilot-default-action-row"
-                                onClick={() => executeAction('find_missing_scenarios')}
-                            >
-                                <span><Search size={14} className="text-teal-400" /> Find missing boundary tests</span>
-                                <ArrowRight size={13} className="text-neutral-500" />
-                            </button>
-                            {selectedTestCase?.id && (
-                                <button
-                                    className="tn-copilot-default-action-row"
-                                    onClick={() => executeAction('review_test_case')}
-                                >
-                                    <span><FileText size={14} className="text-teal-400" /> Inspect {selectedTestCase.id}</span>
-                                    <ArrowRight size={13} className="text-neutral-500" />
-                                </button>
-                            )}
-                            <button
-                                className="tn-copilot-default-action-row"
-                                onClick={() => executeAction('analyze_security')}
-                            >
-                                <span><Shield size={14} className="text-teal-400" /> Analyze abuse & rate limits</span>
-                                <ArrowRight size={13} className="text-neutral-500" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Structured QA Analysis Result */}
-                {!isLoading && analysisResult && (
-                    <div className="tn-copilot-analysis-card">
-                        {/* Header */}
-                        <div className="tn-copilot-analysis-header">
-                            <div className="tn-copilot-analysis-title">
-                                <span>{analysisResult.title || 'QA Analysis'}</span>
-                            </div>
-                            <span className="tn-copilot-type-tag">
-                                {analysisResult.action?.replace('_', ' ')}
-                            </span>
-                        </div>
-
-                        {/* Executive Summary */}
-                        {analysisResult.summary && (
-                            <p className="tn-copilot-summary">
-                                {analysisResult.summary}
-                            </p>
-                        )}
-
-                        {/* Findings */}
-                        {analysisResult.findings?.length > 0 && (
-                            <div>
-                                <div className="tn-copilot-section-title">Findings ({analysisResult.findings.length})</div>
-                                <div className="tn-copilot-findings-list">
-                                    {analysisResult.findings.map((f, idx) => (
-                                        <div key={idx} className="tn-copilot-finding-item">
-                                            <div className="tn-copilot-finding-header">
-                                                <span className="tn-copilot-finding-title">{f.title}</span>
-                                                <span className={`tn-copilot-severity-badge tn-copilot-severity-badge--${(f.severity || 'low').toLowerCase()}`}>
-                                                    {f.severity || 'Info'}
-                                                </span>
-                                            </div>
-                                            <p className="tn-copilot-finding-desc">{f.description}</p>
-                                            {f.whyItMatters && (
-                                                <div className="tn-copilot-finding-why">
-                                                    <strong>Why it matters:</strong> {f.whyItMatters}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                        {errorMessage && (
+                            <div className="tn-copilot-error">
+                                <AlertCircle size={15} className="flex-shrink-0 text-red-400" />
+                                <div>
+                                    <p>{errorMessage}</p>
+                                    <button onClick={() => executeAction(analysisResult?.action || 'review_coverage')}>
+                                        Try again
+                                    </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Suggested Tests (Human-in-the-loop) */}
-                        {analysisResult.suggestedTests?.length > 0 && (
-                            <div>
-                                <div className="tn-copilot-section-title">Suggested Tests ({analysisResult.suggestedTests.length})</div>
-                                <div className="tn-copilot-findings-list">
-                                    {analysisResult.suggestedTests.map((tc, idx) => {
-                                        const isAdded = addedTestIds.has(tc.id);
-                                        return (
-                                            <div key={idx} className="tn-copilot-suggested-card">
-                                                <div className="tn-copilot-suggested-card__header">
-                                                    <span className="tn-copilot-suggested-card__title">{tc.title}</span>
-                                                    <div className="tn-copilot-suggested-card__tags">
-                                                        <span className="tn-copilot-type-tag">{tc.type || 'Functional'}</span>
-                                                        <span className="tn-copilot-severity-badge tn-copilot-severity-badge--high">{tc.priority || 'High'}</span>
-                                                    </div>
-                                                </div>
+                        {/* Default State: Compact Action Rows */}
+                        {!isLoading && !errorMessage && !analysisResult && (
+                            <div className="tn-copilot-action-group">
+                                <div className="tn-copilot-action-group__label">Suggested Actions</div>
+                                <div className="tn-copilot-action-rows">
+                                    {selectedTestCase?.id && (
+                                        <button
+                                            className="tn-copilot-action-row"
+                                            onClick={() => executeAction('review_test_case')}
+                                            disabled={isLoading}
+                                            type="button"
+                                        >
+                                            <span className="tn-copilot-action-row__left">
+                                                <FileText size={13} className="tn-copilot-action-row__icon" />
+                                                <span>Review selected test ({selectedTestCase.id})</span>
+                                            </span>
+                                            <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                        </button>
+                                    )}
 
-                                                {tc.steps?.length > 0 && (
-                                                    <div className="tn-copilot-suggested-card__steps">
-                                                        {tc.steps.slice(0, 2).map((s, sIdx) => (
-                                                            <p key={sIdx}>
-                                                                <strong>Step {sIdx + 1}:</strong> {typeof s === 'string' ? s : s.action}
-                                                            </p>
-                                                        ))}
-                                                        {tc.expectedResult && (
-                                                            <p><strong>Expected:</strong> {tc.expectedResult}</p>
-                                                        )}
-                                                    </div>
-                                                )}
+                                    <button
+                                        className="tn-copilot-action-row"
+                                        onClick={() => executeAction('review_coverage')}
+                                        disabled={isLoading}
+                                        type="button"
+                                    >
+                                        <span className="tn-copilot-action-row__left">
+                                            <Layers size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Review coverage</span>
+                                        </span>
+                                        <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                    </button>
 
-                                                <button
-                                                    className={`tn-copilot-btn-add ${isAdded ? 'is-added' : ''}`}
-                                                    onClick={() => handleAddTest(tc)}
-                                                    disabled={isAdded}
-                                                >
-                                                    {isAdded ? (
-                                                        <>
-                                                            <Check size={13} />
-                                                            <span>Added to Test Suite</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Plus size={13} />
-                                                            <span>Add to Test Suite</span>
-                                                        </>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
+                                    <button
+                                        className="tn-copilot-action-row"
+                                        onClick={() => executeAction('find_missing_scenarios')}
+                                        disabled={isLoading}
+                                        type="button"
+                                    >
+                                        <span className="tn-copilot-action-row__left">
+                                            <Search size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Find missing scenarios</span>
+                                        </span>
+                                        <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                    </button>
 
-                        {/* Test Improvement Review (Diff Preview) */}
-                        {analysisResult.proposedImprovement && (
-                            <div>
-                                <div className="tn-copilot-section-title">Enhance Test Case</div>
-                                <div className="tn-copilot-diff-card">
-                                    <div className="tn-copilot-diff-block">
-                                        <span className="tn-copilot-diff-label">Current Expected Result</span>
-                                        <div className="tn-copilot-diff-content tn-copilot-diff-content--current">
-                                            {analysisResult.proposedImprovement.current?.expectedResult || selectedTestCase?.expectedResult || 'System behaves normally.'}
-                                        </div>
-                                    </div>
+                                    <button
+                                        className="tn-copilot-action-row"
+                                        onClick={() => executeAction('analyze_security')}
+                                        disabled={isLoading}
+                                        type="button"
+                                    >
+                                        <span className="tn-copilot-action-row__left">
+                                            <Shield size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Analyze security risks</span>
+                                        </span>
+                                        <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                    </button>
 
-                                    <div className="tn-copilot-diff-block">
-                                        <span className="tn-copilot-diff-label">Proposed Expected Result</span>
-                                        <div className="tn-copilot-diff-content tn-copilot-diff-content--proposed">
-                                            {analysisResult.proposedImprovement.proposed?.expectedResult || 'Structured assertions verified.'}
-                                        </div>
-                                    </div>
-
-                                    {appliedImprovement ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981', fontSize: '0.78rem', marginTop: '6px' }}>
-                                            <CheckCircle2 size={14} />
-                                            <span>Test case updated successfully.</span>
-                                        </div>
-                                    ) : (
-                                        <div className="tn-copilot-diff-actions">
-                                            <button
-                                                className="tn-copilot-btn-apply"
-                                                onClick={() => handleApplyImprovement(analysisResult.proposedImprovement)}
-                                            >
-                                                <Check size={12} />
-                                                <span>Apply Changes</span>
-                                            </button>
-                                            <button
-                                                className="tn-copilot-btn-keep"
-                                                onClick={() => setAnalysisResult(prev => ({ ...prev, proposedImprovement: null }))}
-                                            >
-                                                Keep Current
-                                            </button>
-                                        </div>
+                                    {selectedTestCase?.id && (
+                                        <button
+                                            className="tn-copilot-action-row"
+                                            onClick={() => executeAction('improve_test_case')}
+                                            disabled={isLoading}
+                                            type="button"
+                                        >
+                                            <span className="tn-copilot-action-row__left">
+                                                <Zap size={13} className="tn-copilot-action-row__icon" />
+                                                <span>Improve selected test</span>
+                                            </span>
+                                            <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                        </button>
                                     )}
                                 </div>
                             </div>
                         )}
 
-                        {/* Recommendations */}
-                        {analysisResult.recommendations?.length > 0 && (
-                            <div>
-                                <div className="tn-copilot-section-title">Recommendations</div>
-                                <ul style={{ margin: '6px 0 0 16px', padding: 0, fontSize: '0.76rem', color: '#B3B3B3', lineHeight: '1.5' }}>
-                                    {analysisResult.recommendations.map((rec, rIdx) => (
-                                        <li key={rIdx}>{rec}</li>
-                                    ))}
-                                </ul>
+                        {/* Structured QA Analysis Result */}
+                        {!isLoading && analysisResult && (
+                            <div className="tn-copilot-analysis-card">
+                                {/* Header with Back Navigation */}
+                                <div className="tn-copilot-analysis-header">
+                                    <div className="tn-copilot-analysis-header__left">
+                                        <button
+                                            className="tn-copilot-btn-back"
+                                            onClick={() => setAnalysisResult(null)}
+                                            title="Return to suggested actions"
+                                            type="button"
+                                        >
+                                            <ChevronLeft size={12} />
+                                            <span>Actions</span>
+                                        </button>
+                                        <div className="tn-copilot-analysis-title">
+                                            <span>{analysisResult.title || 'QA Analysis'}</span>
+                                        </div>
+                                    </div>
+                                    <span className="tn-copilot-type-tag">
+                                        {analysisResult.action?.replace('_', ' ')}
+                                    </span>
+                                </div>
+
+                                {/* Executive Summary */}
+                                {analysisResult.summary && (
+                                    <p className="tn-copilot-summary">
+                                        {analysisResult.summary}
+                                    </p>
+                                )}
+
+                                {/* Findings */}
+                                {analysisResult.findings?.length > 0 && (
+                                    <div>
+                                        <div className="tn-copilot-section-title">Findings ({analysisResult.findings.length})</div>
+                                        <div className="tn-copilot-findings-list">
+                                            {analysisResult.findings.map((f, idx) => (
+                                                <div key={idx} className="tn-copilot-finding-item">
+                                                    <div className="tn-copilot-finding-header">
+                                                        <span className="tn-copilot-finding-title">{f.title}</span>
+                                                        <span className={`tn-copilot-severity-badge tn-copilot-severity-badge--${(f.severity || 'low').toLowerCase()}`}>
+                                                            {f.severity || 'Info'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="tn-copilot-finding-desc">{f.description}</p>
+                                                    {f.whyItMatters && (
+                                                        <div className="tn-copilot-finding-why">
+                                                            <strong>Why it matters:</strong> {f.whyItMatters}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Suggested Tests (Human-in-the-loop) */}
+                                {analysisResult.suggestedTests?.length > 0 && (
+                                    <div>
+                                        <div className="tn-copilot-section-title">Suggested Tests ({analysisResult.suggestedTests.length})</div>
+                                        <div className="tn-copilot-findings-list">
+                                            {analysisResult.suggestedTests.map((tc, idx) => {
+                                                const isAdded = addedTestIds.has(tc.id);
+                                                return (
+                                                    <div key={idx} className="tn-copilot-suggested-card">
+                                                        <div className="tn-copilot-suggested-card__header">
+                                                            <span className="tn-copilot-suggested-card__title">{tc.title}</span>
+                                                            <div className="tn-copilot-suggested-card__tags">
+                                                                <span className="tn-copilot-type-tag">{tc.type || 'Functional'}</span>
+                                                                <span className="tn-copilot-severity-badge tn-copilot-severity-badge--high">{tc.priority || 'High'}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {tc.steps?.length > 0 && (
+                                                            <div className="tn-copilot-suggested-card__steps">
+                                                                {tc.steps.slice(0, 2).map((s, sIdx) => (
+                                                                    <p key={sIdx}>
+                                                                        <strong>Step {sIdx + 1}:</strong> {typeof s === 'string' ? s : s.action}
+                                                                    </p>
+                                                                ))}
+                                                                {tc.expectedResult && (
+                                                                    <p><strong>Expected:</strong> {tc.expectedResult}</p>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        <button
+                                                            className={`tn-copilot-btn-add ${isAdded ? 'is-added' : ''}`}
+                                                            onClick={() => handleAddTest(tc)}
+                                                            disabled={isAdded}
+                                                            type="button"
+                                                        >
+                                                            {isAdded ? (
+                                                                <>
+                                                                    <Check size={12} />
+                                                                    <span>Added to Test Suite</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Plus size={12} />
+                                                                    <span>Add to Test Suite</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Test Improvement Review (Diff Preview) */}
+                                {analysisResult.proposedImprovement && (
+                                    <div>
+                                        <div className="tn-copilot-section-title">Enhance Test Case</div>
+                                        <div className="tn-copilot-diff-card">
+                                            <div className="tn-copilot-diff-block">
+                                                <span className="tn-copilot-diff-label">Current Expected Result</span>
+                                                <div className="tn-copilot-diff-content tn-copilot-diff-content--current">
+                                                    {analysisResult.proposedImprovement.current?.expectedResult || selectedTestCase?.expectedResult || 'System behaves normally.'}
+                                                </div>
+                                            </div>
+
+                                            <div className="tn-copilot-diff-block">
+                                                <span className="tn-copilot-diff-label">Proposed Expected Result</span>
+                                                <div className="tn-copilot-diff-content tn-copilot-diff-content--proposed">
+                                                    {analysisResult.proposedImprovement.proposed?.expectedResult || 'Structured assertions verified.'}
+                                                </div>
+                                            </div>
+
+                                            {appliedImprovement ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#10B981', fontSize: '0.74rem', marginTop: '4px' }}>
+                                                    <CheckCircle2 size={13} />
+                                                    <span>Test case updated successfully.</span>
+                                                </div>
+                                            ) : (
+                                                <div className="tn-copilot-diff-actions">
+                                                    <button
+                                                        className="tn-copilot-btn-apply"
+                                                        onClick={() => handleApplyImprovement(analysisResult.proposedImprovement)}
+                                                        type="button"
+                                                    >
+                                                        <Check size={12} />
+                                                        <span>Apply Changes</span>
+                                                    </button>
+                                                    <button
+                                                        className="tn-copilot-btn-keep"
+                                                        onClick={() => setAnalysisResult(prev => ({ ...prev, proposedImprovement: null }))}
+                                                        type="button"
+                                                    >
+                                                        Keep Current
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recommendations */}
+                                {analysisResult.recommendations?.length > 0 && (
+                                    <div>
+                                        <div className="tn-copilot-section-title">Recommendations</div>
+                                        <ul style={{ margin: '4px 0 0 14px', padding: 0, fontSize: '0.73rem', color: '#B3B3B3', lineHeight: '1.45' }}>
+                                            {analysisResult.recommendations.map((rec, rIdx) => (
+                                                <li key={rIdx}>{rec}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
-                )}
-            </div>
 
-            {/* ─── 5. Bottom Grounded Contextual Input ─── */}
-            <div className="tn-copilot-footer">
-                <form className="tn-copilot-input-box" onSubmit={handleSendQuery}>
-                    <input
-                        type="text"
-                        placeholder="Ask about coverage, risks, or this test..."
-                        value={queryInput}
-                        onChange={(e) => setQueryInput(e.target.value)}
-                        disabled={isLoading}
-                    />
-                    <button
-                        type="submit"
-                        className="tn-copilot-send-btn"
-                        disabled={!queryInput.trim() || isLoading}
-                        title="Send analysis query"
-                    >
-                        <Send size={13} />
-                    </button>
-                </form>
-            </div>
-        </aside>
+                    {/* Bottom Grounded Contextual Input */}
+                    <div className="tn-copilot-footer">
+                        <form className="tn-copilot-input-box" onSubmit={handleSendQuery}>
+                            <input
+                                type="text"
+                                placeholder="Ask about coverage, risks, or this test..."
+                                value={queryInput}
+                                onChange={(e) => setQueryInput(e.target.value)}
+                                disabled={isLoading}
+                            />
+                            <button
+                                type="submit"
+                                className="tn-copilot-send-btn"
+                                disabled={!queryInput.trim() || isLoading}
+                                title="Send analysis query"
+                                aria-label="Send query"
+                            >
+                                <Send size={12} />
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 

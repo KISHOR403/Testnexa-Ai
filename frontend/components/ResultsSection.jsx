@@ -1291,10 +1291,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 )}
             </div>
 
-            {/* ─── 6. Context-Aware QA Copilot Drawer ─── */}
+            {/* ─── 6. Context-Aware Floating QA Copilot ─── */}
             <QaCopilotDrawer
                 isOpen={showAiCopilot}
                 onClose={() => setShowAiCopilot(false)}
+                onToggle={() => setShowAiCopilot(prev => !prev)}
+                showFloatingTrigger={true}
                 suite={result}
                 testSuiteId={result?._id || result?.id || result?.sessionId || result?.testSuiteId}
                 selectedTestCase={selectedTc}
