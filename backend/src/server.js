@@ -75,6 +75,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', apiRoutes);
 app.use('/api/v1/sessions', require('./routes/session.routes'));
 app.use('/api/v1/test-suites', require('./routes/testSuite.routes'));
+app.use('/api/v1/copilot', require('./routes/copilot.routes'));
 
 
 

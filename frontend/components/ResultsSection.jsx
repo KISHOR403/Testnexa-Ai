@@ -47,6 +47,7 @@ import {
     Copy as CopyIcon
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
+import QaCopilotDrawer from './copilot/QaCopilotDrawer';
 
 // ─── Status Badge Component ───
 const StatusBadge = ({ status }) => {
@@ -206,21 +207,16 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
     const [copiedDetails, setCopiedDetails] = useState(false);
     const [isRefineRegenerating, setIsRefineRegenerating] = useState(false);
 
-    // ─── AI Copilot Chat State ───
-    const [chatInput, setChatInput] = useState('');
-    const [isAiThinking, setIsAiThinking] = useState(false);
-    const [chatMessages, setChatMessages] = useState([
-        {
-            sender: 'assistant',
-            text: `I'm Testnexa Copilot. I've analyzed **${result.feature || 'this test suite'}** (REQ-001). I can detect coverage gaps, suggest security boundary tests, inspect selected test cases, or generate Gherkin scenarios.`,
-            suggestions: [
-                'Are we missing any security scenarios?',
-                'Is the selected test sufficient?',
-                'Explain requirement coverage gaps',
-                'Generate rate limiting tests'
-            ]
-        }
-    ]);
+    // ─── QA Copilot Integration Handlers ───
+    const handleCopilotAddTestCase = (newTestCase) => {
+        setTestCases(prev => [newTestCase, ...prev]);
+        setSelectedTcId(newTestCase.id);
+        setActiveTab('tests');
+    };
+
+    const handleCopilotUpdateTestCase = (updatedTestCase) => {
+        setTestCases(prev => prev.map(tc => tc.id === updatedTestCase.id ? { ...tc, ...updatedTestCase } : tc));
+    };
 
     // Keep test cases synced if incoming result prop changes completely
     useEffect(() => {
@@ -405,42 +401,6 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         setShowAiInsightsDrawer(false);
     };
 
-    // ─── AI Copilot Message Submission ───
-    const handleSendChatMessage = (textToSend) => {
-        const text = textToSend || chatInput;
-        if (!text.trim()) return;
-
-        const userMsg = { sender: 'user', text };
-        setChatMessages(prev => [...prev, userMsg]);
-        setChatInput('');
-        setIsAiThinking(true);
-
-        setTimeout(() => {
-            let replyText = '';
-            let action = null;
-
-            const lower = text.toLowerCase();
-            if (lower.includes('security') || lower.includes('missing')) {
-                replyText = `I analyzed the suite against OWASP ASVS v4.0. Currently, **TC-014** and **TC-006** cover token expiration and reuse, but **Rate Limiting (HTTP 429)** and **Timing-Attack Anti-Enumeration** are not covered.`;
-                action = { label: 'Generate 2 Security Tests', type: 'add_missing' };
-            } else if (lower.includes('sufficient') || lower.includes('selected')) {
-                replyText = `**${selectedTc.id}: ${selectedTc.title}** covers the expiration TTL window correctly. However, I recommend adding an explicit check for concurrent redemption while token expiration evaluates.`;
-                action = { label: 'Enhance Selected Test', type: 'enhance_selected' };
-            } else if (lower.includes('coverage') || lower.includes('gap')) {
-                replyText = `Requirement **REQ-001** has 94% coverage. ${testCases.length} test cases are mapped. The remaining 6% gap is in distributed cache token invalidation and edge-network retries.`;
-                action = { label: 'Generate Missing Edge Cases', type: 'add_missing' };
-            } else {
-                replyText = `I've audited the suite context for **${result.feature || 'REQ-001'}**. All ${testCases.length} test cases are structured with explicit preconditions and two-tier action/expected assertions.`;
-            }
-
-            setChatMessages(prev => [...prev, {
-                sender: 'assistant',
-                text: replyText,
-                action
-            }]);
-            setIsAiThinking(false);
-        }, 800);
-    };
 
     // ─── Copy Details ───
     const handleCopyDetails = (tc) => {
@@ -1331,88 +1291,18 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 )}
             </div>
 
-            {/* ─── 6. Context-Aware "Ask Testnexa" Right-Side Drawer ─── */}
-            {showAiCopilot && (
-                <div className="tn-ai-drawer animate-slide-left">
-                    <div className="tn-ai-drawer__header">
-                        <div className="tn-ai-drawer__title">
-                            <Bot size={18} className="text-teal-400" />
-                            <strong>Ask Testnexa Copilot</strong>
-                        </div>
-                        <button className="tn-btn-icon" onClick={() => setShowAiCopilot(false)} title="Close Copilot">
-                            <X size={16} />
-                        </button>
-                    </div>
-
-                    <div className="tn-ai-drawer__context-pill">
-                        <span className="tn-context-dot" />
-                        <span>Context: <strong>{selectedTc.id || 'REQ-001'}</strong> ({selectedTc.title?.slice(0, 32)}...)</span>
-                    </div>
-
-                    <div className="tn-ai-drawer__messages">
-                        {chatMessages.map((msg, i) => (
-                            <div key={i} className={`tn-chat-msg tn-chat-msg--${msg.sender}`}>
-                                <div className="tn-chat-avatar">
-                                    {msg.sender === 'assistant' ? <Bot size={14} /> : <User size={14} />}
-                                </div>
-                                <div className="tn-chat-bubble">
-                                    <p>{msg.text}</p>
-                                    {msg.suggestions && (
-                                        <div className="tn-chat-suggestions">
-                                            {msg.suggestions.map((sug, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    className="tn-suggestion-chip"
-                                                    onClick={() => handleSendChatMessage(sug)}
-                                                >
-                                                    {sug} &rarr;
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {msg.action && (
-                                        <div className="tn-chat-action-wrap">
-                                            <button
-                                                className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
-                                                onClick={handleAddMissingTests}
-                                            >
-                                                <Zap size={13} />
-                                                <span>{msg.action.label}</span>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        {isAiThinking && (
-                            <div className="tn-chat-msg tn-chat-msg--assistant">
-                                <div className="tn-chat-avatar"><Bot size={14} /></div>
-                                <div className="tn-chat-bubble tn-chat-thinking">
-                                    <Loader2 size={14} className="animate-spin" />
-                                    <span>Analyzing test suite context...</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="tn-ai-drawer__input-wrap">
-                        <input
-                            type="text"
-                            placeholder="Ask about coverage, security gaps, or selected test..."
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
-                        />
-                        <button
-                            className="tn-chat-send-btn"
-                            onClick={() => handleSendChatMessage()}
-                            disabled={!chatInput.trim()}
-                        >
-                            <Send size={15} />
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* ─── 6. Context-Aware QA Copilot Drawer ─── */}
+            <QaCopilotDrawer
+                isOpen={showAiCopilot}
+                onClose={() => setShowAiCopilot(false)}
+                suite={result}
+                testSuiteId={result?._id || result?.id || result?.sessionId || result?.testSuiteId}
+                selectedTestCase={selectedTc}
+                activeTab={activeTab}
+                onAddTestCase={handleCopilotAddTestCase}
+                onUpdateTestCase={handleCopilotUpdateTestCase}
+                onSwitchTab={(tab) => setActiveTab(tab)}
+            />
 
             {/* ─── 7. AI Insights Review Drawer ─── */}
             {showAiInsightsDrawer && (
