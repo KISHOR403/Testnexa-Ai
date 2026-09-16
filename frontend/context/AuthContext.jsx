@@ -201,9 +201,9 @@ export const AuthProvider = ({ children }) => {
         }
     }, [isAuthenticated, pendingAction]);
 
-    const login = async (email, password) => {
+    const login = async (email, password, rememberMe = false) => {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+            const response = await axios.post(`${API_URL}/auth/login`, { email, password, rememberMe });
             if (response.data.success) {
                 const { user, token } = response.data;
                 localStorage.setItem('testnexa_token', token);

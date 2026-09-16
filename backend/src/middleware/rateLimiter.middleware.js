@@ -66,7 +66,28 @@ const copilotRateLimiter = createRateLimiter({
     message: 'Too many Copilot requests. Please wait a few moments before trying again.'
 });
 
+const authLoginRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: 'Too many sign-in attempts. Please wait 15 minutes before trying again.'
+});
+
+const authRegisterRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: 'Too many account creation attempts. Please wait a while before trying again.'
+});
+
+const authPasswordResetRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: 'Too many password reset requests. Please wait 15 minutes before trying again.'
+});
+
 module.exports = {
     createRateLimiter,
-    copilotRateLimiter
+    copilotRateLimiter,
+    authLoginRateLimiter,
+    authRegisterRateLimiter,
+    authPasswordResetRateLimiter
 };

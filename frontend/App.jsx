@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocatio
 
 // Layouts
 import MarketingLayout from './layouts/MarketingLayout';
+import AuthLayout from './layouts/AuthLayout';
 import AppLayout from './layouts/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -42,7 +43,15 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* ─── PUBLIC MARKETING & AUTH PAGES ─── */}
+        {/* ─── DEDICATED MINIMAL AUTH PAGES ─── */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        </Route>
+
+        {/* ─── PUBLIC MARKETING & STATIC PAGES ─── */}
         <Route element={<MarketingLayout />}>
           <Route path="/" element={<GeneratorPage />} />
           <Route path="/features" element={<GeneratorPage />} />
@@ -51,10 +60,6 @@ function App() {
           <Route path="/audience" element={<GeneratorPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/help/:articleId" element={<HelpPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/cookie-policy" element={<TermsPage defaultDocId="cookies" />} />

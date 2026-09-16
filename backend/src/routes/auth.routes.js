@@ -2,6 +2,11 @@ const express = require('express');
 const passport = require('passport');
 const authController = require('../controllers/auth.controller');
 const { protect, optionalProtect } = require('../middleware/auth.middleware');
+const {
+    authLoginRateLimiter,
+    authRegisterRateLimiter,
+    authPasswordResetRateLimiter
+} = require('../middleware/rateLimiter.middleware');
 const router = express.Router();
 
 // Google Auth Routes
@@ -36,12 +41,12 @@ router.get('/google/callback',
 );
 
 // Manual Email/Password Auth
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+router.post('/register', authRegisterRateLimiter, authController.register);
+router.post('/login', authLoginRateLimiter, authController.login);
 
 // Password Reset Routes
-router.post('/forgot-password', authController.forgotPassword);
-router.put('/reset-password/:token', authController.resetPassword);
+router.post('/forgot-password', authPasswordResetRateLimiter, authController.forgotPassword);
+router.put('/reset-password/:token', authPasswordResetRateLimiter, authController.resetPassword);
 
 // GitHub Auth Routes
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));

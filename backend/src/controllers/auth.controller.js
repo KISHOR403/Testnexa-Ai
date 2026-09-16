@@ -16,19 +16,51 @@ const checkConnection = () => {
     }
 };
 
-// Helper to generate JWT with optional sessionId
-const generateToken = (id, sessionId) => {
+// Password Complexity Policy: At least 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special character
+const validatePasswordStrength = (password) => {
+    if (!password || typeof password !== 'string') {
+        return { valid: false, message: 'Password is required.' };
+    }
+    if (password.length < 8) {
+        return { valid: false, message: 'Password must be at least 8 characters.' };
+    }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one uppercase letter.' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one lowercase letter.' };
+    }
+    if (!/[0-9]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one number.' };
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        return { valid: false, message: 'Password must contain at least one special character.' };
+    }
+    return { valid: true };
+};
+
+const sanitizeEmail = (email) => {
+    if (!email || typeof email !== 'string') return '';
+    return email.trim().toLowerCase();
+};
+
+const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+// Helper to generate JWT with optional sessionId & rememberMe duration
+const generateToken = (id, sessionId, rememberMe = true) => {
     const payload = { id };
     if (sessionId) {
         payload.sessionId = sessionId.toString();
     }
     return jwt.sign(payload, process.env.JWT_SECRET || 'secret123', {
-        expiresIn: '30d'
+        expiresIn: rememberMe ? '30d' : '1d'
     });
 };
 
-// Helper to create an active user AuthSession
-const createAuthSession = async (userId, req) => {
+// Helper to create an active user AuthSession with rememberMe persistence
+const createAuthSession = async (userId, req, rememberMe = true) => {
     try {
         if (mongoose.connection.readyState !== 1) return null;
         const userAgent = req?.headers ? (req.headers['user-agent'] || '') : '';
@@ -36,7 +68,8 @@ const createAuthSession = async (userId, req) => {
         const { browser, os, deviceDisplay } = parseUserAgent(userAgent);
         const location = getLocationFromIp(ipAddress);
         const sessionIdentifier = crypto.randomBytes(24).toString('hex');
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        const durationDays = rememberMe ? 30 : 1;
+        const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
 
         const session = await AuthSession.create({
             userId,
@@ -58,28 +91,46 @@ const createAuthSession = async (userId, req) => {
     }
 };
 
+exports.validatePasswordStrength = validatePasswordStrength;
+exports.sanitizeEmail = sanitizeEmail;
+exports.isValidEmail = isValidEmail;
 exports.generateToken = generateToken;
 exports.createAuthSession = createAuthSession;
 
 exports.register = async (req, res) => {
     try {
         checkConnection();
-        const { name, email, password } = req.body;
+        const cleanName = (req.body.name || '').trim();
+        const cleanEmail = sanitizeEmail(req.body.email);
+        const password = req.body.password;
         const now = new Date();
+
+        if (!cleanName || cleanName.length < 2) {
+            return res.status(400).json({ success: false, message: 'Please enter your full name (at least 2 characters).' });
+        }
+
+        if (!cleanEmail || !isValidEmail(cleanEmail)) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+        }
+
+        const pwdCheck = validatePasswordStrength(password);
+        if (!pwdCheck.valid) {
+            return res.status(400).json({ success: false, message: pwdCheck.message });
+        }
 
         // 1. Check if user exists in either database
         let userExists = false;
         if (supabaseService.isAvailable) {
-            const sbCheck = await supabaseService.findUserByEmail(email);
+            const sbCheck = await supabaseService.findUserByEmail(cleanEmail);
             if (sbCheck) userExists = true;
         }
         if (!userExists && mongoose.connection.readyState === 1) {
-            const mongoCheck = await User.findOne({ email });
+            const mongoCheck = await User.findOne({ email: cleanEmail });
             if (mongoCheck) userExists = true;
         }
 
         if (userExists) {
-            return res.status(400).json({ success: false, message: 'User already exists' });
+            return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
         }
 
         // Hash password
@@ -93,9 +144,9 @@ exports.register = async (req, res) => {
         if (supabaseService.isAvailable) {
             try {
                 const sbUser = await supabaseService.createUser({
-                    name,
-                    displayName: name,
-                    email,
+                    name: cleanName,
+                    displayName: cleanName,
+                    email: cleanEmail,
                     password: hashedPassword,
                     provider: 'email',
                     isVerified: false
@@ -176,8 +227,13 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         checkConnection();
-        const { email, password } = req.body;
+        const { email, password, rememberMe = false } = req.body;
+        const cleanEmail = sanitizeEmail(email);
         const now = new Date();
+
+        if (!cleanEmail || !password) {
+            return res.status(400).json({ success: false, message: 'Please enter your email and password.' });
+        }
 
         let matchedUser = null;
         let userSource = null;
@@ -185,7 +241,7 @@ exports.login = async (req, res) => {
         // 1. Try Supabase lookup
         if (supabaseService.isAvailable) {
             try {
-                const sbUser = await supabaseService.findUserByEmail(email);
+                const sbUser = await supabaseService.findUserByEmail(cleanEmail);
                 if (sbUser && sbUser.password) {
                     const isMatch = await bcrypt.compare(password, sbUser.password);
                     if (isMatch) {
@@ -201,7 +257,7 @@ exports.login = async (req, res) => {
         // 2. Try MongoDB lookup if not matched yet
         if (!matchedUser && mongoose.connection.readyState === 1) {
             try {
-                const mongoUser = await User.findOne({ email });
+                const mongoUser = await User.findOne({ email: cleanEmail });
                 if (mongoUser && mongoUser.password) {
                     const isMatch = await bcrypt.compare(password, mongoUser.password);
                     if (isMatch) {
@@ -215,7 +271,7 @@ exports.login = async (req, res) => {
         }
 
         if (!matchedUser) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return res.status(401).json({ success: false, message: 'Incorrect email or password.' });
         }
 
         // 3. Update both databases
@@ -252,8 +308,9 @@ exports.login = async (req, res) => {
             } catch (mErr) {}
         }
 
-        const session = await createAuthSession(userId, req);
-        const token = generateToken(userId, session?._id);
+        const isPersistent = Boolean(rememberMe);
+        const session = await createAuthSession(userId, req, isPersistent);
+        const token = generateToken(userId, session?._id, isPersistent);
 
         return res.json({
             success: true,
@@ -489,53 +546,52 @@ exports.revokeOtherSessions = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
     try {
         checkConnection();
-        const { email } = req.body;
+        const cleanEmail = sanitizeEmail(req.body.email);
 
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'There is no user with that email' });
+        if (!cleanEmail || !isValidEmail(cleanEmail)) {
+            return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
         }
 
-        // Generate token
+        const user = await User.findOne({ email: cleanEmail });
+        const genericSuccessMessage = "If an account exists for this email, we'll send a password reset link.";
+
+        // Anti-enumeration: If user does not exist, return generic success message
+        if (!user) {
+            return res.status(200).json({ success: true, message: genericSuccessMessage });
+        }
+
+        // Generate secure token
         const resetToken = crypto.randomBytes(20).toString('hex');
-
-        // Hash token and set to resetPasswordToken field
         user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-
-        // Set expire (15 minutes)
-        user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
-
+        user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
         await user.save();
 
-        // Create reset URL
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
         try {
-            const emailResult = await sendPasswordResetEmail(user.email, resetUrl);
-            if (!emailResult || !emailResult.success) {
-                user.resetPasswordToken = undefined;
-                user.resetPasswordExpire = undefined;
-                await user.save();
-                return res.status(500).json({ success: false, message: 'Email could not be sent' });
-            }
-
-            res.status(200).json({ success: true, message: 'Email sent successfully' });
+            await sendPasswordResetEmail(user.email, resetUrl);
+            res.status(200).json({ success: true, message: genericSuccessMessage });
         } catch (err) {
             user.resetPasswordToken = undefined;
             user.resetPasswordExpire = undefined;
             await user.save();
-            return res.status(500).json({ success: false, message: 'Email could not be sent' });
+            return res.status(500).json({ success: false, message: 'Could not send reset email. Please try again later.' });
         }
     } catch (error) {
         console.error('Forgot password error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: 'An unexpected error occurred. Please try again later.' });
     }
 };
 
 exports.resetPassword = async (req, res) => {
     try {
         checkConnection();
+
+        const pwdCheck = validatePasswordStrength(req.body.password);
+        if (!pwdCheck.valid) {
+            return res.status(400).json({ success: false, message: pwdCheck.message });
+        }
         
         // Get hashed token
         const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -546,7 +602,7 @@ exports.resetPassword = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+            return res.status(400).json({ success: false, message: 'Invalid or expired password reset link.' });
         }
 
         // Set new password
@@ -566,7 +622,7 @@ exports.resetPassword = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Password reset successfully'
+            message: 'Password updated successfully.'
         });
     } catch (error) {
         console.error('Reset password error:', error);

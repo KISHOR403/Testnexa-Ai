@@ -1,0 +1,481 @@
+/* ==========================================================================
+   TESTNEXA AUTHENTICATION — B2B SaaS & Developer-Tool Design System
+   Background: #050505 | Surface: #0A0A0A | Elevated: #111111 | Border: #1C1C1C
+   Primary: #F5F5F5 | Secondary: #A3A3A3 | Muted: #737373 | Accent: #00D9C0
+   ========================================================================== */
+
+/* ─── 1. Shell & Layout Structure ─── */
+.tn-auth-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #050505;
+  color: #F5F5F5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.tn-auth-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid #141414;
+  flex-shrink: 0;
+}
+
+.tn-auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #F5F5F5;
+  transition: opacity 120ms ease;
+}
+
+.tn-auth-brand:hover {
+  opacity: 0.85;
+}
+
+.tn-auth-brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.tn-auth-brand-text {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #F5F5F5;
+}
+
+.tn-auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #737373;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.tn-auth-back-link:hover {
+  color: #00D9C0;
+}
+
+.tn-auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.tn-auth-footer {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-top: 1px solid #141414;
+  color: #555555;
+  font-size: 0.76rem;
+  flex-shrink: 0;
+}
+
+.tn-auth-footer-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tn-auth-footer-links a {
+  color: #737373;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.tn-auth-footer-links a:hover {
+  color: #00D9C0;
+}
+
+.tn-auth-footer-sep {
+  color: #333333;
+}
+
+/* ─── 2. Compact Auth Card Container ─── */
+.tn-auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #0A0A0A;
+  border: 1px solid #1C1C1C;
+  border-radius: 12px;
+  padding: 32px 32px 28px 32px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+}
+
+/* ─── 3. Header & Typography ─── */
+.tn-auth-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #F5F5F5;
+  margin: 0 0 6px 0;
+  text-align: left;
+}
+
+.tn-auth-subtitle {
+  font-size: 0.84rem;
+  color: #A3A3A3;
+  margin: 0 0 24px 0;
+  line-height: 1.45;
+  text-align: left;
+}
+
+/* ─── 4. Social Authentication Buttons ─── */
+.tn-auth-social-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.tn-auth-social-btn {
+  width: 100%;
+  height: 46px;
+  background: #111111;
+  border: 1px solid #1C1C1C;
+  border-radius: 8px;
+  color: #F5F5F5;
+  font-size: 0.84rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.tn-auth-social-btn:hover:not(:disabled) {
+  background: #161616;
+  border-color: #2E2E2E;
+}
+
+.tn-auth-social-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tn-auth-social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ─── 5. Divider ─── */
+.tn-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 20px 0;
+  color: #737373;
+  font-size: 0.74rem;
+  text-transform: lowercase;
+}
+
+.tn-auth-divider::before,
+.tn-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #1C1C1C;
+}
+
+/* ─── 6. Form Fields & Inputs ─── */
+.tn-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.tn-auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.tn-auth-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tn-auth-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #D4D4D4;
+}
+
+.tn-auth-forgot-link {
+  font-size: 0.78rem;
+  color: #A3A3A3;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.tn-auth-forgot-link:hover {
+  color: #00D9C0;
+}
+
+.tn-auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.tn-auth-input {
+  width: 100%;
+  height: 46px;
+  background: #111111;
+  border: 1px solid #1C1C1C;
+  border-radius: 8px;
+  color: #F5F5F5;
+  font-size: 0.84rem;
+  padding: 0 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.tn-auth-input:hover {
+  border-color: #2E2E2E;
+}
+
+.tn-auth-input:focus {
+  border-color: #00D9C0;
+  background: #0E0E0E;
+}
+
+.tn-auth-input.is-error {
+  border-color: #EF4444;
+}
+
+.tn-auth-input::placeholder {
+  color: #555555;
+}
+
+.tn-auth-password-toggle {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: 0;
+  color: #737373;
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  transition: color 120ms ease;
+}
+
+.tn-auth-password-toggle:hover {
+  color: #F5F5F5;
+}
+
+.tn-auth-field-error {
+  font-size: 0.74rem;
+  color: #F87171;
+  margin-top: 2px;
+}
+
+/* ─── 7. Remember Me Checkbox ─── */
+.tn-auth-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #A3A3A3;
+  cursor: pointer;
+  user-select: none;
+  margin-top: -2px;
+}
+
+.tn-auth-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #00D9C0;
+  cursor: pointer;
+}
+
+/* ─── 8. Primary CTA Button ─── */
+.tn-auth-btn-primary {
+  width: 100%;
+  height: 46px;
+  background: #00D9C0;
+  border: 1px solid #00D9C0;
+  border-radius: 8px;
+  color: #050505;
+  font-size: 0.86rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 140ms ease, background-color 140ms ease;
+  user-select: none;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.tn-auth-btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.tn-auth-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── 9. Form Error / Status Banners ─── */
+.tn-auth-error-banner {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #FCA5A5;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.tn-auth-success-banner {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #6EE7B7;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+/* ─── 10. Live Password Checklist ─── */
+.tn-auth-pwd-checklist {
+  background: #0E0E0E;
+  border: 1px solid #1C1C1C;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #737373;
+  margin-top: 2px;
+}
+
+.tn-auth-pwd-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: color 120ms ease;
+}
+
+.tn-auth-pwd-item.is-valid {
+  color: #10B981;
+}
+
+.tn-auth-pwd-icon {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* ─── 11. Terms & Privacy Note ─── */
+.tn-auth-terms-note {
+  font-size: 0.74rem;
+  color: #737373;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.tn-auth-terms-note a {
+  color: #A3A3A3;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 120ms ease;
+}
+
+.tn-auth-terms-note a:hover {
+  color: #00D9C0;
+}
+
+/* ─── 12. Switch Prompt / Footer ─── */
+.tn-auth-prompt {
+  text-align: center;
+  font-size: 0.82rem;
+  color: #737373;
+  margin-top: 20px;
+}
+
+.tn-auth-prompt a {
+  color: #F5F5F5;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: color 120ms ease;
+}
+
+.tn-auth-prompt a:hover {
+  color: #00D9C0;
+}
+
+/* ─── 13. Responsive Breakpoints ─── */
+@media (max-width: 768px) {
+  .tn-auth-header {
+    padding: 0 16px;
+  }
+
+  .tn-auth-footer {
+    padding: 0 16px;
+    flex-direction: column;
+    height: auto;
+    padding: 16px;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .tn-auth-main {
+    padding: 24px 16px;
+  }
+
+  .tn-auth-card {
+    max-width: 100%;
+    padding: 24px 20px 20px 20px;
+    border-radius: 10px;
+  }
+
+  .tn-auth-title {
+    font-size: 1.25rem;
+  }
+
+  .tn-auth-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 20px;
+  }
+}
