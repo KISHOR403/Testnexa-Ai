@@ -4,11 +4,13 @@ import {
     Menu, ChevronRight, HelpCircle, Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useHistory } from '../../hooks/useHistory';
 
 const AppHeader = ({ onToggleMobile }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { history } = useHistory();
 
     // Determine breadcrumbs based on pathname and search
     const getBreadcrumb = () => {
@@ -17,8 +19,13 @@ const AppHeader = ({ onToggleMobile }) => {
             return { section: 'Workspace', current: 'AI Workspace', link: '/app/workspace' };
         }
         if (path.includes('/app/test-suites/')) {
-            const suiteSlug = path.split('/app/test-suites/')[1] || 'Suite';
-            const formatted = suiteSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            const suiteSlug = path.split('/app/test-suites/')[1]?.split('?')[0] || '';
+            const matching = history?.find(item => item.id === suiteSlug || item.sessionId === suiteSlug);
+            const title = matching?.title || matching?.feature;
+            if (title) {
+                return { section: 'Test Suites', current: title, link: '/app/test-suites' };
+            }
+            const formatted = (suiteSlug || 'Suite').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
             return { section: 'Test Suites', current: `${formatted} Suite`, link: '/app/test-suites' };
         }
         if (path.includes('/app/test-suites')) {

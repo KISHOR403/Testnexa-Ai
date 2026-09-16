@@ -58,12 +58,19 @@ export const sessionService = {
      * Get a single session with full data (messages, suiteData, versions)
      */
     get: async (sessionId) => {
-        const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
-            method: 'GET',
-            headers: getHeaders(),
-            credentials: 'include',
-        });
-        return handleResponse(response);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        try {
+            const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
+                method: 'GET',
+                headers: getHeaders(),
+                credentials: 'include',
+                signal: controller.signal
+            });
+            return await handleResponse(response);
+        } finally {
+            clearTimeout(timeoutId);
+        }
     },
 
     /**
@@ -134,12 +141,19 @@ export const testSuiteService = {
         return handleResponse(response);
     },
     get: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
-            method: 'GET',
-            headers: getHeaders(),
-            credentials: 'include',
-        });
-        return handleResponse(response);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        try {
+            const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+                method: 'GET',
+                headers: getHeaders(),
+                credentials: 'include',
+                signal: controller.signal
+            });
+            return await handleResponse(response);
+        } finally {
+            clearTimeout(timeoutId);
+        }
     },
     create: async (data) => {
         const response = await fetch(`${API_BASE_URL}/test-suites`, {

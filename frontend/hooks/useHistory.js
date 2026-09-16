@@ -45,31 +45,51 @@ export const useHistory = () => {
             setIsLoading(true);
             const response = await sessionService.list({ limit: 50 });
             if (response.success && Array.isArray(response.data)) {
-                const remoteData = response.data.map(item => ({
-                    id: item._id,
-                    sessionId: item._id,
-                    title: item.title || item.feature || 'Generated Suite',
-                    feature: item.title || item.feature || 'Generated Suite',
-                    requirement: item.requirement || '',
-                    status: item.status || 'Generated',
-                    context: item.context || 'web',
-                    depth: item.depth || 'Standard',
-                    settings: {
-                        type: item.context || 'web',
-                        level: item.depth || 'Standard',
-                        testFocus: 'mixed'
-                    },
-                    totalCases: item.summary?.total || 0,
-                    summary: item.summary || {},
-                    quality: item.quality || {},
-                    currentVersion: item.currentVersion || 1,
-                    date: item.updatedAt || item.createdAt,
-                    createdAt: item.createdAt,
-                    updatedAt: item.updatedAt,
-                    data: item.suiteData || null,
-                    suite: item.suiteData || null,
-                    isRemote: true
-                }));
+                const remoteData = response.data.map(item => {
+                    const totalCases = item.summary?.total ?? (
+                        (item.summary?.functional || 0) +
+                        (item.summary?.negative || 0) +
+                        (item.summary?.edge || 0) +
+                        (item.summary?.nonFunctional || 0) +
+                        (item.summary?.apiChecklist || 0) +
+                        (item.summary?.api || 0)
+                    );
+                    const sData = item.suiteData;
+                    const hasValidCases = sData && typeof sData === 'object' && Object.keys(sData).length > 0 && (
+                        (Array.isArray(sData.functional) && sData.functional.length > 0) ||
+                        (Array.isArray(sData.negative) && sData.negative.length > 0) ||
+                        (Array.isArray(sData.edge) && sData.edge.length > 0) ||
+                        (Array.isArray(sData.nonFunctional) && sData.nonFunctional.length > 0) ||
+                        (Array.isArray(sData.apiChecklist) && sData.apiChecklist.length > 0) ||
+                        (Array.isArray(sData.api) && sData.api.length > 0) ||
+                        (Array.isArray(sData.testCases) && sData.testCases.length > 0)
+                    );
+                    return {
+                        id: item._id,
+                        sessionId: item._id,
+                        title: item.title || item.feature || 'Generated Suite',
+                        feature: item.title || item.feature || 'Generated Suite',
+                        requirement: item.requirement || '',
+                        status: item.status || 'Generated',
+                        context: item.context || 'web',
+                        depth: item.depth || 'Standard',
+                        settings: {
+                            type: item.context || 'web',
+                            level: item.depth || 'Standard',
+                            testFocus: 'mixed'
+                        },
+                        totalCases,
+                        summary: item.summary || {},
+                        quality: item.quality || {},
+                        currentVersion: item.currentVersion || 1,
+                        date: item.updatedAt || item.createdAt,
+                        createdAt: item.createdAt,
+                        updatedAt: item.updatedAt,
+                        data: hasValidCases ? sData : null,
+                        suite: hasValidCases ? sData : null,
+                        isRemote: true
+                    };
+                });
 
                 setHistory(remoteData);
                 localStorage.setItem(storageKey, JSON.stringify(remoteData));

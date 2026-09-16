@@ -144,26 +144,44 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
 
                     {!isCollapsed && recentSessions.length > 0 ? (
                         <div className="app-sidebar__history-list">
-                            {recentSessions.slice(0, 4).map((session) => (
-                                <NavLink
-                                    key={session.id}
-                                    to={session.status === 'Draft' && !session.suite ? `/app/workspace/${session.id}` : `/app/test-suites/${session.id}`}
-                                    className={({ isActive }) => `app-sidebar__history-item ${isActive ? 'active' : ''}`}
-                                    onClick={handleNavClick}
-                                    title={session.title}
-                                >
-                                    <div className="app-sidebar__history-item-top">
-                                        <span className="app-sidebar__history-item-title">{session.title}</span>
-                                    </div>
-                                    <div className="app-sidebar__history-item-meta">
-                                        <span className="app-sidebar__history-context">{session.context || 'web'}</span>
-                                        <span>•</span>
-                                        <span>{session.totalCases || session.summary?.total || 0} tests</span>
-                                        <span>•</span>
-                                        <span>{formatTimeAgo(session.date)}</span>
-                                    </div>
-                                </NavLink>
-                            ))}
+                            {recentSessions.slice(0, 4).map((session) => {
+                                const totalTests = session.totalCases || (
+                                    session.summary ? (
+                                        session.summary.total ?? (
+                                            (session.summary.functional || 0) +
+                                            (session.summary.negative || 0) +
+                                            (session.summary.edge || 0) +
+                                            (session.summary.nonFunctional || 0) +
+                                            (session.summary.apiChecklist || 0) +
+                                            (session.summary.api || 0)
+                                        )
+                                    ) : 0
+                                );
+                                const targetUrl = (session.status === 'Draft' && !session.suite && totalTests === 0)
+                                    ? `/app/workspace/${session.id}`
+                                    : `/app/test-suites/${session.id}`;
+
+                                return (
+                                    <NavLink
+                                        key={session.id}
+                                        to={targetUrl}
+                                        className={({ isActive }) => `app-sidebar__history-item ${isActive ? 'active' : ''}`}
+                                        onClick={handleNavClick}
+                                        title={session.title}
+                                    >
+                                        <div className="app-sidebar__history-item-top">
+                                            <span className="app-sidebar__history-item-title">{session.title}</span>
+                                        </div>
+                                        <div className="app-sidebar__history-item-meta">
+                                            <span className="app-sidebar__history-context">{session.context || 'web'}</span>
+                                            <span>•</span>
+                                            <span>{totalTests} tests</span>
+                                            <span>•</span>
+                                            <span>{formatTimeAgo(session.date)}</span>
+                                        </div>
+                                    </NavLink>
+                                );
+                            })}
                             <NavLink
                                 to="/app/history"
                                 className="app-sidebar__view-all-link"
