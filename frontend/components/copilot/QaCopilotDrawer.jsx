@@ -16,7 +16,8 @@ import {
     Zap,
     SlidersHorizontal,
     MessageSquare,
-    ChevronLeft
+    ChevronLeft,
+    GitBranch
 } from 'lucide-react';
 import { copilotService } from '../../services/copilotService';
 import '../../styles/copilotDrawer.css';
@@ -122,13 +123,14 @@ const QaCopilotDrawer = ({
         setAppliedImprovement(false);
 
         const loadingLabels = {
-            review_coverage: 'Auditing coverage & requirement traceability...',
+            review_requirement: 'Evaluating requirement clarity & testability...',
             find_missing_scenarios: 'Detecting unaddressed boundary scenarios...',
-            review_test_case: `Reviewing ${selectedTestCase?.id || 'selected test'} specificity...`,
             find_edge_cases: 'Checking race conditions and edge thresholds...',
+            review_test_case: `Reviewing ${selectedTestCase?.id || 'selected test'} specificity...`,
+            explain_traceability: 'Analyzing requirement traceability pathways...',
+            review_coverage: 'Auditing coverage & requirement traceability...',
             analyze_security: 'Auditing security scenarios and abuse boundaries...',
             improve_test_case: `Generating improvements for ${selectedTestCase?.id || 'test'}...`,
-            explain_traceability: 'Analyzing requirement traceability pathways...',
             custom_query: 'Analyzing query against authoritative test context...'
         };
         setLoadingMessage(loadingLabels[actionType] || 'Analyzing QA context...');
@@ -411,30 +413,15 @@ const QaCopilotDrawer = ({
                             <div className="tn-copilot-action-group">
                                 <div className="tn-copilot-action-group__label">Suggested Actions</div>
                                 <div className="tn-copilot-action-rows">
-                                    {selectedTestCase?.id && (
-                                        <button
-                                            className="tn-copilot-action-row"
-                                            onClick={() => executeAction('review_test_case')}
-                                            disabled={isLoading}
-                                            type="button"
-                                        >
-                                            <span className="tn-copilot-action-row__left">
-                                                <FileText size={13} className="tn-copilot-action-row__icon" />
-                                                <span>Review selected test ({selectedTestCase.id})</span>
-                                            </span>
-                                            <span className="tn-copilot-action-row__arrow">&rarr;</span>
-                                        </button>
-                                    )}
-
                                     <button
                                         className="tn-copilot-action-row"
-                                        onClick={() => executeAction('review_coverage')}
+                                        onClick={() => executeAction('review_requirement')}
                                         disabled={isLoading}
                                         type="button"
                                     >
                                         <span className="tn-copilot-action-row__left">
-                                            <Layers size={13} className="tn-copilot-action-row__icon" />
-                                            <span>Review coverage</span>
+                                            <FileText size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Review requirement</span>
                                         </span>
                                         <span className="tn-copilot-action-row__arrow">&rarr;</span>
                                     </button>
@@ -454,31 +441,55 @@ const QaCopilotDrawer = ({
 
                                     <button
                                         className="tn-copilot-action-row"
-                                        onClick={() => executeAction('analyze_security')}
+                                        onClick={() => executeAction('find_edge_cases')}
                                         disabled={isLoading}
                                         type="button"
                                     >
                                         <span className="tn-copilot-action-row__left">
                                             <Shield size={13} className="tn-copilot-action-row__icon" />
-                                            <span>Analyze security risks</span>
+                                            <span>Find edge cases</span>
                                         </span>
                                         <span className="tn-copilot-action-row__arrow">&rarr;</span>
                                     </button>
 
-                                    {selectedTestCase?.id && (
-                                        <button
-                                            className="tn-copilot-action-row"
-                                            onClick={() => executeAction('improve_test_case')}
-                                            disabled={isLoading}
-                                            type="button"
-                                        >
-                                            <span className="tn-copilot-action-row__left">
-                                                <Zap size={13} className="tn-copilot-action-row__icon" />
-                                                <span>Improve selected test</span>
-                                            </span>
-                                            <span className="tn-copilot-action-row__arrow">&rarr;</span>
-                                        </button>
-                                    )}
+                                    <button
+                                        className="tn-copilot-action-row"
+                                        onClick={() => executeAction('review_test_case')}
+                                        disabled={isLoading}
+                                        type="button"
+                                    >
+                                        <span className="tn-copilot-action-row__left">
+                                            <CheckCircle2 size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Review test case {selectedTestCase?.id ? `(${selectedTestCase.id})` : ''}</span>
+                                        </span>
+                                        <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                    </button>
+
+                                    <button
+                                        className="tn-copilot-action-row"
+                                        onClick={() => executeAction('explain_traceability')}
+                                        disabled={isLoading}
+                                        type="button"
+                                    >
+                                        <span className="tn-copilot-action-row__left">
+                                            <GitBranch size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Explain traceability</span>
+                                        </span>
+                                        <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                    </button>
+
+                                    <button
+                                        className="tn-copilot-action-row"
+                                        onClick={() => executeAction('review_coverage')}
+                                        disabled={isLoading}
+                                        type="button"
+                                    >
+                                        <span className="tn-copilot-action-row__left">
+                                            <Layers size={13} className="tn-copilot-action-row__icon" />
+                                            <span>Review coverage</span>
+                                        </span>
+                                        <span className="tn-copilot-action-row__arrow">&rarr;</span>
+                                    </button>
                                 </div>
                             </div>
                         )}

@@ -379,6 +379,61 @@ const generateDeterministicAnalysis = ({ context, action, query }) => {
         };
     }
 
+    if (action === 'review_requirement') {
+        return {
+            action: 'review_requirement',
+            title: `Requirement Analysis: ${context.suiteTitle}`,
+            summary: `Evaluated requirement specification clarity, acceptance criteria completeness, and testability boundaries.`,
+            findings: [
+                {
+                    title: 'Specification testability and precision',
+                    severity: 'Low',
+                    description: `Requirement provides core functional scope. Edge failure thresholds and recovery semantics should be verified.`,
+                    whyItMatters: 'Ambiguous requirement statements lead to divergence between engineering implementation and QA assertions.',
+                    affectedArea: 'Requirement Specification'
+                },
+                {
+                    title: 'Boundary constraints and state lifecycle',
+                    severity: 'Medium',
+                    description: 'Ensure boundary limits, token validity windows, and rate limit tolerances are explicitly specified.',
+                    whyItMatters: 'Precise boundaries enable automated regression testing with deterministic pass/fail results.',
+                    affectedArea: 'Acceptance Criteria'
+                }
+            ],
+            suggestedTests: [],
+            proposedImprovement: null,
+            recommendations: [
+                'Ensure acceptance criteria include explicit HTTP status code or UI error string contracts',
+                'Define state expiration and concurrency behaviors'
+            ],
+            traceabilityImpact: 'Establishes clear acceptance anchors for 100% test scenario mapping.'
+        };
+    }
+
+    if (action === 'explain_traceability') {
+        return {
+            action: 'explain_traceability',
+            title: `Requirement Traceability: ${context.suiteTitle}`,
+            summary: `Bidirectional verification map linking ${allTests} test scenario(s) to requirement acceptance nodes.`,
+            findings: [
+                {
+                    title: 'Requirement-to-Test coverage density',
+                    severity: 'Low',
+                    description: `Primary specification maps to ${context.summary.functional} functional, ${context.summary.negative} negative, and ${context.summary.edge} edge verification cases.`,
+                    whyItMatters: 'Bidirectional traceability ensures no requirement clause is left untested before shipping.',
+                    affectedArea: 'Traceability Matrix'
+                }
+            ],
+            suggestedTests: [],
+            proposedImprovement: null,
+            recommendations: [
+                'Maintain forward traceability by recording test execution results against requirements',
+                'Verify edge case test cases map to corresponding system fault-tolerance specifications'
+            ],
+            traceabilityImpact: 'All test cases maintain verifiable parent links to the source requirement.'
+        };
+    }
+
     // Default: review_coverage
     return {
         action: 'review_coverage',
@@ -430,6 +485,7 @@ const generateDeterministicAnalysis = ({ context, action, query }) => {
  */
 const runCopilotAnalysis = async ({ suiteData, requirement, testCaseId, contextScope, action, query }) => {
     const validActions = [
+        'review_requirement',
         'review_coverage',
         'find_missing_scenarios',
         'review_test_case',

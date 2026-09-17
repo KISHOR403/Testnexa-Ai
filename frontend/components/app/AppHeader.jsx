@@ -82,11 +82,6 @@ const AppHeader = ({ onToggleMobile }) => {
             </div>
 
             <div className="app-header__right">
-                <div className="app-header__saved-badge" title="Changes saved">
-                    <Check size={13} color="#22C55E" strokeWidth={2.5} />
-                    <span>Saved</span>
-                </div>
-
                 <NavLink to="/help" className="app-header__btn" title="Documentation & Help">
                     <HelpCircle size={16} />
                 </NavLink>

@@ -90,20 +90,50 @@ const RisksPage = () => {
 
                     <div style={{ maxWidth: '440px' }}>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
-                            No risk vectors detected yet
+                            No test suite selected.
                         </h2>
                         <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
-                            Run security and edge case audits on your requirements in the AI Workspace to automatically identify potential risk vectors.
+                            Generate or open a test suite to view risk vectors & security audits.
                         </p>
                     </div>
 
-                    <NavLink
-                        to="/app/workspace"
-                        className="app-workspace-session-btn primary"
-                        style={{ padding: '0.65rem 1.25rem', textDecoration: 'none' }}
-                    >
-                        <span>+ Run Security Audit</span>
-                    </NavLink>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <NavLink
+                            to="/app/workspace"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.65rem 1.25rem',
+                                borderRadius: '8px',
+                                background: '#00D9C0',
+                                color: '#0A0A0A',
+                                fontSize: '0.88rem',
+                                textDecoration: 'none',
+                                fontWeight: '600'
+                            }}
+                        >
+                            <span>Generate in AI Workspace &rarr;</span>
+                        </NavLink>
+                        <NavLink
+                            to="/app/test-suites"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.65rem 1.25rem',
+                                borderRadius: '8px',
+                                background: '#121212',
+                                border: '1px solid #262626',
+                                color: '#F5F5F5',
+                                fontSize: '0.88rem',
+                                textDecoration: 'none',
+                                fontWeight: '500'
+                            }}
+                        >
+                            <span>View All Test Suites</span>
+                        </NavLink>
+                    </div>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
