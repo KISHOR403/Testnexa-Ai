@@ -1,38 +1,50 @@
 import React from 'react';
 import Hero from '../components/Hero';
-import Features from '../components/Features';
-import ProductStory from '../components/ProductStory';
-import PainPoints from '../components/PainPoints';
-import HowItWorks from '../components/HowItWorks';
-import WhoIsThisFor from '../components/WhoIsThisFor';
-import WhyThisMatters from '../components/WhyThisMatters';
+import ProductWorkflow from '../components/ProductWorkflow';
+import ProductPreview from '../components/ProductPreview';
+import RequirementIntelligence from '../components/RequirementIntelligence';
+import TestSuiteSection from '../components/TestSuiteSection';
+import CoverageRiskSection from '../components/CoverageRiskSection';
+import TraceabilitySection from '../components/TraceabilitySection';
+import RoleSection from '../components/RoleSection';
+import IntegrationsApiSection from '../components/IntegrationsApiSection';
+import SecurityTrustSection from '../components/SecurityTrustSection';
 import FinalCTA from '../components/FinalCTA';
 
 const GeneratorPage = () => {
     return (
-        <div className="home-page">
-            {/* 1. Hero - Clean Marketing & Product Demonstration with New-Tab Workspace CTA */}
+        <div className="home-page tn-marketing-root">
+            {/* 1. Hero: Problem framing, core value proposition & authentic TestNexa workspace preview */}
             <Hero />
 
-            {/* 2. Key Features */}
-            <Features />
+            {/* 2. Product Workflow: 7-step horizontal timeline with interactive adjacent preview */}
+            <ProductWorkflow />
 
-            {/* 3. Product Story — Transformation Pipeline */}
-            <ProductStory />
+            {/* 3. Real Product Preview: Connected tabbed views of REQ-142 Password Reset */}
+            <ProductPreview />
 
-            {/* 4. Real QA Pain Points */}
-            <PainPoints />
+            {/* 4. Requirement Intelligence: Raw input -> Analysis -> Structured testable criteria */}
+            <RequirementIntelligence />
 
-            {/* 5. How Testnexa AI Works */}
-            <HowItWorks />
+            {/* 5. Test Suite Generation: Master-detail table with TC-001..TC-005 and BDD syntax */}
+            <TestSuiteSection />
 
-            {/* 6. Who is this for? */}
-            <WhoIsThisFor />
+            {/* 6. Coverage + Risk: 87% coverage audit and High/Med/Low risk severity breakdown */}
+            <CoverageRiskSection />
 
-            {/* 7. Metrics */}
-            <WhyThisMatters />
+            {/* 7. Traceability: Bidirectional requirement-to-test tree lineage */}
+            <TraceabilitySection />
 
-            {/* 8. Final CTA with New-Tab Workspace CTA */}
+            {/* 8. Role-Based Stakeholder Value: QA Engineer, QA Lead, Eng Manager, PM */}
+            <RoleSection />
+
+            {/* 9. Integrations & REST API: Supported export formats and developer API curl */}
+            <IntegrationsApiSection />
+
+            {/* 10. Security & Enterprise Trust: Stateless inference, workspace isolation, RBAC */}
+            <SecurityTrustSection />
+
+            {/* 11. Final Action CTA: Enterprise CTA with authenticated workspace entry */}
             <FinalCTA />
         </div>
     );

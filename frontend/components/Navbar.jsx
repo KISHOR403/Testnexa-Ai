@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-    HelpCircle, LogIn, LogOut,
-    ChevronDown, ChevronRight, Settings, MessageSquare,
-    FileText, Download, Keyboard, Zap,
-    ArrowRight, Menu, X, LayoutDashboard
+    LogIn, LogOut, ChevronRight, Menu, X, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
@@ -12,32 +9,31 @@ import ProfileModal from './ProfileModal';
 import UpgradeModal from './UpgradeModal';
 import NavbarAccountMenu from './NavbarAccountMenu';
 
-const NAV_SECTIONS = [
-    { id: 'features', label: 'Features' },
-    { id: 'problem-vs-solution', label: 'Solutions' },
-    { id: 'engineering-maturity', label: 'How It Works' },
-    { id: 'who-is-this-for', label: 'Audience' },
-    { id: 'why-this-matters', label: 'Why Us' },
+const MARKETING_LINKS = [
+    { type: 'scroll', id: 'product-preview', label: 'Product' },
+    { type: 'scroll', id: 'workflow', label: 'Workflow' },
+    { type: 'scroll', id: 'features', label: 'Features' },
+    { type: 'route', path: '/help', label: 'Docs' },
+    { type: 'route', path: '/api-reference', label: 'API' }
 ];
 
-const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
+export const Navbar = ({ isMarketingLayout = true }) => {
     const { user, isAuthenticated, logout, isSigningOut } = useAuth();
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
-    const [activeSection, setActiveSection] = useState('');
     const location = useLocation();
     const navigate = useNavigate();
     const navRef = useRef(null);
 
-    // Scroll to a section, navigating to home first if needed
-    const scrollToSection = useCallback((sectionId) => {
+    // Smooth scroll helper for in-page anchors
+    const handleScrollTo = useCallback((elementId) => {
         const doScroll = () => {
-            const el = document.getElementById(sectionId);
+            const el = document.getElementById(elementId);
             if (el) {
-                const yOffset = -100;
+                const yOffset = -80;
                 const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
                 window.scrollTo({ top: y, behavior: 'smooth' });
             }
@@ -51,48 +47,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
         }
     }, [location.pathname, navigate]);
 
-    // Track active section via IntersectionObserver
-    useEffect(() => {
-        const sectionIds = [...new Set(NAV_SECTIONS.map(s => s.id))];
-        const observers = [];
-        const visibleSections = new Set();
-
-        const handleIntersect = (entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    visibleSections.add(entry.target.id);
-                } else {
-                    visibleSections.delete(entry.target.id);
-                }
-            });
-
-            if (visibleSections.size === 0) {
-                setActiveSection('');
-            } else {
-                // Pick the first visible section in DOM order
-                const first = sectionIds.find(id => visibleSections.has(id));
-                if (first) setActiveSection(first);
-            }
-        };
-
-        sectionIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                const observer = new IntersectionObserver(handleIntersect, {
-                    rootMargin: '-30% 0px -60% 0px',
-                    threshold: 0,
-                });
-                observer.observe(el);
-                observers.push(observer);
-            }
-        });
-
-        return () => observers.forEach(o => o.disconnect());
-    }, [location.pathname]);
-
-    const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0);
-
-    // Scroll detection for navbar style change
+    // Scroll state for subtle background solidifying
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
@@ -108,87 +63,117 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
 
     return (
         <>
-            <nav className={`floating-navbar ${scrolled ? 'floating-navbar-scrolled' : ''}`} ref={navRef}>
-                <div className="navbar-left-group">
-                    {/* Logo */}
-                    <NavLink to="/" className="floating-nav-logo" onClick={(e) => {
-                        if (location.pathname === '/') {
-                            e.preventDefault();
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                    }}>
-                    <div className="floating-logo-icon">
-                        <img src="/testnexa-logo.png" alt="Testnexa AI" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }} />
-                    </div>
-                    <div className="floating-logo-text">
-                        <span className="floating-logo-brand">Testnexa</span>
-                        <span className="floating-logo-sub">AI Test Generator</span>
-                    </div>
-                    </NavLink>
-                </div>
-
-                {/* Center Nav Links - Desktop */}
-                <div className="floating-nav-links">
-                    {NAV_SECTIONS.map((section, index) => (
-                        <button
-                            key={`${section.id}-${index}`}
-                            className={`floating-nav-link ${activeSection === section.id ? 'floating-nav-link-active' : ''}`}
-                            onClick={() => scrollToSection(section.id)}
-                        >
-                            {section.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Right Actions */}
-                <div className="floating-nav-actions">
-                    {isAuthenticated ? (
-                        <NavbarAccountMenu showHelpLink={true} />
-                    ) : (
-                        <a
-                            href={getTargetUrl('/app/workspace')}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="floating-nav-cta"
+            <header className={`tn-navbar ${scrolled ? 'is-scrolled' : ''}`} ref={navRef}>
+                <div className="tn-navbar__inner tn-container">
+                    {/* Brand Logo */}
+                    <div className="tn-navbar__brand">
+                        <NavLink
+                            to="/"
+                            className="tn-brand-link"
                             onClick={(e) => {
-                                e.preventDefault();
-                                handleWorkspaceEntry('/app/workspace');
+                                if (location.pathname === '/') {
+                                    e.preventDefault();
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
                             }}
                         >
-                            {isOpening ? 'Opening…' : 'Get Started'}
-                        </a>
-                    )}
+                            <div className="tn-brand-logo-box">
+                                <img
+                                    src="/testnexa-logo.png"
+                                    alt="TestNexa AI"
+                                    width="28"
+                                    height="28"
+                                    style={{ borderRadius: '6px', objectFit: 'cover' }}
+                                />
+                            </div>
+                            <span className="tn-brand-title">TestNexa</span>
+                        </NavLink>
+                    </div>
 
-                    {/* Mobile Hamburger Toggle */}
-                    <button
-                        type="button"
-                        className="floating-nav-mobile-toggle"
-                        onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-                        aria-label="Toggle mobile menu"
-                        aria-expanded={isMobileNavOpen}
-                    >
-                        {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
-                    </button>
+                    {/* Center Navigation Links - Desktop */}
+                    <nav className="tn-navbar__nav" aria-label="Main Navigation">
+                        {MARKETING_LINKS.map((item) => {
+                            if (item.type === 'scroll') {
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        className="tn-nav-link-btn"
+                                        onClick={() => handleScrollTo(item.id)}
+                                    >
+                                        {item.label}
+                                    </button>
+                                );
+                            }
+                            return (
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    className={({ isActive }) => `tn-nav-link-btn ${isActive ? 'is-active' : ''}`}
+                                >
+                                    {item.label}
+                                </NavLink>
+                            );
+                        })}
+                    </nav>
+
+                    {/* Right Actions */}
+                    <div className="tn-navbar__actions">
+                        {isAuthenticated ? (
+                            <NavbarAccountMenu showHelpLink={false} />
+                        ) : (
+                            <div className="tn-auth-buttons-row">
+                                <NavLink
+                                    to="/login?returnTo=%2Fapp%2Fworkspace"
+                                    className="tn-btn-nav-ghost"
+                                >
+                                    Sign in
+                                </NavLink>
+
+                                <a
+                                    href={getTargetUrl('/app/workspace')}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`tn-btn-nav-primary ${isOpening ? 'is-opening' : ''}`}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleWorkspaceEntry('/app/workspace');
+                                    }}
+                                >
+                                    <span>{isOpening ? 'Opening…' : 'Get Started'}</span>
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Mobile Hamburger Toggle */}
+                        <button
+                            type="button"
+                            className="tn-mobile-menu-toggle"
+                            onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+                            aria-label="Toggle navigation menu"
+                            aria-expanded={isMobileNavOpen}
+                        >
+                            {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+                        </button>
+                    </div>
                 </div>
-            </nav>
+            </header>
 
             {/* Mobile Navigation Drawer Overlay */}
             {isMobileNavOpen && (
                 <div
-                    className="floating-mobile-menu-overlay"
+                    className="tn-mobile-drawer-overlay"
                     onClick={() => setIsMobileNavOpen(false)}
                 >
                     <div
-                        className="floating-mobile-menu-card"
+                        className="tn-mobile-drawer"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="floating-mobile-menu-header">
-                            <div className="floating-logo-text">
-                                <span className="floating-logo-brand">Navigation</span>
-                            </div>
+                        <div className="tn-mobile-drawer__header">
+                            <span className="tn-brand-title">TestNexa</span>
                             <button
                                 type="button"
-                                className="floating-mobile-close-btn"
+                                className="tn-btn-icon"
                                 onClick={() => setIsMobileNavOpen(false)}
                                 aria-label="Close navigation"
                             >
@@ -196,117 +181,87 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar, onNewAnalysis }) => {
                             </button>
                         </div>
 
-                        <div className="floating-mobile-nav-list">
-                            {NAV_SECTIONS.map((section, index) => (
-                                <button
-                                    key={`mob-${section.id}-${index}`}
-                                    className={`floating-mobile-nav-item ${activeSection === section.id ? 'is-active' : ''}`}
-                                    onClick={() => {
-                                        scrollToSection(section.id);
-                                        setIsMobileNavOpen(false);
-                                    }}
-                                >
-                                    <span>{section.label}</span>
-                                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                                </button>
-                            ))}
+                        <div className="tn-mobile-drawer__nav">
+                            {MARKETING_LINKS.map((item) => {
+                                if (item.type === 'scroll') {
+                                    return (
+                                        <button
+                                            key={`mob-${item.id}`}
+                                            type="button"
+                                            className="tn-mobile-link"
+                                            onClick={() => {
+                                                setIsMobileNavOpen(false);
+                                                handleScrollTo(item.id);
+                                            }}
+                                        >
+                                            <span>{item.label}</span>
+                                            <ChevronRight size={14} className="text-muted" />
+                                        </button>
+                                    );
+                                }
+                                return (
+                                    <NavLink
+                                        key={`mob-${item.path}`}
+                                        to={item.path}
+                                        className="tn-mobile-link"
+                                        onClick={() => setIsMobileNavOpen(false)}
+                                    >
+                                        <span>{item.label}</span>
+                                        <ChevronRight size={14} className="text-muted" />
+                                    </NavLink>
+                                );
+                            })}
                         </div>
 
-                        <div className="floating-mobile-menu-divider" />
-
-                        <div className="floating-mobile-actions">
-                            <a
-                                href={getTargetUrl('/app/workspace')}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="floating-mobile-primary-btn"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setIsMobileNavOpen(false);
-                                    handleWorkspaceEntry('/app/workspace');
-                                }}
-                            >
-                                <LayoutDashboard size={16} />
-                                <span>{isOpening ? 'Opening…' : 'Open Workspace'}</span>
-                            </a>
-
+                        <div className="tn-mobile-drawer__footer">
                             {!isAuthenticated ? (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                <div className="tn-mobile-auth-grid">
                                     <NavLink
                                         to="/login?returnTo=%2Fapp%2Fworkspace"
-                                        className="floating-mobile-secondary-btn"
+                                        className="tn-btn-secondary tn-btn-secondary--full"
                                         onClick={() => setIsMobileNavOpen(false)}
                                     >
                                         <LogIn size={15} />
                                         <span>Sign In</span>
                                     </NavLink>
-                                    <NavLink
-                                        to="/signup?returnTo=%2Fapp%2Fworkspace"
-                                        className="floating-mobile-secondary-btn"
-                                        onClick={() => setIsMobileNavOpen(false)}
+                                    <a
+                                        href={getTargetUrl('/app/workspace')}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="tn-btn-primary tn-btn-primary--full"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setIsMobileNavOpen(false);
+                                            handleWorkspaceEntry('/app/workspace');
+                                        }}
                                     >
-                                        <span>Sign Up</span>
-                                    </NavLink>
+                                        <span>Get Started</span>
+                                    </a>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                                <div className="tn-mobile-auth-grid">
                                     <NavLink
-                                        to="/app/test-suites"
-                                        className="floating-mobile-secondary-btn"
+                                        to="/app/workspace"
+                                        className="tn-btn-primary tn-btn-primary--full"
                                         onClick={() => setIsMobileNavOpen(false)}
                                     >
-                                        <span>All Test Suites</span>
+                                        <LayoutDashboard size={15} />
+                                        <span>Open Workspace</span>
                                     </NavLink>
                                     <button
                                         type="button"
-                                        className="floating-mobile-secondary-btn"
+                                        className="tn-btn-secondary tn-btn-secondary--full text-danger"
                                         onClick={async () => {
                                             setIsMobileNavOpen(false);
                                             await logout();
                                         }}
                                         disabled={isSigningOut}
-                                        style={{ color: '#ef4444', opacity: isSigningOut ? 0.6 : 1, cursor: isSigningOut ? 'not-allowed' : 'pointer' }}
                                     >
-                                        {isSigningOut ? (
-                                            <div style={{
-                                                width: '14px',
-                                                height: '14px',
-                                                border: '2px solid rgba(239, 68, 68, 0.2)',
-                                                borderTopColor: '#EF4444',
-                                                borderRadius: '50%',
-                                                animation: 'spin 0.8s linear infinite'
-                                            }} />
-                                        ) : (
-                                            <LogOut size={15} />
-                                        )}
-                                        <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
+                                        <LogOut size={15} />
+                                        <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>
                                     </button>
                                 </div>
                             )}
-
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.25rem', marginTop: '0.85rem' }}>
-                                <NavLink
-                                    to="/help"
-                                    className="floating-mobile-link"
-                                    onClick={() => setIsMobileNavOpen(false)}
-                                >
-                                    Help
-                                </NavLink>
-                                <NavLink
-                                    to="/terms"
-                                    className="floating-mobile-link"
-                                    onClick={() => setIsMobileNavOpen(false)}
-                                >
-                                    Terms
-                                </NavLink>
-                                <NavLink
-                                    to="/privacy"
-                                    className="floating-mobile-link"
-                                    onClick={() => setIsMobileNavOpen(false)}
-                                >
-                                    Privacy
-                                </NavLink>
-                            </div>
                         </div>
                     </div>
                 </div>
