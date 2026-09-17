@@ -1,7 +1,6 @@
 import React from 'react';
 import Hero from '../components/Hero';
 import ProductWorkflow from '../components/ProductWorkflow';
-import ProductPreview from '../components/ProductPreview';
 import RequirementIntelligence from '../components/RequirementIntelligence';
 import TestSuiteSection from '../components/TestSuiteSection';
 import CoverageRiskSection from '../components/CoverageRiskSection';
@@ -20,10 +19,7 @@ const GeneratorPage = () => {
             {/* 2. Product Workflow: 7-step horizontal timeline with interactive adjacent preview */}
             <ProductWorkflow />
 
-            {/* 3. Real Product Preview: Connected tabbed views of REQ-142 Password Reset */}
-            <ProductPreview />
-
-            {/* 4. Requirement Intelligence: Raw input -> Analysis -> Structured testable criteria */}
+            {/* 3. Requirement Intelligence: Raw input -> Analysis -> Structured testable criteria */}
             <RequirementIntelligence />
 
             {/* 5. Test Suite Generation: Master-detail table with TC-001..TC-005 and BDD syntax */}

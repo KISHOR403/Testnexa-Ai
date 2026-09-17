@@ -51,7 +51,7 @@
 
 .tn-bp-title {
   font-size: 1.85rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: #f5f5f5;
   margin: 0 0 6px;
@@ -89,7 +89,7 @@
 
 .tn-bp-sidebar-heading {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #737373;
@@ -154,7 +154,7 @@
 
 .tn-bp-section-h2 {
   font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: #f5f5f5;
   margin: 0 0 8px;
@@ -192,7 +192,7 @@
 
 .tn-bp-comp-label {
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 8px;
@@ -227,7 +227,7 @@
 
 .tn-bp-why-title {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #f5f5f5;
@@ -314,7 +314,7 @@
 
 .tn-bp-coverage-tier {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #00d9c0;
@@ -377,7 +377,7 @@
 
 .tn-bp-case-heading {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #f5f5f5;
@@ -430,7 +430,7 @@
 
 .tn-bp-do-title {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #00d9c0;
@@ -442,7 +442,7 @@
 
 .tn-bp-avoid-title {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #ef4444;
@@ -502,7 +502,7 @@
 
 .tn-bp-checklist-title {
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #f5f5f5;
@@ -588,7 +588,7 @@
 .tn-bp-step-number {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #00d9c0;
   background: rgba(0, 217, 192, 0.08);
   border: 1px solid rgba(0, 217, 192, 0.2);
@@ -638,7 +638,7 @@
 
 .tn-bp-cta-title {
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #f5f5f5;
   margin: 0 0 4px;
 }
@@ -663,7 +663,7 @@
   background: #00d9c0;
   color: #050505;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 8px 16px;
   border-radius: 6px;
   text-decoration: none;
@@ -707,7 +707,7 @@
 
 .tn-bp-toc-heading {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #737373;

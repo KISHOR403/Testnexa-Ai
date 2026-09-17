@@ -44,7 +44,7 @@
 
 .tn-api-heading {
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: #ffffff;
   margin: 0;
@@ -160,7 +160,7 @@
 
 .tn-api-nav-heading {
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #6b7280;
@@ -208,7 +208,7 @@
 .tn-api-nav-badge {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.64rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 1px 4px;
   border-radius: 4px;
   line-height: 1;
@@ -261,7 +261,7 @@
 .tn-api-method-pill {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 3px 8px;
   border-radius: 5px;
   letter-spacing: 0.05em;
@@ -307,7 +307,7 @@
 
 .tn-api-section-title {
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #ffffff;
   margin: 0 0 8px;
   letter-spacing: -0.01em;
@@ -323,7 +323,7 @@
 /* ─── Parameter / Header Tables ─── */
 .tn-api-subheading-label {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #e5e7eb;
@@ -524,7 +524,7 @@
 
 .tn-api-try-title {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #00d9c0;
@@ -591,7 +591,7 @@
   border-radius: 6px;
   padding: 8px 14px;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   margin-top: 4px;
@@ -623,7 +623,7 @@
 .tn-api-status-badge {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
 }

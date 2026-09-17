@@ -86,7 +86,7 @@
 /* Title */
 .tn-legal-title {
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.02em;
   color: #F5F5F5;
@@ -281,7 +281,7 @@
 /* Main Section Heading (18-20px) */
 .tn-legal-clause__heading {
   font-size: 19px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   letter-spacing: -0.015em;
   color: #F5F5F5;

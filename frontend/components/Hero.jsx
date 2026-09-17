@@ -164,8 +164,9 @@ export const Hero = () => {
                             <main className="tn-software-main">
                                 <div className="tn-software-main__header">
                                     <div className="tn-main-meta">
-                                        <span className="tn-main-tag">REQ-142</span>
                                         <h2 className="tn-main-title">Password Reset</h2>
+                                        <span className="tn-main-tag">REQ-142</span>
+                                        <span className="tn-status-pill-hero">Needs Review</span>
                                     </div>
                                     <span className="tn-main-time">Updated 2m ago</span>
                                 </div>
@@ -180,7 +181,7 @@ export const Hero = () => {
 
                                 {/* Requirement Analysis Checkpoints */}
                                 <div className="tn-software-analysis-box">
-                                    <label className="tn-field-label">REQUIREMENT ANALYSIS</label>
+                                    <label className="tn-field-label">ANALYSIS</label>
                                     <div className="tn-check-grid">
                                         <div className="tn-check-cell">
                                             <Check size={14} className="text-accent" />
@@ -196,7 +197,7 @@ export const Hero = () => {
                                         </div>
                                         <div className="tn-check-cell">
                                             <Check size={14} className="text-accent" />
-                                            <span>Security considerations identified</span>
+                                            <span>Security scenarios identified</span>
                                         </div>
                                     </div>
                                 </div>
@@ -210,7 +211,7 @@ export const Hero = () => {
                                         </div>
                                         <div className="tn-stat-sep" />
                                         <div className="tn-stat-item">
-                                            <span className="tn-stat-num text-accent">92%</span>
+                                            <span className="tn-stat-num text-accent">87%</span>
                                             <span className="tn-stat-lbl">Coverage</span>
                                         </div>
                                         <div className="tn-stat-sep" />
@@ -231,7 +232,7 @@ export const Hero = () => {
                                         }}
                                     >
                                         <span>Review Test Suite</span>
-                                        <ChevronRight size={14} />
+                                        <ArrowRight size={14} />
                                     </a>
                                 </div>
                             </main>

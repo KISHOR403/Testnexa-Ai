@@ -81,7 +81,7 @@
 
 .login-modal-title {
     font-size: 1.75rem;
-    font-weight: 700;
+    font-weight: 600;
     background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

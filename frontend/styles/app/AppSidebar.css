@@ -71,7 +71,7 @@
     gap: 0.65rem;
     text-decoration: none;
     color: #F5F5F5;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.95rem;
     letter-spacing: -0.01em;
     overflow: hidden;
@@ -94,7 +94,7 @@
 
 .app-sidebar__brand-badge {
     font-size: 0.65rem;
-    font-weight: 700;
+    font-weight: 600;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
     background: rgba(0, 217, 192, 0.1);
@@ -140,7 +140,7 @@
     border: 1px solid #00D9C0;
     color: #000000;
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     cursor: pointer;
     transition: all 0.18s ease;
@@ -181,7 +181,7 @@
 
 .app-sidebar__group-label {
     font-size: 0.65rem;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #737373;
@@ -289,7 +289,7 @@
 .app-sidebar__badge {
     margin-left: auto;
     font-size: 0.68rem;
-    font-weight: 700;
+    font-weight: 600;
     padding: 0.12rem 0.45rem;
     border-radius: 10px;
     background: rgba(0, 217, 192, 0.1);
@@ -373,7 +373,7 @@
 .app-sidebar__history-context {
     text-transform: uppercase;
     font-size: 0.62rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.04em;
     color: #00D9C0;
     background: rgba(0, 217, 192, 0.1);
@@ -445,7 +445,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.82rem;
     flex-shrink: 0;
 }

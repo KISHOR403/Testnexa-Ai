@@ -47,7 +47,7 @@
 
 .tn-auth-brand-text {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: #F5F5F5;
 }
@@ -123,7 +123,7 @@
 /* ─── 3. Header & Typography ─── */
 .tn-auth-title {
   font-size: 1.35rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: #F5F5F5;
   margin: 0 0 6px 0;
@@ -403,7 +403,7 @@
 
 .tn-auth-pwd-icon {
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ─── 11. Terms & Privacy Note ─── */

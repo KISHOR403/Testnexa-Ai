@@ -27,7 +27,7 @@
 
 .app-settings-header__title {
     font-size: 1.65rem;
-    font-weight: 700;
+    font-weight: 600;
     color: #F5F5F5;
     letter-spacing: -0.02em;
     margin: 0;
@@ -65,7 +65,7 @@
 
 .app-settings-nav__group-label {
     font-size: 0.68rem;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #737373;
@@ -162,7 +162,7 @@
 
 .app-settings-section-title {
     font-size: 1.25rem;
-    font-weight: 700;
+    font-weight: 600;
     color: #F5F5F5;
     margin: 0;
 }
@@ -198,7 +198,7 @@
     border: 2px solid rgba(0, 217, 192, 0.4);
     color: #00D9C0;
     font-size: 1.35rem;
-    font-weight: 700;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -213,7 +213,7 @@
 
 .app-settings-identity-name {
     font-size: 1.05rem;
-    font-weight: 700;
+    font-weight: 600;
     color: #F5F5F5;
 }
 
@@ -565,7 +565,7 @@
 
 .app-settings-confirm-title {
     font-size: 1.1rem;
-    font-weight: 700;
+    font-weight: 600;
     color: #F5F5F5;
     margin: 0;
 }
