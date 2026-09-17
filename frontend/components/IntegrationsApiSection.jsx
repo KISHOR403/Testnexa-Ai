@@ -26,10 +26,10 @@ export const IntegrationsApiSection = () => {
                 <div className="tn-section-header">
                     <span className="tn-kicker">Integrations & Developer API</span>
                     <h2 id="api-heading" className="tn-section-title">
-                        Export to your workflow. Automate with API.
+                        Export to your tools. Automate with the API.
                     </h2>
                     <p className="tn-section-subtitle">
-                        TestNexa integrates directly with your existing tooling through structured multi-format exports and a production REST API.
+                        JSON, CSV, Gherkin, Markdown, and a REST endpoint for CI pipelines.
                     </p>
                 </div>
 

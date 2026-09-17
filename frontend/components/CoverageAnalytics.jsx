@@ -33,7 +33,7 @@ const RadialGauge = ({ percentage, size = 100, strokeWidth = 8, label }) => {
                     transform={`rotate(-90 ${size / 2} ${size / 2})`}
                     style={{ transition: 'stroke-dashoffset 1s ease-out' }}
                 />
-                <text x={size / 2} y={size / 2 - 6} textAnchor="middle" fill="#fff" fontSize="22" fontWeight="800">
+                <text x={size / 2} y={size / 2 - 6} textAnchor="middle" fill="#fff" fontSize="22" fontWeight="600">
                     {percentage}%
                 </text>
                 <text x={size / 2} y={size / 2 + 14} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10" fontWeight="600">

@@ -36,7 +36,7 @@
 
 .app-workspace-version-pill {
     font-size: 0.68rem;
-    font-weight: 600;
+    font-weight: 500;
     padding: 0.15rem 0.45rem;
     border-radius: 4px;
     background: #111111;
@@ -47,7 +47,7 @@
 
 .app-workspace-status-badge {
     font-size: 0.68rem;
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 0.15rem 0.45rem;
@@ -75,7 +75,7 @@
     align-items: center;
     gap: 0.35rem;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 500;
     color: #737373;
     padding: 0.2rem 0.5rem;
     border-radius: 5px;
@@ -103,7 +103,7 @@
     gap: 0.35rem;
     padding: 0.35rem 0.65rem;
     font-size: 0.76rem;
-    font-weight: 600;
+    font-weight: 500;
     color: #E5E5E5;
     background: #111111;
     border: 1px solid #252525;
@@ -123,7 +123,7 @@
     color: #000000;
     background: #00D9C0;
     border-color: #00D9C0;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .app-workspace-session-btn.primary:hover {

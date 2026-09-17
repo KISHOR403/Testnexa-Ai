@@ -32,13 +32,45 @@
   --qa-font-mono: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
 }
 
-/* ─── Global Marketing Layout Scope ─────────────────────────────────────── */
+/* ─── Global Marketing Layout Scope & Font Hierarchy System ─────────────── */
 .tn-marketing-root {
   background-color: var(--qa-bg);
   color: var(--qa-text-primary);
   font-family: var(--qa-font-sans);
   overflow-x: hidden;
   width: 100%;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.tn-marketing-root strong,
+.tn-marketing-root b {
+  font-weight: 500;
+  color: var(--qa-text-primary);
+}
+
+.tn-marketing-root h1 {
+  font-weight: 700;
+}
+
+.tn-marketing-root h2 {
+  font-weight: 600;
+}
+
+.tn-marketing-root h3 {
+  font-weight: 600;
+}
+
+.tn-marketing-root h4,
+.tn-marketing-root h5,
+.tn-marketing-root h6 {
+  font-weight: 500;
+}
+
+.tn-marketing-root p {
+  font-weight: 400;
+  color: var(--qa-text-secondary);
 }
 
 .tn-container {

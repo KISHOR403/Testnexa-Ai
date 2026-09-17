@@ -38,11 +38,11 @@ export const Hero = () => {
 
                     <h1 id="hero-main-heading" className="tn-hero-title">
                         Turn requirements into<br />
-                        <span className="tn-hero-title--accent">production-ready test suites.</span>
+                        <span className="tn-hero-title--accent">structured test suites.</span>
                     </h1>
 
                     <p className="tn-hero-desc">
-                        Transform Jira tickets, user stories, PRDs and plain-text requirements into structured test cases with coverage, risks and traceability.
+                        Analyze requirements, generate test cases, review coverage and trace every test back to its source.
                     </p>
 
                     <div className="tn-hero-actions">

@@ -105,10 +105,10 @@ export const TestSuiteSection = () => {
                 <div className="tn-section-header">
                     <span className="tn-kicker">Structured Output</span>
                     <h2 id="suite-heading" className="tn-section-title">
-                        Generate structured test cases, not test case snippets.
+                        Structured test cases, ready for review.
                     </h2>
                     <p className="tn-section-subtitle">
-                        Every test case includes complete preconditions, atomic execution steps, explicit expected results, test parameters, and BDD syntax.
+                        Preconditions, execution steps, expected results, and BDD syntax for each case.
                     </p>
                 </div>
 
@@ -228,8 +228,8 @@ Scenario: ${activeCase.scenario}
                                             <div key={i} className="tn-detail-step-item">
                                                 <span className="tn-step-bubble">{String(i + 1).padStart(2, '0')}</span>
                                                 <div>
-                                                    <p><strong>Action:</strong> {st.action}</p>
-                                                    <p className="tn-exp-line"><strong>Expected:</strong> {st.expected}</p>
+                                                    <p>Action: {st.action}</p>
+                                                    <p className="tn-exp-line">Expected: {st.expected}</p>
                                                 </div>
                                             </div>
                                         ))}

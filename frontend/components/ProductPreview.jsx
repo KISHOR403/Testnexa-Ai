@@ -107,10 +107,10 @@ export const ProductPreview = () => {
                 <div className="tn-section-header">
                     <span className="tn-kicker">Unified Workspace</span>
                     <h2 id="preview-heading" className="tn-section-title">
-                        One requirement. A complete QA workflow.
+                        A complete QA workflow.
                     </h2>
                     <p className="tn-section-subtitle">
-                        Every view is connected to the same source specification. Switch between requirement analysis, test cases, coverage metrics, risks, and traceability.
+                        Requirement analysis, test cases, coverage, risks, and traceability in one workspace.
                     </p>
                 </div>
 

@@ -218,7 +218,7 @@ const TestSuiteDetailPage = () => {
                 </div>
 
                 <div style={{ maxWidth: '460px' }}>
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                    <h2 style={{ fontSize: '1.3rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
                         {remoteSession.title || 'Requirement Specification'}
                     </h2>
                     <p style={{ fontSize: '0.9rem', color: '#A3A3A3', lineHeight: '1.5', margin: 0 }}>
@@ -301,7 +301,7 @@ const TestSuiteDetailPage = () => {
                 </div>
 
                 <div style={{ maxWidth: '440px' }}>
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                    <h2 style={{ fontSize: '1.3rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
                         Test Suite Not Found
                     </h2>
                     <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>

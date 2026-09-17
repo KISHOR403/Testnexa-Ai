@@ -34,7 +34,7 @@ export const SecurityTrustSection = () => {
                         Built for enterprise test engineering.
                     </h2>
                     <p className="tn-section-subtitle">
-                        TestNexa is architected to protect your engineering requirements and respect data isolation without compromising analysis quality.
+                        Stateless inference, workspace isolation, and role-based access for engineering teams.
                     </p>
                 </div>
 

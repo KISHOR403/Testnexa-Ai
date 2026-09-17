@@ -26,7 +26,7 @@
     align-items: center;
     gap: 0.4rem;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0.08em;
     color: #00D9C0;
     background: rgba(0, 217, 192, 0.08);
@@ -37,7 +37,7 @@
 }
 
 .tn-history-title {
-    font-size: 1.75rem;
+    font-size: 1.65rem;
     font-weight: 600;
     color: #F5F5F5;
     letter-spacing: -0.02em;

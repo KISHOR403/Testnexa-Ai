@@ -19,7 +19,7 @@ export const Footer = () => {
                         <span className="tn-footer__logo-text">TestNexa</span>
                     </Link>
                     <p className="tn-footer__desc">
-                        Requirement intelligence and structured test suite generation for modern software teams.
+                        Requirement analysis and structured test suite generation for QA teams.
                     </p>
                     <div className="tn-footer__status-row">
                         <span className="tn-footer__status-dot" aria-hidden="true" />

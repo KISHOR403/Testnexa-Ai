@@ -46,10 +46,10 @@ export const RoleSection = () => {
                 <div className="tn-section-header">
                     <span className="tn-kicker">Stakeholder Alignment</span>
                     <h2 id="role-heading" className="tn-section-title">
-                        One requirement. Different views for every stakeholder.
+                        One requirement. Role-specific views.
                     </h2>
                     <p className="tn-section-subtitle">
-                        TestNexa connects product, engineering, and QA through a shared, verifiable definition of quality.
+                        QA, leads, engineering, and product work from the same testable specification.
                     </p>
                 </div>
 

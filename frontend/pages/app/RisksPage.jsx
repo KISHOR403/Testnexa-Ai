@@ -42,7 +42,7 @@ const RisksPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#F5F5F5', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
                         Risk Vectors & Security Analysis
                     </h1>
                     <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
@@ -89,7 +89,7 @@ const RisksPage = () => {
                     </div>
 
                     <div style={{ maxWidth: '440px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
                             No test suite selected.
                         </h2>
                         <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
@@ -157,7 +157,7 @@ const RisksPage = () => {
                                     borderRadius: '4px',
                                     background: item.level === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
                                     color: item.level === 'Critical' ? '#ef4444' : '#f59e0b',
-                                    fontWeight: '700',
+                                    fontWeight: '600',
                                     border: item.level === 'Critical' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(245,158,11,0.25)'
                                 }}>
                                     {item.level} Risk

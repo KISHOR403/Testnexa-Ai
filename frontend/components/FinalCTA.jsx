@@ -12,10 +12,10 @@ export const FinalCTA = () => {
                     <div className="tn-final-cta-content">
                         <span className="tn-kicker">Ready For Production QA</span>
                         <h2 id="cta-heading" className="tn-final-cta-title">
-                            Turn your requirements into production-ready test suites.
+                            Turn requirements into structured test suites.
                         </h2>
                         <p className="tn-final-cta-desc">
-                            Transform ambiguous user stories and Jira tickets into structured test cases with coverage, risks, and bidirectional traceability in seconds.
+                            Analyze requirements, generate test cases, review coverage and trace every test back to its source.
                         </p>
 
                         <div className="tn-final-cta-actions">

@@ -52,10 +52,10 @@ export const CoverageRiskSection = () => {
                 <div className="tn-section-header">
                     <span className="tn-kicker">Coverage & Risk Audit</span>
                     <h2 id="cov-risk-heading" className="tn-section-title">
-                        Know what is covered. See what still needs attention.
+                        See coverage and risk before execution.
                     </h2>
                     <p className="tn-section-subtitle">
-                        TestNexa provides an immediate, multidimensional audit of specification completeness and highlights critical failure points before deployment.
+                        Measure requirement coverage and surface high-severity gaps before release.
                     </p>
                 </div>
 

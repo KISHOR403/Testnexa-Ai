@@ -77,12 +77,12 @@ export const ProductWorkflow = () => {
         <section id="workflow" className="tn-section tn-workflow-section" aria-labelledby="workflow-heading">
             <div className="tn-container">
                 <div className="tn-section-header">
-                    <span className="tn-kicker">Product Workflow</span>
+                    <span className="tn-kicker">QA Workflow</span>
                     <h2 id="workflow-heading" className="tn-section-title">
                         From requirement to test coverage.
                     </h2>
                     <p className="tn-section-subtitle">
-                        A structured QA workflow that turns ambiguous requirements into reviewable, traceable test suites.
+                        A complete QA workflow to analyze requirements, generate test cases, and validate coverage.
                     </p>
                 </div>
 

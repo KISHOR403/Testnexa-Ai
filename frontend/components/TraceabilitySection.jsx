@@ -51,10 +51,10 @@ export const TraceabilitySection = () => {
                 <div className="tn-section-header">
                     <span className="tn-kicker">End-to-End Lineage</span>
                     <h2 id="traceability-heading" className="tn-section-title">
-                        Every test case stays connected to its requirement.
+                        Every test maps back to a requirement.
                     </h2>
                     <p className="tn-section-subtitle">
-                        Maintain unbroken auditability between PRDs, Jira user stories, and generated test suites. Never wonder why a test exists or what it verifies.
+                        Trace each case to the clause it verifies. Keep lineage intact from spec to suite.
                     </p>
                 </div>
 

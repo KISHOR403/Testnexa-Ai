@@ -53,7 +53,7 @@ const CoveragePage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#F5F5F5', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
                         Requirement Coverage Matrix
                     </h1>
                     <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
@@ -102,7 +102,7 @@ const CoveragePage = () => {
                     </div>
 
                     <div style={{ maxWidth: '440px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
                             No test suite selected.
                         </h2>
                         <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
@@ -154,19 +154,19 @@ const CoveragePage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '1rem' }}>
                         <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
                             <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>OVERALL COVERAGE</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#00D9C0', margin: '0.25rem 0 0', fontWeight: '700' }}>{avgCoverage}</h2>
+                            <h2 style={{ fontSize: '1.75rem', color: '#00D9C0', margin: '0.25rem 0 0', fontWeight: '600' }}>{avgCoverage}</h2>
                         </div>
                         <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
                             <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>TOTAL TEST SCENARIOS</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#F5F5F5', margin: '0.25rem 0 0', fontWeight: '700' }}>{totalScenarios}</h2>
+                            <h2 style={{ fontSize: '1.75rem', color: '#F5F5F5', margin: '0.25rem 0 0', fontWeight: '600' }}>{totalScenarios}</h2>
                         </div>
                         <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
                             <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>COVERED REQUIREMENTS</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#22C55E', margin: '0.25rem 0 0', fontWeight: '700' }}>{coveredReqs}</h2>
+                            <h2 style={{ fontSize: '1.75rem', color: '#22C55E', margin: '0.25rem 0 0', fontWeight: '600' }}>{coveredReqs}</h2>
                         </div>
                         <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
                             <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>VERIFIED SUITES</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#F5F5F5', margin: '0.25rem 0 0', fontWeight: '700' }}>{userSuites.length}</h2>
+                            <h2 style={{ fontSize: '1.75rem', color: '#F5F5F5', margin: '0.25rem 0 0', fontWeight: '600' }}>{userSuites.length}</h2>
                         </div>
                     </div>
 
@@ -190,7 +190,7 @@ const CoveragePage = () => {
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: '220px', flex: '1' }}>
-                                    <span style={{ color: '#00D9C0', fontWeight: '700', fontSize: '0.8rem', minWidth: '65px' }}>
+                                    <span style={{ color: '#00D9C0', fontWeight: '600', fontSize: '0.8rem', minWidth: '65px' }}>
                                         {item.req}
                                     </span>
                                     <div>

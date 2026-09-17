@@ -39,7 +39,7 @@ const TraceabilityPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: '#F5F5F5', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
                         Requirement Traceability Graph
                     </h1>
                     <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
@@ -86,7 +86,7 @@ const TraceabilityPage = () => {
                     </div>
 
                     <div style={{ maxWidth: '440px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
                             No test suite selected.
                         </h2>
                         <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
@@ -146,7 +146,7 @@ const TraceabilityPage = () => {
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <span style={{ color: '#00D9C0', fontWeight: '700', fontSize: '0.85rem' }}>{req.reqId}</span>
+                                    <span style={{ color: '#00D9C0', fontWeight: '600', fontSize: '0.85rem' }}>{req.reqId}</span>
                                     <h3 style={{ color: '#F5F5F5', fontSize: '1.1rem', margin: 0, fontWeight: '600' }}>{req.title}</h3>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

@@ -45,7 +45,7 @@ const HowItWorks = () => {
             <div className="tn-container">
                 <div className="tn-section-header-center">
                     <span className="tn-section-kicker">How Testnexa Works</span>
-                    <h2 id="how-heading">A complete QA workflow, not a text generator.</h2>
+                    <h2 id="how-heading">A complete QA workflow.</h2>
                     <p className="tn-section-subtitle">
                         Move systematically from raw specification to verified test suites with structured AI analysis at every step.
                     </p>

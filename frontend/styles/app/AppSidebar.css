@@ -140,7 +140,7 @@
     border: 1px solid #00D9C0;
     color: #000000;
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     transition: all 0.18s ease;
@@ -181,7 +181,7 @@
 
 .app-sidebar__group-label {
     font-size: 0.65rem;
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #737373;

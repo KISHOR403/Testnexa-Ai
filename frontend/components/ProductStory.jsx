@@ -18,7 +18,7 @@ const ProductStory = () => {
             <div className="tn-container">
                 <div className="tn-section-header-center">
                     <span className="tn-section-kicker">Requirement to Coverage</span>
-                    <h2 id="story-heading">From Ambiguous Requirements to Complete Test Coverage.</h2>
+                    <h2 id="story-heading">From requirement to test coverage.</h2>
                     <p className="tn-section-subtitle">How Testnexa parses, decomposes, and generates high-confidence test suites from a single specification.</p>
                 </div>
 

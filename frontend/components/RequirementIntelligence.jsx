@@ -23,7 +23,7 @@ export const RequirementIntelligence = () => {
                         Understand the requirement before writing tests.
                     </h2>
                     <p className="tn-section-subtitle">
-                        TestNexa parses ambiguous product specs, surfaces unstated assumptions, and translates vague requirements into verifiable conditions.
+                        Parse specs, surface missing criteria, and turn vague language into testable conditions.
                     </p>
                 </div>
 

@@ -18,10 +18,10 @@ const Features = () => {
                 <div className="tn-section-header-split">
                     <div className="tn-section-header-split__left">
                         <span className="tn-section-kicker">Product Intelligence</span>
-                        <h2 id="features-heading">Everything you need to transform requirements into complete test suites.</h2>
+                        <h2 id="features-heading">Turn requirements into structured test suites.</h2>
                     </div>
                     <div className="tn-section-header-split__right">
-                        <p>Testnexa does not just format test cases. It reads the requirement, reconstructs intent, finds risk, and turns that understanding into actionable QA coverage.</p>
+                        <p>Analyze requirements, generate test cases, review coverage and trace every test back to its source.</p>
                     </div>
                 </div>
 
