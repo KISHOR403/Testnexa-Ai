@@ -95,7 +95,10 @@ export const Hero = () => {
                             <div className="tn-window-title">
                                 <span className="tn-app-name">TestNexa</span>
                                 <span className="tn-title-sep">/</span>
-                                <span className="tn-req-label">Requirement REQ-142</span>
+                                <span className="tn-req-label">
+                                    <span className="tn-req-label-full">Requirement REQ-142</span>
+                                    <span className="tn-req-label-short">REQ-142</span>
+                                </span>
                             </div>
                             <div className="tn-window-status">
                                 <span className="tn-status-pill-hero">Needs Review</span>
@@ -161,12 +164,12 @@ export const Hero = () => {
                             </nav>
 
                             {/* Main Product Area */}
-                            <main className="tn-software-main">
+                            <div className="tn-software-main">
                                 <div className="tn-software-main__header">
                                     <div className="tn-main-meta">
                                         <h2 className="tn-main-title">Password Reset</h2>
                                         <span className="tn-main-tag">REQ-142</span>
-                                        <span className="tn-status-pill-hero">Needs Review</span>
+                                        <span className="tn-status-pill-hero tn-main-status-pill">Needs Review</span>
                                     </div>
                                     <span className="tn-main-time">Updated 2m ago</span>
                                 </div>
@@ -235,7 +238,7 @@ export const Hero = () => {
                                         <ArrowRight size={14} />
                                     </a>
                                 </div>
-                            </main>
+                            </div>
                         </div>
                     </div>
                 </div>

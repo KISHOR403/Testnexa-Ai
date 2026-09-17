@@ -520,6 +520,14 @@
   color: var(--qa-text-secondary);
 }
 
+.tn-req-label-short {
+  display: none;
+}
+
+.tn-req-label-full {
+  display: inline;
+}
+
 .tn-status-pill-hero {
   font-size: 0.68rem;
   padding: 0.12rem 0.45rem;
@@ -604,6 +612,8 @@
 }
 
 .tn-software-main {
+  min-height: auto;
+  height: auto;
   padding: 0.95rem 1.15rem;
   display: flex;
   flex-direction: column;
@@ -3182,11 +3192,27 @@
   .tn-hero-desc {
     font-size: 1rem;
   }
+  .tn-software-window {
+    height: auto;
+    min-height: auto;
+  }
   .tn-software-shell {
+    display: block;
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: auto;
   }
   .tn-software-sidebar {
     display: none; /* In small viewport, collapse preview sidebar */
+  }
+  .tn-software-main {
+    min-height: auto;
+    height: auto;
+    padding: 0.85rem 0.95rem;
+  }
+  .tn-software-suite-summary {
+    flex-wrap: wrap;
+    gap: 0.65rem;
   }
   .tn-workflow-timeline {
     grid-template-columns: 1fr 1fr;
@@ -3244,10 +3270,81 @@
   .tn-check-grid {
     grid-template-columns: 1fr;
   }
+  .tn-software-window {
+    height: auto;
+    min-height: auto;
+  }
+  .tn-window-header {
+    height: 34px;
+    padding: 0 0.65rem;
+  }
+  .tn-req-label-full {
+    display: none;
+  }
+  .tn-req-label-short {
+    display: inline;
+  }
+  .tn-window-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tn-status-pill-hero {
+    white-space: nowrap;
+  }
+  .tn-main-status-pill {
+    display: none; /* Hide duplicate pill in main header on mobile */
+  }
+  .tn-software-shell {
+    display: block;
+    height: auto;
+    min-height: auto;
+  }
+  .tn-software-main {
+    padding: 0.75rem 0.75rem;
+    min-height: auto;
+    height: auto;
+    gap: 0.5rem;
+  }
+  .tn-software-main__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+  .tn-main-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+  .tn-main-title {
+    font-size: 0.96rem;
+    white-space: nowrap;
+  }
+  .tn-main-time {
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+  .tn-software-req-box,
+  .tn-software-analysis-box {
+    padding: 0.55rem 0.65rem;
+  }
   .tn-software-suite-summary {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.85rem;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .tn-suite-stats-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.4rem;
+  }
+  .tn-review-suite-btn {
+    align-self: flex-start;
   }
   .tn-footer__links-grid {
     grid-template-columns: 1fr;
