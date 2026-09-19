@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ArrowRight,
     Check,
@@ -12,9 +12,95 @@ import {
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
+const THINKING_STATES = [
+    'Parsing requirement…',
+    'Synthesizing scenarios…',
+    'Generating test suite…',
+    'Auditing edge cases…',
+    'Calculating coverage…',
+    'Mapping traceability…'
+];
+
+const HEADLINE_STATES = [
+    'structured test suites.',
+    'executable test cases.',
+    'complete edge cases.',
+    'traceable coverage.'
+];
+
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
     const [sidebarSelection, setSidebarSelection] = useState('suite'); // 'req' | 'suite' | 'cases' | 'coverage' | 'risks' | 'trace'
+
+    // Transitions.dev — Kicker Thinking states loop
+    const [currentStateIndex, setCurrentStateIndex] = useState(0);
+    const [animClass, setAnimClass] = useState(''); // '' | 'is-exit' | 'is-enter-start'
+    const textRef = useRef(null);
+
+    // Transitions.dev — Headline Thinking states loop
+    const [headlineIndex, setHeadlineIndex] = useState(0);
+    const [headlineAnimClass, setHeadlineAnimClass] = useState('');
+    const headlineRef = useRef(null);
+
+    useEffect(() => {
+        const holdDuration = 2400;
+        const swapDuration = 180;
+        const gapDuration = 50;
+
+        const interval = setInterval(() => {
+            setAnimClass('is-exit');
+
+            setTimeout(() => {
+                setCurrentStateIndex((prev) => (prev + 1) % THINKING_STATES.length);
+                setAnimClass('is-enter-start');
+
+                setTimeout(() => {
+                    if (textRef.current) {
+                        void textRef.current.offsetHeight;
+                    }
+                    setAnimClass('');
+                }, gapDuration);
+            }, swapDuration);
+        }, holdDuration);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const holdDuration = 3200;
+        const swapDuration = 220;
+        const gapDuration = 60;
+
+        const interval = setInterval(() => {
+            setHeadlineAnimClass('is-exit');
+
+            setTimeout(() => {
+                setHeadlineIndex((prev) => (prev + 1) % HEADLINE_STATES.length);
+                setHeadlineAnimClass('is-enter-start');
+
+                setTimeout(() => {
+                    if (headlineRef.current) {
+                        void headlineRef.current.offsetHeight;
+                    }
+                    setHeadlineAnimClass('');
+                }, gapDuration);
+            }, swapDuration);
+        }, holdDuration);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const longestState = THINKING_STATES.reduce(
+        (longest, current) => (current.length > longest.length ? current : longest),
+        THINKING_STATES[0]
+    );
+    const currentState = THINKING_STATES[currentStateIndex];
+
+    const longestHeadline = HEADLINE_STATES.reduce(
+        (longest, current) => (current.length > longest.length ? current : longest),
+        HEADLINE_STATES[0]
+    );
+    const currentHeadline = HEADLINE_STATES[headlineIndex];
 
     const handleExploreWorkflow = (e) => {
         e.preventDefault();
@@ -33,12 +119,32 @@ export const Hero = () => {
                 <div className="tn-hero-content">
                     <div className="tn-hero-kicker">
                         <span className="tn-kicker-dot" />
-                        <span>REQUIREMENT INTELLIGENCE &bull; QA PLATFORM</span>
+                        <span>REQUIREMENT INTELLIGENCE</span>
+                        <span className="tn-kicker-sep" aria-hidden="true">&bull;</span>
+                        <span className="t-think" role="status" aria-live="polite">
+                            <span className="t-think-sizer" aria-hidden="true">{longestState}</span>
+                            <span
+                                ref={textRef}
+                                className={`t-think-text ${animClass}`}
+                                data-text={currentState}
+                            >
+                                {currentState}
+                            </span>
+                        </span>
                     </div>
 
                     <h1 id="hero-main-heading" className="tn-hero-title">
                         Turn requirements into<br />
-                        <span className="tn-hero-title--accent">structured test suites.</span>
+                        <span className="t-think t-think--hero-title" role="status" aria-live="polite">
+                            <span className="t-think-sizer" aria-hidden="true">{longestHeadline}</span>
+                            <span
+                                ref={headlineRef}
+                                className={`t-think-text ${headlineAnimClass}`}
+                                data-text={currentHeadline}
+                            >
+                                {currentHeadline}
+                            </span>
+                        </span>
                     </h1>
 
                     <p className="tn-hero-desc">
