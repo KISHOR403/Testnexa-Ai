@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const supabaseService = require('./services/supabaseData.service');
 const session = require('express-session');
 const passport = require('./config/passport.config');
 
@@ -14,19 +14,11 @@ const { formatErrorResponse } = require('./utils/errors');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB with timeout
-if (process.env.MONGODB_URI) {
-    mongoose.connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
-        socketTimeoutMS: 45000,
-    })
-        .then(() => logger.info('✅ Connected to MongoDB'))
-        .catch(err => {
-            logger.error('❌ MongoDB connection error:', err);
-            logger.warn('⚠️  Running without MongoDB - authentication features will be limited');
-        });
+// Database connection status
+if (supabaseService.isAvailable) {
+    logger.info('✅ Database active: Supabase PostgreSQL connected');
 } else {
-    logger.warn('⚠️  MONGODB_URI not configured - running without database');
+    logger.warn('⚠️  Supabase URL or Key not set - database operations unavailable');
 }
 
 // Middleware
@@ -94,12 +86,10 @@ app.get('/health', (req, res) => {
 
 // Readiness probe endpoint
 app.get('/ready', (req, res) => {
-    const mongoStatus = mongoose.connection.readyState;
-    // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
-    if (!process.env.MONGODB_URI || mongoStatus === 1) {
-        return res.json({ status: 'READY', db: mongoStatus === 1 ? 'connected' : 'not_configured' });
+    if (supabaseService.isAvailable) {
+        return res.json({ status: 'READY', db: 'supabase_connected' });
     }
-    return res.status(503).json({ status: 'NOT_READY', db: 'disconnected' });
+    return res.status(503).json({ status: 'NOT_READY', db: 'supabase_unavailable' });
 });
 
 // 404 Handler

@@ -2,15 +2,13 @@ const { validateGenerateRequest } = require('../services/validation.service');
 const orchestrator = require('../services/orchestrator.service');
 const logger = require('../utils/logger');
 const { formatErrorResponse } = require('../utils/errors');
-const mongoose = require('mongoose');
-const TestHistory = require('../models/testHistory.model');
-const User = require('../models/user.model');
+const crypto = require('crypto');
 const supabaseService = require('../services/supabaseData.service');
 
 /**
  * Enhanced Test Case Generation Controller
  * Uses two-step orchestration for improved accuracy
- * Now saves generation history to MongoDB
+ * Permanently persists generation history and workspace session to Supabase
  */
 const generateTestCases = async (req, res) => {
     const startTime = Date.now();
@@ -42,7 +40,6 @@ const generateTestCases = async (req, res) => {
 
         const processingTime = `${((Date.now() - startTime) / 1000).toFixed(2)}s`;
 
-        // Log the internal result for debugging
         logger.info('Generation completed successfully', {
             functionalCount: result.functional?.length || 0,
             negativeCount: result.negative?.length || 0,
@@ -50,16 +47,6 @@ const generateTestCases = async (req, res) => {
             apiCount: result.apiChecklist?.length || 0,
             processingTime
         });
-
-        // Debug: Save the result to a file so we can inspect it
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            const debugFile = path.join(__dirname, '../../debug_last_result.json');
-            fs.writeFileSync(debugFile, JSON.stringify(result, null, 2));
-        } catch (e) {
-            logger.error('Failed to save debug result', e);
-        }
 
         // Step 3: Build Final Response
         const response = {
@@ -110,13 +97,13 @@ const generateTestCases = async (req, res) => {
             }
         };
 
-        // Step 4: Synchronously save test generation history and workspace session to MongoDB
+        // Step 4: Persist test generation history and workspace session in Supabase
         let savedSessionId = null;
-        const generationId = 'gen_' + new mongoose.Types.ObjectId().toString();
+        const generationId = 'gen_' + crypto.randomUUID().replace(/-/g, '');
+        const targetUserId = req.user ? (req.user._id || req.user.id) : null;
 
-        if (req.user && req.user._id && mongoose.connection.readyState === 1) {
+        if (targetUserId && supabaseService.isAvailable) {
             try {
-                const WorkspaceSession = require('../models/workspaceSession.model');
                 const sessionId = req.body.sessionId;
 
                 const functionalCases = result.functional || [];
@@ -148,195 +135,106 @@ const generateTestCases = async (req, res) => {
                     coverageConfidence: result.quality.coverageConfidence || 85
                 };
 
-                const targetUserId = req.user._id || req.user.id;
-
-                if (supabaseService.isAvailable) {
-                    if (sessionId) {
-                        try {
-                            const existing = await supabaseService.getSession(sessionId, targetUserId);
-                            if (existing) {
-                                const newVersion = (existing.currentVersion || 1) + 1;
-                                const versions = [...(existing.versions || []), {
-                                    versionNumber: existing.currentVersion || 1,
-                                    suiteData: existing.suiteData,
-                                    summary: existing.summary,
-                                    createdAt: new Date().toISOString()
-                                }];
-                                const messages = [...(existing.messages || []), {
-                                    role: 'assistant',
-                                    content: `Generated ${summaryData.total} test cases for "${result.understanding.feature}".`,
-                                    timestamp: new Date().toISOString()
-                                }];
-                                const updated = await supabaseService.updateSession(sessionId, targetUserId, {
-                                    suiteData: response.data,
-                                    summary: summaryData,
-                                    quality: qualityData,
-                                    status: 'NeedsReview',
-                                    currentVersion: newVersion,
-                                    versions,
-                                    messages
-                                });
-                                savedSessionId = updated.id;
-                            }
-                        } catch (supErr) {
-                            logger.warn('Supabase update existing session note:', supErr.message);
-                        }
-                    }
-
-                    if (!savedSessionId) {
-                        const title = result.understanding.feature || requirement.split(/[.!?\n]/)[0].trim().slice(0, 50) || 'Generated Suite';
-                        const newSession = await supabaseService.createSession({
-                            userId: targetUserId,
-                            title,
-                            status: 'NeedsReview',
-                            requirement,
-                            context: appType || 'web',
-                            depth: detailLevel === 'basic' ? 'Essential' : detailLevel === 'detailed' ? 'Comprehensive' : 'Standard',
-                            messages: [
-                                { role: 'user', content: requirement, timestamp: new Date().toISOString() },
-                                { role: 'assistant', content: `Generated ${summaryData.total} test cases for "${title}".`, timestamp: new Date().toISOString() }
-                            ],
-                            suiteData: response.data,
-                            currentVersion: 1,
-                            summary: summaryData,
-                            quality: qualityData,
-                            generationId
-                        });
-                        savedSessionId = newSession.id;
-                    }
-
-                    // Save test history to Supabase
-                    await supabaseService.saveTestHistory({
-                        userId: targetUserId,
-                        generationId,
-                        sessionId: savedSessionId,
-                        requirement,
-                        appType,
-                        detailLevel,
-                        testFocus: testFocus || 'mixed',
-                        feature: result.understanding.feature || '',
-                        summary: summaryData,
-                        quality: qualityData,
-                        data: result,
-                        processingTime,
-                        model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
-                    }).catch(e => logger.warn('Supabase saveTestHistory error:', e.message));
-
-                    // Update user stats in Supabase
+                // Update existing session if sessionId was provided
+                if (sessionId) {
                     try {
-                        const sbUser = await supabaseService.findUserById(targetUserId);
-                        if (sbUser) {
-                            await supabaseService.updateUser(targetUserId, {
-                                total_tests_generated: (sbUser.total_tests_generated || 0) + summaryData.total
-                            });
-                        }
-                    } catch (uErr) {}
-                } else {
-                    // Fallback to MongoDB
-                    if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
-                        const session = await WorkspaceSession.findOne({ _id: sessionId, userId: req.user._id });
-                        if (session) {
-                            if (session.suiteData) {
-                                const newVersion = (session.currentVersion || 0) + 1;
-                                session.versions.push({
-                                    versionNumber: session.currentVersion || 1,
-                                    suiteData: session.suiteData,
-                                    summary: session.summary,
-                                    createdAt: new Date()
-                                });
-                                session.currentVersion = newVersion;
-                            } else {
-                                session.currentVersion = 1;
-                            }
-                            session.suiteData = response.data;
-                            session.summary = summaryData;
-                            session.quality = qualityData;
-                            session.status = 'NeedsReview';
-                            session.messages.push({
+                        const existing = await supabaseService.getSession(sessionId, targetUserId);
+                        if (existing) {
+                            const newVersion = (existing.currentVersion || 1) + 1;
+                            const versions = [...(existing.versions || []), {
+                                versionNumber: existing.currentVersion || 1,
+                                suiteData: existing.suiteData,
+                                summary: existing.summary,
+                                createdAt: new Date().toISOString()
+                            }];
+                            const messages = [...(existing.messages || []), {
                                 role: 'assistant',
                                 content: `Generated ${summaryData.total} test cases for "${result.understanding.feature}".`,
-                                timestamp: new Date()
+                                timestamp: new Date().toISOString()
+                            }];
+                            const updated = await supabaseService.updateSession(sessionId, targetUserId, {
+                                suiteData: response.data,
+                                summary: summaryData,
+                                quality: qualityData,
+                                status: 'NeedsReview',
+                                currentVersion: newVersion,
+                                versions,
+                                messages
                             });
-                            await session.save();
-                            savedSessionId = session._id.toString();
+                            savedSessionId = updated.id;
                         }
+                    } catch (supErr) {
+                        logger.warn('Supabase update existing session note:', supErr.message);
                     }
-
-                    if (!savedSessionId) {
-                        const title = result.understanding.feature || requirement.split(/[.!?\n]/)[0].trim().slice(0, 50) || 'Generated Suite';
-                        const newSession = await WorkspaceSession.create({
-                            userId: req.user._id,
-                            title,
-                            status: 'NeedsReview',
-                            requirement,
-                            context: appType || 'web',
-                            depth: detailLevel === 'basic' ? 'Essential' : detailLevel === 'detailed' ? 'Comprehensive' : 'Standard',
-                            messages: [
-                                { role: 'user', content: requirement, timestamp: new Date() },
-                                { role: 'assistant', content: `Generated ${summaryData.total} test cases for "${title}".`, timestamp: new Date() }
-                            ],
-                            suiteData: response.data,
-                            currentVersion: 1,
-                            summary: summaryData,
-                            quality: qualityData
-                        });
-                        savedSessionId = newSession._id.toString();
-                    }
-
-                    await TestHistory.create({
-                        userId: req.user._id,
-                        generationId,
-                        sessionId: savedSessionId,
-                        requirement,
-                        appType,
-                        detailLevel,
-                        testFocus: testFocus || 'mixed',
-                        feature: result.understanding.feature || '',
-                        summary: summaryData,
-                        quality: qualityData,
-                        data: result,
-                        processingTime,
-                        model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
-                    });
-
-                    await User.findByIdAndUpdate(req.user._id, {
-                        $inc: { totalTestsGenerated: summaryData.total }
-                    });
                 }
 
-                logger.info('Test history + session saved for user', {
+                // Create new session if none existed or updated
+                if (!savedSessionId) {
+                    const title = result.understanding.feature || requirement.split(/[.!?\n]/)[0].trim().slice(0, 50) || 'Generated Suite';
+                    const newSession = await supabaseService.createSession({
+                        userId: targetUserId,
+                        title,
+                        status: 'NeedsReview',
+                        requirement,
+                        context: appType || 'web',
+                        depth: detailLevel === 'basic' ? 'Essential' : detailLevel === 'detailed' ? 'Comprehensive' : 'Standard',
+                        messages: [
+                            { role: 'user', content: requirement, timestamp: new Date().toISOString() },
+                            { role: 'assistant', content: `Generated ${summaryData.total} test cases for "${title}".`, timestamp: new Date().toISOString() }
+                        ],
+                        suiteData: response.data,
+                        currentVersion: 1,
+                        summary: summaryData,
+                        quality: qualityData,
+                        generationId
+                    });
+                    savedSessionId = newSession.id;
+                }
+
+                // Save test history record
+                await supabaseService.saveTestHistory({
                     userId: targetUserId,
+                    generationId,
                     sessionId: savedSessionId,
-                    generationId
-                });
-            } catch (historyErr) {
-                logger.error('Failed to save test history/session', historyErr);
+                    requirement,
+                    appType,
+                    detailLevel,
+                    testFocus: testFocus || 'mixed',
+                    feature: result.understanding.feature || '',
+                    summary: summaryData,
+                    quality: qualityData,
+                    data: result,
+                    processingTime,
+                    model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
+                }).catch(e => logger.warn('Supabase saveTestHistory error:', e.message));
+
+                // Increment user total tests generated
+                try {
+                    const sbUser = await supabaseService.findUserById(targetUserId);
+                    if (sbUser) {
+                        await supabaseService.updateUser(targetUserId, {
+                            total_tests_generated: (sbUser.total_tests_generated || 0) + summaryData.total
+                        });
+                    }
+                } catch (uErr) {}
+
+            } catch (err) {
+                logger.error('Failed to save generation to Supabase:', err);
             }
         }
 
-        logger.info('Enhanced test cases generated successfully', {
-            generationId,
-            testSuiteId: savedSessionId,
-            feature: result.understanding.feature,
-            totalTests: result.metadata.totalTestCases,
-            confidenceLevel: result.quality.confidenceLevel,
-            ambiguityLevel: result.quality.ambiguityScore,
-            primaryDomain: result.domainContext.primaryDomain,
-            processingTime: response.metadata.processingTime
-        });
-
-        // Send enriched response with generationId and testSuiteId for automatic navigation
-        res.json({
-            success: true,
-            generationId,
-            testSuiteId: savedSessionId,
-            sessionId: savedSessionId,
-            status: 'completed',
-            data: response.data,
-            metadata: {
+        // Return generated data with saved sessionId and generationId
+        return res.status(200).json({
+            ...response,
+            data: {
+                ...response.data,
+                sessionId: savedSessionId,
+                generationId
+            },
+            meta: {
                 ...response.metadata,
-                generationId,
                 testSuiteId: savedSessionId,
+                generationId,
                 status: 'completed'
             }
         });
@@ -359,38 +257,18 @@ const getTestHistory = async (req, res) => {
         }
 
         const userId = req.user._id || req.user.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
 
-        if (supabaseService.isAvailable) {
-            const history = await supabaseService.getTestHistory(userId, limit);
-            return res.json({
-                success: true,
-                data: history,
-                pagination: {
-                    page,
-                    limit,
-                    total: history.length,
-                    totalPages: 1
-                }
-            });
-        }
-
-        const [history, total] = await Promise.all([
-            TestHistory.find({ userId: req.user._id })
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limit)
-                .lean(),
-            TestHistory.countDocuments({ userId: req.user._id })
-        ]);
-
-        res.json({
+        const result = await supabaseService.getTestHistory(userId, { page, limit });
+        return res.json({
             success: true,
-            data: history,
+            data: result.history,
             pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit)
+                page: result.page,
+                limit: result.limit,
+                total: result.total,
+                totalPages: result.totalPages
             }
         });
     } catch (error) {
@@ -406,19 +284,14 @@ const getTestHistory = async (req, res) => {
 const getGenerationStatus = async (req, res) => {
     try {
         const generationId = req.params.id;
-        const userId = req.user ? req.user._id : null;
+        const userId = req.user ? (req.user._id || req.user.id) : null;
 
         if (!generationId) {
             return res.status(400).json({ success: false, message: 'Generation ID is required' });
         }
 
-        const WorkspaceSession = require('../models/workspaceSession.model');
-
-        // Check TestHistory
-        const historyQuery = { generationId };
-        if (userId) historyQuery.userId = userId;
-        const history = await TestHistory.findOne(historyQuery).lean();
-
+        // 1. Check test_history in Supabase
+        const history = await supabaseService.findHistoryByGenerationId(generationId, userId);
         if (history) {
             return res.json({
                 success: true,
@@ -427,26 +300,24 @@ const getGenerationStatus = async (req, res) => {
                 testSuiteId: history.sessionId ? history.sessionId.toString() : null,
                 feature: history.feature,
                 title: history.feature,
-                totalTests: history.testCount || history.summary?.total || 0,
+                totalTests: history.summary?.total || 0,
                 data: {
                     title: history.feature,
                     feature: history.feature,
-                    totalTests: history.testCount || history.summary?.total || 0
+                    totalTests: history.summary?.total || 0
                 },
                 createdAt: history.createdAt
             });
         }
 
-        // Check WorkspaceSession by generationId
-        const sessionGenQuery = { generationId };
-        if (userId) sessionGenQuery.userId = userId;
-        const sessionByGen = await WorkspaceSession.findOne(sessionGenQuery).lean();
+        // 2. Check workspace_sessions in Supabase by generation_id
+        const sessionByGen = await supabaseService.findSessionByGenerationId(generationId, userId);
         if (sessionByGen) {
             return res.json({
                 success: true,
                 generationId,
                 status: sessionByGen.suiteData ? 'completed' : 'processing',
-                testSuiteId: sessionByGen._id.toString(),
+                testSuiteId: sessionByGen.id || sessionByGen._id,
                 title: sessionByGen.title,
                 totalTests: sessionByGen.summary?.total || 0,
                 data: {
@@ -457,26 +328,22 @@ const getGenerationStatus = async (req, res) => {
             });
         }
 
-        // Check WorkspaceSession if generationId is session ID
-        if (mongoose.Types.ObjectId.isValid(generationId)) {
-            const sessionQuery = { _id: generationId };
-            if (userId) sessionQuery.userId = userId;
-            const session = await WorkspaceSession.findOne(sessionQuery).lean();
-            if (session) {
-                return res.json({
-                    success: true,
-                    generationId,
-                    status: session.suiteData ? 'completed' : 'processing',
-                    testSuiteId: session._id.toString(),
-                    title: session.title,
-                    totalTests: session.summary?.total || 0,
-                    data: {
-                        title: session.title,
-                        totalTests: session.summary?.total || 0
-                    },
-                    createdAt: session.createdAt
-                });
-            }
+        // 3. Check workspace_sessions in Supabase directly by session id
+        const directSession = await supabaseService.getSession(generationId, userId);
+        if (directSession) {
+            return res.json({
+                success: true,
+                generationId,
+                status: directSession.suiteData ? 'completed' : 'processing',
+                testSuiteId: directSession.id || directSession._id,
+                title: directSession.title,
+                totalTests: directSession.summary?.total || 0,
+                data: {
+                    title: directSession.title,
+                    totalTests: directSession.summary?.total || 0
+                },
+                createdAt: directSession.createdAt
+            });
         }
 
         return res.status(404).json({ success: false, message: 'Generation not found' });

@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white" alt="React" />
   <img src="https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite&logoColor=white" alt="Vite" />
   <img src="https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Google-Gemini%20AI-4285F4?logo=google&logoColor=white" alt="Gemini AI" />
   <img src="https://img.shields.io/badge/License-ISC-blue" alt="License" />
 </p>
@@ -187,7 +187,7 @@ flowchart TB
 |---|---|
 | **Node.js + Express** | REST API server |
 | **Google Gemini AI** | LLM for intelligent test generation |
-| **MongoDB + Mongoose** | Database for users, history & sessions |
+| **Supabase (PostgreSQL)** | Database for users, history, sessions & workspaces |
 | **JWT + bcryptjs** | Token-based authentication & password hashing |
 | **Passport.js** | OAuth strategies (Google, GitHub) |
 | **Joi** | Request validation schemas |
@@ -235,7 +235,6 @@ Testnexa-AI/
 │       ├── 📁 config/            # Database & auth config
 │       ├── 📁 controllers/       # Route handlers
 │       ├── 📁 middleware/        # Auth & validation middleware
-│       ├── 📁 models/            # Mongoose schemas
 │       ├── 📁 routes/            # API route definitions
 │       ├── 📁 services/          # Business logic & AI service
 │       ├── 📁 utils/             # Helper utilities
@@ -251,7 +250,7 @@ Testnexa-AI/
 
 ### Prerequisites
 - **Node.js** (v18 or higher)
-- **MongoDB** (local or Atlas connection)
+- **Supabase** (PostgreSQL cloud database project)
 - **Google Gemini API Key**
 
 ### 1. Clone the Repository
@@ -275,7 +274,9 @@ npm install
 Create a `.env` file in the `backend/` directory:
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_connection_string
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SECRET_KEY=your_supabase_secret_key
+SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 GEMINI_API_KEY=your_google_gemini_api_key
 JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_oauth_client_id

@@ -2,10 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-const mongoose = require('mongoose');
-const User = require('../src/models/user.model');
-const WorkspaceSession = require('../src/models/workspaceSession.model');
-const TestHistory = require('../src/models/testHistory.model');
+const crypto = require('crypto');
+const supabaseService = require('../src/services/supabaseData.service');
 const { getGenerationStatus } = require('../src/controllers/generate.controller');
 
 const createMockRes = () => {
@@ -24,88 +22,58 @@ const createMockRes = () => {
     return res;
 };
 
-test.before(async () => {
-    if (mongoose.connection.readyState !== 1 && process.env.MONGODB_URI) {
-        await mongoose.connect(process.env.MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000
-        });
-    }
-});
-
-test.after(async () => {
-    await User.deleteMany({ email: /genflow_.*@example\.com/ });
-    await WorkspaceSession.deleteMany({ title: /GenFlow Test/ });
-    await TestHistory.deleteMany({ feature: /GenFlow Test/ });
-    await mongoose.disconnect();
-});
-
-test('Generation Flow & Status API Integration Suite', async (t) => {
+test('Generation Flow & Status API Integration Suite with Supabase', async (t) => {
     const timestamp = Date.now();
-    const userA = await User.create({
+    const userA = await supabaseService.createUser({
         name: 'GenFlow User A',
         email: `genflow_user_a_${timestamp}@example.com`,
         password: 'Password123!',
         provider: 'email'
     });
 
-    const userB = await User.create({
+    const userB = await supabaseService.createUser({
         name: 'GenFlow User B',
         email: `genflow_user_b_${timestamp}@example.com`,
         password: 'Password123!',
         provider: 'email'
     });
 
-    const testGenerationId = 'gen_' + new mongoose.Types.ObjectId();
+    const testGenerationId = 'gen_' + crypto.randomUUID().replace(/-/g, '');
 
-    // Create session directly as generate controller does
-    const savedSession = await WorkspaceSession.create({
-        userId: userA._id,
+    // Create session directly in Supabase
+    const savedSession = await supabaseService.createSession({
+        userId: userA.id,
         generationId: testGenerationId,
         title: 'GenFlow Test Suite',
-        appType: 'api',
-        detailLevel: 'medium',
-        testFocus: 'mixed',
-        language: 'english',
+        context: 'api',
+        depth: 'Standard',
         requirement: 'As a user I want to test login with 2FA',
         status: 'NeedsReview',
         summary: {
-            totalTests: 5,
+            total: 5,
             functional: 3,
             negative: 2
         },
-        testCases: [
-            {
-                id: 'TC-001',
-                title: 'Valid login test',
-                type: 'functional',
-                priority: 'P1',
-                preconditions: 'User registered',
-                steps: ['Enter email', 'Enter password', 'Submit'],
-                expectedResult: 'Login successful'
-            }
-        ],
         suiteData: {
             feature: 'GenFlow Test Suite',
             totalTests: 5
         }
     });
 
-    await TestHistory.create({
-        userId: userA._id,
+    await supabaseService.saveTestHistory({
+        userId: userA.id,
         generationId: testGenerationId,
-        sessionId: savedSession._id,
+        sessionId: savedSession.id,
         feature: 'GenFlow Test Suite',
         requirement: 'As a user I want to test login with 2FA',
         testFocus: 'mixed',
         appType: 'api',
-        testCount: 5,
-        confidenceLevel: 'High',
-        ambiguityLevel: 'Low',
+        summary: { total: 5 },
         processingTime: '2.5s'
     });
 
-    await t.test('1. WorkspaceSession stores generationId and status NeedsReview', async () => {
-        const found = await WorkspaceSession.findById(savedSession._id);
+    await t.test('1. WorkspaceSession stores generationId and status NeedsReview in Supabase', async () => {
+        const found = await supabaseService.getSession(savedSession.id, userA.id);
         assert.ok(found);
         assert.equal(found.generationId, testGenerationId);
         assert.equal(found.status, 'NeedsReview');
@@ -114,7 +82,7 @@ test('Generation Flow & Status API Integration Suite', async (t) => {
 
     await t.test('2. GET /api/v1/generations/:id returns completed status for session owner', async () => {
         const req = {
-            user: { _id: userA._id },
+            user: { _id: userA.id, id: userA.id },
             params: { id: testGenerationId }
         };
         const res = createMockRes();
@@ -124,13 +92,13 @@ test('Generation Flow & Status API Integration Suite', async (t) => {
         assert.equal(res.data.success, true);
         assert.equal(res.data.status, 'completed');
         assert.equal(res.data.generationId, testGenerationId);
-        assert.equal(String(res.data.testSuiteId), String(savedSession._id));
+        assert.equal(String(res.data.testSuiteId), String(savedSession.id));
         assert.equal(res.data.data.title, 'GenFlow Test Suite');
     });
 
     await t.test('3. GET /api/v1/generations/:id rejects unauthorized access by another user', async () => {
         const req = {
-            user: { _id: userB._id },
+            user: { _id: userB.id, id: userB.id },
             params: { id: testGenerationId }
         };
         const res = createMockRes();
@@ -142,7 +110,7 @@ test('Generation Flow & Status API Integration Suite', async (t) => {
 
     await t.test('4. GET /api/v1/generations/:id returns 404 for non-existent generation', async () => {
         const req = {
-            user: { _id: userA._id },
+            user: { _id: userA.id, id: userA.id },
             params: { id: 'gen_nonexistent123' }
         };
         const res = createMockRes();
@@ -151,4 +119,7 @@ test('Generation Flow & Status API Integration Suite', async (t) => {
         assert.equal(res.statusCode, 404);
         assert.equal(res.data.success, false);
     });
+
+    // Cleanup
+    await supabaseService.deleteSession(savedSession.id, userA.id).catch(() => {});
 });

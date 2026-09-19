@@ -973,7 +973,7 @@ const ApiReferencePage = () => {
                                     <tr>
                                         <td><span className="tn-api-param-name">id</span></td>
                                         <td><code>string</code></td>
-                                        <td>24-character hexadecimal MongoDB ObjectId representing the session.</td>
+                                        <td>Unique identifier representing the session.</td>
                                     </tr>
                                 </tbody>
                             </table>

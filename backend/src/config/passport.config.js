@@ -1,8 +1,6 @@
 const passport = require('passport');
-const mongoose = require('mongoose');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
-const User = require('../models/user.model');
 const supabaseService = require('../services/supabaseData.service');
 const { sendWelcomeEmail } = require('../services/email.service');
 const logger = require('../utils/logger');
@@ -27,7 +25,6 @@ passport.deserializeUser(async (id, done) => {
 
         let user = null;
 
-        // 1. Check Supabase first (fastest)
         if (supabaseService.isAvailable) {
             const sbUser = await supabaseService.findUserById(id);
             if (sbUser) {
@@ -43,11 +40,6 @@ passport.deserializeUser(async (id, done) => {
                     createdAt: sbUser.created_at
                 };
             }
-        }
-
-        // 2. Check MongoDB if not found
-        if (!user && mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(id)) {
-            user = await User.findById(id);
         }
 
         done(null, user);
@@ -71,10 +63,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             const avatar = profile.photos && profile.photos[0] ? profile.photos[0].value : null;
 
             let authenticatedUser = null;
-
             let isNewUser = false;
 
-            // 1. Single-shot fast upsert in Supabase
             if (supabaseService.isAvailable && email) {
                 try {
                     const existingSb = await supabaseService.findUserByEmail(email);
@@ -103,32 +93,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 }
             }
 
-            // 2. MongoDB fast check if Supabase didn't run
-            if (!authenticatedUser && mongoose.connection.readyState === 1) {
-                try {
-                    let mongoUser = await User.findOne({
-                        $or: [{ googleId: profile.id }, { email }]
-                    });
-                    if (!mongoUser) {
-                        isNewUser = true;
-                        mongoUser = await User.create({
-                            googleId: profile.id,
-                            name: displayName,
-                            displayName,
-                            email,
-                            avatar,
-                            provider: 'google',
-                            isVerified: true,
-                            welcomeEmailSent: false
-                        });
-                    }
-                    authenticatedUser = mongoUser;
-                    authenticatedUser.isNewUser = isNewUser;
-                } catch (mErr) {
-                    logger.warn('Mongo Google auth fallback error:', mErr.message);
-                }
-            }
-
             if (!authenticatedUser) {
                 authenticatedUser = {
                     _id: 'guest_' + profile.id,
@@ -143,61 +107,19 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             }
 
             authenticatedUser.isNewUser = isNewUser;
-
-            // Return user immediately for fast redirect
             done(null, authenticatedUser);
 
-            // 3. Background tasks (Non-blocking): MongoDB dual-sync & welcome email
-            setImmediate(async () => {
-                let mongoUser = null;
-                try {
-                    if (mongoose.connection.readyState === 1) {
-                        mongoUser = await User.findOne({
-                            $or: [{ googleId: profile.id }, { email }]
-                        });
-                        const now = new Date();
-                        if (mongoUser) {
-                            mongoUser.googleId = profile.id;
-                            mongoUser.lastLogin = now;
-                            mongoUser.loginCount = (mongoUser.loginCount || 0) + 1;
-                            if (!mongoUser.name) mongoUser.name = displayName;
-                            if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
-                            await mongoUser.save();
-                        } else {
-                            isNewUser = true;
-                            mongoUser = await User.create({
-                                googleId: profile.id,
-                                name: displayName,
-                                displayName,
-                                email,
-                                avatar,
-                                provider: 'google',
-                                isVerified: true,
-                                lastLogin: now,
-                                loginCount: 1,
-                                welcomeEmailSent: false
-                            });
-                        }
-                    }
-                } catch (bgErr) {
-                    logger.warn('Background MongoDB sync note:', bgErr.message);
-                }
-
-                // Check if welcome email should be sent (isolated from MongoDB sync)
-                const shouldSendWelcome = isNewUser || (mongoUser && !mongoUser.welcomeEmailSent && (mongoUser.loginCount || 1) <= 2);
-                if (shouldSendWelcome && email) {
+            // Background welcome email if new user
+            if (isNewUser && email) {
+                setImmediate(async () => {
                     try {
                         logger.info(`[OAuth Google] Dispatching welcome email to ${email}`);
-                        const res = await sendWelcomeEmail(displayName, email);
-                        if (res && res.success && mongoUser) {
-                            mongoUser.welcomeEmailSent = true;
-                            await mongoUser.save().catch(() => {});
-                        }
+                        await sendWelcomeEmail(displayName, email);
                     } catch (mailErr) {
                         logger.warn('[OAuth Google] Welcome email error:', mailErr?.message || mailErr);
                     }
-                }
-            });
+                });
+            }
         } catch (err) {
             logger.error('Google strategy error:', err);
             done(err, null);
@@ -221,10 +143,8 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
             const avatar = profile.photos && profile.photos[0] ? profile.photos[0].value : null;
 
             let authenticatedUser = null;
-
             let isNewUser = false;
 
-            // 1. Single-shot fast upsert in Supabase
             if (supabaseService.isAvailable && email) {
                 try {
                     const existingSb = await supabaseService.findUserByEmail(email);
@@ -245,33 +165,11 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                         displayName: sbUser.display_name || sbUser.name,
                         avatar: sbUser.avatar,
                         provider: 'github',
-                        isVerified: true
+                        isVerified: true,
+                        isNewUser
                     };
                 } catch (sbErr) {
                     logger.error('Supabase GitHub fast upsert error:', sbErr);
-                }
-            }
-
-            if (!authenticatedUser && mongoose.connection.readyState === 1) {
-                try {
-                    let mongoUser = await User.findOne({
-                        $or: [{ githubId: profile.id }, { email }]
-                    });
-                    if (!mongoUser) {
-                        isNewUser = true;
-                        mongoUser = await User.create({
-                            githubId: profile.id,
-                            name: displayName,
-                            displayName,
-                            email,
-                            avatar,
-                            provider: 'github',
-                            isVerified: true
-                        });
-                    }
-                    authenticatedUser = mongoUser;
-                } catch (mErr) {
-                    logger.warn('Mongo GitHub auth fallback error:', mErr.message);
                 }
             }
 
@@ -283,66 +181,24 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET && process.
                     displayName,
                     email,
                     avatar,
-                    isTemporary: true
+                    isTemporary: true,
+                    isNewUser
                 };
             }
 
             authenticatedUser.isNewUser = isNewUser;
-
-            // Return user immediately for fast redirect
             done(null, authenticatedUser);
 
-            // 3. Background tasks (Non-blocking): MongoDB dual-sync
-            setImmediate(async () => {
-                let mongoUser = null;
-                try {
-                    if (mongoose.connection.readyState === 1) {
-                        mongoUser = await User.findOne({
-                            $or: [{ githubId: profile.id }, { email }]
-                        });
-                        const now = new Date();
-                        if (mongoUser) {
-                            mongoUser.githubId = profile.id;
-                            mongoUser.lastLogin = now;
-                            mongoUser.loginCount = (mongoUser.loginCount || 0) + 1;
-                            if (!mongoUser.name) mongoUser.name = displayName;
-                            if (!mongoUser.avatar && avatar) mongoUser.avatar = avatar;
-                            await mongoUser.save();
-                        } else {
-                            isNewUser = true;
-                            mongoUser = await User.create({
-                                githubId: profile.id,
-                                name: displayName,
-                                displayName,
-                                email,
-                                avatar,
-                                provider: 'github',
-                                isVerified: true,
-                                lastLogin: now,
-                                loginCount: 1,
-                                welcomeEmailSent: false
-                            });
-                        }
-                    }
-                } catch (bgErr) {
-                    logger.warn('Background MongoDB GitHub sync note:', bgErr.message);
-                }
-
-                // Check if welcome email should be sent (isolated from MongoDB sync)
-                const shouldSendWelcome = isNewUser || (mongoUser && !mongoUser.welcomeEmailSent && (mongoUser.loginCount || 1) <= 2);
-                if (shouldSendWelcome && email) {
+            if (isNewUser && email) {
+                setImmediate(async () => {
                     try {
                         logger.info(`[OAuth GitHub] Dispatching welcome email to ${email}`);
-                        const res = await sendWelcomeEmail(displayName, email);
-                        if (res && res.success && mongoUser) {
-                            mongoUser.welcomeEmailSent = true;
-                            await mongoUser.save().catch(() => {});
-                        }
+                        await sendWelcomeEmail(displayName, email);
                     } catch (mailErr) {
                         logger.warn('[OAuth GitHub] Welcome email error:', mailErr?.message || mailErr);
                     }
-                }
-            });
+                });
+            }
         } catch (err) {
             logger.error('GitHub strategy error:', err);
             done(err, null);

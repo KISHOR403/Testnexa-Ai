@@ -1,8 +1,6 @@
 const copilotService = require('../services/copilot.service');
-const WorkspaceSession = require('../models/workspaceSession.model');
 const supabaseService = require('../services/supabaseData.service');
 const logger = require('../utils/logger');
-const mongoose = require('mongoose');
 
 /**
  * Helper to fetch authoritative session and verify user ownership
@@ -10,27 +8,12 @@ const mongoose = require('mongoose');
 const getAuthorizedSession = async (sessionId, userId) => {
     if (!sessionId) return null;
 
-    // 1. Try Supabase
     if (supabaseService.isAvailable) {
         try {
             const session = await supabaseService.getSession(sessionId, userId);
             if (session) return session;
         } catch (err) {
             logger.warn('Supabase getSession failed in copilot controller:', err.message);
-        }
-    }
-
-    // 2. Fallback to MongoDB
-    if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(sessionId)) {
-        try {
-            const query = { _id: sessionId };
-            if (userId) {
-                query.userId = userId;
-            }
-            const session = await WorkspaceSession.findOne(query).lean();
-            if (session) return session;
-        } catch (err) {
-            logger.warn('MongoDB findOne failed in copilot controller:', err.message);
         }
     }
 
@@ -44,15 +27,6 @@ const persistUpdatedSession = async (sessionId, userId, updates) => {
     if (supabaseService.isAvailable) {
         return await supabaseService.updateSession(sessionId, userId, updates);
     }
-
-    if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(sessionId)) {
-        return await WorkspaceSession.findOneAndUpdate(
-            { _id: sessionId, userId },
-            { $set: updates },
-            { new: true }
-        ).lean();
-    }
-
     return null;
 };
 

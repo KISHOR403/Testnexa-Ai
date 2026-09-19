@@ -1,7 +1,4 @@
 const jwt = require('jsonwebtoken');
-const mongoose = require('mongoose');
-const User = require('../models/user.model');
-const AuthSession = require('../models/authSession.model');
 const supabaseService = require('../services/supabaseData.service');
 
 exports.protect = async (req, res, next) => {
@@ -18,11 +15,11 @@ exports.protect = async (req, res, next) => {
                 return next();
             }
 
-            // Check if MongoDB session exists (if Mongo is connected)
-            if (decoded.sessionId && mongoose.connection.readyState === 1) {
+            // Check active session status if sessionId was embedded in token
+            if (decoded.sessionId && supabaseService.isAvailable) {
                 try {
-                    const session = await AuthSession.findById(decoded.sessionId);
-                    if (session && (session.revokedAt !== null || (session.expiresAt && session.expiresAt < new Date()))) {
+                    const session = await supabaseService.getAuthSession(decoded.sessionId);
+                    if (session && (session.revokedAt !== null || (session.expiresAt && new Date(session.expiresAt) < new Date()))) {
                         return res.status(401).json({
                             success: false,
                             code: 'SESSION_REVOKED',
@@ -30,26 +27,19 @@ exports.protect = async (req, res, next) => {
                         });
                     }
                     if (session) {
-                        req.sessionId = session._id;
+                        req.sessionId = session.id || session._id;
                         if (Date.now() - new Date(session.lastActiveAt).getTime() > 2 * 60 * 1000) {
-                            session.lastActiveAt = new Date();
-                            session.save().catch(() => {});
+                            supabaseService.touchAuthSession(session.id || session._id).catch(() => {});
                         }
                     }
                 } catch (sessErr) {
-                    // Ignore session check error if MongoDB is unavailable
+                    // Fail open on non-critical session check errors
                 }
             }
 
             let user = null;
 
-            // 1. Try MongoDB if connected
-            if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(decoded.id)) {
-                user = await User.findById(decoded.id).select('-password');
-            }
-
-            // 2. Try Supabase if user not found in Mongo or Mongo not ready
-            if (!user && supabaseService.isAvailable) {
+            if (supabaseService.isAvailable && decoded.id) {
                 const sbUser = await supabaseService.findUserById(decoded.id);
                 if (sbUser) {
                     user = {
@@ -97,10 +87,7 @@ exports.optionalProtect = async (req, res, next) => {
                 req.user = { _id: decoded.id, id: decoded.id, isTemporary: true };
                 return next();
             }
-            if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(decoded.id)) {
-                req.user = await User.findById(decoded.id).select('-password');
-            }
-            if (!req.user && supabaseService.isAvailable) {
+            if (supabaseService.isAvailable && decoded.id) {
                 const sbUser = await supabaseService.findUserById(decoded.id);
                 if (sbUser) {
                     req.user = {

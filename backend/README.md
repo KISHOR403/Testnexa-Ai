@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white" alt="Node.js" />
   <img src="https://img.shields.io/badge/Google-Gemini%20AI-4285F4?logo=google&logoColor=white" alt="Gemini AI" />
-  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Auth-Passport.js-34E27A?logo=passport&logoColor=white" alt="Passport" />
   <img src="https://img.shields.io/badge/JWT-Auth-000000?logo=jsonwebtokens&logoColor=white" alt="JWT" />
 </p>
@@ -181,7 +181,7 @@ backend/
 |---|---|
 | **Express.js** | REST API framework |
 | **Google Gemini AI** | LLM for test generation |
-| **MongoDB + Mongoose** | User data & session storage |
+| **Supabase (PostgreSQL)** | Database for users, test history, sessions & workspaces |
 | **Passport.js** | OAuth 2.0 strategies |
 | **JWT + bcryptjs** | Token auth & password hashing |
 | **Joi** | Request validation |

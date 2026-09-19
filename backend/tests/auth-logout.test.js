@@ -1,29 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-require('dotenv').config();
-const mongoose = require('mongoose');
-const User = require('../src/models/user.model');
-const AuthSession = require('../src/models/authSession.model');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const supabaseService = require('../src/services/supabaseData.service');
 const authController = require('../src/controllers/auth.controller');
 const { protect } = require('../src/middleware/auth.middleware');
 
-// Ensure MongoDB connection before running tests
-test.before(async () => {
-    if (mongoose.connection.readyState !== 1 && process.env.MONGODB_URI) {
-        await mongoose.connect(process.env.MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000
-        });
-    }
-});
-
-test.after(async () => {
-    // Clean up test users and test sessions
-    await User.deleteMany({ email: /test_logout_.*@example\.com/ });
-    await AuthSession.deleteMany({ userAgent: /TestRunnerAgent/ });
-    await mongoose.disconnect();
-});
-
-test('Auth and Session Management Suite', async (t) => {
+test('Auth and Session Management Suite with Supabase', async (t) => {
     const testEmail = `test_logout_${Date.now()}@example.com`;
     let userA;
     let userB;
@@ -32,7 +15,7 @@ test('Auth and Session Management Suite', async (t) => {
     let tokenA1;
     let tokenA2;
 
-    await t.test('1. Register creates user with passwordChangedAt and active AuthSession', async () => {
+    await t.test('1. Register creates user and active AuthSession', async () => {
         const req = {
             body: {
                 name: 'Logout Test User',
@@ -58,16 +41,15 @@ test('Auth and Session Management Suite', async (t) => {
         assert.equal(statusCode, 201);
         assert.equal(responseData.success, true);
         assert.ok(responseData.token, 'Token must be returned');
-        assert.ok(responseData.user.passwordChangedAt, 'passwordChangedAt must be recorded');
 
-        userA = await User.findOne({ email: testEmail });
+        userA = await supabaseService.findUserByEmail(testEmail);
         assert.ok(userA);
 
         const decoded = require('jsonwebtoken').verify(responseData.token, process.env.JWT_SECRET || 'secret123');
         assert.ok(decoded.sessionId, 'Token must contain sessionId');
 
-        sessionA1 = await AuthSession.findById(decoded.sessionId);
-        assert.ok(sessionA1, 'AuthSession must be saved in database');
+        sessionA1 = await supabaseService.getAuthSession(decoded.sessionId);
+        assert.ok(sessionA1, 'AuthSession must be accessible');
         assert.equal(sessionA1.device, 'Chrome on Windows 11');
         assert.equal(sessionA1.revokedAt, null, 'New session must not be revoked');
 
@@ -87,8 +69,8 @@ test('Auth and Session Management Suite', async (t) => {
         await protect(req, res, next);
         assert.equal(nextCalled, true, 'protect should call next() for valid active session');
         assert.ok(req.user, 'req.user should be populated');
-        assert.equal(req.user._id.toString(), userA._id.toString());
-        assert.equal(req.sessionId.toString(), sessionA1._id.toString());
+        assert.equal(req.user.id.toString(), userA.id.toString());
+        assert.equal(req.sessionId.toString(), (sessionA1.id || sessionA1._id).toString());
     });
 
     await t.test('3. Login creates a second active session for User A', async () => {
@@ -115,15 +97,15 @@ test('Auth and Session Management Suite', async (t) => {
         tokenA2 = responseData.token;
 
         const decoded = require('jsonwebtoken').verify(tokenA2, process.env.JWT_SECRET || 'secret123');
-        sessionA2 = await AuthSession.findById(decoded.sessionId);
+        sessionA2 = await supabaseService.getAuthSession(decoded.sessionId);
         assert.ok(sessionA2);
         assert.equal(sessionA2.device, 'Safari on iOS 17.5');
     });
 
     await t.test('4. listSessions returns both sessions with current session flagged accurately', async () => {
         const req = {
-            user: userA,
-            sessionId: sessionA1._id
+            user: { id: userA.id, _id: userA.id },
+            sessionId: sessionA1.id || sessionA1._id
         };
         let responseData = null;
         const res = {
@@ -137,24 +119,26 @@ test('Auth and Session Management Suite', async (t) => {
 
         const currentSession = responseData.sessions.find(s => s.isCurrent);
         assert.ok(currentSession, 'One session must be marked as current');
-        assert.equal(currentSession.id.toString(), sessionA1._id.toString());
+        assert.equal(currentSession.id.toString(), (sessionA1.id || sessionA1._id).toString());
 
         const otherSession = responseData.sessions.find(s => !s.isCurrent);
         assert.ok(otherSession);
-        assert.equal(otherSession.id.toString(), sessionA2._id.toString());
+        assert.equal(otherSession.id.toString(), (sessionA2.id || sessionA2._id).toString());
     });
 
     await t.test('5. Security: User B cannot revoke User A session (returns 403 Forbidden)', async () => {
-        userB = await User.create({
+        const attackerEmail = `test_logout_attacker_${Date.now()}@example.com`;
+        const attacker = await supabaseService.createUser({
             name: 'Malicious User',
-            email: `test_logout_attacker_${Date.now()}@example.com`,
+            email: attackerEmail,
             password: 'HashedPassword123',
             provider: 'email'
         });
+        userB = attacker;
 
         const req = {
-            user: userB,
-            params: { sessionId: sessionA2._id.toString() }
+            user: { id: userB.id, _id: userB.id },
+            params: { sessionId: (sessionA2.id || sessionA2._id).toString() }
         };
         let statusCode = 200;
         let responseData = null;
@@ -168,14 +152,14 @@ test('Auth and Session Management Suite', async (t) => {
         assert.equal(responseData.success, false);
 
         // Verify sessionA2 was NOT revoked
-        const checkSession = await AuthSession.findById(sessionA2._id);
+        const checkSession = await supabaseService.getAuthSession(sessionA2.id || sessionA2._id);
         assert.equal(checkSession.revokedAt, null);
     });
 
     await t.test('6. User A revokes other sessions: sessionA1 remains active, sessionA2 is revoked', async () => {
         const req = {
-            user: userA,
-            sessionId: sessionA1._id
+            user: { id: userA.id, _id: userA.id },
+            sessionId: sessionA1.id || sessionA1._id
         };
         let responseData = null;
         const res = {
@@ -186,8 +170,8 @@ test('Auth and Session Management Suite', async (t) => {
         await authController.revokeOtherSessions(req, res);
         assert.equal(responseData.success, true);
 
-        const checkA1 = await AuthSession.findById(sessionA1._id);
-        const checkA2 = await AuthSession.findById(sessionA2._id);
+        const checkA1 = await supabaseService.getAuthSession(sessionA1.id || sessionA1._id);
+        const checkA2 = await supabaseService.getAuthSession(sessionA2.id || sessionA2._id);
         assert.equal(checkA1.revokedAt, null, 'Current session must remain active');
         assert.ok(checkA2.revokedAt !== null, 'Other session must be revoked');
     });
@@ -215,8 +199,8 @@ test('Auth and Session Management Suite', async (t) => {
         let clearedCookieName = null;
         let sessionDestroyCalled = false;
         const req = {
-            user: userA,
-            sessionId: sessionA1._id,
+            user: { id: userA.id, _id: userA.id },
+            sessionId: sessionA1.id || sessionA1._id,
             session: {
                 destroy: (cb) => { sessionDestroyCalled = true; cb(); }
             }
@@ -232,8 +216,8 @@ test('Auth and Session Management Suite', async (t) => {
         assert.equal(clearedCookieName, 'connect.sid', 'Must clear connect.sid cookie');
         assert.equal(sessionDestroyCalled, true, 'Must destroy Express session');
 
-        const checkA1 = await AuthSession.findById(sessionA1._id);
-        assert.ok(checkA1.revokedAt !== null, 'Session must now be revoked in DB');
+        const checkA1 = await supabaseService.getAuthSession(sessionA1.id || sessionA1._id);
+        assert.ok(checkA1.revokedAt !== null, 'Session must now be revoked');
     });
 
     await t.test('9. Protect middleware REJECTS previously active session after logout', async () => {

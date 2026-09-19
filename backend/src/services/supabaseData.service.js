@@ -1,17 +1,24 @@
 const supabase = require('../config/supabase');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
 
 /**
  * Supabase Data Service
  * Provides full database operations for Testnexa AI on Supabase PostgreSQL.
+ * Serves as the authoritative and permanent persistence layer.
  */
 class SupabaseDataService {
+    constructor() {
+        this.inMemoryAuthSessions = new Map();
+        this.authSessionsTableAvailable = null; // null = untested, true/false
+    }
+
     get isAvailable() {
         return Boolean(supabase);
     }
 
     // ==========================================
-    // SESSIONS
+    // SESSIONS (workspace_sessions)
     // ==========================================
 
     async createSession({
@@ -84,6 +91,27 @@ class SupabaseDataService {
             if (error.code === 'PGRST116') return null; // not found
             logger.error('Supabase getSession error:', error);
             throw error;
+        }
+
+        return this._formatSession(data);
+    }
+
+    async findSessionByGenerationId(generationId, userId) {
+        if (!this.isAvailable || !generationId) return null;
+
+        let query = supabase
+            .from('workspace_sessions')
+            .select('*')
+            .eq('generation_id', generationId);
+
+        if (userId) {
+            query = query.eq('user_id', userId);
+        }
+
+        const { data, error } = await query.maybeSingle();
+        if (error) {
+            logger.warn('Supabase findSessionByGenerationId warning:', error.message);
+            return null;
         }
 
         return this._formatSession(data);
@@ -205,7 +233,7 @@ class SupabaseDataService {
     }
 
     // ==========================================
-    // TEST HISTORY
+    // TEST HISTORY (test_history)
     // ==========================================
 
     async saveTestHistory({
@@ -254,26 +282,87 @@ class SupabaseDataService {
         return record;
     }
 
-    async getTestHistory(userId, limit = 20) {
+    async getTestHistory(userId, { page = 1, limit = 20 } = {}) {
         if (!this.isAvailable) throw new Error('Supabase client is not available');
 
-        const { data, error } = await supabase
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, count, error } = await supabase
             .from('test_history')
-            .select('*')
+            .select('*', { count: 'exact' })
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(limit);
+            .range(from, to);
 
         if (error) {
             logger.error('Supabase getTestHistory error:', error);
             throw error;
         }
 
-        return data || [];
+        return {
+            history: (data || []).map(r => ({
+                _id: r.id,
+                id: r.id,
+                userId: r.user_id,
+                generationId: r.generation_id,
+                sessionId: r.session_id,
+                requirement: r.requirement,
+                appType: r.app_type,
+                detailLevel: r.detail_level,
+                testFocus: r.test_focus,
+                feature: r.feature,
+                summary: r.summary,
+                quality: r.quality,
+                data: r.data,
+                processingTime: r.processing_time,
+                model: r.model,
+                createdAt: r.created_at
+            })),
+            total: count || 0,
+            page,
+            limit,
+            totalPages: Math.ceil((count || 0) / limit)
+        };
+    }
+
+    async findHistoryByGenerationId(generationId, userId) {
+        if (!this.isAvailable || !generationId) return null;
+
+        let query = supabase
+            .from('test_history')
+            .select('*')
+            .eq('generation_id', generationId);
+
+        if (userId) {
+            query = query.eq('user_id', userId);
+        }
+
+        const { data, error } = await query.maybeSingle();
+        if (error) {
+            logger.warn('Supabase findHistoryByGenerationId note:', error.message);
+            return null;
+        }
+
+        if (!data) return null;
+
+        return {
+            _id: data.id,
+            id: data.id,
+            userId: data.user_id,
+            generationId: data.generation_id,
+            sessionId: data.session_id,
+            requirement: data.requirement,
+            feature: data.feature,
+            summary: data.summary,
+            quality: data.quality,
+            data: data.data,
+            createdAt: data.created_at
+        };
     }
 
     // ==========================================
-    // USERS
+    // USERS (users)
     // ==========================================
 
     async findUserByEmail(email) {
@@ -386,7 +475,305 @@ class SupabaseDataService {
         return data;
     }
 
-    // Format snake_case SQL results to camelCase matching frontend expectations
+    async updateProfile(id, { name, displayName, avatar }) {
+        const payload = {};
+        if (name !== undefined) payload.name = name;
+        if (displayName !== undefined) payload.display_name = displayName;
+        if (avatar !== undefined) payload.avatar = avatar;
+        return this.updateUser(id, payload);
+    }
+
+    async updatePassword(id, hashedPassword) {
+        const payload = {
+            password: hashedPassword,
+            password_changed_at: new Date().toISOString()
+        };
+        try {
+            return await this.updateUser(id, payload);
+        } catch (err) {
+            // If password_changed_at column doesn't exist yet, retry with just password
+            if (err.message && err.message.includes('password_changed_at')) {
+                return await this.updateUser(id, { password: hashedPassword });
+            }
+            throw err;
+        }
+    }
+
+    async setResetPasswordToken(email, tokenHash, expiresAt) {
+        if (!this.isAvailable) throw new Error('Supabase client is not available');
+
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .update({
+                    reset_password_token: tokenHash,
+                    reset_password_expire: expiresAt.toISOString()
+                })
+                .eq('email', email)
+                .select()
+                .maybeSingle();
+
+            if (error) throw error;
+            return data;
+        } catch (err) {
+            logger.warn('Supabase setResetPasswordToken: reset token columns may need migration in users table:', err.message);
+            // Fallback to in-memory reset token storage
+            this.inMemoryAuthSessions.set(`reset_${tokenHash}`, {
+                email,
+                expiresAt
+            });
+            return { email };
+        }
+    }
+
+    async findUserByResetToken(tokenHash) {
+        if (!this.isAvailable) throw new Error('Supabase client is not available');
+
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('reset_password_token', tokenHash)
+                .gt('reset_password_expire', new Date().toISOString())
+                .maybeSingle();
+
+            if (error) throw error;
+            if (data) return data;
+        } catch (err) {
+            logger.warn('Supabase findUserByResetToken note:', err.message);
+        }
+
+        // Check fallback in-memory reset token
+        const cached = this.inMemoryAuthSessions.get(`reset_${tokenHash}`);
+        if (cached && new Date(cached.expiresAt) > new Date()) {
+            return await this.findUserByEmail(cached.email);
+        }
+        return null;
+    }
+
+    async clearResetPasswordToken(id) {
+        if (!this.isAvailable) return;
+        try {
+            await supabase
+                .from('users')
+                .update({
+                    reset_password_token: null,
+                    reset_password_expire: null
+                })
+                .eq('id', id);
+        } catch (err) {
+            // Ignore if column doesn't exist
+        }
+    }
+
+    // ==========================================
+    // AUTH SESSIONS (auth_sessions)
+    // ==========================================
+
+    async createAuthSession({
+        userId,
+        sessionIdentifier,
+        device = 'Unknown Device',
+        browser = 'Unknown Browser',
+        os = 'Unknown OS',
+        userAgent = '',
+        ipAddress = '',
+        location = 'Unknown Location',
+        expiresAt
+    }) {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const exp = expiresAt instanceof Date ? expiresAt.toISOString() : (expiresAt || new Date(Date.now() + 30 * 86400000).toISOString());
+
+        if (this.isAvailable && this.authSessionsTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('auth_sessions')
+                    .insert({
+                        id,
+                        user_id: userId,
+                        session_identifier: sessionIdentifier || crypto.randomBytes(24).toString('hex'),
+                        device,
+                        browser,
+                        os,
+                        user_agent: userAgent,
+                        ip_address: ipAddress,
+                        location,
+                        last_active_at: now,
+                        expires_at: exp,
+                        created_at: now
+                    })
+                    .select()
+                    .single();
+
+                if (!error && data) {
+                    this.authSessionsTableAvailable = true;
+                    return this._formatAuthSession(data);
+                }
+
+                if (error && (error.code === '42P01' || error.message.includes('auth_sessions') || error.code === 'PGRST205')) {
+                    this.authSessionsTableAvailable = false;
+                    logger.info('ℹ️ Note: auth_sessions table not found in Supabase. Active sessions tracked in-memory.');
+                }
+            } catch (err) {
+                this.authSessionsTableAvailable = false;
+            }
+        }
+
+        // Graceful in-memory fallback
+        const sessionObj = {
+            id,
+            _id: id,
+            userId,
+            sessionIdentifier: sessionIdentifier || crypto.randomBytes(24).toString('hex'),
+            device,
+            browser,
+            os,
+            userAgent,
+            ipAddress,
+            location,
+            lastActiveAt: now,
+            expiresAt: exp,
+            revokedAt: null,
+            createdAt: now
+        };
+        this.inMemoryAuthSessions.set(id, sessionObj);
+        return sessionObj;
+    }
+
+    async getAuthSession(sessionId) {
+        if (!sessionId) return null;
+
+        if (this.isAvailable && this.authSessionsTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('auth_sessions')
+                    .select('*')
+                    .eq('id', sessionId)
+                    .maybeSingle();
+
+                if (!error && data) {
+                    return this._formatAuthSession(data);
+                }
+            } catch (err) {}
+        }
+
+        return this.inMemoryAuthSessions.get(sessionId) || null;
+    }
+
+    async listAuthSessions(userId) {
+        if (!userId) return [];
+
+        if (this.isAvailable && this.authSessionsTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('auth_sessions')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .is('revoked_at', null)
+                    .gt('expires_at', new Date().toISOString())
+                    .order('last_active_at', { ascending: false });
+
+                if (!error && data) {
+                    return data.map(this._formatAuthSession);
+                }
+            } catch (err) {}
+        }
+
+        // In-memory filter
+        const now = new Date();
+        const results = [];
+        for (const session of this.inMemoryAuthSessions.values()) {
+            if (session.userId === userId && !session.revokedAt && new Date(session.expiresAt) > now) {
+                results.push(session);
+            }
+        }
+        return results.sort((a, b) => new Date(b.lastActiveAt) - new Date(a.lastActiveAt));
+    }
+
+    async revokeAuthSession(sessionId, userId) {
+        if (!sessionId) return false;
+
+        const now = new Date().toISOString();
+
+        if (this.isAvailable && this.authSessionsTableAvailable !== false) {
+            try {
+                let query = supabase
+                    .from('auth_sessions')
+                    .update({ revoked_at: now })
+                    .eq('id', sessionId);
+
+                if (userId) {
+                    query = query.eq('user_id', userId);
+                }
+
+                await query;
+            } catch (err) {}
+        }
+
+        const mem = this.inMemoryAuthSessions.get(sessionId);
+        if (mem && (!userId || mem.userId === userId)) {
+            mem.revokedAt = now;
+        }
+
+        return true;
+    }
+
+    async revokeOtherAuthSessions(userId, currentSessionId) {
+        if (!userId) return 0;
+        const now = new Date().toISOString();
+        let revokedCount = 0;
+
+        if (this.isAvailable && this.authSessionsTableAvailable !== false) {
+            try {
+                let query = supabase
+                    .from('auth_sessions')
+                    .update({ revoked_at: now })
+                    .eq('user_id', userId)
+                    .is('revoked_at', null);
+
+                if (currentSessionId) {
+                    query = query.neq('id', currentSessionId);
+                }
+
+                const { data } = await query.select();
+                if (data) revokedCount = data.length;
+            } catch (err) {}
+        }
+
+        for (const [id, session] of this.inMemoryAuthSessions.entries()) {
+            if (session.userId === userId && !session.revokedAt && id !== currentSessionId) {
+                session.revokedAt = now;
+                revokedCount++;
+            }
+        }
+
+        return revokedCount;
+    }
+
+    async touchAuthSession(sessionId) {
+        if (!sessionId) return;
+        const now = new Date().toISOString();
+
+        if (this.isAvailable && this.authSessionsTableAvailable !== false) {
+            supabase
+                .from('auth_sessions')
+                .update({ last_active_at: now })
+                .eq('id', sessionId)
+                .then(() => {})
+                .catch(() => {});
+        }
+
+        const mem = this.inMemoryAuthSessions.get(sessionId);
+        if (mem) {
+            mem.lastActiveAt = now;
+        }
+    }
+
+    // ==========================================
+    // HELPERS
+    // ==========================================
+
     _formatSession(row) {
         if (!row) return null;
         return {
@@ -410,6 +797,26 @@ class SupabaseDataService {
             generationId: row.generation_id || '',
             createdAt: row.created_at,
             updatedAt: row.updated_at
+        };
+    }
+
+    _formatAuthSession(row) {
+        if (!row) return null;
+        return {
+            _id: row.id,
+            id: row.id,
+            userId: row.user_id,
+            sessionIdentifier: row.session_identifier,
+            device: row.device,
+            browser: row.browser,
+            os: row.os,
+            userAgent: row.user_agent,
+            ipAddress: row.ip_address,
+            location: row.location,
+            lastActiveAt: row.last_active_at,
+            expiresAt: row.expires_at,
+            revokedAt: row.revoked_at,
+            createdAt: row.created_at
         };
     }
 }
