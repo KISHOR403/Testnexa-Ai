@@ -172,7 +172,7 @@
   background-color: var(--qa-bg);
   color: var(--qa-text-primary);
   font-family: var(--qa-font-sans);
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
