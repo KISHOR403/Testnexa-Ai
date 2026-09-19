@@ -50,7 +50,7 @@ export const CoverageRiskSection = () => {
         <section className="tn-section tn-coverage-risk-section" aria-labelledby="cov-risk-heading">
             <div className="tn-container">
                 <div className="tn-section-header">
-                    <span className="tn-kicker">Coverage & Risk Audit</span>
+                    <span className="tn-kicker tn-kicker--accent">Test Coverage & Risk</span>
                     <h2 id="cov-risk-heading" className="tn-section-title">
                         See coverage and risk before execution.
                     </h2>

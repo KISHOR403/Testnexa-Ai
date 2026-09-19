@@ -150,8 +150,8 @@
 }
 
 .app-sidebar__new-btn:hover {
-    background: #14E5CC;
-    border-color: #14E5CC;
+    background: #00c4ad;
+    border-color: #00c4ad;
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(0, 217, 192, 0.35);
 }
@@ -394,7 +394,7 @@
 }
 
 .app-sidebar__view-all-link:hover {
-    color: #14E5CC;
+    color: #00c4ad;
     text-decoration: underline;
 }
 

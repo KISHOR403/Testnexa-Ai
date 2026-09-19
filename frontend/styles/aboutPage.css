@@ -266,7 +266,7 @@
 }
 
 .tn-about-ai-col-tag--qa {
-  color: #60a5fa;
+  color: #A3A3A3;
 }
 
 .tn-about-ai-col-title {
@@ -301,7 +301,7 @@
 }
 
 .tn-about-ai-item-bullet--qa {
-  color: #60a5fa;
+  color: #A3A3A3;
   flex-shrink: 0;
   margin-top: 2px;
 }
