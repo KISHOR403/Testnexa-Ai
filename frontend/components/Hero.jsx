@@ -134,7 +134,9 @@ export const Hero = () => {
                     </div>
 
                     <h1 id="hero-main-heading" className="tn-hero-title">
-                        Turn requirements into<br />
+                        <span className="t-shimmer" data-text="Turn requirements into">
+                            Turn requirements into
+                        </span><br />
                         <span className="t-think t-think--hero-title" role="status" aria-live="polite">
                             <span className="t-think-sizer" aria-hidden="true">{longestHeadline}</span>
                             <span

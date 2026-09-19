@@ -113,14 +113,14 @@ main {
 }
 
 .btn-primary {
-  background: #00D9C0;
+  background: #F5F5F5;
   color: #050505;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   border: none;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -130,11 +130,13 @@ main {
 }
 
 .btn-primary:hover {
-  background: #00c4ad;
+  background: #E5E5E5;
+  color: #050505;
   box-shadow: none;
 }
 
 .btn-primary:active {
+  background: #DCDCDC;
   transform: translateY(0);
 }
 
