@@ -75,6 +75,56 @@ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, san
 
 ### Three Layout Tiers
 
+```mermaid
+flowchart TB
+    subgraph Root["Application Shell (App.jsx)"]
+        direction TB
+        Router["BrowserRouter"]
+    end
+
+    subgraph Tiers["Layout Architecture"]
+        direction TB
+        ML["MarketingLayout<br/>(Public Web Pages)"]
+        AL["AuthLayout<br/>(Sign In / Sign Up)"]
+        APL["AppLayout<br/>(Authenticated App Shell)"]
+    end
+
+    subgraph MRoutes["Marketing Routes"]
+        direction TB
+        Gen["/ — Generator Landing"]
+        Docs["/docs — Documentation"]
+        Pricing["/pricing — Plans"]
+    end
+
+    subgraph ARoutes["Auth Routes"]
+        direction TB
+        Login["/login"]
+        SignUp["/signup"]
+        Forgot["/forgot-password"]
+    end
+
+    subgraph AppRoutes["Protected App Routes"]
+        direction TB
+        Work["/app/workspace/:sessionId?"]
+        Hist["/app/history"]
+        Suites["/app/test-suites"]
+        Settings["/app/settings"]
+    end
+
+    Router --> ML
+    Router --> AL
+    Router --> APL
+
+    ML --> MRoutes
+    AL --> ARoutes
+    APL --> AppRoutes
+
+    style Root fill:#161b22,stroke:#00d4aa,color:#fff
+    style ML fill:#0d1117,stroke:#3b82f6,color:#fff
+    style AL fill:#0d1117,stroke:#f59e0b,color:#fff
+    style APL fill:#0d1117,stroke:#22c55e,color:#fff
+```
+
 1. **MarketingLayout** — Public-facing pages with `Navbar` + `Footer`
    - Full-width hero sections with constrained content (max-width: 1240px)
    - Scroll-reveal animations on section entry
@@ -107,6 +157,51 @@ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, san
 | **Mobile** | < 576px | Single column, full-width cards |
 
 ---
+
+## Component Architecture & Hierarchy
+
+```mermaid
+graph TD
+    subgraph WorkspaceShell["AI Workspace Component Tree"]
+        direction TB
+        Modal["AiWorkspaceModal.jsx (Full-Screen Overlay)"]
+        Input["InputPanel.jsx<br/>(Requirement Input, Presets)"]
+        Settings["SettingsPanel.jsx<br/>(App Type, Detail, Focus)"]
+        Loading["LoadingArea.jsx<br/>(Thinking Animation & Progress)"]
+        Results["ResultsSection.jsx<br/>(Complete Test Suite 85KB)"]
+        Refine["RefineRegeneratePanel.jsx<br/>(Version History & Edits)"]
+        Copilot["CopilotDrawer.jsx<br/>(Interactive AI QA Assistant)"]
+        
+        Modal --> Input
+        Modal --> Settings
+        Modal --> Loading
+        Modal --> Results
+        Modal --> Refine
+        Modal --> Copilot
+    end
+
+    subgraph ResultsBreakdown["Results Section Sub-Components"]
+        direction TB
+        Tabs["Category Tabs (Functional / Negative / Edge / API)"]
+        Card["TestCaseCard (Priority Badge, Steps, Expected)"]
+        Intel["RequirementIntelligence (Scores & Suggestions)"]
+        Coverage["CoverageAnalytics (Metrics & Gaps)"]
+        Risk["CoverageRiskSection (High Risk Scenarios)"]
+        Trace["TraceabilitySection (ISTQB Trace Matrix)"]
+        Export["ExportActions (JSON, CSV, Markdown, Jira)"]
+
+        Results --> Tabs
+        Results --> Card
+        Results --> Intel
+        Results --> Coverage
+        Results --> Risk
+        Results --> Trace
+        Results --> Export
+    end
+
+    style WorkspaceShell fill:#0d1117,stroke:#00d4aa,stroke-width:2px,color:#fff
+    style ResultsBreakdown fill:#0d1117,stroke:#a855f7,stroke-width:2px,color:#fff
+```
 
 ## Component Inventory
 

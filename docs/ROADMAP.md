@@ -16,6 +16,30 @@ Testnexa AI is a fully functional AI-powered QA test case generator with:
 - ✅ Docker + Kubernetes deployment
 - ✅ CI/CD via GitHub Actions
 
+## Product Roadmap Timeline
+
+```mermaid
+timeline
+    title Testnexa AI Strategic Product Roadmap
+    section Q3 2026 (Delivered)
+        Multi-Category Generation : ISTQB Schema & Ambiguity Detection
+        Google Gemini Engine : Two-Step Orchestration
+        Supabase PostgreSQL : Auth, Sessions & Data Isolation
+        Enterprise Dark UI : Responsive Workspace & QA Copilot
+    section Q4 2026 (Short-Term)
+        Test Script Export : Playwright, Cypress, Postman formats
+        Team Workspaces : Role-based access control
+        Jira & Linear Sync : Two-way defect/issue tracking
+    section Q1 2027 (Medium-Term)
+        Visual Regression AI : Screenshot & wireframe to test generator
+        API Mock Server : Auto-generated mock payloads
+        PRD Bi-directional Sync : Live sync with Confluence & Notion
+    section 2027+ (Long-Term)
+        Self-Healing Tests : Dynamic locator repairs
+        On-Premise Deployment : Air-gapped enterprise clusters
+        Multi-Agent Swarm : Specialized security & performance agents
+```
+
 ---
 
 ## Short-Term (Next Release)

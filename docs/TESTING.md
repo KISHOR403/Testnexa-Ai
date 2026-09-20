@@ -10,6 +10,41 @@ The Testnexa AI backend includes a mix of **unit tests** and **end-to-end (E2E) 
 
 The frontend uses **Playwright** (devDependency) for browser-based testing.
 
+## Test Pyramid & Coverage Topology
+
+```mermaid
+flowchart TB
+    E2E["E2E Tests (Playwright & Custom Node Suites)<br/>• e2e-generation-flow.cjs<br/>• e2e-workspace-flow.cjs<br/>• e2e-data-isolation.cjs"]
+    Integration["Integration Tests (Supertest + Express API)<br/>• test-suite-isolation.test.js<br/>• auth-logout.test.js<br/>• generation-flow.test.js"]
+    Unit["Unit Tests (Logic & Sanitization)<br/>• return-url-sanitizer.test.js<br/>• copilot.test.js<br/>• Joi validation schemas"]
+
+    E2E --> Integration
+    Integration --> Unit
+
+    style E2E fill:#0d1117,stroke:#ef4444,stroke-width:2px,color:#fff
+    style Integration fill:#0d1117,stroke:#f59e0b,stroke-width:2px,color:#fff
+    style Unit fill:#0d1117,stroke:#22c55e,stroke-width:2px,color:#fff
+```
+
+## CI / Automated Test Pipeline
+
+```mermaid
+flowchart LR
+    Commit["Code Commit / PR"] --> Lint["Syntax & Lint Checks"]
+    Lint --> UnitRunner["Unit Tests (backend/tests)"]
+    UnitRunner --> Isolation["Data Isolation Tests"]
+    Isolation --> E2ERunner["E2E Lifecycle Suites"]
+    E2ERunner --> Gate{"All Pass?"}
+    Gate -->|Yes| Deploy["Eligible for Merge / Deploy"]
+    Gate -->|No| Reject["Block PR & Notify"]
+
+    style Commit fill:#161b22,stroke:#00d4aa,color:#fff
+    style UnitRunner fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Isolation fill:#0d1117,stroke:#a855f7,color:#fff
+    style Deploy fill:#0d1117,stroke:#22c55e,stroke-width:2px,color:#fff
+    style Reject fill:#0d1117,stroke:#ef4444,stroke-width:2px,color:#fff
+```
+
 ---
 
 ## Test Directory Structure

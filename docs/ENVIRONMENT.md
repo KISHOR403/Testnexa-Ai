@@ -4,6 +4,44 @@
 
 ---
 
+## Environment & Secrets Flow Architecture
+
+```mermaid
+flowchart TD
+    subgraph Environments["Environment Stages"]
+        Dev["Local Development (.env)"]
+        Stage["Staging Environment"]
+        Prod["Production (Vercel + Render)"]
+    end
+
+    subgraph Secrets["Secret Management"]
+        SupabaseCreds["Supabase URL & Service Key"]
+        GeminiKey["Google Gemini API Key"]
+        JWTSecret["JWT Signing Key & Session Secret"]
+        OAuthCreds["Google & GitHub OAuth Credentials"]
+        SMTPCreds["SMTP Email Credentials"]
+    end
+
+    subgraph Targets["Runtime Targets"]
+        Backend["Express API Server (Private Backend Env)"]
+        Frontend["Vite React Client (Public VITE_* Env)"]
+    end
+
+    Dev --> Secrets
+    Stage --> Secrets
+    Prod --> Secrets
+
+    Secrets -->|Injected Server-Side| Backend
+    Secrets -->|Built into Bundle (VITE_API_URL)| Frontend
+
+    style Environments fill:#161b22,stroke:#00d4aa,color:#fff
+    style Secrets fill:#0d1117,stroke:#a855f7,stroke-width:2px,color:#fff
+    style Backend fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Frontend fill:#0d1117,stroke:#22c55e,color:#fff
+```
+
+---
+
 ## Backend Environment Variables
 
 Located in `backend/.env` (copy from `backend/.env.example`).

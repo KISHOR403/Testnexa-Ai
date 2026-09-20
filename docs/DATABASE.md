@@ -282,6 +282,42 @@ Tracks active login sessions for device management and security.
 
 ---
 
+## Session Lifecycle & State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: User opens workspace
+    Draft --> Generating: Submit requirement (/api/v1/generate)
+    Generating --> Active: AI completes & suite saved to Supabase
+    Active --> Refined: Edit requirement & Regenerate (new version added)
+    Refined --> Active: Switch version or refine further
+    Active --> Archived: User deletes session
+    Archived --> [*]
+```
+
+---
+
+## Data Access & Isolation Pipeline
+
+```mermaid
+flowchart LR
+    Client["Client Request<br/>(Bearer JWT)"] --> MW["protect Middleware<br/>(Extracts user.id)"]
+    MW --> Controller["Controller Layer<br/>(Workspace / History)"]
+    Controller --> Service["Supabase Client<br/>(supabaseData.service.js)"]
+    Service --> Postgres[("PostgreSQL DB<br/>WHERE user_id = $1")]
+
+    Postgres -->|User-Scoped Data| Service
+    Service --> Controller
+    Controller -->|Isolated JSON| Client
+
+    style Client fill:#0d1117,stroke:#00d4aa,color:#fff
+    style MW fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Controller fill:#0d1117,stroke:#a855f7,color:#fff
+    style Postgres fill:#0d1117,stroke:#22c55e,color:#fff
+```
+
+---
+
 ## Database Operations
 
 All database operations are centralized in `supabaseData.service.js` (26KB). Key operations include:

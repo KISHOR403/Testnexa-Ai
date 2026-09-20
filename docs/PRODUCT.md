@@ -30,6 +30,39 @@ Software teams across the industry face a recurring set of QA challenges:
 
 ## Solution
 
+```mermaid
+flowchart LR
+    subgraph Pain["Industry Pain Points"]
+        P1["Ambiguous Requirements"]
+        P2["Manual Writing (Hours/Days)"]
+        P3["Missed Edge Cases"]
+        P4["No Standard ISTQB Schema"]
+    end
+
+    subgraph Platform["Testnexa AI Platform"]
+        S1["Gemini Context Parser"]
+        S2["Parallel 4-Tier Generator"]
+        S3["Boundary & Corner Detector"]
+        S4["12-Field Normalized Schema"]
+    end
+
+    subgraph Value["Delivered Value"]
+        V1["Zero-Defect Sprints"]
+        V2["10x Faster QA Delivery"]
+        V3["100% Traceability"]
+        V4["Ready for CI/CD Automation"]
+    end
+
+    P1 --> S1 --> V1
+    P2 --> S2 --> V2
+    P3 --> S3 --> V3
+    P4 --> S4 --> V4
+
+    style Pain fill:#0d1117,stroke:#ef4444,color:#fff
+    style Platform fill:#0d1117,stroke:#00d4aa,stroke-width:2px,color:#fff
+    style Value fill:#0d1117,stroke:#22c55e,color:#fff
+```
+
 Testnexa AI addresses these pain points through a single, unified platform:
 
 1. **AI-Powered Analysis** — Advanced LLM intelligence (Google Gemini) parses requirements with context-aware domain understanding
@@ -41,6 +74,25 @@ Testnexa AI addresses these pain points through a single, unified platform:
 ---
 
 ## Target Personas
+
+```mermaid
+graph TD
+    SDET["🔧 SDETs"] -->|Requires| S1["Preconditions, Test Data & Automation IDs"]
+    PM["📋 Product Managers"] -->|Requires| S2["Ambiguity Questions & Acceptance Validation"]
+    Fresher["🎓 Junior QA / Freshers"] -->|Requires| S3["Step-by-step Structure & ISTQB Best Practices"]
+    Dev["💻 Developers"] -->|Requires| S4["API Status Codes & Edge Case Pre-flight Checks"]
+
+    S1 --> Unified["Unified Testnexa AI Platform"]
+    S2 --> Unified
+    S3 --> Unified
+    S4 --> Unified
+
+    style SDET fill:#0d1117,stroke:#3b82f6,color:#fff
+    style PM fill:#0d1117,stroke:#f59e0b,color:#fff
+    style Fresher fill:#0d1117,stroke:#22c55e,color:#fff
+    style Dev fill:#0d1117,stroke:#a855f7,color:#fff
+    style Unified fill:#0d1117,stroke:#00d4aa,stroke-width:2px,color:#fff
+```
 
 ### 🔧 SDETs (Software Development Engineers in Test)
 

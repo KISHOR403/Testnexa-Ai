@@ -8,6 +8,29 @@
 
 Testnexa AI (originally named **AutoTestGen**) was created as an AI-powered QA test case generator. The project has evolved through multiple phases — from a simple single-page prototype to a full-stack enterprise QA platform.
 
+## Evolution Timeline
+
+```mermaid
+timeline
+    title Testnexa AI Project Evolution
+    section Phase 1 (Scaffolding)
+        5442976 : Project setup & Vite initialization
+    section Phase 2 (Core Build)
+        78ac478 : Frontend/backend monorepo structure
+        a83e2b6 : Hero, InputPanel & ResultsSection
+    section Phase 3 (AI Engine)
+        c56fa76 : Two-Step Orchestrator & Gemini AI
+        fca9e33 : Ambiguity detection & domain analysis
+        7b3d1f0 : Automated Playwright E2E tests
+    section Phase 4 (Postgres Migration)
+        38c6f44 : Full migration from MongoDB to Supabase PostgreSQL
+    section Phase 5 (Enterprise Dark UI)
+        15c65f8 : Dark glassmorphism redesign & canvas particles
+        9ff2233 : Stack-spread layouts & mobile optimizations
+    section Phase 6 (Documentation & PR)
+        bb9601b : 18-file architectural documentation suite
+```
+
 ---
 
 ## Timeline

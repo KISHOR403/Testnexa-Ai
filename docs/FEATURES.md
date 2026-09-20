@@ -6,6 +6,36 @@
 
 ## 🧠 AI-Powered Test Generation
 
+```mermaid
+graph TD
+    Req["Input Requirement Text"] --> Engine["AI Test Generation Engine"]
+    Engine --> P1["Context & Domain Analysis"]
+    Engine --> P2["Ambiguity & Gap Detection"]
+    Engine --> P3["Risk & Impact Assessment"]
+
+    P1 --> Gen["Parallel Category Generation"]
+    P2 --> Gen
+    P3 --> Gen
+
+    Gen --> Cat1["Functional Tests (TC_FUNC_*)<br/>Happy path & core business logic"]
+    Gen --> Cat2["Negative Tests (TC_NEG_*)<br/>Invalid inputs & error handling"]
+    Gen --> Cat3["Edge Cases (TC_EDGE_*)<br/>Boundary limits & concurrency"]
+    Gen --> Cat4["API Tests (TC_API_*)<br/>HTTP methods, payloads & status codes"]
+
+    Cat1 --> Suite["Unified ISTQB Test Suite"]
+    Cat2 --> Suite
+    Cat3 --> Suite
+    Cat4 --> Suite
+
+    style Req fill:#161b22,stroke:#00d4aa,color:#fff
+    style Engine fill:#0d1117,stroke:#a855f7,stroke-width:2px,color:#fff
+    style Cat1 fill:#0d1117,stroke:#22c55e,color:#fff
+    style Cat2 fill:#0d1117,stroke:#ef4444,color:#fff
+    style Cat3 fill:#0d1117,stroke:#f59e0b,color:#fff
+    style Cat4 fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Suite fill:#0d1117,stroke:#00d4aa,stroke-width:2px,color:#fff
+```
+
 ### Multi-Category Test Generation
 
 Generates four categories of test cases simultaneously from a single requirement input:
@@ -115,6 +145,40 @@ When high ambiguity is detected, the system generates targeted questions to guid
 ---
 
 ## 🤖 QA Copilot
+
+```mermaid
+flowchart TD
+    TestSuite["Active Test Suite in Workspace"] --> Trigger["User opens QA Copilot"]
+    Trigger --> Scope{"Select Scope"}
+    Scope -->|Full Suite| AnalyzeFull["Analyze All Categories"]
+    Scope -->|Single Case| AnalyzeCase["Audit Specific Test Case"]
+    Scope -->|Category| AnalyzeCat["Audit Category (e.g. Edge Cases)"]
+
+    AnalyzeFull --> Engine["Copilot AI Analysis (/api/v1/copilot/analyze)"]
+    AnalyzeCase --> Engine
+    AnalyzeCat --> Engine
+
+    Engine --> Findings["Interactive Suggestions Drawer"]
+    Findings --> F1["Missing Edge Scenarios"]
+    Findings --> F2["Potential Security Weaknesses"]
+    Findings --> F3["Step Clarity Improvements"]
+
+    F1 --> Action{"Human-in-the-Loop Action"}
+    F2 --> Action
+    F3 --> Action
+
+    Action -->|Add Test| AppendSuite["Insert New Test Case to Suite"]
+    Action -->|Improve| UpdateSuite["Patch Existing Test Case"]
+    Action -->|Dismiss| Ignore["Dismiss Suggestion"]
+
+    AppendSuite --> TestSuite
+    UpdateSuite --> TestSuite
+
+    style TestSuite fill:#0d1117,stroke:#00d4aa,stroke-width:2px,color:#fff
+    style Engine fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Findings fill:#0d1117,stroke:#a855f7,color:#fff
+    style AppendSuite fill:#0d1117,stroke:#22c55e,color:#fff
+```
 
 ### Context-Aware Analysis
 

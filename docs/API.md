@@ -11,6 +11,74 @@ Development: http://localhost:5000/api/v1
 Production:  https://your-backend-domain.com/api/v1
 ```
 
+## API Request Lifecycle & Middleware Pipeline
+
+```mermaid
+flowchart TD
+    Req["Incoming HTTP Request"] --> Cors["CORS & Helmet Security Headers"]
+    Cors --> RateLimiter["Rate Limiting Middleware (express-rate-limit)"]
+    RateLimiter --> Auth{"Route Requires Auth?"}
+    
+    Auth -->|protect| VerifyJWT["JWT Verification (protect)"]
+    Auth -->|optionalProtect| OptionalJWT["Optional JWT Extraction"]
+    Auth -->|Public / Health| PublicRoute["Pass Through"]
+    
+    VerifyJWT --> CheckRevoked{"Session Revoked in DB?"}
+    CheckRevoked -->|Yes| RevokedErr["401: SESSION_REVOKED"]
+    CheckRevoked -->|No| Validator["Joi Request Body Validation"]
+    
+    OptionalJWT --> Validator
+    PublicRoute --> Validator
+    
+    Validator --> Controller["Express Controller Action"]
+    Controller --> Services{"Downstream Services"}
+    
+    Services --> GeminiAI["Google Gemini AI (geminiService.js)"]
+    Services --> SupabaseDB["Supabase PostgreSQL (supabaseData.service.js)"]
+    Services --> Email["Nodemailer Service (email.service.js)"]
+    
+    GeminiAI --> Response["Formatted JSON Response (200 / 201)"]
+    SupabaseDB --> Response
+    Email --> Response
+    
+    style Req fill:#161b22,stroke:#00d4aa,color:#fff
+    style VerifyJWT fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Controller fill:#0d1117,stroke:#a855f7,color:#fff
+    style Services fill:#0d1117,stroke:#22c55e,color:#fff
+```
+
+## API Route Topology
+
+```mermaid
+graph LR
+    API["/api/v1"] --> GenGroup["Generation Endpoints"]
+    API --> CopilotGroup["QA Copilot Endpoints"]
+    API --> AuthGroup["Authentication Endpoints"]
+    API --> HistGroup["History Endpoints"]
+    API --> WorkGroup["Workspace Endpoints"]
+    API --> ExportGroup["Export Endpoints"]
+
+    GenGroup --> G1["POST /generate"]
+    GenGroup --> G2["POST /generate/refine"]
+    
+    CopilotGroup --> C1["POST /copilot/analyze"]
+    CopilotGroup --> C2["POST /copilot/actions/*"]
+    
+    AuthGroup --> A1["POST /auth/register"]
+    AuthGroup --> A2["POST /auth/login"]
+    AuthGroup --> A3["GET /auth/google | /github"]
+    AuthGroup --> A4["GET|POST /auth/sessions*"]
+    
+    HistGroup --> H1["GET|DELETE /history*"]
+    WorkGroup --> W1["GET|POST|PUT /workspace*"]
+    ExportGroup --> E1["POST /export/*"]
+
+    style API fill:#0d1117,stroke:#00d4aa,stroke-width:2px,color:#fff
+    style GenGroup fill:#0d1117,stroke:#3b82f6,color:#fff
+    style CopilotGroup fill:#0d1117,stroke:#a855f7,color:#fff
+    style AuthGroup fill:#0d1117,stroke:#22c55e,color:#fff
+```
+
 ## Authentication
 
 Most endpoints use JWT Bearer token authentication:

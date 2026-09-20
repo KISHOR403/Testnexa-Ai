@@ -2,6 +2,32 @@
 
 > Key technical decisions, their context, and consequences.
 
+## Architectural Decision Map
+
+```mermaid
+graph TD
+    Root["Testnexa AI Architectural Decisions"] --> DB["ADR-001: Supabase PostgreSQL<br/>(over MongoDB Atlas)"]
+    Root --> AI["ADR-002: Google Gemini AI<br/>(Two-Step Orchestration)"]
+    Root --> Auth["ADR-003: Stateless JWT + DB Sessions<br/>(over stateful sessions)"]
+    Root --> Build["ADR-004: Vite 7 Build Engine<br/>(over Create React App)"]
+    Root --> Style["ADR-005: Vanilla CSS Tokens<br/>(over Tailwind CSS)"]
+    Root --> API["ADR-006: Modular Express.js<br/>(over NestJS / Fastify)"]
+    Root --> OAuth["ADR-007: Passport.js OAuth<br/>(Google & GitHub)"]
+    Root --> Test["ADR-008: Playwright & Native Runners<br/>(over Cypress)"]
+    Root --> Schema["ADR-009: ISTQB 12-Field Schema<br/>(Standardized Test Case Model)"]
+
+    style Root fill:#161b22,stroke:#00d4aa,stroke-width:2px,color:#fff
+    style DB fill:#0d1117,stroke:#22c55e,color:#fff
+    style AI fill:#0d1117,stroke:#a855f7,color:#fff
+    style Auth fill:#0d1117,stroke:#3b82f6,color:#fff
+    style Build fill:#0d1117,stroke:#f59e0b,color:#fff
+    style Style fill:#0d1117,stroke:#00d4aa,color:#fff
+    style API fill:#0d1117,stroke:#3b82f6,color:#fff
+    style OAuth fill:#0d1117,stroke:#22c55e,color:#fff
+    style Test fill:#0d1117,stroke:#ef4444,color:#fff
+    style Schema fill:#0d1117,stroke:#a855f7,color:#fff
+```
+
 ---
 
 ## ADR-001: Supabase PostgreSQL over MongoDB
