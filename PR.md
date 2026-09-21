@@ -76,6 +76,12 @@ flowchart TB
     style Data fill:#0d1117,stroke:#22c55e,stroke-width:2px,color:#fff
 ```
 
+### Architecture Layer Breakdown:
+- **Client (React 19 + Vite 7):** Single-page application designed with an enterprise dark glassmorphic UI. Manages generation inputs, interactive test exploration, settings drawers, and responsive layouts across mobile, tablet, and 4K viewports.
+- **API Gateway (Express 4):** Standardized `/api/v1` REST entry point with strict layered middleware (Helmet security headers, CORS origin whitelisting, IP rate limiters, and JWT verification).
+- **Intelligence Engine (Gemini 2.5 Flash):** Orchestrates domain detection, prompt engineering, structured JSON schema response enforcement, ambiguity scoring, and priority classification.
+- **Persistence (Supabase PostgreSQL):** Relational storage maintaining strict multi-tenant data isolation via `user_id` foreign keys and indexed JSONB query payloads.
+
 ---
 
 ## 🔄 End-to-End Test Suite Generation Pipeline
@@ -104,6 +110,18 @@ sequenceDiagram
     API-->>Frontend: 200 OK (Test Suite + Quality Analytics)
     Frontend-->>User: Render interactive cards, badges, and export options
 ```
+
+### Detailed Pipeline Execution Sequence:
+1. **User Input:** The tester enters a feature specification or user story and configures testing parameters (e.g. Mobile, Standard Depth, Mixed Focus).
+2. **Pre-flight & Security Check:** The request hits `POST /api/v1/generate`. The gateway inspects authentication (`optionalProtect`), checks the client IP against the rate limiter, and validates text length and payload format using Joi schemas.
+3. **Two-Step Prompting:** The backend dynamically compiles a domain-adapted system instruction that commands the LLM to output only parseable JSON conforming to ISTQB 12-field standards.
+4. **LLM Execution:** Google Gemini 2.5 Flash processes the requirement with high token throughput and low latency.
+5. **Post-Processing & Validation:** The response is parsed, validated, and enriched:
+   - **Ambiguity Analyzer:** Identifies missing business rules and vague statements.
+   - **Priority Engine:** Computes risk matrix (High, Medium, Low) based on critical user journeys.
+   - **Traceability Linker:** Binds test cases to atomic requirement identifiers (`REQ_001`, `REQ_002`).
+6. **Data Isolation & Storage:** If the user is authenticated, the session is transactionally persisted to `workspace_sessions` with full versioning history.
+7. **Client Presentation:** The client renders categorized tabs (Functional, Negative, Edge Case, API) along with coverage radar charts and export controls.
 
 ---
 
@@ -135,6 +153,12 @@ graph TD
     style Modal fill:#0d1117,stroke:#a855f7,stroke-width:2px,color:#fff
     style ResultsSection fill:#0d1117,stroke:#3b82f6,stroke-width:2px,color:#fff
 ```
+
+### Component Hierarchy Highlights:
+- **Unified Shell:** `App.jsx` dynamically mounts layout tiers (`MarketingLayout`, `AuthLayout`, or `AppLayout`) based on the active route.
+- **AI Workspace Modal:** A self-contained workbench overlay holding the complete lifecycle: input definition, interactive thinking/loading state, results display, and live refinement.
+- **QA Copilot Drawer:** A non-blocking slide-out assistant that reads active test suite context and enables one-click additions or optimizations directly to the current suite.
+- **Modular Results Section:** Decomposes into category tabs, test case cards with ISTQB metadata, coverage charts, risk heatmaps, and export utilities (JSON, CSV, Markdown).
 
 ---
 
