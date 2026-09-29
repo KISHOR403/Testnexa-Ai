@@ -84,10 +84,17 @@ const authPasswordResetRateLimiter = createRateLimiter({
     message: 'Too many password reset requests. Please wait 15 minutes before trying again.'
 });
 
+const contactRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: 'Too many message submissions. Please wait 15 minutes before trying again.'
+});
+
 module.exports = {
     createRateLimiter,
     copilotRateLimiter,
     authLoginRateLimiter,
     authRegisterRateLimiter,
-    authPasswordResetRateLimiter
+    authPasswordResetRateLimiter,
+    contactRateLimiter
 };

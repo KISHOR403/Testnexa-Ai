@@ -65,6 +65,24 @@ export const Footer = () => {
                             <li><Link to="/terms">Terms of Service</Link></li>
                             <li><Link to="/acceptable-use">Security Policy</Link></li>
                             <li><Link to="/cookie-policy">Cookie Policy</Link></li>
+                            <li>
+                                <button
+                                    type="button"
+                                    onClick={() => window.dispatchEvent(new CustomEvent('testnexa:open-cookie-preferences'))}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        padding: 0,
+                                        color: 'inherit',
+                                        font: 'inherit',
+                                        fontSize: '0.88rem',
+                                        cursor: 'pointer',
+                                        textAlign: 'left'
+                                    }}
+                                >
+                                    Cookie Preferences
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </div>

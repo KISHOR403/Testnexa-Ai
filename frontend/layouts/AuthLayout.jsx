@@ -11,7 +11,9 @@ const AuthLayout = () => {
                 <Link to="/" className="tn-auth-brand" aria-label="TestNexa Home">
                     <img
                         src="/testnexa-logo.png"
-                        alt="TestNexa"
+                        alt="TestNexa AI Logo"
+                        width="28"
+                        height="28"
                         className="tn-auth-brand-logo"
                     />
                     <span className="tn-auth-brand-text">TestNexa</span>
@@ -30,7 +32,7 @@ const AuthLayout = () => {
 
             {/* Minimal Footer */}
             <footer className="tn-auth-footer">
-                <span>&copy; {new Date().getFullYear()} TestNexa Inc. All rights reserved.</span>
+                <span>&copy; {new Date().getFullYear()} TestNexa AI. All rights reserved.</span>
                 <div className="tn-auth-footer-links">
                     <Link to="/terms">Terms</Link>
                     <span className="tn-auth-footer-sep">&bull;</span>

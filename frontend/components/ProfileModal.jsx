@@ -260,7 +260,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                             <Loader2 className="spinner-animate" size={24} />
                                         </div>
                                     ) : localAvatar ? (
-                                        <img src={localAvatar} alt="Avatar" className="profile-avatar-large-img" />
+                                        <img src={localAvatar} alt="User profile avatar" width="80" height="80" className="profile-avatar-large-img" />
                                     ) : (
                                         <div className="profile-avatar-large-fallback">{initials}</div>
                                     )}

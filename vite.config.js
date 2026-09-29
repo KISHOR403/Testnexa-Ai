@@ -17,4 +17,15 @@ export default defineConfig({
   optimizeDeps: {
     entries: ['index.html'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-lucide': ['lucide-react'],
+        }
+      }
+    }
+  }
 })
+

@@ -17,31 +17,40 @@ Testnexa AI follows an **enterprise-grade dark theme** design language that conv
 
 ## Color System
 
-### Core Palette
+### Core Palette & Design Tokens
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| **Background Primary** | `#000000` (True Black) | Page backgrounds |
-| **Background Elevated** | `#0d1117` | Cards, panels, modals |
-| **Background Surface** | `#161b22` | Input fields, secondary surfaces |
-| **Border Default** | `rgba(255,255,255,0.06)` | Card borders |
-| **Border Active** | `rgba(255,255,255,0.12)` | Focused/hover borders |
-| **Text Primary** | `#F5F5F5` (Off-white) | Headlines, primary content |
-| **Text Secondary** | `rgba(255,255,255,0.7)` | Body text, descriptions |
-| **Text Muted** | `rgba(255,255,255,0.4)` | Captions, metadata |
+TestNexa AI adheres strictly to a high-contrast, technical dark palette:
 
-### Brand Accent
+| Token | Hex / Value | Usage |
+|-------|-------------|-------|
+| **Background** | `#050505` | Master page background |
+| **Surface** | `#0A0A0A` | Secondary content sections, input backdrops |
+| **Elevated** | `#111111` | Floating cards, panels, modals, dropdowns |
+| **Border** | `#1C1C1C` | Crisp card borders and dividers |
+| **Primary Text** | `#F5F5F5` | Primary headlines, titles, active text |
+| **Secondary Text** | `#A3A3A3` | Supporting copy, navigation links, explanations |
+| **Muted Text** | `#737373` | Form captions, timestamps, fine print |
+| **Brand Accent** | `#00D9C0` | Restrained turquoise accent for status, active states, focus outlines |
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| **Brand Primary** | `#00d4aa` (Teal/Emerald) | Primary CTAs, active states, brand highlights |
-| **Brand Hover** | `#00e4ba` | Hover state for brand elements |
+### CTA Hierarchy & Button Standardization
+
+To maximize conversion clarity without visual clutter or competing colors:
+
+1. **Primary CTA**:
+   - Styling: Solid high-contrast white `#F5F5F5` background with dark `#050505` text, bold weight.
+   - Usage: Main conversion action (`[Get Started]` in Navbar, `[Generate Test Suite →]` in Hero).
+2. **Secondary CTA**:
+   - Styling: Transparent background with `#1C1C1C` / `#333333` border and `#F5F5F5` white text.
+   - Usage: Exploratory navigation (`[Explore Workflow]`, `[View Documentation]`).
+3. **Turquoise Accent (`#00D9C0`)**:
+   - Reserved strictly for product highlights, active tabs, keyboard focus rings (`:focus-visible`), and key status badges.
+   - Never used as competing light-blue button styles or aggressive neon glow effects.
 
 ### Semantic Colors
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| **Priority High** | `#ef4444` | High-priority test cases, critical alerts |
+| **Priority High** | `#ef4444` | High-priority test cases, critical errors |
 | **Priority Medium** | `#f59e0b` | Medium-priority items, warnings |
 | **Priority Low** | `#22c55e` | Low-priority items, success states |
 | **Info** | `#3b82f6` | Informational badges, links |

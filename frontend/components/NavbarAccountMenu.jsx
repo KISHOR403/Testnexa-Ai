@@ -127,7 +127,7 @@ const NavbarAccountMenu = ({ showHelpLink = true }) => {
             >
                 <div className="navbar-avatar-box">
                     {avatarSrc ? (
-                        <img src={avatarSrc} alt={displayName} className="navbar-avatar-img" />
+                        <img src={avatarSrc} alt={displayName} width="32" height="32" className="navbar-avatar-img" />
                     ) : (
                         <span className="navbar-avatar-text">{initials}</span>
                     )}
@@ -150,7 +150,7 @@ const NavbarAccountMenu = ({ showHelpLink = true }) => {
                     <div className="account-dropdown-header">
                         <div className="account-dropdown-avatar">
                             {avatarSrc ? (
-                                <img src={avatarSrc} alt={displayName} className="navbar-avatar-img" />
+                                <img src={avatarSrc} alt={displayName} width="36" height="36" className="navbar-avatar-img" />
                             ) : (
                                 <span>{initials}</span>
                             )}

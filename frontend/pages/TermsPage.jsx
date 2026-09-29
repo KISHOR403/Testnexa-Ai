@@ -73,10 +73,11 @@ const PRIVACY_SECTIONS = [
   { id: 'priv-1', num: '1', title: 'Information We Collect' },
   { id: 'priv-2', num: '2', title: 'How We Use Your Data' },
   { id: 'priv-3', num: '3', title: 'AI Processing & Data Isolation' },
-  { id: 'priv-4', num: '4', title: 'Data Security' },
+  { id: 'priv-4', num: '4', title: 'Data Security & Storage' },
   { id: 'priv-5', num: '5', title: 'Subprocessors & Infrastructure' },
-  { id: 'priv-6', num: '6', title: 'Your Rights & Data Portability' },
-  { id: 'priv-7', num: '7', title: 'Privacy Contact' }
+  { id: 'priv-6', num: '6', title: 'Data Retention & Account Deletion' },
+  { id: 'priv-7', num: '7', title: 'User Rights & Choices' },
+  { id: 'priv-8', num: '8', title: 'Contact Information & Policy Updates' }
 ];
 
 // ─── Sections for Cookie Policy ───
@@ -519,12 +520,12 @@ const TermsPage = ({ defaultDocId }) => {
                   <h2 className="tn-legal-clause__heading">10. Governing Law and Dispute Resolution</h2>
                   <p>
                     These Terms and any dispute arising out of or related to them shall be governed by and construed in accordance
-                    with applicable laws, without giving effect to any conflict of law principles that would apply the laws of another
-                    jurisdiction.
+                    with the laws of <strong>[GOVERNING JURISDICTION]</strong>, without giving effect to any conflict of law principles
+                    that would cause the application of the laws of another jurisdiction.
                   </p>
                   <p>
-                    Prior to initiating formal legal proceedings, the parties agree to first seek in good faith to resolve any dispute
-                    informally through direct negotiation and communication.
+                    Prior to initiating formal legal proceedings or arbitration, the parties agree to first seek in good faith to resolve
+                    any controversy informally through direct consultation and negotiation between executive representatives.
                   </p>
                 </section>
 
@@ -532,14 +533,18 @@ const TermsPage = ({ defaultDocId }) => {
                 <section id="sec-11" className="tn-legal-clause">
                   <h2 className="tn-legal-clause__heading">11. Contact Information</h2>
                   <p>
-                    If you have questions regarding these Terms &amp; Conditions, please contact us:
+                    If you have questions regarding these Terms &amp; Conditions or our operational policies, please contact:
                   </p>
 
                   <div className="tn-legal-contact-box">
                     <div className="tn-legal-contact-item">
+                      <span className="tn-legal-contact-item__label">Entity</span>
+                      <span className="tn-legal-contact-item__placeholder">[LEGAL COMPANY NAME]</span>
+                    </div>
+                    <div className="tn-legal-contact-item">
                       <span className="tn-legal-contact-item__label">Email</span>
                       <a href="mailto:support@testnexa.ai" className="tn-legal-contact-item__val">
-                        support@testnexa.ai
+                        [CONTACT EMAIL]
                       </a>
                     </div>
                     <div className="tn-legal-contact-item">
@@ -557,7 +562,7 @@ const TermsPage = ({ defaultDocId }) => {
                     <div className="tn-legal-contact-item">
                       <span className="tn-legal-contact-item__label">Address</span>
                       <span className="tn-legal-contact-item__placeholder">
-                        [Company Legal Address — To be specified upon production filing]
+                        [BUSINESS ADDRESS]
                       </span>
                     </div>
                   </div>
@@ -578,71 +583,183 @@ const TermsPage = ({ defaultDocId }) => {
                ──────────────────────────────────────────────────────────── */}
             {activeDocId === 'privacy' && (
               <>
+                {/* 1. Information We Collect */}
                 <section id="priv-1" className="tn-legal-clause">
                   <h2 className="tn-legal-clause__heading">1. Information We Collect</h2>
                   <p>
-                    TestNexa collects information necessary to authenticate users, facilitate workspace collaboration, and
-                    generate prioritized test suites:
+                    TestNexa collects only the information necessary to provide, secure, and deliver automated test case
+                    generation, workspace collaboration, and account management services:
                   </p>
                   <ul className="tn-legal-list">
-                    <li><strong>Account Information:</strong> Name, professional email address, and authentication credentials.</li>
-                    <li><strong>Customer Input:</strong> Software requirements, test parameters, and user stories provided for synthesis.</li>
-                    <li><strong>Operational Telemetry:</strong> Log records, latency metrics, error events, and feature interaction data.</li>
-                    <li><strong>Technical Details:</strong> Browser type, operating system version, and IP addresses for security auditing.</li>
+                    <li>
+                      <strong>Account Information:</strong> Name, work email address, and authentication credentials.
+                      When signing up via email and password, passwords are cryptographically hashed using salted bcrypt prior to storage;
+                      plain text passwords are never accessible or stored. When signing in through Google or GitHub OAuth, we receive
+                      your provider user identifier, verified email, display name, and avatar URL.
+                    </li>
+                    <li>
+                      <strong>Workspace Inputs &amp; Specifications:</strong> Software requirements, user stories, acceptance criteria,
+                      architectural context (web, mobile, or API), target test focus (functional, non-functional, security, boundary, API),
+                      and detail level preferences submitted to generate test suites.
+                    </li>
+                    <li>
+                      <strong>Generated Test Artifacts:</strong> Concrete test cases, steps, assertions, expected outcomes, BDD Gherkin
+                      feature definitions, coverage audits, risk severity assessments, and bidirectional traceability mappings generated for your account.
+                    </li>
+                    <li>
+                      <strong>Active Sessions &amp; Device Telemetry:</strong> To secure your account against unauthorized access and
+                      enable multi-device session management in your workspace settings, we record device type, operating system, browser family,
+                      IP address, approximate location derived from IP address, user-agent string, and session creation/expiration timestamps.
+                    </li>
+                    <li>
+                      <strong>Operational Metrics &amp; Logs:</strong> Request timestamps, HTTP methods, route paths, processing durations,
+                      underlying AI model references (e.g. GPT-4, Gemini), error events, and aggregated test generation counts.
+                    </li>
+                    <li>
+                      <strong>Cookies &amp; Local Storage:</strong> Essential authentication session tokens, CSRF tokens, user interface
+                      preferences (such as theme and sidebar states in local browser storage), and user cookie consent choices.
+                    </li>
+                    <li>
+                      <strong>Contact &amp; Support Communications:</strong> Inquiries submitted via our contact or support forms, including
+                      first name, last name, work email address, organization name, and message content.
+                    </li>
+                    <li>
+                      <strong>Payment Information:</strong> <em>NOT ACTIVE / FREE TIER EVALUATION.</em> TestNexa currently provides evaluation
+                      tier allocations and does not process or store credit card numbers or financial account details. Any future paid tier billing
+                      will be handled through accredited third-party PCI-DSS compliant payment processors with explicit prior notice.
+                    </li>
                   </ul>
                 </section>
 
+                {/* 2. How We Use Your Data */}
                 <section id="priv-2" className="tn-legal-clause">
                   <h2 className="tn-legal-clause__heading">2. How We Use Your Data</h2>
+                  <p>We use your information exclusively for the following legitimate purposes:</p>
+                  <ul className="tn-legal-list">
+                    <li>To authenticate your identity, enforce session timeouts, and isolate workspace data between users.</li>
+                    <li>To analyze software requirements and synthesize structured test suites, test cases, and quality risk matrices.</li>
+                    <li>To maintain, diagnostic, and improve the operational reliability, speed, and uptime of TestNexa services.</li>
+                    <li>To protect against brute force attacks, credential theft, denial-of-service, and unauthorized API abuse through rate limiting.</li>
+                    <li>To deliver essential transactional notices, including password recovery verification links and welcome briefings.</li>
+                    <li>To respond directly to support tickets, user feedback, and technical inquiries.</li>
+                  </ul>
                   <p>
-                    Data collected is utilized strictly to provide, maintain, and optimize the Service, authenticate sessions,
-                    prevent platform abuse, and deliver technical support. We do not sell personal data or customer requirements.
+                    <strong>We do not sell, rent, or trade your personal data or submitted software requirements to any third party.</strong>
                   </p>
                 </section>
 
+                {/* 3. AI Processing & Data Isolation */}
                 <section id="priv-3" className="tn-legal-clause">
                   <h2 className="tn-legal-clause__heading">3. AI Processing &amp; Data Isolation</h2>
                   <p>
-                    Your requirement inputs are processed in sandboxed sessions. TestNexa does not utilize your confidential
-                    software requirements or internal source specifications to train public foundational generative models.
+                    TestNexa utilizes state-of-the-art Large Language Models (LLMs) via enterprise server-side APIs to parse requirements
+                    and construct test cases:
                   </p>
+                  <ul className="tn-legal-list">
+                    <li>
+                      <strong>No Model Training:</strong> Your submitted software requirements, user stories, proprietary specifications,
+                      and generated test cases are <strong>NOT</strong> used to train or fine-tune public foundational AI models.
+                    </li>
+                    <li>
+                      <strong>Stateless Processing:</strong> Inputs sent to third-party inference providers (such as OpenAI or Google Cloud)
+                      are transmitted over encrypted HTTPS channels for the sole purpose of real-time test case synthesis and are not retained by providers for training.
+                    </li>
+                    <li>
+                      <strong>Tenant Isolation:</strong> Generated test suites and workspace sessions are scoped strictly to your authenticated user identifier in our database.
+                    </li>
+                  </ul>
                 </section>
 
+                {/* 4. Data Security & Storage */}
                 <section id="priv-4" className="tn-legal-clause">
-                  <h2 className="tn-legal-clause__heading">4. Data Security</h2>
+                  <h2 className="tn-legal-clause__heading">4. Data Security &amp; Storage</h2>
                   <p>
-                    We maintain technical, administrative, and physical controls to protect customer data. Communication with
-                    the platform is encrypted in transit using industry-standard TLS protocols, and stored records are protected
-                    with encryption at rest.
+                    We maintain comprehensive technical, organizational, and physical safeguards designed to protect customer data:
                   </p>
+                  <ul className="tn-legal-list">
+                    <li><strong>Encryption in Transit:</strong> All data transmitted between client browsers and our platform is encrypted using modern TLS (Transport Layer Security) protocols. In production, Strict-Transport-Security (HSTS) is enforced.</li>
+                    <li><strong>Encryption at Rest:</strong> Database records, user profiles, and test session histories are stored in dedicated cloud database instances with industry-standard AES-256 encryption at rest.</li>
+                    <li><strong>Credential Protection:</strong> Passwords are hashed with unique salts using bcrypt. Authentication tokens use time-limited cryptographic JWTs.</li>
+                    <li><strong>Session Governance:</strong> Users can inspect all active logged-in devices and revoke sessions immediately from Workspace Settings.</li>
+                  </ul>
                 </section>
 
+                {/* 5. Subprocessors & Infrastructure */}
                 <section id="priv-5" className="tn-legal-clause">
-                  <h2 className="tn-legal-clause__heading">5. Subprocessors &amp; Infrastructure</h2>
+                  <h2 className="tn-legal-clause__heading">5. Third-Party Subprocessors &amp; Infrastructure</h2>
                   <p>
-                    We engage vetted third-party infrastructure and hosting providers to deliver reliable cloud computing services.
-                    All providers are subject to strict confidentiality and security commitments.
+                    We partner with established cloud and infrastructure providers who maintain rigorous security standards to operate TestNexa:
                   </p>
+                  <ul className="tn-legal-list">
+                    <li><strong>Supabase Inc.:</strong> Managed PostgreSQL database hosting, encrypted storage, and real-time backend state.</li>
+                    <li><strong>OpenAI, LLC / Google LLC:</strong> Enterprise AI model inference processing (stateless generation).</li>
+                    <li><strong>Nodemailer / SMTP Provider:</strong> Transactional email relay for password reset and notification delivery.</li>
+                    <li><strong>Google LLC / GitHub Inc.:</strong> Federated OAuth authentication services when user selects social sign-in.</li>
+                    <li><strong>Vercel Inc. / Cloud Hosting:</strong> Static frontend web asset delivery and edge network routing.</li>
+                  </ul>
                 </section>
 
+                {/* 6. Data Retention & Account Deletion */}
                 <section id="priv-6" className="tn-legal-clause">
-                  <h2 className="tn-legal-clause__heading">6. Your Rights &amp; Data Portability</h2>
+                  <h2 className="tn-legal-clause__heading">6. Data Retention &amp; Account Deletion</h2>
                   <p>
-                    Depending on your location, you may have rights under applicable privacy legislation to access, update,
-                    export, or request deletion of your personal data. These requests may be initiated through your account
-                    settings or by contacting our team.
+                    We retain your account details and test generation history as long as your workspace account remains open and active.
+                  </p>
+                  <p>
+                    <strong>Account Deletion:</strong> You have the absolute right to delete your account at any time. You can trigger
+                    permanent account deletion directly within your workspace settings or by emailing our privacy team.
+                    Upon confirmation, your personal credentials, workspace sessions, test histories, and active session tokens are permanently
+                    purged from our production databases via cascading deletion within 30 days, except where temporary retention is required by applicable law.
                   </p>
                 </section>
 
+                {/* 7. User Rights & Choices */}
                 <section id="priv-7" className="tn-legal-clause">
-                  <h2 className="tn-legal-clause__heading">7. Privacy Contact</h2>
+                  <h2 className="tn-legal-clause__heading">7. User Rights &amp; Choices</h2>
+                  <p>Depending on your jurisdiction and subject to applicable statutory requirements, you possess rights regarding your data:</p>
+                  <ul className="tn-legal-list">
+                    <li><strong>Access &amp; Export:</strong> You can export your generated test suites at any time in formats such as Markdown, JSON, Gherkin, or CSV.</li>
+                    <li><strong>Correction:</strong> You can update your display name and profile credentials directly within your account settings.</li>
+                    <li><strong>Session Control:</strong> You can terminate individual or all other active sessions across devices.</li>
+                    <li><strong>Cookie Preferences:</strong> You can accept or decline optional analytics cookies at any time via our Cookie Preferences link in the footer.</li>
+                  </ul>
                   <p>
-                    For inquiries or requests regarding our privacy practices, please contact us at{' '}
-                    <a href="mailto:privacy@testnexa.ai" className="tn-legal-inline-link">
-                      privacy@testnexa.ai
-                    </a>
-                    .
+                    TestNexa commits to honoring applicable privacy rights under governing statutory frameworks once business registration
+                    details and jurisdiction are finalized. We do not claim unverified regulatory certifications.
                   </p>
+                </section>
+
+                {/* 8. Contact Information & Policy Updates */}
+                <section id="priv-8" className="tn-legal-clause">
+                  <h2 className="tn-legal-clause__heading">8. Contact Information &amp; Policy Updates</h2>
+                  <p>
+                    We may update this Privacy Policy from time to time to reflect modifications to our platform, infrastructure,
+                    or legal obligations. The &quot;Last updated&quot; timestamp at the top of this document indicates the effective revision date.
+                  </p>
+                  <p>For questions, privacy requests, or data deletion inquiries, please contact:</p>
+
+                  <div className="tn-legal-contact-box">
+                    <div className="tn-legal-contact-item">
+                      <span className="tn-legal-contact-item__label">Entity</span>
+                      <span className="tn-legal-contact-item__placeholder">[LEGAL COMPANY NAME]</span>
+                    </div>
+                    <div className="tn-legal-contact-item">
+                      <span className="tn-legal-contact-item__label">Privacy Email</span>
+                      <a href="mailto:privacy@testnexa.ai" className="tn-legal-contact-item__val">
+                        privacy@testnexa.ai
+                      </a>
+                    </div>
+                    <div className="tn-legal-contact-item">
+                      <span className="tn-legal-contact-item__label">Support Contact</span>
+                      <a href="mailto:support@testnexa.ai" className="tn-legal-contact-item__val">
+                        [CONTACT EMAIL]
+                      </a>
+                    </div>
+                    <div className="tn-legal-contact-item">
+                      <span className="tn-legal-contact-item__label">Office Address</span>
+                      <span className="tn-legal-contact-item__placeholder">[BUSINESS ADDRESS]</span>
+                    </div>
+                  </div>
                 </section>
               </>
             )}

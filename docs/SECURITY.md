@@ -260,35 +260,57 @@ app.use((err, req, res, next) => {
 
 ---
 
-## API Security Headers
+## API Security Headers & Cache Control
 
-The Nginx frontend configuration adds security headers:
-- Content served over HTTPS in production
-- SPA routing handled server-side (prevents 404 leaks)
+Security headers and cache controls are actively applied at both the Express backend and edge layer (`vercel.json`):
 
----
-
-## Data Privacy
-
-- User passwords are never stored in plaintext
-- OAuth tokens (access/refresh) are not persisted — only user profile data is stored
-- Test generation data is scoped to authenticated user (multi-tenant isolation)
-- Guest data is ephemeral and not persisted to database
-- No third-party analytics or tracking scripts
+- **`X-Content-Type-Options: nosniff`**: Prevents MIME-type sniffing exploits.
+- **`X-Frame-Options: DENY`**: Mitigates clickjacking attacks.
+- **`Referrer-Policy: strict-origin-when-cross-origin`**: Limits sensitive referrer data leakage.
+- **`Permissions-Policy: camera=(), microphone=(), geolocation=()`**: Disables unnecessary browser hardware APIs.
+- **`Strict-Transport-Security`**: `max-age=31536000; includeSubDomains; preload` (enforced when running under HTTPS in production).
+- **`Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate`**: Strictly applied to all `/api/` endpoints to ensure authenticated user data, tokens, and workspace sessions are never cached by intermediate proxies or browser caches.
 
 ---
 
-## Known Considerations
+## Frontend Secrets & Credential Isolation
 
-| Area | Current State | Recommendation |
-|------|--------------|----------------|
-| HTTPS | Enforced at ingress/proxy level | Ensure TLS 1.2+ only |
-| CSP Headers | Not explicitly configured | Add Content-Security-Policy headers |
-| SQL Injection | Mitigated by Supabase client parameterization | Maintain parameterized queries |
-| XSS | React auto-escapes JSX output | Avoid `dangerouslySetInnerHTML` |
-| CSRF | JWT-based (no cookies for auth) | Low risk; consider SameSite cookies for sessions |
-| API Key Exposure | Gemini key server-side only | Never expose in frontend bundle |
+A zero-secret client architecture is enforced:
+
+1. **Client Environment Auditing**:
+   - The frontend `.env` contains strictly `VITE_API_BASE_URL`.
+   - Direct browser Supabase client calls have been deprecated; all database transactions are proxied through validated backend Express endpoints.
+   - Production Vite bundle builds have been audited; zero AI API keys (`GEMINI_API_KEY`, `OPENAI_API_KEY`), database service keys, JWT signing keys, or SMTP passwords exist in frontend chunks.
+
+2. **Spam & Abuse Protection**:
+   - Contact form submissions are throttled via `contactRateLimiter` (5 submissions per 15 minutes per IP).
+   - Honeypot trap field (`website`) silently discards automated bot submissions.
+   - Message body input is constrained to a maximum of 2,000 characters and sanitized before transport.
+
+---
+
+## Data Privacy & Compliance Posture
+
+- **No Uncertified Compliance Claims**: TestNexa AI explicitly avoids false claims of formal SOC 2, ISO 27001, or certified GDPR/CCPA compliance. Concrete, verifiable technical controls are documented instead.
+- **AI Processing Isolation**: User requirements processed through the AI pipeline are executed statelessly via official APIs; prompts and generated test suites are not used to train third-party foundation models.
+- **Authentication Credentials**: User passwords are encrypted with bcrypt (10 rounds). Tokens are signed via HMAC SHA-256 with server-side `JWT_SECRET`.
+- **Telemetry Sanitization**: The frontend analytics client (`frontend/utils/analytics.js`) strictly filters out credentials, tokens, prompts, and requirements before any prospective dispatch, and honors user cookie consent preferences.
+
+---
+
+## Status of Security Controls
+
+| Area | Current State | Verification Status |
+|------|--------------|---------------------|
+| HTTPS | HSTS & Trust-proxy configured in Express; enforced at ingress/CDN | REQUIRES DEPLOYMENT CONFIGURATION |
+| Frontend Secrets | Fully isolated; zero secrets in client bundle | VERIFIED / DONE |
+| Security Headers | Express middleware + `vercel.json` headers | VERIFIED / DONE |
+| API Caching | `no-store` explicitly set on all `/api/*` routes | VERIFIED / DONE |
+| SQL Injection | Mitigated by parameterized Supabase/PostgreSQL queries | VERIFIED / DONE |
+| XSS Protection | React auto-escaping + strict CSP headers | VERIFIED / DONE |
+| Form Spam Protection | Sliding-window rate limiter + hidden honeypot | VERIFIED / DONE |
 
 ---
 
 *Last updated: September 2026*
+

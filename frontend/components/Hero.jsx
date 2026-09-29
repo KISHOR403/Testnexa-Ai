@@ -191,7 +191,7 @@ export const Hero = () => {
                 </div>
 
                 {/* ─── Authentic TestNexa Software Window ─── */}
-                <div className="tn-hero-visual-frame" aria-label="TestNexa Workspace Preview">
+                <div id="product-preview" className="tn-hero-visual-frame" aria-label="TestNexa Workspace Preview">
                     <div className="tn-software-window">
                         {/* Title Bar */}
                         <div className="tn-window-header">

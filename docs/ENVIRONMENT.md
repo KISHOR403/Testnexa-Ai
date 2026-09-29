@@ -124,6 +124,11 @@ Vite environment variables must be prefixed with `VITE_`.
 |----------|----------|---------|-------------|
 | `VITE_API_BASE_URL` | ❌ | `http://localhost:5000/api/v1` | Backend API base URL |
 
+> ⚠️ **CRITICAL SECURITY PRINCIPLE**:
+> Frontend environment variables prefixed with `VITE_` are bundled directly into public client-side JavaScript files.
+> **NEVER** expose database service keys, AI provider API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`), JWT secrets, or SMTP credentials in the frontend environment.
+> All secret operations must remain isolated within `backend/.env` and accessed strictly through authenticated backend API routes.
+
 ### Setting Frontend Variables
 
 **Local development:** Create a `.env` file in the project root:
@@ -135,10 +140,11 @@ VITE_API_BASE_URL=http://localhost:5000/api/v1
 **Docker build:** Pass as build argument:
 
 ```bash
-docker build --build-arg VITE_API_BASE_URL=https://api.testnexa.com/api/v1 .
+docker build --build-arg VITE_API_BASE_URL=https://api.testnexa.ai/api/v1 .
 ```
 
 **Vercel:** Set in project settings → Environment Variables.
+
 
 ---
 

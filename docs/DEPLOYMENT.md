@@ -311,6 +311,32 @@ Each build produces two tags:
 
 ---
 
+---
+
+## 5. Vercel & HTTPS Configuration
+
+### Vercel Frontend Deployment
+
+The frontend repository is configured for immediate deployment to Vercel via [`vercel.json`](file:///d:/Project/Testnexa%20AI/vercel.json):
+
+1. **SPA Rewrites**: All client routes (`/`, `/features`, `/workflow`, `/contact`, `/privacy`, `/terms`, etc.) rewrite to `/index.html`.
+2. **Security Headers**: Edge automatically serves:
+   - `X-Content-Type-Options: nosniff`
+   - `X-Frame-Options: DENY`
+   - `Referrer-Policy: strict-origin-when-cross-origin`
+   - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+3. **Static Asset Caching**: Built static assets under `/assets/` are served with `Cache-Control: public, max-age=31536000, immutable`.
+4. **Environment Variables**: Set `VITE_API_BASE_URL` in the Vercel Project Dashboard pointing to the secure backend URL (e.g., `https://api.testnexa.ai/api/v1`).
+
+### HTTPS & Reverse Proxy Verification
+
+- **HTTPS Ingress**: HTTPS is terminated at the cloud ingress/CDN layer (Vercel, AWS ALB, Cloudflare, or Nginx Ingress).
+- **Application Server**: Express is configured with `app.set('trust proxy', 1)` to correctly inspect client protocol headers (`X-Forwarded-Proto`).
+- **HSTS**: When requests arrive via HTTPS in production (`x-forwarded-proto === 'https'`), Express sets `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
+- **Local Development**: Runs gracefully over HTTP on `http://localhost:5173` and `http://localhost:5000` without forced redirects or self-signed certificate conflicts.
+
+---
+
 ## Port Summary
 
 | Service | Type | Internal Port | External Port |
@@ -345,3 +371,4 @@ kubectl delete namespace monitoring
 ---
 
 *Last updated: September 2026*
+

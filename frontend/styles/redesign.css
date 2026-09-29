@@ -2771,14 +2771,6 @@ body {
   border-color: #3A3A3A;
   color: #F5F5F5;
 }
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.tn-app-btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
 
 .tn-app-export-group {
   display: flex;

@@ -1,0 +1,42 @@
+# ==============================================================================
+# TestNexa AI — robots.txt
+# ==============================================================================
+
+User-agent: *
+
+# Allow public marketing, documentation, company, and legal pages
+Allow: /
+Allow: /features
+Allow: /solutions
+Allow: /how-it-works
+Allow: /audience
+Allow: /help
+Allow: /api-reference
+Allow: /best-practices
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /cookie-policy
+Allow: /api-terms
+Allow: /acceptable-use
+Allow: /legal
+
+# Disallow private authenticated application workspaces
+Disallow: /app/
+Disallow: /workspace/
+Disallow: /history/
+Disallow: /settings/
+Disallow: /suites/
+
+# Disallow backend and internal API endpoints
+Disallow: /api/
+
+# Disallow authentication workflows
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password/
+
+# Production Sitemap location
+Sitemap: https://testnexa.ai/sitemap.xml

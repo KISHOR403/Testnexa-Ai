@@ -67,7 +67,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
             {/* Header */}
             <div className="app-sidebar__header">
                 <NavLink to="/app/workspace" className="app-sidebar__brand" onClick={handleNavClick}>
-                    <img src="/testnexa-logo.png" alt="Testnexa" className="app-sidebar__logo" />
+                    <img src="/testnexa-logo.png" alt="TestNexa AI" width="28" height="28" className="app-sidebar__logo" />
                     {!isCollapsed && (
                         <div className="app-sidebar__brand-name">
                             <span>TESTNEXA AI</span>

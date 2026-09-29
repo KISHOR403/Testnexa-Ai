@@ -21,6 +21,35 @@ if (supabaseService.isAvailable) {
     logger.warn('⚠️  Supabase URL or Key not set - database operations unavailable');
 }
 
+// Trust reverse proxy for secure cookie handling and HTTPS detection behind ELB / Vercel / Nginx
+app.set('trust proxy', 1);
+
+// Security Headers Middleware
+app.use((req, res, next) => {
+    // Prevent MIME-sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Prevent clickjacking / frame embedding
+    res.setHeader('X-Frame-Options', 'DENY');
+    // Referrer policy
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    // Restrict browser features
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+
+    // Strict Transport Security (HSTS) - apply when in production or when connection is HTTPS
+    if (process.env.NODE_ENV === 'production' || req.secure) {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    }
+
+    // Disable caching for sensitive API responses
+    if (req.path.startsWith('/api/')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+
+    next();
+});
+
 // Middleware
 app.use(cors({
     origin: function(origin, callback) {
@@ -44,6 +73,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }

@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ScrollToTop from '../components/ScrollToTop';
 import AnimatedBackground from '../components/AnimatedBackground';
+import CookieConsentBanner from '../components/CookieConsentBanner';
 
 const MarketingLayout = () => {
     return (
@@ -16,6 +17,7 @@ const MarketingLayout = () => {
                 <Outlet />
             </main>
             <Footer />
+            <CookieConsentBanner />
         </div>
     );
 };

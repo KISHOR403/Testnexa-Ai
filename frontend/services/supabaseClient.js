@@ -1,8 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * Client-Side Supabase Client (Deprecated / Backend-Only Architecture)
+ * 
+ * In accordance with TestNexa security standards, all database interactions,
+ * authentication sessions, and data storage are strictly brokered through the
+ * backend API (/api/v1). No database credentials or keys are exposed to the client browser.
+ */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabase = null;
+export default supabase;
 
-export const supabase = (supabaseUrl && supabaseAnonKey)
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null;

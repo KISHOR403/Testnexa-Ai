@@ -173,7 +173,9 @@ const AiWorkspaceModal = ({
                         <div className="tn-workspace-header__brand">
                             <img
                                 src="/testnexa-logo.png"
-                                alt="Testnexa Logo"
+                                alt="TestNexa AI"
+                                width="24"
+                                height="24"
                                 className="tn-workspace-header__logo"
                             />
                             <span>Testnexa AI</span>
