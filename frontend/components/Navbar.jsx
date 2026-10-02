@@ -61,6 +61,18 @@ export const Navbar = ({ isMarketingLayout = true }) => {
         setIsMobileNavOpen(false);
     }, [location.pathname]);
 
+    // Lock body scroll when mobile nav drawer is open
+    useEffect(() => {
+        if (isMobileNavOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isMobileNavOpen]);
+
     return (
         <>
             <header className={`tn-navbar ${scrolled ? 'is-scrolled' : ''}`} ref={navRef}>
