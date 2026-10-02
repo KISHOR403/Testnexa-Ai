@@ -91,11 +91,11 @@ export const CookieConsentBanner = () => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '8px',
-                            background: 'rgba(0, 217, 192, 0.1)',
+                            background: 'rgba(79, 140, 255, 0.1)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#00D9C0',
+                            color: '#4F8CFF',
                             flexShrink: 0
                         }}>
                             <Cookie size={20} aria-hidden="true" />
@@ -258,8 +258,8 @@ export const CookieConsentBanner = () => {
                                     fontWeight: 600,
                                     padding: '2px 8px',
                                     borderRadius: '4px',
-                                    background: 'rgba(0, 217, 192, 0.1)',
-                                    color: '#00D9C0'
+                                    background: 'rgba(79, 140, 255, 0.1)',
+                                    color: '#4F8CFF'
                                 }}>
                                     Always Active
                                 </span>
@@ -290,7 +290,7 @@ export const CookieConsentBanner = () => {
                                     style={{
                                         width: '18px',
                                         height: '18px',
-                                        accentColor: '#00D9C0',
+                                        accentColor: '#4F8CFF',
                                         cursor: 'pointer'
                                     }}
                                 />

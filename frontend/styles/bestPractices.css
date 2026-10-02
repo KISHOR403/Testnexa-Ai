@@ -42,7 +42,7 @@
 }
 
 .tn-bp-breadcrumb a:hover {
-  color: #00d9c0;
+  color: #4F8CFF;
 }
 
 .tn-bp-breadcrumb-separator {
@@ -129,10 +129,10 @@
 }
 
 .tn-bp-sidebar-btn.active {
-  color: #00d9c0;
+  color: #4F8CFF;
   font-weight: 600;
-  background: rgba(0, 217, 192, 0.06);
-  border-left-color: #00d9c0;
+  background: rgba(79, 140, 255, 0.06);
+  border-left-color: #4F8CFF;
 }
 
 /* ─── Center Main Content ─── */
@@ -187,7 +187,7 @@
 }
 
 .tn-bp-comp-card--better {
-  border-left: 3px solid #00d9c0;
+  border-left: 3px solid #4F8CFF;
 }
 
 .tn-bp-comp-label {
@@ -206,7 +206,7 @@
 }
 
 .tn-bp-comp-label--better {
-  color: #00d9c0;
+  color: #4F8CFF;
 }
 
 .tn-bp-comp-text {
@@ -252,7 +252,7 @@
 }
 
 .tn-bp-why-icon {
-  color: #00d9c0;
+  color: #4F8CFF;
   flex-shrink: 0;
 }
 
@@ -285,7 +285,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #00d9c0;
+  background: #4F8CFF;
 }
 
 .tn-bp-scenario-desc {
@@ -317,7 +317,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #00d9c0;
+  color: #4F8CFF;
   margin-bottom: 8px;
 }
 
@@ -356,7 +356,7 @@
 }
 
 .tn-bp-coverage-point-check {
-  color: #00d9c0;
+  color: #4F8CFF;
   flex-shrink: 0;
 }
 
@@ -433,7 +433,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #00d9c0;
+  color: #4F8CFF;
   margin: 0 0 14px;
   display: flex;
   align-items: center;
@@ -471,7 +471,7 @@
 }
 
 .tn-bp-check-icon {
-  color: #00d9c0;
+  color: #4F8CFF;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -550,8 +550,8 @@
 }
 
 .tn-bp-custom-checkbox.checked {
-  background: #00d9c0;
-  border-color: #00d9c0;
+  background: #4F8CFF;
+  border-color: #4F8CFF;
 }
 
 .tn-bp-check-text {
@@ -589,9 +589,9 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.74rem;
   font-weight: 600;
-  color: #00d9c0;
-  background: rgba(0, 217, 192, 0.08);
-  border: 1px solid rgba(0, 217, 192, 0.2);
+  color: #4F8CFF;
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.2);
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -660,7 +660,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #00d9c0;
+  background: #4F8CFF;
   color: #050505;
   font-size: 0.8rem;
   font-weight: 600;
@@ -742,7 +742,7 @@
 }
 
 .tn-bp-toc-btn.active {
-  color: #00d9c0;
+  color: #4F8CFF;
   font-weight: 500;
 }
 
@@ -753,7 +753,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #00d9c0;
+  background: #4F8CFF;
 }
 
 /* ─── Responsive Adjustments ─── */
@@ -828,8 +828,8 @@
   }
 
   .tn-bp-sidebar-btn.active {
-    border-color: #00d9c0;
-    background: rgba(0, 217, 192, 0.08);
+    border-color: #4F8CFF;
+    background: rgba(79, 140, 255, 0.08);
   }
 
   .tn-bp-main {

@@ -56,9 +56,9 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(0, 217, 192, 0.1);
-  color: #00d9c0;
-  border: 1px solid rgba(0, 217, 192, 0.25);
+  background: rgba(79, 140, 255, 0.1);
+  color: #4F8CFF;
+  border: 1px solid rgba(79, 140, 255, 0.25);
   letter-spacing: 0.04em;
 }
 
@@ -99,9 +99,9 @@
 }
 
 .tn-api-search-input:focus {
-  border-color: #00d9c0;
+  border-color: #4F8CFF;
   background: #111317;
-  box-shadow: 0 0 0 2px rgba(0, 217, 192, 0.15);
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.15);
 }
 
 .tn-api-search-input::placeholder {
@@ -200,8 +200,8 @@
 }
 
 .tn-api-nav-item-btn.active {
-  background: rgba(0, 217, 192, 0.1);
-  color: #00d9c0;
+  background: rgba(79, 140, 255, 0.1);
+  color: #4F8CFF;
   font-weight: 600;
 }
 
@@ -373,7 +373,7 @@
 .tn-api-param-name {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.82rem;
-  color: #00d9c0;
+  color: #4F8CFF;
   font-weight: 600;
 }
 
@@ -475,8 +475,8 @@
 }
 
 .tn-api-tab-btn.active {
-  color: #00d9c0;
-  background: rgba(0, 217, 192, 0.1);
+  color: #4F8CFF;
+  background: rgba(79, 140, 255, 0.1);
   font-weight: 600;
 }
 
@@ -527,7 +527,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #00d9c0;
+  color: #4F8CFF;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -576,7 +576,7 @@
 .tn-api-field-input:focus,
 .tn-api-field-select:focus,
 .tn-api-field-textarea:focus {
-  border-color: #00d9c0;
+  border-color: #4F8CFF;
   background: #0c0e12;
 }
 
@@ -585,7 +585,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: #00d9c0;
+  background: #4F8CFF;
   color: #050505;
   border: none;
   border-radius: 6px;

@@ -50,8 +50,8 @@ const PageLoadingFallback = () => (
       style={{
         width: '32px',
         height: '32px',
-        border: '2px solid rgba(0, 217, 192, 0.15)',
-        borderTopColor: '#00D9C0',
+        border: '2px solid rgba(79, 140, 255, 0.15)',
+        borderTopColor: '#4F8CFF',
         borderRadius: '50%',
         animation: 'tnSpin 0.7s linear infinite'
       }}

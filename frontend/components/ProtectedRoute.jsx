@@ -26,8 +26,8 @@ const ProtectedRoute = ({ children }) => {
                     <div style={{
                         width: '36px',
                         height: '36px',
-                        border: '3px solid rgba(0, 217, 192, 0.15)',
-                        borderTop: '3px solid #00D9C0',
+                        border: '3px solid rgba(79, 140, 255, 0.15)',
+                        borderTop: '3px solid #4F8CFF',
                         borderRadius: '50%',
                         animation: 'spin 0.8s linear infinite'
                     }} />

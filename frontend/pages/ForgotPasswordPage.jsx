@@ -108,11 +108,11 @@ const ForgotPasswordPage = () => {
               width: '36px',
               height: '36px',
               borderRadius: '8px',
-              background: 'rgba(0, 217, 192, 0.1)',
-              border: '1px solid rgba(0, 217, 192, 0.25)',
+              background: 'rgba(79, 140, 255, 0.12)',
+              border: '1px solid rgba(79, 140, 255, 0.28)',
               display: 'grid',
               placeItems: 'center',
-              color: '#00D9C0'
+              color: '#4F8CFF'
             }}>
               <MailCheck size={20} />
             </div>

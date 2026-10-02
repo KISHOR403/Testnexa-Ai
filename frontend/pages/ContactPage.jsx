@@ -133,13 +133,13 @@ const ContactPage = () => {
                         {status.success ? (
                             <div className="contact-success-box" role="status" style={{
                                 padding: '28px',
-                                background: 'rgba(0, 217, 192, 0.06)',
-                                border: '1px solid rgba(0, 217, 192, 0.25)',
+                                background: 'rgba(79, 140, 255, 0.06)',
+                                border: '1px solid rgba(79, 140, 255, 0.25)',
                                 borderRadius: '8px',
                                 textAlign: 'center',
                                 marginTop: '16px'
                             }}>
-                                <CheckCircle size={44} style={{ color: '#00D9C0', margin: '0 auto 16px auto' }} />
+                                <CheckCircle size={44} style={{ color: '#4F8CFF', margin: '0 auto 16px auto' }} />
                                 <h3 style={{ color: '#F5F5F5', fontSize: '1.25rem', marginBottom: '8px' }}>Message Received</h3>
                                 <p style={{ color: '#A3A3A3', lineHeight: '1.6', marginBottom: '24px' }}>
                                     Thank you for contacting TestNexa. Our team has received your message and will review it promptly.
@@ -198,7 +198,7 @@ const ContactPage = () => {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="form-label" htmlFor="contact-first-name" style={{ color: '#F5F5F5' }}>
-                                            First Name <span style={{ color: '#00D9C0' }} aria-hidden="true">*</span>
+                                            First Name <span style={{ color: '#4F8CFF' }} aria-hidden="true">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -259,7 +259,7 @@ const ContactPage = () => {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="form-label" htmlFor="contact-email" style={{ color: '#F5F5F5' }}>
-                                            Work Email Address <span style={{ color: '#00D9C0' }} aria-hidden="true">*</span>
+                                            Work Email Address <span style={{ color: '#4F8CFF' }} aria-hidden="true">*</span>
                                         </label>
                                         <input
                                             type="email"
@@ -313,7 +313,7 @@ const ContactPage = () => {
                                 <div className="form-group">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                         <label className="form-label" htmlFor="contact-message" style={{ color: '#F5F5F5', margin: 0 }}>
-                                            Message <span style={{ color: '#00D9C0' }} aria-hidden="true">*</span>
+                                            Message <span style={{ color: '#4F8CFF' }} aria-hidden="true">*</span>
                                         </label>
                                         <span style={{ fontSize: '0.75rem', color: formData.message.length > 1900 ? '#f87171' : '#737373' }}>
                                             {formData.message.length} / 2000
@@ -383,29 +383,29 @@ const ContactPage = () => {
 
                     <div className="contact-info-section">
                         <div className="glass-card contact-info-card" style={{ background: '#0A0A0A', border: '1px solid #1C1C1C' }}>
-                            <div className="info-icon-wrapper email" style={{ background: 'rgba(0, 217, 192, 0.1)', color: '#00D9C0' }}>
+                            <div className="info-icon-wrapper email" style={{ background: 'rgba(79, 140, 255, 0.1)', color: '#4F8CFF' }}>
                                 <Mail size={24} />
                             </div>
                             <div className="info-content">
                                 <h3 style={{ color: '#F5F5F5' }}>Email Support</h3>
                                 <p style={{ color: '#A3A3A3' }}>Our support team aims to reply within 24 business hours.</p>
-                                <a href="mailto:support@testnexa.ai" className="info-link" style={{ color: '#00D9C0' }}>support@testnexa.ai</a>
+                                <a href="mailto:support@testnexa.ai" className="info-link" style={{ color: '#4F8CFF' }}>support@testnexa.ai</a>
                             </div>
                         </div>
 
                         <div className="glass-card contact-info-card" style={{ background: '#0A0A0A', border: '1px solid #1C1C1C' }}>
-                            <div className="info-icon-wrapper sales" style={{ background: 'rgba(0, 217, 192, 0.1)', color: '#00D9C0' }}>
+                            <div className="info-icon-wrapper sales" style={{ background: 'rgba(79, 140, 255, 0.1)', color: '#4F8CFF' }}>
                                 <HelpCircle size={24} />
                             </div>
                             <div className="info-content">
                                 <h3 style={{ color: '#F5F5F5' }}>Sales & Enterprise</h3>
                                 <p style={{ color: '#A3A3A3' }}>Custom volume limits, dedicated models, and private enterprise VPC deployment.</p>
-                                <a href="mailto:sales@testnexa.ai" className="info-link" style={{ color: '#00D9C0' }}>sales@testnexa.ai</a>
+                                <a href="mailto:sales@testnexa.ai" className="info-link" style={{ color: '#4F8CFF' }}>sales@testnexa.ai</a>
                             </div>
                         </div>
 
                         <div className="glass-card contact-info-card" style={{ background: '#0A0A0A', border: '1px solid #1C1C1C' }}>
-                            <div className="info-icon-wrapper location" style={{ background: 'rgba(0, 217, 192, 0.1)', color: '#00D9C0' }}>
+                            <div className="info-icon-wrapper location" style={{ background: 'rgba(79, 140, 255, 0.1)', color: '#4F8CFF' }}>
                                 <MapPin size={24} />
                             </div>
                             <div className="info-content">

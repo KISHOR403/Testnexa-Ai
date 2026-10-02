@@ -1,7 +1,7 @@
 /* ==========================================================================
    TESTNEXA SAAS NAVBAR PROFILE & ACCOUNT MENU
    Standards: Linear / GitHub / GitLab / Vercel style restraint
-   True Black Theme (#050505, #0A0A0A, #111111, #1C1C1C, #00D9C0)
+   True Black Theme (#050505, #0A0A0A, #111111, #1C1C1C, #4F8CFF)
    ========================================================================== */
 
 .navbar-account-container {
@@ -34,7 +34,7 @@
 }
 
 .navbar-help-btn:focus-visible {
-  outline: 2px solid #00D9C0;
+  outline: 2px solid #4F8CFF;
   outline-offset: 2px;
 }
 
@@ -60,11 +60,11 @@
 
 .navbar-avatar-btn.is-open {
   background: #111111;
-  border-color: #00D9C0;
+  border-color: #4F8CFF;
 }
 
 .navbar-avatar-btn:focus-visible {
-  outline: 2px solid #00D9C0;
+  outline: 2px solid #4F8CFF;
   outline-offset: 2px;
 }
 
@@ -204,7 +204,7 @@
 .account-dropdown-plan {
   font-size: 11px;
   font-weight: 600;
-  color: #00D9C0;
+  color: #4F8CFF;
   line-height: 1.3;
   letter-spacing: 0.04em;
   text-transform: uppercase;

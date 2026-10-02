@@ -522,7 +522,7 @@ const ApiReferencePage = () => {
                                     className="tn-api-copy-btn"
                                     onClick={() => copyToClipboard('Authorization: Bearer YOUR_API_KEY', 'authHeader')}
                                 >
-                                    {copiedMap['authHeader'] ? <Check size={12} color="#00d9c0" /> : <Copy size={12} />}
+                                    {copiedMap['authHeader'] ? <Check size={12} color="#4F8CFF" /> : <Copy size={12} />}
                                     <span>{copiedMap['authHeader'] ? 'Copied' : 'Copy'}</span>
                                 </button>
                             </div>
@@ -1034,7 +1034,7 @@ const ApiReferencePage = () => {
                                     type="button"
                                     className={`tn-api-tab-btn ${tryMode ? 'active' : ''}`}
                                     onClick={() => setTryMode(true)}
-                                    style={{ color: tryMode ? '#00d9c0' : '#34d399' }}
+                                    style={{ color: tryMode ? '#4F8CFF' : '#34d399' }}
                                 >
                                     ▶ Try It
                                 </button>
@@ -1046,7 +1046,7 @@ const ApiReferencePage = () => {
                                     className="tn-api-copy-btn"
                                     onClick={() => copyToClipboard(CODE_EXAMPLES[activeCodeKey]?.[activeLang] || '', 'codeSnippet')}
                                 >
-                                    {copiedMap['codeSnippet'] ? <Check size={12} color="#00d9c0" /> : <Copy size={12} />}
+                                    {copiedMap['codeSnippet'] ? <Check size={12} color="#4F8CFF" /> : <Copy size={12} />}
                                     <span>{copiedMap['codeSnippet'] ? 'Copied' : 'Copy'}</span>
                                 </button>
                             )}
@@ -1068,7 +1068,7 @@ const ApiReferencePage = () => {
                                         className="tn-api-copy-btn"
                                         onClick={() => copyToClipboard(SAMPLE_RESPONSES[activeCodeKey] || SAMPLE_RESPONSES.generate, 'respSnippet')}
                                     >
-                                        {copiedMap['respSnippet'] ? <Check size={12} color="#00d9c0" /> : <Copy size={12} />}
+                                        {copiedMap['respSnippet'] ? <Check size={12} color="#4F8CFF" /> : <Copy size={12} />}
                                         <span>{copiedMap['respSnippet'] ? 'Copied' : 'Copy'}</span>
                                     </button>
                                 </div>
@@ -1081,7 +1081,7 @@ const ApiReferencePage = () => {
                             <div className="tn-api-try-panel">
                                 <div className="tn-api-try-header">
                                     <span className="tn-api-try-title">
-                                        <Play size={13} fill="#00d9c0" />
+                                        <Play size={13} fill="#4F8CFF" />
                                         Interactive Request
                                     </span>
                                     <button
@@ -1089,7 +1089,7 @@ const ApiReferencePage = () => {
                                         className="tn-api-copy-btn"
                                         onClick={() => copyToClipboard(CODE_EXAMPLES.generate.curl, 'tryCurl')}
                                     >
-                                        {copiedMap['tryCurl'] ? <Check size={12} color="#00d9c0" /> : <Copy size={12} />}
+                                        {copiedMap['tryCurl'] ? <Check size={12} color="#4F8CFF" /> : <Copy size={12} />}
                                         <span>Copy cURL</span>
                                     </button>
                                 </div>

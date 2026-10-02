@@ -254,7 +254,7 @@ const TermsPage = ({ defaultDocId }) => {
                 title="Copy direct link to document"
                 aria-label="Copy link to document"
               >
-                {copiedLink ? <Check size={14} color="#00D9C0" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                {copiedLink ? <Check size={14} color="#4F8CFF" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
                 <span>{copiedLink ? 'Link copied' : 'Copy link'}</span>
               </button>
             </div>

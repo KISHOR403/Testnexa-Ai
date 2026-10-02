@@ -64,7 +64,7 @@
 }
 
 .app-workspace-step.is-active {
-    color: #00D9C0;
+    color: #4F8CFF;
     font-weight: 600;
 }
 
@@ -134,8 +134,8 @@
     padding: 0.15rem 0.45rem;
     border-radius: 4px;
     background: #111111;
-    color: #00D9C0;
-    border: 1px solid rgba(0, 217, 192, 0.25);
+    color: #4F8CFF;
+    border: 1px solid rgba(79, 140, 255, 0.25);
 }
 
 .app-workspace-header__subtitle {
@@ -174,7 +174,7 @@
 }
 
 .app-workspace-saved-pill.saving {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 /* ─── Error Handling Banner (Section 21) ─── */
@@ -309,8 +309,8 @@
     font-size: 0.82rem;
     font-weight: 500;
     color: #050505;
-    background: #00D9C0;
-    border: 1px solid #00D9C0;
+    background: #4F8CFF;
+    border: 1px solid #4F8CFF;
     border-radius: 6px;
     text-decoration: none;
     transition: background 0.15s ease;
@@ -383,7 +383,7 @@
 }
 
 .app-workspace-title-input:focus {
-    border-color: #00D9C0;
+    border-color: #4F8CFF;
 }
 
 .app-workspace-title-input::placeholder {
@@ -472,7 +472,7 @@
 }
 
 .app-workspace-example-item:hover .app-workspace-example-title {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 .app-workspace-example-title {
@@ -502,7 +502,7 @@
 }
 
 .app-workspace-textarea-wrap:focus-within {
-    border-color: #00D9C0;
+    border-color: #4F8CFF;
 }
 
 .app-workspace-textarea {
@@ -610,7 +610,7 @@
 }
 
 .app-workspace-check {
-    color: #00D9C0;
+    color: #4F8CFF;
     font-size: 0.76rem;
     font-weight: 500;
     line-height: 1;
@@ -703,7 +703,7 @@
 
 .app-workspace-depth-card.is-active {
     background: #111111;
-    border-color: #00D9C0;
+    border-color: #4F8CFF;
 }
 
 .app-workspace-depth-card__top {
@@ -727,8 +727,8 @@
     letter-spacing: 0.04em;
     padding: 0.1rem 0.35rem;
     border-radius: 3px;
-    background: rgba(0, 217, 192, 0.12);
-    color: #00D9C0;
+    background: rgba(79, 140, 255, 0.12);
+    color: #4F8CFF;
 }
 
 .app-workspace-depth-sub {
@@ -756,11 +756,11 @@
     align-items: center;
     justify-content: center;
     padding: 0.75rem 1.75rem;
-    background: #00D9C0;
+    background: #4F8CFF;
     color: #050505;
     font-size: 0.9rem;
     font-weight: 500;
-    border: 1px solid #00D9C0;
+    border: 1px solid #4F8CFF;
     border-radius: 7px;
     cursor: pointer;
     letter-spacing: 0.01em;
@@ -768,8 +768,8 @@
 }
 
 .app-workspace-primary-btn:hover:not(:disabled) {
-    background: #00c4ad;
-    border-color: #00c4ad;
+    background: #6A9DFF;
+    border-color: #6A9DFF;
 }
 
 .app-workspace-primary-btn:disabled {
@@ -816,7 +816,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 .app-workspace-generating-title {
@@ -854,7 +854,7 @@
 }
 
 .app-workspace-milestone-row.is-current {
-    color: #00D9C0;
+    color: #4F8CFF;
     font-weight: 600;
 }
 
@@ -876,7 +876,7 @@
 }
 
 .app-workspace-milestone-icon.current {
-    color: #00D9C0;
+    color: #4F8CFF;
     animation: tnPulseDot 1.2s infinite ease-in-out;
 }
 
@@ -904,7 +904,7 @@
 
 .app-workspace-progress-bar-fill {
     height: 100%;
-    background: #00D9C0;
+    background: #4F8CFF;
     transition: width 0.4s ease;
     border-radius: 2px;
 }
@@ -954,7 +954,7 @@
 }
 
 .app-workspace-summary-value.highlight {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 .app-workspace-summary-note {
@@ -1009,7 +1009,7 @@
 }
 
 .app-workspace-recent-link:hover {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 .app-workspace-recent-empty {

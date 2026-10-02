@@ -28,9 +28,9 @@
     font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.08em;
-    color: #00D9C0;
-    background: rgba(0, 217, 192, 0.08);
-    border: 1px solid rgba(0, 217, 192, 0.2);
+    color: #4F8CFF;
+    background: rgba(79, 140, 255, 0.08);
+    border: 1px solid rgba(79, 140, 255, 0.2);
     padding: 0.2rem 0.55rem;
     border-radius: 20px;
     margin-bottom: 0.45rem;
@@ -57,24 +57,24 @@
     align-items: center;
     gap: 0.45rem;
     padding: 0.65rem 1.15rem;
-    background: #00D9C0;
+    background: #4F8CFF;
     color: #000000;
     font-weight: 600;
     font-size: 0.85rem;
-    border: 1px solid #00D9C0;
+    border: 1px solid #4F8CFF;
     border-radius: 8px;
     cursor: pointer;
     text-decoration: none;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 15px rgba(0, 217, 192, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     white-space: nowrap;
 }
 
 .tn-history-new-btn:hover {
-    background: #00c4ad;
-    border-color: #00c4ad;
+    background: #6A9DFF;
+    border-color: #6A9DFF;
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 217, 192, 0.35);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 /* ─── Controls Bar (Search + Tabs + Selects) ─── */
@@ -104,7 +104,7 @@
 }
 
 .tn-history-search-wrap:focus-within {
-    border-color: #00D9C0;
+    border-color: #4F8CFF;
     background: #000000;
 }
 
@@ -168,8 +168,8 @@
 }
 
 .tn-history-tab.active {
-    color: #00D9C0;
-    background: rgba(0, 217, 192, 0.1);
+    color: #4F8CFF;
+    background: rgba(79, 140, 255, 0.1);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
@@ -193,7 +193,7 @@
 }
 
 .tn-history-select:focus {
-    border-color: #00D9C0;
+    border-color: #4F8CFF;
     color: #F5F5F5;
 }
 
@@ -277,7 +277,7 @@
 }
 
 .tn-history-card:hover .tn-history-card-title {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 .tn-history-rename-btn {
@@ -298,8 +298,8 @@
 }
 
 .tn-history-rename-btn:hover {
-    color: #00D9C0;
-    background: rgba(0, 217, 192, 0.1);
+    color: #4F8CFF;
+    background: rgba(79, 140, 255, 0.1);
 }
 
 /* Inline Edit */
@@ -311,7 +311,7 @@
 
 .tn-history-edit-input {
     background: #050505;
-    border: 1px solid #00D9C0;
+    border: 1px solid #4F8CFF;
     border-radius: 6px;
     color: #F5F5F5;
     font-size: 0.95rem;
@@ -388,9 +388,9 @@
     letter-spacing: 0.06em;
     padding: 0.18rem 0.45rem;
     border-radius: 4px;
-    background: rgba(0, 217, 192, 0.08);
-    color: #00D9C0;
-    border: 1px solid rgba(0, 217, 192, 0.2);
+    background: rgba(79, 140, 255, 0.08);
+    color: #4F8CFF;
+    border: 1px solid rgba(79, 140, 255, 0.2);
 }
 
 /* Requirement Text Excerpt */
@@ -447,9 +447,9 @@
 }
 
 .tn-history-stat-pill.version {
-    color: #00D9C0;
+    color: #4F8CFF;
     background: #111111;
-    border: 1px solid rgba(0, 217, 192, 0.25);
+    border: 1px solid rgba(79, 140, 255, 0.25);
     font-weight: 600;
 }
 
@@ -485,7 +485,7 @@
     font-size: 0.8rem;
     font-weight: 600;
     background: #111111;
-    color: #00D9C0;
+    color: #4F8CFF;
     border: 1px solid #252525;
     border-radius: 7px;
     text-decoration: none;
@@ -493,8 +493,8 @@
 }
 
 .tn-history-action-btn.primary:hover {
-    background: #00D9C0;
-    border-color: #00D9C0;
+    background: #4F8CFF;
+    border-color: #4F8CFF;
     color: #000000;
 }
 
@@ -519,8 +519,8 @@
 }
 
 .tn-history-icon-btn.is-archived {
-    color: #00D9C0;
-    border-color: rgba(0, 217, 192, 0.3);
+    color: #4F8CFF;
+    border-color: rgba(79, 140, 255, 0.3);
 }
 
 .tn-history-icon-btn.danger:hover {
@@ -568,9 +568,9 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: rgba(0, 217, 192, 0.08);
-    border: 1px solid rgba(0, 217, 192, 0.2);
-    color: #00D9C0;
+    background: rgba(79, 140, 255, 0.08);
+    border: 1px solid rgba(79, 140, 255, 0.2);
+    color: #4F8CFF;
     display: flex;
     align-items: center;
     justify-content: center;

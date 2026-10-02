@@ -2,7 +2,7 @@
    TESTNEXA AI — PRODUCTION LEGAL & DOCUMENTATION STYLING
    Theme: True Black Design System
    Background: #050505 | Surface: #0A0A0A | Elevated: #111111 | Border: #1C1C1C
-   Text: Primary #F5F5F5 | Secondary #A3A3A3 | Muted #737373 | Accent #00D9C0
+   Text: Primary #F5F5F5 | Secondary #A3A3A3 | Muted #737373 | Accent #4F8CFF
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ─── Screen Reader Only Utility ─── */
@@ -142,7 +142,7 @@
 }
 
 .tn-legal-action-btn:focus-visible {
-  outline: 2px solid #00D9C0;
+  outline: 2px solid #4F8CFF;
   outline-offset: 1px;
 }
 
@@ -175,7 +175,7 @@
 }
 
 .tn-legal-mobile-select:focus {
-  border-color: #00D9C0;
+  border-color: #4F8CFF;
 }
 
 .tn-legal-mobile-select-icon {
@@ -248,11 +248,11 @@
   color: #F5F5F5;
   font-weight: 600;
   background-color: #0A0A0A;
-  border-left-color: #00D9C0;
+  border-left-color: #4F8CFF;
 }
 
 .tn-legal-nav-link:focus-visible {
-  outline: 2px solid #00D9C0;
+  outline: 2px solid #4F8CFF;
   outline-offset: 1px;
 }
 
@@ -339,15 +339,15 @@
 }
 
 .tn-legal-inline-link:hover {
-  color: #00D9C0;
-  text-decoration-color: #00D9C0;
+  color: #4F8CFF;
+  text-decoration-color: #4F8CFF;
 }
 
 /* ─── Compact Important Legal Notice (Section 11 & 12) ─── */
 .tn-legal-notice {
   background-color: #0A0A0A;
   border: 1px solid #1C1C1C;
-  border-left: 3px solid #00D9C0;
+  border-left: 3px solid #4F8CFF;
   border-radius: 4px;
   padding: 14px 16px;
   margin: 18px 0;
@@ -359,7 +359,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #00D9C0;
+  color: #4F8CFF;
   margin-bottom: 6px;
 }
 
@@ -404,7 +404,7 @@
 }
 
 .tn-legal-contact-item__val:hover {
-  color: #00D9C0;
+  color: #4F8CFF;
 }
 
 .tn-legal-contact-item__placeholder {
@@ -512,7 +512,7 @@
 }
 
 .tn-legal-toc__link.is-active .tn-legal-toc__num {
-  color: #00D9C0;
+  color: #4F8CFF;
   font-weight: 600;
 }
 
@@ -538,7 +538,7 @@
 }
 
 .tn-legal-toc__top-btn:hover {
-  color: #00D9C0;
+  color: #4F8CFF;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

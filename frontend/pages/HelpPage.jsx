@@ -562,7 +562,7 @@ const HelpPage = () => {
                             {/* Article Body */}
                             <article className="help-article-body">
                                 <header className="help-article-header">
-                                    <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#00D9C0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#4F8CFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         {activeArticle.category}
                                     </span>
                                     <h1 className="help-article-title">{activeArticle.title}</h1>
@@ -757,7 +757,7 @@ const HelpPage = () => {
                             <div className="help-qa-list">
                                 <div className="help-qa-row">
                                     <div className="help-qa-title">
-                                        <FileText size={16} color="#00D9C0" />
+                                        <FileText size={16} color="#4F8CFF" />
                                         <span>Requirement</span>
                                     </div>
                                     <div>
@@ -771,7 +771,7 @@ const HelpPage = () => {
 
                                 <div className="help-qa-row">
                                     <div className="help-qa-title">
-                                        <CheckSquare size={16} color="#00D9C0" />
+                                        <CheckSquare size={16} color="#4F8CFF" />
                                         <span>Test Case</span>
                                     </div>
                                     <div>

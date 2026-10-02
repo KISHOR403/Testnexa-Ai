@@ -43,7 +43,7 @@
 }
 
 .tn-about-breadcrumb a:hover {
-  color: #00d9c0;
+  color: #4F8CFF;
 }
 
 .tn-about-breadcrumb-separator {
@@ -126,9 +126,9 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #00d9c0;
-  background: rgba(0, 217, 192, 0.08);
-  border: 1px solid rgba(0, 217, 192, 0.2);
+  color: #4F8CFF;
+  background: rgba(79, 140, 255, 0.08);
+  border: 1px solid rgba(79, 140, 255, 0.2);
   width: 20px;
   height: 20px;
   border-radius: 4px;
@@ -166,7 +166,7 @@
 }
 
 .tn-about-principle-callout {
-  border-left: 3px solid #00d9c0;
+  border-left: 3px solid #4F8CFF;
   background: #0a0a0a;
   border-radius: 0 8px 8px 0;
   padding: 18px 24px;
@@ -220,7 +220,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00d9c0;
+  background: #4F8CFF;
   flex-shrink: 0;
 }
 
@@ -262,7 +262,7 @@
 }
 
 .tn-about-ai-col-tag--ai {
-  color: #00d9c0;
+  color: #4F8CFF;
 }
 
 .tn-about-ai-col-tag--qa {
@@ -295,7 +295,7 @@
 }
 
 .tn-about-ai-item-bullet {
-  color: #00d9c0;
+  color: #4F8CFF;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -413,7 +413,7 @@
 }
 
 .tn-about-res-link:hover {
-  color: #00d9c0;
+  color: #4F8CFF;
 }
 
 /* ─── Contextual Bottom CTA ─── */
@@ -458,7 +458,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #00d9c0;
+  background: #4F8CFF;
   color: #050505;
   font-size: 0.82rem;
   font-weight: 600;

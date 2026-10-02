@@ -47,7 +47,7 @@ const RadialGauge = ({ percentage, size = 100, strokeWidth = 8, label }) => {
 // ─── Horizontal Stacked Bar ───
 const StackedBar = ({ module, data, maxTotal }) => {
     const segments = [
-        { key: 'functional', color: '#00D9C0', label: 'Functional' },
+        { key: 'functional', color: '#4F8CFF', label: 'Functional' },
         { key: 'negative', color: '#f59e0b', label: 'Negative' },
         { key: 'edge', color: '#fb923c', label: 'Edge' },
         { key: 'api', color: '#a3a3a3', label: 'API' },
@@ -87,7 +87,7 @@ const HeatmapCell = ({ count, maxCount }) => {
     }
     const intensity = maxCount > 0 ? count / maxCount : 0;
     const bg = intensity >= 0.7
-        ? `rgba(0, 212, 193, ${0.15 + intensity * 0.35})`
+        ? `rgba(79, 140, 255, ${0.15 + intensity * 0.35})`
         : intensity >= 0.3
             ? `rgba(251, 191, 36, ${0.1 + intensity * 0.3})`
             : `rgba(248, 113, 113, ${0.1 + intensity * 0.2})`;
@@ -299,7 +299,7 @@ const CoverageAnalytics = ({ result }) => {
                         </div>
                         <div className="ca-bar-legend">
                             {[
-                                { color: '#00D9C0', label: 'Functional' },
+                                { color: '#4F8CFF', label: 'Functional' },
                                 { color: '#f59e0b', label: 'Negative' },
                                 { color: '#fb923c', label: 'Edge' },
                                 { color: '#a3a3a3', label: 'API' },
@@ -348,7 +348,7 @@ const CoverageAnalytics = ({ result }) => {
                                 <div className="ca-heat-scale">
                                     <span className="ca-heat-scale-cell" style={{ background: 'rgba(248,113,113,0.15)' }}>Low</span>
                                     <span className="ca-heat-scale-cell" style={{ background: 'rgba(251,191,36,0.25)' }}>Med</span>
-                                    <span className="ca-heat-scale-cell" style={{ background: 'rgba(0,217,192,0.35)' }}>High</span>
+                                    <span className="ca-heat-scale-cell" style={{ background: 'rgba(79, 140, 255,0.35)' }}>High</span>
                                 </div>
                             </div>
                         </div>

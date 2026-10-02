@@ -540,7 +540,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                         </div>
                                     </div>
                                     <div className="billing-meta-row">
-                                        <span>Status: <strong style={{ color: '#00D9C0' }}>Active</strong></span>
+                                        <span>Status: <strong style={{ color: '#4F8CFF' }}>Active</strong></span>
                                         <span>Renewal date: <strong>July 27, 2026</strong></span>
                                     </div>
                                 </div>

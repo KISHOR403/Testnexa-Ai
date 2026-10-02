@@ -40,8 +40,8 @@
     padding: 0.15rem 0.45rem;
     border-radius: 4px;
     background: #111111;
-    color: #00D9C0;
-    border: 1px solid rgba(0, 217, 192, 0.3);
+    color: #4F8CFF;
+    border: 1px solid rgba(79, 140, 255, 0.3);
     letter-spacing: 0.04em;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .app-workspace-save-indicator.saving {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 .app-workspace-save-indicator.saved {
@@ -121,14 +121,14 @@
 
 .app-workspace-session-btn.primary {
     color: #000000;
-    background: #00D9C0;
-    border-color: #00D9C0;
+    background: #4F8CFF;
+    border-color: #4F8CFF;
     font-weight: 500;
 }
 
 .app-workspace-session-btn.primary:hover {
-    background: #00c4ad;
-    border-color: #00c4ad;
+    background: #6A9DFF;
+    border-color: #6A9DFF;
 }
 
 /* ─── Conversation / Turn History Thread ─── */
@@ -156,7 +156,7 @@
     gap: 0.45rem;
     font-size: 0.82rem;
     font-weight: 600;
-    color: #00D9C0;
+    color: #4F8CFF;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
@@ -186,7 +186,7 @@
 
 .app-workspace-turn.assistant {
     background: #070707;
-    border: 1px solid rgba(0, 217, 192, 0.2);
+    border: 1px solid rgba(79, 140, 255, 0.2);
 }
 
 .app-workspace-turn-avatar {
@@ -207,8 +207,8 @@
 }
 
 .app-workspace-turn.assistant .app-workspace-turn-avatar {
-    background: rgba(0, 217, 192, 0.15);
-    color: #00D9C0;
+    background: rgba(79, 140, 255, 0.15);
+    color: #4F8CFF;
 }
 
 .app-workspace-turn-content {
@@ -276,7 +276,7 @@
 }
 
 .app-workspace-suite-meta strong {
-    color: #00D9C0;
+    color: #4F8CFF;
 }
 
 /* Loading skeleton for session resumption */
