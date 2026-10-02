@@ -1,49 +1,41 @@
 import React from 'react';
 import useScrollParallax from '../hooks/useScrollParallax';
 import Hero from '../components/Hero';
-import ProductWorkflow from '../components/ProductWorkflow';
-import RequirementIntelligence from '../components/RequirementIntelligence';
-import TestSuiteSection from '../components/TestSuiteSection';
-import CoverageRiskSection from '../components/CoverageRiskSection';
-import TraceabilitySection from '../components/TraceabilitySection';
-import RoleSection from '../components/RoleSection';
-import IntegrationsApiSection from '../components/IntegrationsApiSection';
-import SecurityTrustSection from '../components/SecurityTrustSection';
+import StickyProductStory from '../components/StickyProductStory';
+import TestSuiteChapter from '../components/TestSuiteChapter';
+import CoverageTraceChapter from '../components/CoverageTraceChapter';
+import IntegrationsChapter from '../components/IntegrationsChapter';
+import EnterpriseWorkflowChapter from '../components/EnterpriseWorkflowChapter';
 import FinalCTA from '../components/FinalCTA';
+import GlobalWorkflowIndicator from '../components/GlobalWorkflowIndicator';
 
 const GeneratorPage = () => {
     useScrollParallax();
 
     return (
         <div className="home-page tn-marketing-root">
-            {/* 1. Hero: Problem framing, core value proposition & authentic TestNexa workspace preview */}
+            {/* Subtle Vertical Workflow Indicator connecting chapters */}
+            <GlobalWorkflowIndicator />
+
+            {/* Hero: Problem framing, core value proposition & authentic TestNexa workspace preview */}
             <Hero />
 
-            {/* 2. Product Workflow: 7-step horizontal timeline with interactive adjacent preview */}
-            <ProductWorkflow />
+            {/* CHAPTER 1: Requirement → AI Analysis (Sticky Scroll Product Story) */}
+            <StickyProductStory />
 
-            {/* 3. Requirement Intelligence: Raw input -> Analysis -> Structured testable criteria */}
-            <RequirementIntelligence />
+            {/* CHAPTER 2: Test Case Generation (From scenarios to executable tests) */}
+            <TestSuiteChapter />
 
-            {/* 5. Test Suite Generation: Master-detail table with TC-001..TC-005 and BDD syntax */}
-            <TestSuiteSection />
+            {/* CHAPTER 3: Coverage + Risk + Traceability (Know what is covered before execution) */}
+            <CoverageTraceChapter />
 
-            {/* 6. Coverage + Risk: 87% coverage audit and High/Med/Low risk severity breakdown */}
-            <CoverageRiskSection />
+            {/* CHAPTER 4: Workflow + Integrations (Connect QA to your engineering workflow) */}
+            <IntegrationsChapter />
 
-            {/* 7. Traceability: Bidirectional requirement-to-test tree lineage */}
-            <TraceabilitySection />
+            {/* CHAPTER 5: Enterprise QA Workflow (A complete QA workflow, not just a test generator) */}
+            <EnterpriseWorkflowChapter />
 
-            {/* 8. Role-Based Stakeholder Value: QA Engineer, QA Lead, Eng Manager, PM */}
-            <RoleSection />
-
-            {/* 9. Integrations & REST API: Supported export formats and developer API curl */}
-            <IntegrationsApiSection />
-
-            {/* 10. Security & Enterprise Trust: Stateless inference, workspace isolation, RBAC */}
-            <SecurityTrustSection />
-
-            {/* 11. Final Action CTA: Enterprise CTA with authenticated workspace entry */}
+            {/* FINAL CTA: Turn requirements into structured test suites */}
             <FinalCTA />
         </div>
     );

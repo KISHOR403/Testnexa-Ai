@@ -121,7 +121,7 @@ export const Hero = () => {
                 <div className={`tn-hero-content tn-hero-reveal ${heroReveal.isRevealed ? 'is-revealed' : ''}`}>
                     <div className="tn-hero-kicker">
                         <span className="tn-kicker-dot" />
-                        <span>REQUIREMENT INTELLIGENCE</span>
+                        <span>AI-POWERED QA ENGINEERING</span>
                         <span className="tn-kicker-sep" aria-hidden="true">&bull;</span>
                         <span className="t-think" role="status" aria-live="polite">
                             <span className="t-think-sizer" aria-hidden="true">{longestState}</span>
@@ -152,7 +152,7 @@ export const Hero = () => {
                     </h1>
 
                     <p className="tn-hero-desc">
-                        Analyze requirements, generate test cases, review coverage and trace every test back to its source.
+                        Analyze requirements, generate test cases, identify coverage gaps, and trace every test back to its source.
                     </p>
 
                     <div className="tn-hero-actions">
