@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RevealSection from './RevealSection';
 import {
     CheckSquare,
     Search,
@@ -102,7 +103,7 @@ export const TestSuiteSection = () => {
     return (
         <section className="tn-section tn-test-suite-section" aria-labelledby="suite-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">Structured Output</span>
                     <h2 id="suite-heading" className="tn-section-title">
                         Structured test cases, ready for review.
@@ -110,7 +111,7 @@ export const TestSuiteSection = () => {
                     <p className="tn-section-subtitle">
                         Preconditions, execution steps, expected results, and BDD syntax for each case.
                     </p>
-                </div>
+                </RevealSection>
 
                 {/* Filter and Category Pills */}
                 <div className="tn-suite-filter-row">
@@ -132,7 +133,7 @@ export const TestSuiteSection = () => {
                 </div>
 
                 {/* Master-Detail Structured Container */}
-                <div className="tn-suite-master-detail">
+                <div className="tn-suite-master-detail" data-parallax-offset="-18">
                     {/* Left: Table */}
                     <div className="tn-suite-table-pane">
                         <table className="tn-suite-table">

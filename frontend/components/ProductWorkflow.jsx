@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RevealSection, RevealBlock } from './RevealSection';
 import {
     FileText,
     Brain,
@@ -76,7 +77,7 @@ export const ProductWorkflow = () => {
     return (
         <section id="workflow" className="tn-section tn-workflow-section" aria-labelledby="workflow-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">QA Workflow</span>
                     <h2 id="workflow-heading" className="tn-section-title">
                         From requirement to test coverage.
@@ -84,7 +85,7 @@ export const ProductWorkflow = () => {
                     <p className="tn-section-subtitle">
                         A complete QA workflow to analyze requirements, generate test cases, and validate coverage.
                     </p>
-                </div>
+                </RevealSection>
 
                 {/* ─── Horizontal 7-Step Navigation (Stacked Vertically on Mobile) ─── */}
                 <div className="tn-workflow-timeline" role="tablist" aria-label="QA Workflow Steps">
@@ -118,6 +119,7 @@ export const ProductWorkflow = () => {
                     id={`workflow-panel-${activeStep.id}`}
                     role="tabpanel"
                     className="tn-workflow-stage-display"
+                    data-parallax-offset="-15"
                 >
                     <div className="tn-workflow-stage-meta">
                         <div className="tn-workflow-stage-meta__left">

@@ -1,4 +1,5 @@
 import React from 'react';
+import RevealSection from './RevealSection';
 import {
     ShieldAlert,
     Layers,
@@ -49,7 +50,7 @@ export const CoverageRiskSection = () => {
     return (
         <section className="tn-section tn-coverage-risk-section" aria-labelledby="cov-risk-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker tn-kicker--accent">Test Coverage & Risk</span>
                     <h2 id="cov-risk-heading" className="tn-section-title">
                         See coverage and risk before execution.
@@ -57,9 +58,9 @@ export const CoverageRiskSection = () => {
                     <p className="tn-section-subtitle">
                         Measure requirement coverage and surface high-severity gaps before release.
                     </p>
-                </div>
+                </RevealSection>
 
-                <div className="tn-cov-risk-grid">
+                <div className="tn-cov-risk-grid" data-parallax-offset="10">
                     {/* Left: Coverage Dashboard */}
                     <div className="tn-cov-panel">
                         <div className="tn-cov-panel__header">

@@ -1,4 +1,5 @@
 import React from 'react';
+import RevealSection from './RevealSection';
 import { GitBranch, Check, AlertTriangle, ArrowRight, ShieldCheck, FileText } from 'lucide-react';
 
 const TRACEABILITY_ROWS = [
@@ -48,7 +49,7 @@ export const TraceabilitySection = () => {
     return (
         <section className="tn-section tn-traceability-section" aria-labelledby="traceability-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">End-to-End Lineage</span>
                     <h2 id="traceability-heading" className="tn-section-title">
                         Every test maps back to a requirement.
@@ -56,10 +57,10 @@ export const TraceabilitySection = () => {
                     <p className="tn-section-subtitle">
                         Trace each case to the clause it verifies. Keep lineage intact from spec to suite.
                     </p>
-                </div>
+                </RevealSection>
 
                 {/* Practical Enterprise QA Traceability Tree */}
-                <div className="tn-trace-card-shell">
+                <div className="tn-trace-card-shell" data-parallax-offset="-16">
                     <div className="tn-trace-card-head">
                         <div className="tn-trace-root-node">
                             <div className="tn-trace-node-icon"><FileText size={16} /></div>

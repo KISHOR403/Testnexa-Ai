@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useHeroReveal from '../hooks/useHeroReveal';
 import {
     ArrowRight,
     Check,
@@ -30,6 +31,7 @@ const HEADLINE_STATES = [
 
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+    const heroReveal = useHeroReveal();
     const [sidebarSelection, setSidebarSelection] = useState('suite'); // 'req' | 'suite' | 'cases' | 'coverage' | 'risks' | 'trace'
 
     // Transitions.dev — Kicker Thinking states loop
@@ -116,7 +118,7 @@ export const Hero = () => {
         <header className="tn-hero-section" aria-labelledby="hero-main-heading">
             <div className="tn-container">
                 {/* ─── Hero Headline & CTAs ─── */}
-                <div className="tn-hero-content">
+                <div className={`tn-hero-content tn-hero-reveal ${heroReveal.isRevealed ? 'is-revealed' : ''}`}>
                     <div className="tn-hero-kicker">
                         <span className="tn-kicker-dot" />
                         <span>REQUIREMENT INTELLIGENCE</span>
@@ -191,8 +193,13 @@ export const Hero = () => {
                 </div>
 
                 {/* ─── Authentic TestNexa Software Window ─── */}
-                <div id="product-preview" className="tn-hero-visual-frame" aria-label="TestNexa Workspace Preview">
-                    <div className="tn-software-window">
+                <div id="product-preview" className={`tn-hero-visual-frame tn-hero-visual-reveal ${heroReveal.isRevealed ? 'is-revealed' : ''}`} aria-label="TestNexa Workspace Preview">
+                    <div
+                        className="tn-software-window"
+                        data-parallax-offset="-30"
+                        data-parallax-scale="0.98"
+                        data-parallax-type="hero"
+                    >
                         {/* Title Bar */}
                         <div className="tn-window-header">
                             <div className="tn-window-dots" aria-hidden="true">

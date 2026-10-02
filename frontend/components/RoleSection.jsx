@@ -1,4 +1,5 @@
 import React from 'react';
+import RevealSection from './RevealSection';
 import {
     CheckCircle2,
     Code,
@@ -43,7 +44,7 @@ export const RoleSection = () => {
     return (
         <section className="tn-section tn-role-section" aria-labelledby="role-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">Stakeholder Alignment</span>
                     <h2 id="role-heading" className="tn-section-title">
                         One requirement. Role-specific views.
@@ -51,9 +52,9 @@ export const RoleSection = () => {
                     <p className="tn-section-subtitle">
                         QA, leads, engineering, and product work from the same testable specification.
                     </p>
-                </div>
+                </RevealSection>
 
-                <div className="tn-roles-grid">
+                <div className="tn-roles-grid" data-parallax-offset="-8">
                     {STAKEHOLDER_ROLES.map((item) => {
                         const Icon = item.icon;
                         return (

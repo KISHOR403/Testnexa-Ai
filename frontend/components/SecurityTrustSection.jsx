@@ -1,4 +1,5 @@
 import React from 'react';
+import RevealSection from './RevealSection';
 import { ShieldCheck, Lock, EyeOff, Users, CheckCircle2 } from 'lucide-react';
 
 const SECURITY_CAPABILITIES = [
@@ -28,7 +29,7 @@ export const SecurityTrustSection = () => {
     return (
         <section className="tn-section tn-security-trust-section" aria-labelledby="security-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">Security & Privacy</span>
                     <h2 id="security-heading" className="tn-section-title">
                         Built for enterprise test engineering.
@@ -36,9 +37,9 @@ export const SecurityTrustSection = () => {
                     <p className="tn-section-subtitle">
                         Stateless inference, workspace isolation, and role-based access for engineering teams.
                     </p>
-                </div>
+                </RevealSection>
 
-                <div className="tn-security-grid">
+                <div className="tn-security-grid" data-parallax-offset="-8">
                     {SECURITY_CAPABILITIES.map((cap) => {
                         const Icon = cap.icon;
                         return (

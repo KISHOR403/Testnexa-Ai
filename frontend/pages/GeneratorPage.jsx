@@ -1,4 +1,5 @@
 import React from 'react';
+import useScrollParallax from '../hooks/useScrollParallax';
 import Hero from '../components/Hero';
 import ProductWorkflow from '../components/ProductWorkflow';
 import RequirementIntelligence from '../components/RequirementIntelligence';
@@ -11,6 +12,8 @@ import SecurityTrustSection from '../components/SecurityTrustSection';
 import FinalCTA from '../components/FinalCTA';
 
 const GeneratorPage = () => {
+    useScrollParallax();
+
     return (
         <div className="home-page tn-marketing-root">
             {/* 1. Hero: Problem framing, core value proposition & authentic TestNexa workspace preview */}

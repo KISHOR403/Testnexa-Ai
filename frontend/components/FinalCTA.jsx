@@ -1,4 +1,5 @@
 import React from 'react';
+import RevealSection from './RevealSection';
 import { ArrowRight, CheckCircle2, ShieldCheck, Terminal, Layers } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
@@ -8,8 +9,8 @@ export const FinalCTA = () => {
     return (
         <section className="tn-section tn-final-cta-section" aria-labelledby="cta-heading">
             <div className="tn-container">
-                <div className="tn-final-cta-card">
-                    <div className="tn-final-cta-content">
+                <div className="tn-final-cta-card" data-parallax-offset="-10">
+                    <RevealSection className="tn-final-cta-content" data-parallax-offset="-5">
                         <span className="tn-kicker">Ready For Production QA</span>
                         <h2 id="cta-heading" className="tn-final-cta-title">
                             Turn requirements into structured test suites.
@@ -49,7 +50,7 @@ export const FinalCTA = () => {
                                 <span>Stateless, isolated data processing</span>
                             </div>
                         </div>
-                    </div>
+                    </RevealSection>
                 </div>
             </div>
         </section>

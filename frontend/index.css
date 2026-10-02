@@ -24620,6 +24620,194 @@ textarea.form-input {
 
 
 /* ============================================
+   PREMIUM TEXT REVEAL SYSTEM
+   Subtle, hierarchical scroll-triggered reveals
+   for marketing section headers and content blocks.
+   ============================================ */
+
+/* ── Staggered Section Header Reveal ──────────
+   .tn-reveal-group staggers its direct children:
+   child 1 (eyebrow)     → 0ms delay
+   child 2 (heading)     → 80ms delay
+   child 3 (description) → 160ms delay
+   child 4 (CTA/content) → 240ms delay
+   ──────────────────────────────────────────── */
+
+.tn-reveal-group > * {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.tn-reveal-group.is-revealed > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tn-reveal-group.is-revealed > *:nth-child(1) { transition-delay: 0ms; }
+.tn-reveal-group.is-revealed > *:nth-child(2) { transition-delay: 80ms; }
+.tn-reveal-group.is-revealed > *:nth-child(3) { transition-delay: 160ms; }
+.tn-reveal-group.is-revealed > *:nth-child(4) { transition-delay: 240ms; }
+.tn-reveal-group.is-revealed > *:nth-child(5) { transition-delay: 300ms; }
+
+/* ── Single Block Reveal ──────────────────────
+   .tn-reveal-block — product previews, cards, etc.
+   Animates as one unit with a subtle upward entrance.
+   ──────────────────────────────────────────── */
+
+.tn-reveal-block {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.tn-reveal-block.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Hero Page-Load Entrance ──────────────────
+   .tn-hero-reveal applies on mount (not scroll).
+   Each child has a unique duration & delay for
+   a cinematic but fast entrance sequence.
+   ──────────────────────────────────────────── */
+
+.tn-hero-reveal > * {
+  opacity: 0;
+  transform: translateY(20px);
+  will-change: opacity, transform;
+}
+
+/* Eyebrow / Kicker — fast, minimal lift */
+.tn-hero-reveal > .tn-hero-kicker {
+  transform: translateY(8px);
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Main heading — slightly longer, deeper lift */
+.tn-hero-reveal > .tn-hero-title {
+  transform: translateY(20px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Description paragraph */
+.tn-hero-reveal > .tn-hero-desc {
+  transform: translateY(14px);
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* CTA actions row */
+.tn-hero-reveal > .tn-hero-actions {
+  transform: translateY(10px);
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Trust row / pipeline stages */
+.tn-hero-reveal > .tn-hero-trust-row {
+  transform: translateY(8px);
+  transition:
+    opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Staggered entrance delays for hero children */
+.tn-hero-reveal.is-revealed > .tn-hero-kicker   { opacity: 1; transform: translateY(0); transition-delay: 0ms; }
+.tn-hero-reveal.is-revealed > .tn-hero-title     { opacity: 1; transform: translateY(0); transition-delay: 100ms; }
+.tn-hero-reveal.is-revealed > .tn-hero-desc      { opacity: 1; transform: translateY(0); transition-delay: 220ms; }
+.tn-hero-reveal.is-revealed > .tn-hero-actions   { opacity: 1; transform: translateY(0); transition-delay: 320ms; }
+.tn-hero-reveal.is-revealed > .tn-hero-trust-row { opacity: 1; transform: translateY(0); transition-delay: 400ms; }
+
+/* Hero product preview — appears after text content */
+.tn-hero-visual-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+  transition-delay: 480ms;
+}
+
+.tn-hero-visual-reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Mobile: Reduce movement distances ──────── */
+
+@media (max-width: 768px) {
+  .tn-reveal-group > * {
+    transform: translateY(12px);
+  }
+
+  .tn-reveal-block {
+    transform: translateY(10px);
+  }
+
+  .tn-hero-reveal > .tn-hero-kicker {
+    transform: translateY(6px);
+  }
+
+  .tn-hero-reveal > .tn-hero-title {
+    transform: translateY(14px);
+  }
+
+  .tn-hero-reveal > .tn-hero-desc {
+    transform: translateY(10px);
+  }
+
+  .tn-hero-reveal > .tn-hero-actions {
+    transform: translateY(8px);
+  }
+
+  .tn-hero-reveal > .tn-hero-trust-row {
+    transform: translateY(6px);
+  }
+
+  .tn-hero-visual-reveal {
+    transform: translateY(16px);
+  }
+
+  /* Slightly faster durations on mobile */
+  .tn-reveal-group > * {
+    transition-duration: 0.5s;
+  }
+
+  .tn-reveal-block {
+    transition-duration: 0.55s;
+  }
+}
+
+/* ── Accessibility: prefers-reduced-motion ──── */
+
+@media (prefers-reduced-motion: reduce) {
+  .tn-reveal-group > *,
+  .tn-reveal-block,
+  .tn-hero-reveal > *,
+  .tn-hero-visual-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+
+/* ============================================
    MOBILE RESPONSIVENESS: RESULTS SECTION
    ============================================ */
 
@@ -26260,3 +26448,27 @@ textarea.form-input {
   }
 }
 
+/* ============================================
+   SUBTLE INDUSTRY-STANDARD SCROLL PARALLAX SYSTEM
+   GPU-accelerated, section-bounded transforms
+   ============================================ */
+
+[data-parallax-offset] {
+  will-change: transform;
+}
+
+/* Disable completely on mobile (< 768px) */
+@media (max-width: 767px) {
+  [data-parallax-offset] {
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* Disable completely for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-parallax-offset] {
+    transform: none !important;
+    will-change: auto !important;
+  }
+}

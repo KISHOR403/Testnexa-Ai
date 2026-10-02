@@ -9,11 +9,11 @@ const AnimatedBackground = () => {
     return (
         <div className="tn-bg-root" aria-hidden="true">
             {/* Base gradient layer */}
-            <div className="tn-bg-base" />
-            {/* Subtle cyan ambient glow — top center */}
-            <div className="tn-bg-glow tn-bg-glow--teal" />
+            <div className="tn-bg-base" data-parallax-offset="-10" data-parallax-type="hero" />
+            {/* Subtle ambient glow — top center */}
+            <div className="tn-bg-glow tn-bg-glow--teal" data-parallax-offset="-15" data-parallax-type="hero" />
             {/* Subtle dot grid */}
-            <div className="tn-bg-grid" />
+            <div className="tn-bg-grid" data-parallax-offset="-5" data-parallax-type="hero" />
             {/* Noise/grain texture overlay */}
             <svg className="tn-bg-noise" aria-hidden="true">
                 <filter id="tn-noise-filter">

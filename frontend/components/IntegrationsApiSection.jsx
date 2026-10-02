@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RevealSection from './RevealSection';
 import { Link } from 'react-router-dom';
 import { Download, Terminal, Code, ArrowRight, Check, Copy } from 'lucide-react';
 
@@ -23,7 +24,7 @@ export const IntegrationsApiSection = () => {
     return (
         <section id="api" className="tn-section tn-integrations-api-section" aria-labelledby="api-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">Integrations & Developer API</span>
                     <h2 id="api-heading" className="tn-section-title">
                         Export to your tools. Automate with the API.
@@ -31,9 +32,9 @@ export const IntegrationsApiSection = () => {
                     <p className="tn-section-subtitle">
                         JSON, CSV, Gherkin, Markdown, and a REST endpoint for CI pipelines.
                     </p>
-                </div>
+                </RevealSection>
 
-                <div className="tn-api-integration-grid">
+                <div className="tn-api-integration-grid" data-parallax-offset="12">
                     {/* Left: Native Supported Exports & Formats */}
                     <div className="tn-int-card">
                         <div className="tn-int-card__header">

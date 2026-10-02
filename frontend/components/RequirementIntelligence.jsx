@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RevealSection, RevealBlock } from './RevealSection';
 import {
     FileText,
     ArrowDown,
@@ -17,7 +18,7 @@ export const RequirementIntelligence = () => {
     return (
         <section id="features" className="tn-section tn-req-intelligence-section" aria-labelledby="intelligence-heading">
             <div className="tn-container">
-                <div className="tn-section-header">
+                <RevealSection className="tn-section-header">
                     <span className="tn-kicker">Requirement Analysis</span>
                     <h2 id="intelligence-heading" className="tn-section-title">
                         Understand the requirement before writing tests.
@@ -25,10 +26,10 @@ export const RequirementIntelligence = () => {
                     <p className="tn-section-subtitle">
                         Parse specs, surface missing criteria, and turn vague language into testable conditions.
                     </p>
-                </div>
+                </RevealSection>
 
                 {/* ─── 3-Stage Pipeline Layout ─── */}
-                <div className="tn-pipeline-layout">
+                <div className="tn-pipeline-layout" data-parallax-offset="12">
                     {/* Stage 1: Raw Requirement */}
                     <div className="tn-pipe-block tn-pipe-block--raw">
                         <div className="tn-pipe-block__header">
