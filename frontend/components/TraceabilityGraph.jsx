@@ -1,270 +1,215 @@
 import React, { useState } from 'react';
-import { GitBranch, Check, AlertTriangle, Shield, CheckCircle2, ChevronRight, Layers, FileText } from 'lucide-react';
-import RevealSection from './RevealSection';
+import {
+    CheckCircle2,
+    Shield,
+    AlertTriangle,
+    FileText,
+    ArrowRight,
+    Check,
+    Layers,
+    GitBranch
+} from 'lucide-react';
+import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
-const TREE_NODES = {
-    requirement: {
-        id: 'REQ-142',
-        title: 'Password Reset Recovery',
-        type: 'Requirement',
-        spec: 'Users can reset password via registered email',
-        badge: 'Specification Root'
+const TRACE_LINKS = [
+    {
+        id: 'LNK-1',
+        reqId: 'REQ-142.1',
+        reqName: 'Valid Password Recovery',
+        scenario: 'SC-01 Happy Path',
+        tcId: 'TC-001',
+        tcName: 'Submit registered email & token dispatch',
+        riskId: 'RISK-02',
+        riskName: 'Token Replay & Reuse',
+        status: 'Verified'
     },
-    scenarios: [
-        {
-            id: 'SC-01',
-            title: 'Valid Email Dispatch',
-            type: 'Functional',
-            tests: [
-                { id: 'TC-001', name: 'Submit registered email & assert token dispatch', priority: 'High', status: 'Verified' },
-                { id: 'TC-002', name: 'Assert single-use token consumption', priority: 'High', status: 'Verified' }
-            ]
-        },
-        {
-            id: 'SC-02',
-            title: 'Negative Input & Abuse',
-            type: 'Negative & Security',
-            tests: [
-                { id: 'TC-003', name: 'Reject malformed email syntax (RFC 5322)', priority: 'High', status: 'Verified' },
-                { id: 'TC-004', name: 'Enforce 5 req/min IP rate limiting (HTTP 429)', priority: 'High', status: 'Verified' }
-            ]
-        }
-    ],
-    risks: [
-        { id: 'RISK-01', title: 'Token TTL Invalidation Window', level: 'High', mitigatedBy: 'TC-003' },
-        { id: 'RISK-02', title: 'Mail Gateway Quota Flooding', level: 'High', mitigatedBy: 'TC-004' }
-    ],
-    coverage: {
-        clauseCoverage: '94.2%',
-        orphanTests: '0',
-        lineageStatus: '100% Mapped'
+    {
+        id: 'LNK-2',
+        reqId: 'REQ-142.2',
+        reqName: 'RFC 5322 Syntax Rules',
+        scenario: 'SC-02 Input Validation',
+        tcId: 'TC-002',
+        tcName: 'Malformed email syntax rejection',
+        riskId: 'RISK-04',
+        riskName: 'Injection Vector Bypass',
+        status: 'Verified'
+    },
+    {
+        id: 'LNK-3',
+        reqId: 'REQ-142.3',
+        reqName: '15-Minute Token TTL Window',
+        scenario: 'SC-03 Expiration Limits',
+        tcId: 'TC-003',
+        tcName: 'Expired token redemption attempt',
+        riskId: 'RISK-01',
+        riskName: 'Hijack Window Vulnerability',
+        status: 'Verified'
+    },
+    {
+        id: 'LNK-4',
+        reqId: 'REQ-142.4',
+        reqName: '5 Req/Hr Rate Limiting',
+        scenario: 'SC-04 Abuse Mitigation',
+        tcId: 'TC-004',
+        tcName: 'Brute-force throttle enforcement',
+        riskId: 'RISK-03',
+        riskName: 'Auth Gateway Flooding',
+        status: 'Review'
     }
-};
+];
 
 export const TraceabilityGraph = () => {
-    const [selectedBranch, setSelectedBranch] = useState('scenarios'); // 'scenarios' | 'risks' | 'coverage'
-    const [selectedTest, setSelectedTest] = useState('TC-001');
+    const [activeLinkId, setActiveLinkId] = useState('LNK-1');
+    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+
+    const activeLink = TRACE_LINKS.find((l) => l.id === activeLinkId) || TRACE_LINKS[0];
 
     return (
-        <section id="traceability" className="tn-section tn-trace-graph-section" aria-labelledby="traceability-heading">
+        <section
+            id="traceability"
+            className="tn-section tn-trace-flow-section"
+            aria-labelledby="trace-flow-heading"
+        >
             <div className="tn-container">
-                <RevealSection className="tn-section-header">
+                {/* ─── Editorial Header (Open Canvas) ─── */}
+                <div className="tn-trace-header-group">
                     <div className="tn-chapter-eyebrow">
-                        <span className="tn-chapter-pill">TRACEABILITY ARCHITECTURE</span>
-                        <span className="tn-chapter-sub">Deterministic Quality Lineage</span>
+                        <span className="tn-kicker-dot" />
+                        <span>BIDIRECTIONAL TRACEABILITY</span>
                     </div>
-                    <h2 id="traceability-heading" className="tn-section-title">
+
+                    <h2 id="trace-flow-heading" className="tn-trace-title">
                         Every test maps back to a requirement.
                     </h2>
-                    <p className="tn-section-subtitle">
-                        Eliminate orphan test cases and undocumented gaps. Testnexa maintains strict, verifiable bidirectional lineage from requirement to scenario to test case to risk mitigation.
+
+                    <p className="tn-trace-subtitle">
+                        Eliminate orphan test cases and undocumented gaps. TestNexa establishes verifiable, bidirectional lineage from requirement to scenario, test case, and risk mitigation.
                     </p>
-                </RevealSection>
+                </div>
 
-                {/* ─── Technical Traceability Canvas ─── */}
-                <div className="tn-trace-canvas" aria-label="Requirement Traceability Graph">
-                    {/* Top Tree Legend & Quick Filters */}
-                    <div className="tn-trace-top-bar">
-                        <div className="tn-trace-legend">
-                            <span className="tn-legend-item">
-                                <span className="tn-legend-dot tn-legend-dot--req" />
-                                <span>Requirement Root</span>
-                            </span>
-                            <span className="tn-legend-item">
-                                <span className="tn-legend-dot tn-legend-dot--scen" />
-                                <span>Scenario Group</span>
-                            </span>
-                            <span className="tn-legend-item">
-                                <span className="tn-legend-dot tn-legend-dot--tc" />
-                                <span>Test Case</span>
-                            </span>
-                            <span className="tn-legend-item">
-                                <span className="tn-legend-dot tn-legend-dot--risk" />
-                                <span>Risk Mitigation</span>
+                {/* ─── Horizontal Traceability Flow Canvas ─── */}
+                <div className="tn-trace-flow-canvas" aria-label="Bidirectional Traceability Matrix">
+                    {/* Top Metric Bar */}
+                    <div className="tn-tflow-topbar">
+                        <div className="tn-tflow-breadcrumbs">
+                            <span className="tn-tflow-root-label">LINEAGE MATRIX</span>
+                            <span className="tn-tflow-root-id">REQ-142</span>
+                            <span className="tn-tflow-lock-status">
+                                <CheckCircle2 size={13} className="text-green" />
+                                <span>100% Bidirectional Lock</span>
                             </span>
                         </div>
 
-                        <div className="tn-trace-status-pill">
-                            <CheckCircle2 size={13} className="text-green" />
-                            <span>100% Bidirectional Lock</span>
+                        <div className="tn-tflow-kpis">
+                            <div className="tn-tflow-kpi">
+                                <span className="tn-tkpi-val font-mono">94.2%</span>
+                                <span className="tn-tkpi-lbl">Clause coverage</span>
+                            </div>
+                            <div className="tn-tkpi-sep" />
+                            <div className="tn-tflow-kpi">
+                                <span className="tn-tkpi-val font-mono text-green">0</span>
+                                <span className="tn-tkpi-lbl">Orphan tests</span>
+                            </div>
+                            <div className="tn-tkpi-sep" />
+                            <div className="tn-tflow-kpi">
+                                <span className="tn-tkpi-val font-mono text-accent">24 / 24</span>
+                                <span className="tn-tkpi-lbl">Cases linked</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* ─── Hierarchy Visualization ─── */}
-                    <div className="tn-trace-tree-wrapper">
-                        
-                        {/* ROOT: REQUIREMENT NODE */}
-                        <div className="tn-tree-level tn-tree-level--root">
-                            <div className="tn-tree-node tn-tree-node--root is-selected">
-                                <div className="tn-node-pill">
-                                    <FileText size={13} className="text-accent" />
-                                    <span>REQUIREMENT SPEC</span>
-                                </div>
-                                <div className="tn-node-main">
-                                    <strong className="tn-node-title">REQ-142: Password Reset Recovery</strong>
-                                    <p className="tn-node-desc">"Users can reset their password using their registered email address."</p>
-                                </div>
-                                <div className="tn-node-meta-foot">
-                                    <span>Jira: PROD-842</span>
-                                    <span>Coverage: 94.2%</span>
-                                    <span className="text-green">Status: Verified</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* CONNECTOR STEM TO SUB-BRANCHES */}
-                        <div className="tn-tree-stem-connector" aria-hidden="true">
-                            <div className="tn-stem-vertical" />
-                            <div className="tn-stem-horizontal-bar" />
-                        </div>
-
-                        {/* THREE MAIN BRANCHES: SCENARIOS | RISKS | COVERAGE */}
-                        <div className="tn-tree-branches-grid">
-                            
-                            {/* BRANCH 1: SCENARIOS & ATTACHED TEST CASES */}
-                            <div className={`tn-branch-col ${selectedBranch === 'scenarios' ? 'is-active-branch' : ''}`}>
-                                <div 
-                                    className="tn-branch-header"
-                                    onClick={() => setSelectedBranch('scenarios')}
-                                    role="button"
-                                    tabIndex={0}
-                                >
-                                    <div className="tn-branch-title-row">
-                                        <Layers size={14} className="text-accent" />
-                                        <strong>Scenarios & Test Cases</strong>
-                                    </div>
-                                    <span className="tn-badge tn-badge--neutral">4 Linked Tests</span>
-                                </div>
-
-                                <div className="tn-branch-children-list">
-                                    {TREE_NODES.scenarios.map((scen) => (
-                                        <div key={scen.id} className="tn-scen-group-block">
-                                            <div className="tn-scen-group-head">
-                                                <span className="tn-scen-tag">{scen.id}</span>
-                                                <span className="tn-scen-name">{scen.title}</span>
-                                                <span className="tn-scen-type">{scen.type}</span>
-                                            </div>
-
-                                            <div className="tn-scen-tests-list">
-                                                {scen.tests.map((tc) => {
-                                                    const isSelected = selectedTest === tc.id;
-                                                    return (
-                                                        <div
-                                                            key={tc.id}
-                                                            onClick={() => setSelectedTest(tc.id)}
-                                                            className={`tn-tree-leaf-node ${isSelected ? 'is-selected' : ''}`}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                        >
-                                                            <div className="tn-leaf-top">
-                                                                <span className="tn-tc-id">{tc.id}</span>
-                                                                <span className="tn-priority-tag tn-priority-tag--high">{tc.priority}</span>
-                                                                <span className="tn-leaf-status">
-                                                                    <Check size={11} className="text-green" />
-                                                                    <span>{tc.status}</span>
-                                                                </span>
-                                                            </div>
-                                                            <span className="tn-leaf-name">{tc.name}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* BRANCH 2: IDENTIFIED RISKS & MITIGATIONS */}
-                            <div className={`tn-branch-col ${selectedBranch === 'risks' ? 'is-active-branch' : ''}`}>
-                                <div 
-                                    className="tn-branch-header"
-                                    onClick={() => setSelectedBranch('risks')}
-                                    role="button"
-                                    tabIndex={0}
-                                >
-                                    <div className="tn-branch-title-row">
-                                        <AlertTriangle size={14} className="text-amber" />
-                                        <strong>Identified Risks</strong>
-                                    </div>
-                                    <span className="tn-badge tn-badge--amber">2 High Severity</span>
-                                </div>
-
-                                <div className="tn-branch-children-list">
-                                    {TREE_NODES.risks.map((risk) => (
-                                        <div key={risk.id} className="tn-risk-leaf-node">
-                                            <div className="tn-risk-leaf-head">
-                                                <span className="tn-badge tn-badge--red">{risk.level}</span>
-                                                <strong className="tn-risk-title">{risk.id}: {risk.title}</strong>
-                                            </div>
-                                            <div className="tn-risk-mitigation-tag">
-                                                <span>Mitigated By:</span>
-                                                <code>{risk.mitigatedBy}</code>
-                                                <Check size={11} className="text-green" />
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    <div className="tn-risk-note-box">
-                                        <span>Risk Engine Assurance:</span>
-                                        <p>Every identified omission is structurally bound to at least one executable test asserting boundary compliance.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* BRANCH 3: CLAUSE COVERAGE & LINEAGE AUDIT */}
-                            <div className={`tn-branch-col ${selectedBranch === 'coverage' ? 'is-active-branch' : ''}`}>
-                                <div 
-                                    className="tn-branch-header"
-                                    onClick={() => setSelectedBranch('coverage')}
-                                    role="button"
-                                    tabIndex={0}
-                                >
-                                    <div className="tn-branch-title-row">
-                                        <GitBranch size={14} className="text-accent" />
-                                        <strong>Coverage & Lineage</strong>
-                                    </div>
-                                    <span className="tn-badge tn-badge--green">Validated</span>
-                                </div>
-
-                                <div className="tn-branch-children-list">
-                                    <div className="tn-cov-leaf-stat">
-                                        <span className="tn-cov-label">Clause Coverage</span>
-                                        <span className="tn-cov-value text-green font-mono">{TREE_NODES.coverage.clauseCoverage}</span>
-                                        <span className="tn-cov-sub">All specified requirements tested</span>
-                                    </div>
-
-                                    <div className="tn-cov-leaf-stat">
-                                        <span className="tn-cov-label">Orphan Test Cases</span>
-                                        <span className="tn-cov-value font-mono">{TREE_NODES.coverage.orphanTests}</span>
-                                        <span className="tn-cov-sub">Zero unmapped tests detected</span>
-                                    </div>
-
-                                    <div className="tn-cov-leaf-stat">
-                                        <span className="tn-cov-label">Bidirectional Integrity</span>
-                                        <span className="tn-cov-value text-accent font-mono">{TREE_NODES.coverage.lineageStatus}</span>
-                                        <span className="tn-cov-sub">Cryptographically signed manifest</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
+                    {/* Horizontal Stream Rows */}
+                    <div className="tn-tflow-grid-header">
+                        <span className="col-head col-req">REQUIREMENT CLAUSE</span>
+                        <span className="col-head col-arrow" />
+                        <span className="col-head col-scen">SCENARIO GROUP</span>
+                        <span className="col-head col-arrow" />
+                        <span className="col-head col-tc">EXECUTABLE TEST CASE</span>
+                        <span className="col-head col-arrow" />
+                        <span className="col-head col-risk">RISK MITIGATION</span>
+                        <span className="col-head col-status">AUDIT STATUS</span>
                     </div>
 
-                    {/* Active Inspector Lineage Footer */}
-                    <div className="tn-trace-footer-inspect">
-                        <div className="tn-inspect-lineage">
-                            <span className="tn-trace-path-label">Active Lineage Path:</span>
-                            <div className="tn-trace-breadcrumbs">
-                                <code>REQ-142</code>
-                                <span className="tn-trace-arrow">&rarr;</span>
-                                <code>SC-01</code>
-                                <span className="tn-trace-arrow">&rarr;</span>
-                                <code className="is-highlighted">{selectedTest}</code>
-                                <span className="tn-trace-arrow">&rarr;</span>
-                                <span className="tn-inspect-verified text-green">100% Traceability Verified</span>
-                            </div>
+                    <div className="tn-tflow-rows" role="list">
+                        {TRACE_LINKS.map((link) => {
+                            const isSelected = activeLinkId === link.id;
+                            return (
+                                <div
+                                    key={link.id}
+                                    role="listitem"
+                                    className={`tn-tflow-row ${isSelected ? 'is-selected' : ''}`}
+                                    onClick={() => setActiveLinkId(link.id)}
+                                >
+                                    {/* Requirement Node */}
+                                    <div className="tn-tflow-cell col-req">
+                                        <span className="tn-node-code">{link.reqId}</span>
+                                        <span className="tn-node-desc">{link.reqName}</span>
+                                    </div>
+
+                                    {/* Connector */}
+                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
+                                        <span className="tn-conn-line" />
+                                        <span className="tn-conn-dot" />
+                                    </div>
+
+                                    {/* Scenario Node */}
+                                    <div className="tn-tflow-cell col-scen">
+                                        <span className="tn-scen-tag">{link.scenario}</span>
+                                    </div>
+
+                                    {/* Connector */}
+                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
+                                        <span className="tn-conn-line" />
+                                        <span className="tn-conn-dot" />
+                                    </div>
+
+                                    {/* Test Case Node */}
+                                    <div className="tn-tflow-cell col-tc">
+                                        <span className="tn-node-code">{link.tcId}</span>
+                                        <span className="tn-node-desc">{link.tcName}</span>
+                                    </div>
+
+                                    {/* Connector */}
+                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
+                                        <span className="tn-conn-line" />
+                                        <span className="tn-conn-dot" />
+                                    </div>
+
+                                    {/* Risk Node */}
+                                    <div className="tn-tflow-cell col-risk">
+                                        <span className="tn-risk-pill">{link.riskId}</span>
+                                        <span className="tn-risk-desc">{link.riskName}</span>
+                                    </div>
+
+                                    {/* Status Pill */}
+                                    <div className="tn-tflow-cell col-status">
+                                        <span className={`tn-audit-chip ${link.status === 'Verified' ? 'is-verified' : 'is-review'}`}>
+                                            {link.status === 'Verified' ? <Check size={11} /> : <AlertTriangle size={11} />}
+                                            <span>{link.status}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Bottom Lineage Detail Footnote */}
+                    <div className="tn-tflow-footer">
+                        <div className="tn-tflow-footer-text">
+                            <span className="tn-tfoot-tag">AUDIT PROOF:</span>
+                            <span>Selection maps <strong>{activeLink.reqId}</strong> through <strong>{activeLink.tcId}</strong> verifying mitigation of <strong>{activeLink.riskId} ({activeLink.riskName})</strong>.</span>
                         </div>
+                        <a
+                            href={getTargetUrl('/app/workspace')}
+                            className="tn-tflow-cta-link"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleWorkspaceEntry('/app/workspace');
+                            }}
+                        >
+                            <span>Inspect full traceability tree</span>
+                            <ArrowRight size={13} />
+                        </a>
                     </div>
                 </div>
             </div>

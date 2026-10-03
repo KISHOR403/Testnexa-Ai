@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
     ArrowRight,
     Check,
-    ChevronRight,
     FileText,
     Layers,
     Shield,
@@ -12,13 +11,14 @@ import {
     SlidersHorizontal,
     Search,
     Download,
-    ExternalLink
+    ExternalLink,
+    Play
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
-    const [activeTab, setActiveTab] = useState('scenarios'); // 'requirement' | 'analysis' | 'scenarios' | 'cases' | 'coverage'
+    const [activeTab, setActiveTab] = useState('cases'); // 'requirement' | 'analysis' | 'scenarios' | 'cases'
 
     const handleExploreWorkflow = (e) => {
         e.preventDefault();
@@ -33,11 +33,11 @@ export const Hero = () => {
     return (
         <header className="tn-hero-section" aria-labelledby="hero-main-heading">
             <div className="tn-container">
-                {/* ─── Hero Headline & CTAs ─── */}
+                {/* ─── 1. Hero Headline & CTAs (Clean Open Canvas) ─── */}
                 <div className="tn-hero-content">
                     <div className="tn-hero-kicker">
                         <span className="tn-kicker-dot" />
-                        <span>Enterprise QA Engineering Platform</span>
+                        <span>ENTERPRISE QA PLATFORM &bull; SPECIFICATION TO SUITE</span>
                     </div>
 
                     <h1 id="hero-main-heading" className="tn-hero-title">
@@ -45,7 +45,7 @@ export const Hero = () => {
                     </h1>
 
                     <p className="tn-hero-desc">
-                        Analyze requirements, generate test cases, review coverage and trace every test back to its source.
+                        Analyze specifications, synthesize deterministic test scenarios, audit coverage, and lock bidirectional traceability — all in one engineering workflow.
                     </p>
 
                     <div className="tn-hero-actions">
@@ -73,10 +73,25 @@ export const Hero = () => {
                             <span>Explore Workflow</span>
                         </button>
                     </div>
+
+                    {/* Small Inline Navigation Pipeline Bar */}
+                    <div className="tn-hero-pipeline-strip" aria-label="QA Pipeline Steps">
+                        <span className="tn-hpipe-item is-active">01 Requirement</span>
+                        <span className="tn-hpipe-sep">──</span>
+                        <span className="tn-hpipe-item">02 Analysis</span>
+                        <span className="tn-hpipe-sep">──</span>
+                        <span className="tn-hpipe-item">03 Test Suite</span>
+                        <span className="tn-hpipe-sep">──</span>
+                        <span className="tn-hpipe-item">04 Coverage</span>
+                        <span className="tn-hpipe-sep">──</span>
+                        <span className="tn-hpipe-item">05 Traceability</span>
+                        <span className="tn-hpipe-sep">──</span>
+                        <span className="tn-hpipe-item">06 Export</span>
+                    </div>
                 </div>
 
-                {/* ─── Coherent Testnexa Product Canvas ─── */}
-                <div id="product-canvas" className="tn-hero-visual-frame" aria-label="Testnexa Product Canvas">
+                {/* ─── 2. Real Product Canvas Emerging from Page ─── */}
+                <div id="product-canvas" className="tn-hero-visual-frame" aria-label="TestNexa Product Canvas">
                     <div className="tn-software-window">
                         {/* Title Bar */}
                         <div className="tn-window-header">
@@ -86,38 +101,64 @@ export const Hero = () => {
                                 <span className="tn-win-dot tn-win-dot--green" />
                             </div>
                             <div className="tn-window-title">
-                                <span className="tn-app-name">Testnexa</span>
+                                <span className="tn-app-name">TestNexa</span>
                                 <span className="tn-title-sep">/</span>
-                                <span className="tn-req-label">
-                                    <span className="tn-req-label-full">REQ-142: Password Reset Recovery</span>
-                                    <span className="tn-req-label-short">REQ-142</span>
-                                </span>
+                                <span className="tn-req-label">REQ-142: Password Reset Recovery</span>
                             </div>
                             <div className="tn-window-status">
                                 <span className="tn-status-badge tn-status-badge--review">Needs Review</span>
+                                <span className="tn-window-time">Updated 2m ago</span>
                             </div>
                         </div>
 
-                        {/* Product Header & Key Metrics Bar */}
+                        {/* App Sub-header: Navigation Tabs & Metrics */}
                         <div className="tn-canvas-subbar">
-                            <div className="tn-canvas-meta">
-                                <div className="tn-canvas-title-group">
-                                    <h2 className="tn-canvas-title">Password Reset Recovery</h2>
-                                    <span className="tn-canvas-tag">REQ-142</span>
-                                    <span className="tn-canvas-priority tn-priority-tag--high">High Priority</span>
-                                </div>
-                                <span className="tn-canvas-time">Updated 2m ago &bull; Jira Sync PROD-842</span>
+                            <div className="tn-canvas-tabs" role="tablist">
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === 'requirement'}
+                                    className={`tn-canvas-tab ${activeTab === 'requirement' ? 'is-active' : ''}`}
+                                    onClick={() => setActiveTab('requirement')}
+                                >
+                                    <span>Requirement</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === 'analysis'}
+                                    className={`tn-canvas-tab ${activeTab === 'analysis' ? 'is-active' : ''}`}
+                                    onClick={() => setActiveTab('analysis')}
+                                >
+                                    <span>AI Analysis</span>
+                                    <span className="tn-tab-counter">3 risks</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === 'scenarios'}
+                                    className={`tn-canvas-tab ${activeTab === 'scenarios' ? 'is-active' : ''}`}
+                                    onClick={() => setActiveTab('scenarios')}
+                                >
+                                    <span>Scenarios</span>
+                                    <span className="tn-tab-counter">4 groups</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === 'cases'}
+                                    className={`tn-canvas-tab ${activeTab === 'cases' ? 'is-active' : ''}`}
+                                    onClick={() => setActiveTab('cases')}
+                                >
+                                    <span>Test Cases</span>
+                                    <span className="tn-tab-counter">24 cases</span>
+                                </button>
                             </div>
 
                             <div className="tn-canvas-metrics">
                                 <div className="tn-cmetric">
-                                    <span className="tn-cmetric-lbl">Status</span>
-                                    <span className="tn-cmetric-val text-amber">Needs Review</span>
-                                </div>
-                                <div className="tn-cmetric-sep" />
-                                <div className="tn-cmetric">
                                     <span className="tn-cmetric-lbl">Coverage</span>
-                                    <span className="tn-cmetric-val text-green">87%</span>
+                                    <span className="tn-cmetric-val text-green font-mono">87%</span>
                                 </div>
                                 <div className="tn-cmetric-sep" />
                                 <div className="tn-cmetric">
@@ -132,293 +173,123 @@ export const Hero = () => {
                                 <div className="tn-cmetric-sep" />
                                 <div className="tn-cmetric">
                                     <span className="tn-cmetric-lbl">Traceability</span>
-                                    <span className="tn-cmetric-val font-mono">100%</span>
+                                    <span className="tn-cmetric-val text-accent font-mono">100%</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Interactive Workflow Stage Tabs */}
-                        <div className="tn-canvas-stepper" role="tablist" aria-label="Product Workflow Pipeline">
-                            {[
-                                { id: 'requirement', label: '1. Requirement', count: 'Raw Spec' },
-                                { id: 'analysis', label: '2. AI Analysis', count: '4 Omissions' },
-                                { id: 'scenarios', label: '3. Test Scenarios', count: '4 Scenarios' },
-                                { id: 'cases', label: '4. Test Cases', count: '24 Cases' },
-                                { id: 'coverage', label: '5. Coverage & Risk', count: '87% Mapped' }
-                            ].map((tab) => {
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={isActive}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`tn-stepper-btn ${isActive ? 'is-active' : ''}`}
-                                    >
-                                        <span className="tn-stepper-label">{tab.label}</span>
-                                        <span className="tn-stepper-count">{tab.count}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Canvas Body Viewport */}
+                        {/* Interactive Main Canvas View */}
                         <div className="tn-canvas-body">
-                            {/* TAB 1: REQUIREMENT */}
-                            {activeTab === 'requirement' && (
-                                <div className="tn-canvas-panel">
-                                    <div className="tn-canvas-panel-header">
-                                        <span className="tn-panel-eyebrow">RAW SPECIFICATION INGESTION</span>
-                                        <span className="tn-panel-tag">Source: Jira PROD-842</span>
+                            {/* Left Pane: Specification & Deconstructed Logic */}
+                            <div className="tn-cbody-pane tn-cbody-pane--spec">
+                                <div className="tn-cpane-head">
+                                    <span className="tn-cpane-tag">SPECIFICATION INGESTION</span>
+                                    <span className="tn-cpane-source">Jira PROD-842</span>
+                                </div>
+
+                                <div className="tn-spec-text-block">
+                                    <p className="tn-spec-quote">
+                                        “Users can reset their password using their registered email address.”
+                                    </p>
+                                </div>
+
+                                <div className="tn-spec-clauses">
+                                    <div className="tn-clause-row">
+                                        <span className="tn-clause-idx">AC-1</span>
+                                        <span className="tn-clause-desc">Single-use reset token dispatched to verified email with 15-minute TTL.</span>
                                     </div>
-                                    <div className="tn-canvas-raw-spec">
-                                        <p className="tn-spec-text">
-                                            "Users can reset their password using their registered email address."
-                                        </p>
+                                    <div className="tn-clause-row">
+                                        <span className="tn-clause-idx">AC-2</span>
+                                        <span className="tn-clause-desc">Immediately revoke all active web/mobile sessions upon confirmation.</span>
                                     </div>
-                                    <div className="tn-spec-criteria-list">
-                                        <span className="tn-criteria-title">Acceptance Criteria Identified:</span>
-                                        <div className="tn-crit-row">
-                                            <Check size={14} className="text-green" />
-                                            <span>User submits email address on /forgot-password form endpoint.</span>
-                                        </div>
-                                        <div className="tn-crit-row">
-                                            <Check size={14} className="text-green" />
-                                            <span>System verifies existence and queues secure one-time cryptographic reset token.</span>
-                                        </div>
-                                        <div className="tn-crit-row">
-                                            <Check size={14} className="text-green" />
-                                            <span>User accesses verification link, supplies compliant new password, and confirms reset.</span>
-                                        </div>
+                                    <div className="tn-clause-row">
+                                        <span className="tn-clause-idx">AC-3</span>
+                                        <span className="tn-clause-desc">Enforce rate limiter of max 5 requests per hour per originating IP.</span>
                                     </div>
                                 </div>
-                            )}
 
-                            {/* TAB 2: AI ANALYSIS */}
-                            {activeTab === 'analysis' && (
-                                <div className="tn-canvas-panel">
-                                    <div className="tn-canvas-panel-header">
-                                        <span className="tn-panel-eyebrow">REQUIREMENT AMBIGUITY & BOUNDARY AUDIT</span>
-                                        <span className="tn-badge tn-badge--amber">4 Critical Ambiguities Detected</span>
-                                    </div>
-                                    <div className="tn-analysis-matrix">
-                                        <div className="tn-analysis-card">
-                                            <div className="tn-acard-head">
-                                                <AlertTriangle size={13} className="text-amber" />
-                                                <strong>Token Expiration Window (TTL)</strong>
-                                            </div>
-                                            <p>Spec omits TTL limit. Recommendation: Enforce 15-minute token invalidation.</p>
-                                        </div>
-                                        <div className="tn-analysis-card">
-                                            <div className="tn-acard-head">
-                                                <Shield size={13} className="text-red" />
-                                                <strong>Anti-Enumeration Latency</strong>
-                                            </div>
-                                            <p>Uniform HTTP 200 response and latency delta &lt;25ms required to prevent user discovery.</p>
-                                        </div>
-                                        <div className="tn-analysis-card">
-                                            <div className="tn-acard-head">
-                                                <SlidersHorizontal size={13} className="text-blue" />
-                                                <strong>Rate Limiting Threshold</strong>
-                                            </div>
-                                            <p>No brute-force or flooding boundary specified. Enforce max 5 requests/minute per client IP.</p>
-                                        </div>
-                                        <div className="tn-analysis-card">
-                                            <div className="tn-acard-head">
-                                                <AlertTriangle size={13} className="text-amber" />
-                                                <strong>Token Invalidation on Re-Issue</strong>
-                                            </div>
-                                            <p>Submitting a second reset request must instantly burn previously issued nonces.</p>
-                                        </div>
-                                    </div>
+                                <div className="tn-spec-footer-meta">
+                                    <span className="tn-meta-label">ANALYSIS SIGNAL:</span>
+                                    <span className="tn-meta-val">3 ambiguities flagged &bull; 2 high risks isolated</span>
                                 </div>
-                            )}
-
-                            {/* TAB 3: TEST SCENARIOS (DEFAULT) */}
-                            {activeTab === 'scenarios' && (
-                                <div className="tn-canvas-panel">
-                                    <div className="tn-canvas-panel-header">
-                                        <span className="tn-panel-eyebrow">DERIVED TEST SCENARIOS (4 SCENARIO GROUPS)</span>
-                                        <span className="tn-panel-tag">Synthesized from REQ-142</span>
-                                    </div>
-                                    <div className="tn-scenarios-table">
-                                        <div className="tn-scenario-row">
-                                            <span className="tn-scen-id">SC-01</span>
-                                            <div className="tn-scen-main">
-                                                <strong>Valid registered email password reset request</strong>
-                                                <span>Functional &bull; Verifies cryptographic token generation, SMTP queuing, and single-use delivery.</span>
-                                            </div>
-                                            <span className="tn-badge tn-badge--green">Pass</span>
-                                        </div>
-
-                                        <div className="tn-scenario-row">
-                                            <span className="tn-scen-id">SC-02</span>
-                                            <div className="tn-scen-main">
-                                                <strong>Malformed or unregistered email address submission</strong>
-                                                <span>Negative &bull; RFC 5322 validation, HTTP 422 rejection, anti-enumeration generic response.</span>
-                                            </div>
-                                            <span className="tn-badge tn-badge--amber">Needs Review</span>
-                                        </div>
-
-                                        <div className="tn-scenario-row">
-                                            <span className="tn-scen-id">SC-03</span>
-                                            <div className="tn-scen-main">
-                                                <strong>Expired reset token redemption attempt (T+15m01s)</strong>
-                                                <span>Edge Case &bull; Asserts HTTP 400 TOKEN_EXPIRED error and prevents database password mutation.</span>
-                                            </div>
-                                            <span className="tn-badge tn-badge--amber">Needs Review</span>
-                                        </div>
-
-                                        <div className="tn-scenario-row">
-                                            <span className="tn-scen-id">SC-04</span>
-                                            <div className="tn-scen-main">
-                                                <strong>Client IP rate limit exceeded (burst &gt; 5 requests/min)</strong>
-                                                <span>Security &bull; Gateway throttles 6th request with HTTP 429 and Retry-After header enforcement.</span>
-                                            </div>
-                                            <span className="tn-badge tn-badge--red">High Risk</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB 4: TEST CASES */}
-                            {activeTab === 'cases' && (
-                                <div className="tn-canvas-panel">
-                                    <div className="tn-canvas-panel-header">
-                                        <span className="tn-panel-eyebrow">EXECUTABLE TEST CASES (24 GENERATED &bull; PREVIEW)</span>
-                                        <span className="tn-panel-tag">BDD & Step-Action Ready</span>
-                                    </div>
-                                    <div className="tn-cases-preview-list">
-                                        <div className="tn-cpreview-item">
-                                            <div className="tn-cpreview-meta">
-                                                <span className="tn-tc-id">TC-001</span>
-                                                <span className="tn-priority-tag tn-priority-tag--high">P0 &bull; High</span>
-                                                <span className="tn-cat-tag">Functional</span>
-                                            </div>
-                                            <div className="tn-cpreview-content">
-                                                <strong>Submit registered email and verify recovery token dispatch</strong>
-                                                <p className="tn-cpreview-step">Step 1: POST /api/v1/auth/reset-request with user@company.com &rarr; Assert HTTP 200</p>
-                                            </div>
-                                            <span className="tn-status-badge tn-status-badge--review">Ready</span>
-                                        </div>
-
-                                        <div className="tn-cpreview-item">
-                                            <div className="tn-cpreview-meta">
-                                                <span className="tn-tc-id">TC-002</span>
-                                                <span className="tn-priority-tag tn-priority-tag--high">P0 &bull; High</span>
-                                                <span className="tn-cat-tag">Negative</span>
-                                            </div>
-                                            <div className="tn-cpreview-content">
-                                                <strong>Enforce RFC 5322 regex validation & assert HTTP 422 payload</strong>
-                                                <p className="tn-cpreview-step">Step 1: Input "user@domain..com" &rarr; Assert client validation blocks submission</p>
-                                            </div>
-                                            <span className="tn-status-badge tn-status-badge--review">Ready</span>
-                                        </div>
-
-                                        <div className="tn-cpreview-item">
-                                            <div className="tn-cpreview-meta">
-                                                <span className="tn-tc-id">TC-003</span>
-                                                <span className="tn-priority-tag tn-priority-tag--med">P1 &bull; Med</span>
-                                                <span className="tn-cat-tag">Edge Case</span>
-                                            </div>
-                                            <div className="tn-cpreview-content">
-                                                <strong>Assert token invalidation after 15-minute TTL expiration window</strong>
-                                                <p className="tn-cpreview-step">Step 1: Open reset URL at T+16m &rarr; Assert HTTP 400 errorCode "TOKEN_EXPIRED"</p>
-                                            </div>
-                                            <span className="tn-status-badge tn-status-badge--review">Ready</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB 5: COVERAGE & RISK */}
-                            {activeTab === 'coverage' && (
-                                <div className="tn-canvas-panel">
-                                    <div className="tn-canvas-panel-header">
-                                        <span className="tn-panel-eyebrow">COVERAGE AUDIT & SEVERITY RISK MATRIX</span>
-                                        <span className="tn-badge tn-badge--green">87% Clause Coverage</span>
-                                    </div>
-                                    <div className="tn-coverage-canvas-grid">
-                                        <div className="tn-cov-mini-bars">
-                                            <div className="tn-cbar-row">
-                                                <span>Functional Coverage</span>
-                                                <span className="font-mono">94%</span>
-                                            </div>
-                                            <div className="tn-cbar-row">
-                                                <span>Negative Boundary Coverage</span>
-                                                <span className="font-mono">88%</span>
-                                            </div>
-                                            <div className="tn-cbar-row">
-                                                <span>Security & Rate Limiting</span>
-                                                <span className="font-mono">100%</span>
-                                            </div>
-                                            <div className="tn-cbar-row">
-                                                <span>Edge Case / TTL Expiration</span>
-                                                <span className="font-mono">80%</span>
-                                            </div>
-                                        </div>
-                                        <div className="tn-risk-mini-callout">
-                                            <div className="tn-rcallout-header">
-                                                <AlertTriangle size={13} className="text-amber" />
-                                                <strong>2 High-Severity Risks Mitigated</strong>
-                                            </div>
-                                            <p>1. Expired Token Window &mdash; Mitigated by TC-003.</p>
-                                            <p>2. Rate Limiting Omission &mdash; Mitigated by TC-004.</p>
-                                            <div className="tn-trace-lock-note">
-                                                <GitBranch size={12} className="text-accent" />
-                                                <span>100% Bidirectional Lineage Mapped to REQ-142</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Product Window Footer */}
-                        <div className="tn-canvas-footer">
-                            <div className="tn-cfoot-left">
-                                <span className="tn-engine-dot" />
-                                <span>Engine: Testnexa Intelligence v3 &bull; ISO/IEC 29119 Aligned</span>
                             </div>
-                            <div className="tn-cfoot-right">
-                                <a
-                                    href={getTargetUrl('/app/workspace')}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="tn-canvas-link-btn"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        handleWorkspaceEntry('/app/workspace');
-                                    }}
-                                >
-                                    <span>Open Suite in Workspace</span>
-                                    <ChevronRight size={13} />
-                                </a>
+
+                            {/* Right Pane: Generated Scenarios & Test Suite Table */}
+                            <div className="tn-cbody-pane tn-cbody-pane--tests">
+                                <div className="tn-cpane-head">
+                                    <div className="tn-suite-head-left">
+                                        <span className="tn-cpane-tag">SYNTHESIZED TEST SUITE</span>
+                                        <span className="tn-cpane-count">24 test cases</span>
+                                    </div>
+                                    <div className="tn-suite-filters">
+                                        <span className="tn-sfilter-pill is-func">Functional (12)</span>
+                                        <span className="tn-sfilter-pill is-neg">Negative (7)</span>
+                                        <span className="tn-sfilter-pill is-sec">Security (5)</span>
+                                    </div>
+                                </div>
+
+                                <div className="tn-hero-table-wrap">
+                                    <table className="tn-hero-table">
+                                        <thead>
+                                            <tr>
+                                                <th className="th-id">ID</th>
+                                                <th className="th-title">TEST SCENARIO & ASSERTION</th>
+                                                <th className="th-type">TYPE</th>
+                                                <th className="th-status">STATUS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td className="td-id"><code>TC-001</code></td>
+                                                <td className="td-title">
+                                                    <div className="tc-name">Valid password recovery submission</div>
+                                                    <div className="tc-sub">Assert HTTP 200 generic confirmation &bull; 15m token queued</div>
+                                                </td>
+                                                <td className="td-type"><span className="tc-type tc-type--func">Functional</span></td>
+                                                <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="td-id"><code>TC-002</code></td>
+                                                <td className="td-title">
+                                                    <div className="tc-name">Malformed email syntax rejection</div>
+                                                    <div className="tc-sub">Assert RFC 5322 regex validation &bull; HTTP 422 INVALID_EMAIL</div>
+                                                </td>
+                                                <td className="td-type"><span className="tc-type tc-type--neg">Negative</span></td>
+                                                <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="td-id"><code>TC-003</code></td>
+                                                <td className="td-title">
+                                                    <div className="tc-name">Expired token redemption attempt</div>
+                                                    <div className="tc-sub">Reject token &gt; 15m &bull; Assert HTTP 401 TOKEN_EXPIRED &bull; Session purge</div>
+                                                </td>
+                                                <td className="td-type"><span className="tc-type tc-type--neg">Negative</span></td>
+                                                <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td className="td-id"><code>TC-004</code></td>
+                                                <td className="td-title">
+                                                    <div className="tc-name">Brute-force throttle enforcement</div>
+                                                    <div className="tc-sub">Simulate 6 req/min &bull; Assert HTTP 429 TOO_MANY_REQUESTS &bull; Retry-After header</div>
+                                                </td>
+                                                <td className="td-type"><span className="tc-type tc-type--sec">Security</span></td>
+                                                <td className="td-status"><span className="tc-status is-review"><AlertTriangle size={11} /> Review</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="tn-hero-pane-footer">
+                                    <span className="tn-pfooter-lbl">LINEAGE:</span>
+                                    <span className="tn-pfooter-val">100% bidirectional traceability linked to REQ-142</span>
+                                    <div className="tn-pfooter-actions">
+                                        <span className="tn-runner-badge">Playwright</span>
+                                        <span className="tn-runner-badge">Cypress</span>
+                                        <span className="tn-runner-badge">Cucumber BDD</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* ─── Seamless Workflow Continuity Strip ─── */}
-                <div className="tn-continuity-strip" aria-label="Testnexa Core Quality Pipeline">
-                    <span className="tn-continuity-label">ENTERPRISE QA PIPELINE</span>
-                    <div className="tn-continuity-steps">
-                        <span className="tn-cstep is-current">Requirement</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">AI Analysis</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">Test Scenarios</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">Test Cases</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">Coverage</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">Risk</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">Traceability</span>
-                        <span className="tn-carrow">&rarr;</span>
-                        <span className="tn-cstep">Automation</span>
                     </div>
                 </div>
             </div>

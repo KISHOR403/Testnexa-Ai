@@ -2,11 +2,10 @@ import React from 'react';
 import useScrollParallax from '../hooks/useScrollParallax';
 import Hero from '../components/Hero';
 import RequirementTransformation from '../components/RequirementTransformation';
+import EnterpriseWorkflowChapter from '../components/EnterpriseWorkflowChapter';
 import TestSuiteChapter from '../components/TestSuiteChapter';
 import TraceabilityGraph from '../components/TraceabilityGraph';
-import CoverageTraceChapter from '../components/CoverageTraceChapter';
 import IntegrationsChapter from '../components/IntegrationsChapter';
-import EnterpriseWorkflowChapter from '../components/EnterpriseWorkflowChapter';
 import FinalCTA from '../components/FinalCTA';
 import GlobalWorkflowIndicator from '../components/GlobalWorkflowIndicator';
 
@@ -18,28 +17,25 @@ const GeneratorPage = () => {
             {/* Subtle Vertical Workflow Indicator connecting chapters */}
             <GlobalWorkflowIndicator />
 
-            {/* 1. Hero: Problem framing, core value proposition & authentic Testnexa product canvas */}
+            {/* Section A: Hero — Problem framing, core value proposition & emerging product canvas */}
             <Hero />
 
-            {/* 2. Signature Requirement Transformation: Scroll-driven & interactive 5-stage transformation */}
+            {/* Section B: Requirement Intelligence — Asymmetric split layout with Annotation UI */}
             <RequirementTransformation />
 
-            {/* 3. Test Case Generation: Master-detail executable test cases & Cucumber BDD specs */}
-            <TestSuiteChapter />
-
-            {/* 4. Signature Traceability Graph: Requirement ── Scenario ── Test Cases, Risk & Coverage */}
-            <TraceabilityGraph />
-
-            {/* 5. Coverage + Risk: Know what is covered before execution */}
-            <CoverageTraceChapter />
-
-            {/* 6. Developer Pipeline & API: REST API cURL terminal and supported schemas */}
-            <IntegrationsChapter />
-
-            {/* 7. Enterprise QA Governance: Role-based workflow and trust assurances */}
+            {/* Section C: Complete QA Workflow — Interactive Real Product Workspace */}
             <EnterpriseWorkflowChapter />
 
-            {/* 8. Restrained Enterprise Final CTA */}
+            {/* Section D: Executable Test Suites — Full-width developer experience with steps & BDD */}
+            <TestSuiteChapter />
+
+            {/* Section E: Traceability Architecture — Horizontal lineage flow from requirement to risk */}
+            <TraceabilityGraph />
+
+            {/* Section F: Developer Pipeline & Integrations — cURL terminal & runner ecosystem */}
+            <IntegrationsChapter />
+
+            {/* Section G: Production-Ready Final CTA — Editorial open canvas */}
             <FinalCTA />
         </div>
     );
