@@ -1,8 +1,9 @@
 import React from 'react';
 import useScrollParallax from '../hooks/useScrollParallax';
 import Hero from '../components/Hero';
-import StickyProductStory from '../components/StickyProductStory';
+import RequirementTransformation from '../components/RequirementTransformation';
 import TestSuiteChapter from '../components/TestSuiteChapter';
+import TraceabilityGraph from '../components/TraceabilityGraph';
 import CoverageTraceChapter from '../components/CoverageTraceChapter';
 import IntegrationsChapter from '../components/IntegrationsChapter';
 import EnterpriseWorkflowChapter from '../components/EnterpriseWorkflowChapter';
@@ -17,25 +18,28 @@ const GeneratorPage = () => {
             {/* Subtle Vertical Workflow Indicator connecting chapters */}
             <GlobalWorkflowIndicator />
 
-            {/* Hero: Problem framing, core value proposition & authentic TestNexa workspace preview */}
+            {/* 1. Hero: Problem framing, core value proposition & authentic Testnexa product canvas */}
             <Hero />
 
-            {/* CHAPTER 1: Requirement → AI Analysis (Sticky Scroll Product Story) */}
-            <StickyProductStory />
+            {/* 2. Signature Requirement Transformation: Scroll-driven & interactive 5-stage transformation */}
+            <RequirementTransformation />
 
-            {/* CHAPTER 2: Test Case Generation (From scenarios to executable tests) */}
+            {/* 3. Test Case Generation: Master-detail executable test cases & Cucumber BDD specs */}
             <TestSuiteChapter />
 
-            {/* CHAPTER 3: Coverage + Risk + Traceability (Know what is covered before execution) */}
+            {/* 4. Signature Traceability Graph: Requirement ── Scenario ── Test Cases, Risk & Coverage */}
+            <TraceabilityGraph />
+
+            {/* 5. Coverage + Risk: Know what is covered before execution */}
             <CoverageTraceChapter />
 
-            {/* CHAPTER 4: Workflow + Integrations (Connect QA to your engineering workflow) */}
+            {/* 6. Developer Pipeline & API: REST API cURL terminal and supported schemas */}
             <IntegrationsChapter />
 
-            {/* CHAPTER 5: Enterprise QA Workflow (A complete QA workflow, not just a test generator) */}
+            {/* 7. Enterprise QA Governance: Role-based workflow and trust assurances */}
             <EnterpriseWorkflowChapter />
 
-            {/* FINAL CTA: Turn requirements into structured test suites */}
+            {/* 8. Restrained Enterprise Final CTA */}
             <FinalCTA />
         </div>
     );

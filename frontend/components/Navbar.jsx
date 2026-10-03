@@ -10,11 +10,11 @@ import UpgradeModal from './UpgradeModal';
 import NavbarAccountMenu from './NavbarAccountMenu';
 
 const MARKETING_LINKS = [
-    { type: 'scroll', id: 'product-preview', label: 'Product' },
-    { type: 'scroll', id: 'workflow', label: 'Workflow' },
-    { type: 'scroll', id: 'features', label: 'Features' },
-    { type: 'route', path: '/help', label: 'Docs' },
-    { type: 'route', path: '/api-reference', label: 'API' }
+    { type: 'scroll', id: 'product-canvas', label: 'Product' },
+    { type: 'scroll', id: 'transformation', label: 'Workflow' },
+    { type: 'scroll', id: 'solutions', label: 'Solutions' },
+    { type: 'route', path: '/help', label: 'Resources' },
+    { type: 'scroll', id: 'developers', label: 'Developers' }
 ];
 
 export const Navbar = ({ isMarketingLayout = true }) => {

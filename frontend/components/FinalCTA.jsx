@@ -1,6 +1,6 @@
 import React from 'react';
 import RevealSection from './RevealSection';
-import { ArrowRight, CheckCircle2, ShieldCheck, Terminal, Layers } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 export const FinalCTA = () => {
@@ -9,14 +9,14 @@ export const FinalCTA = () => {
     return (
         <section className="tn-section tn-final-cta-section" aria-labelledby="cta-heading">
             <div className="tn-container">
-                <div className="tn-final-cta-card" data-parallax-offset="-10">
-                    <RevealSection className="tn-final-cta-content" data-parallax-offset="-5">
-                        <span className="tn-kicker">Ready For Production QA</span>
+                <div className="tn-final-cta-card">
+                    <RevealSection className="tn-final-cta-content">
+                        <span className="tn-chapter-pill">READY FOR PRODUCTION QA</span>
                         <h2 id="cta-heading" className="tn-final-cta-title">
-                            Turn requirements into structured test suites.
+                            Your next requirement is already waiting.
                         </h2>
-                        <p className="tn-final-cta-desc">
-                            Analyze requirements, generate test cases, review coverage and trace every test back to its source.
+                        <p className="tn-final-cta-subtitle">
+                            Turn it into a review-ready test suite.
                         </p>
 
                         <div className="tn-final-cta-actions">
@@ -31,22 +31,22 @@ export const FinalCTA = () => {
                                     handleWorkspaceEntry('/app/workspace');
                                 }}
                             >
-                                <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
-                                <ArrowRight size={16} />
+                                <span>{isOpening ? 'Opening Workspace…' : 'Create a test suite →'}</span>
                             </a>
+                            <span className="tn-cta-secondary-note">No credit card required.</span>
                         </div>
 
                         <div className="tn-final-cta-assurances">
                             <div className="tn-assurance-item">
-                                <CheckCircle2 size={14} className="text-accent" />
+                                <CheckCircle2 size={13} className="text-green" />
                                 <span>Zero setup required</span>
                             </div>
                             <div className="tn-assurance-item">
-                                <CheckCircle2 size={14} className="text-accent" />
-                                <span>Structured JSON, CSV & Gherkin export</span>
+                                <CheckCircle2 size={13} className="text-green" />
+                                <span>Structured JSON, CSV & Cucumber BDD export</span>
                             </div>
                             <div className="tn-assurance-item">
-                                <CheckCircle2 size={14} className="text-accent" />
+                                <CheckCircle2 size={13} className="text-green" />
                                 <span>Stateless, isolated data processing</span>
                             </div>
                         </div>

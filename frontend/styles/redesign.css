@@ -5,56 +5,56 @@
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-  --background: var(--bg-primary, #08090A);
-  --background-app: var(--bg-primary, #08090A);
-  --surface: var(--bg-surface, #111418);
-  --surface-secondary: var(--bg-secondary, #0D0F12);
-  --surface-elevated: var(--bg-elevated, #15191E);
-  --surface-hover: var(--bg-hover, #1C2229);
-  --surface-selected: var(--accent-subtle, rgba(79, 140, 255, 0.08));
-  --border: var(--border-subtle, #242930);
-  --border-strong: var(--border-default, #30363D);
-  --text-primary: #F2F4F7;
-  --text-secondary: #A7AFBA;
-  --text-muted: #737C87;
-  --text-disabled: #4E5661;
-  --accent: var(--accent-primary, #4F8CFF);
-  --accent-hover: var(--accent-hover, #6A9DFF);
-  --success: #35B779;
-  --warning: #D9A441;
-  --danger: #E05A67;
-  --tn-bg: var(--bg-primary, #08090A);
-  --tn-bg-subtle: var(--bg-secondary, #0D0F12);
-  --tn-surface: rgba(255, 255, 255, 0.03);
-  --tn-surface-hover: rgba(255, 255, 255, 0.05);
-  --tn-border: var(--border-subtle, #242930);
-  --tn-border-hover: var(--border-default, #30363D);
+  --background: #08090A;
+  --background-app: #08090A;
+  --surface: #0E1012;
+  --surface-secondary: #0E1012;
+  --surface-elevated: #13161A;
+  --surface-hover: #181C22;
+  --surface-selected: rgba(59, 130, 246, 0.08);
+  --border: #24282D;
+  --border-strong: #2E333A;
+  --text-primary: #F1F3F5;
+  --text-secondary: #969DA5;
+  --text-muted: #626A73;
+  --text-disabled: #444B53;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --success: #22C55E;
+  --warning: #EAB308;
+  --danger: #EF4444;
+  --tn-bg: #08090A;
+  --tn-bg-subtle: #0E1012;
+  --tn-surface: #0E1012;
+  --tn-surface-hover: #13161A;
+  --tn-border: #24282D;
+  --tn-border-hover: #2E333A;
 
-  --tn-teal: var(--accent-primary, #4F8CFF);
-  --tn-teal-dim: var(--accent-subtle, rgba(79, 140, 255, 0.12));
+  --tn-teal: #3B82F6;
+  --tn-teal-dim: rgba(59, 130, 246, 0.1);
   --tn-teal-glow: transparent;
-  --tn-violet: var(--accent-primary, #4F8CFF);
-  --tn-violet-dim: var(--accent-subtle, rgba(79, 140, 255, 0.12));
-  --tn-blue: var(--accent-primary, #4F8CFF);
-  --tn-blue-dim: var(--accent-subtle, rgba(79, 140, 255, 0.12));
-  --tn-amber: #D9A441;
-  --tn-amber-dim: rgba(217, 164, 65, 0.12);
-  --tn-rose: #E05A67;
-  --tn-rose-dim: rgba(224, 90, 103, 0.12);
-  --tn-red: #E05A67;
-  --tn-green: #35B779;
+  --tn-violet: #3B82F6;
+  --tn-violet-dim: rgba(59, 130, 246, 0.1);
+  --tn-blue: #3B82F6;
+  --tn-blue-dim: rgba(59, 130, 246, 0.1);
+  --tn-amber: #EAB308;
+  --tn-amber-dim: rgba(234, 179, 8, 0.1);
+  --tn-rose: #EF4444;
+  --tn-rose-dim: rgba(239, 68, 68, 0.1);
+  --tn-red: #EF4444;
+  --tn-green: #22C55E;
 
-  --tn-text: #F2F4F7;
-  --tn-text-secondary: #A7AFBA;
-  --tn-text-dim: #737C87;
+  --tn-text: #F1F3F5;
+  --tn-text-secondary: #969DA5;
+  --tn-text-dim: #626A73;
 
-  --tn-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --tn-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --tn-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --tn-mono: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
 
-  --tn-radius-sm: 6px;
-  --tn-radius-md: 8px;
-  --tn-radius-lg: 12px;
-  --tn-radius-xl: 16px;
+  --tn-radius-sm: 4px;
+  --tn-radius-md: 6px;
+  --tn-radius-lg: 8px;
+  --tn-radius-xl: 10px;
 
   --tn-transition: 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -67,7 +67,7 @@ export const IntegrationsChapter = () => {
     };
 
     return (
-        <section id="integrations" className="tn-section tn-integrations-chapter" aria-labelledby="chapter4-heading">
+        <section id="developers" className="tn-section tn-integrations-chapter" aria-labelledby="chapter4-heading">
             <div className="tn-container">
                 {/* ─── Chapter Header ─── */}
                 <RevealSection className="tn-section-header">

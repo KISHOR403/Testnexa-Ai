@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
 const CHAPTER_STAGES = [
-    { id: 'workflow', label: '01 Analysis' },
-    { id: 'test-suite', label: '02 Test Suite' },
-    { id: 'coverage', label: '03 Coverage & Risk' },
-    { id: 'integrations', label: '04 Integrations' },
-    { id: 'enterprise-workflow', label: '05 Enterprise' }
+    { id: 'product-canvas', label: '01 Product Canvas' },
+    { id: 'transformation', label: '02 Transformation' },
+    { id: 'test-suite', label: '03 Test Cases' },
+    { id: 'traceability', label: '04 Traceability' },
+    { id: 'coverage', label: '05 Coverage' },
+    { id: 'developers', label: '06 API & Sync' },
+    { id: 'solutions', label: '07 Enterprise' }
 ];
 
 export const GlobalWorkflowIndicator = () => {
