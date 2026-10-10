@@ -53,7 +53,7 @@ const listSessions = async (req, res) => {
 const createSession = async (req, res) => {
     try {
         const userId = req.user._id || req.user.id;
-        const { requirement, context, depth, title } = req.body;
+        const { requirement, context, depth, title, suiteData, summary, quality, status, generationId } = req.body;
 
         const session = await supabaseService.createSession({
             userId,
@@ -61,7 +61,11 @@ const createSession = async (req, res) => {
             requirement: requirement || '',
             context: context || 'web',
             depth: depth || 'Standard',
-            status: 'Draft',
+            status: status || 'Draft',
+            suiteData: suiteData || null,
+            summary: summary || {},
+            quality: quality || {},
+            generationId: generationId || '',
             messages: requirement && requirement.trim()
                 ? [{ role: 'user', content: requirement, timestamp: new Date().toISOString() }]
                 : []

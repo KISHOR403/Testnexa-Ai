@@ -44,12 +44,12 @@ export const sessionService = {
     /**
      * Create a new session
      */
-    create: async ({ requirement, context, depth, title } = {}) => {
+    create: async ({ requirement, context, depth, title, suiteData, summary, quality, status, generationId } = {}) => {
         const response = await fetch(`${API_BASE_URL}/sessions`, {
             method: 'POST',
             headers: getHeaders(),
             credentials: 'include',
-            body: JSON.stringify({ requirement, context, depth, title }),
+            body: JSON.stringify({ requirement, context, depth, title, suiteData, summary, quality, status, generationId }),
         });
         return handleResponse(response);
     },

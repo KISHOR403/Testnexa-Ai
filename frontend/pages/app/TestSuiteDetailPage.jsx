@@ -38,10 +38,12 @@ const TestSuiteDetailPage = () => {
 
         const foundInHistory = history.find(item =>
             item.id === id ||
-            item.sessionId === id
+            item.sessionId === id ||
+            item._id === id
         );
-        if (foundInHistory?.suite && hasTestCases(foundInHistory.suite)) {
-            return foundInHistory.suite;
+        const historySuite = foundInHistory?.suite || foundInHistory?.data || foundInHistory?.suiteData;
+        if (historySuite && hasTestCases(historySuite)) {
+            return historySuite;
         }
 
         return null;
@@ -120,7 +122,8 @@ const TestSuiteDetailPage = () => {
 
         const candidate = remoteSession?.suiteData ||
             remoteSession?.suite_data ||
-            remoteSession?.suite;
+            remoteSession?.suite ||
+            remoteSession?.data;
 
         if (candidate && typeof candidate === 'object') {
             const data = { ...candidate };
@@ -130,15 +133,24 @@ const TestSuiteDetailPage = () => {
             if (!data.feature && remoteSession.title) {
                 data.feature = remoteSession.title;
             }
-            return data;
+            if (hasTestCases(data)) {
+                return data;
+            }
         }
 
         if (hasTestCases(remoteSession)) {
             return remoteSession;
         }
 
+        // Fallback: check history directly
+        const histItem = history.find(item => item.id === id || item.sessionId === id || item._id === id);
+        const histSuite = histItem?.suite || histItem?.data || histItem?.suiteData;
+        if (histSuite && hasTestCases(histSuite)) {
+            return histSuite;
+        }
+
         return null;
-    }, [localSuite, remoteSession]);
+    }, [localSuite, remoteSession, id, history]);
 
     const promptText = location.state?.prompt ||
         remoteSession?.requirement ||

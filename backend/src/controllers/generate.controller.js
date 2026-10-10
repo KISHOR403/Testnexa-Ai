@@ -226,6 +226,9 @@ const generateTestCases = async (req, res) => {
         // Return generated data with saved sessionId and generationId
         return res.status(200).json({
             ...response,
+            sessionId: savedSessionId,
+            testSuiteId: savedSessionId,
+            generationId,
             data: {
                 ...response.data,
                 sessionId: savedSessionId,

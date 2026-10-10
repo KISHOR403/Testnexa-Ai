@@ -109,7 +109,16 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
     const groupOrder = ['Today', 'Yesterday', 'Previous 7 Days', 'Previous 30 Days', 'Older'];
 
     const handleItemClick = (item) => {
-        navigate('/history', { state: { selectedId: item.id } });
+        const targetId = item.sessionId || item.id;
+        navigate(`/app/test-suites/${targetId}`, {
+            state: {
+                suite: item.suite || item.data || item.suiteData,
+                prompt: item.requirement,
+                settings: item.settings,
+                sessionId: targetId
+            }
+        });
+        if (onClose) onClose();
     };
 
     const handleNewAnalysis = () => {

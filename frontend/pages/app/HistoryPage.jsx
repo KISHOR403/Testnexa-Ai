@@ -58,7 +58,7 @@ const HistoryPage = () => {
             if (statusFilter === 'Draft' || statusFilter === 'Generated' || statusFilter === 'Archived') {
                 query.status = statusFilter;
             } else if (statusFilter === 'all') {
-                // leave empty to fetch all including archived
+                query.status = 'all';
             }
             // else 'active' by default excludes archived in backend
             if (contextFilter !== 'all') {
@@ -323,12 +323,18 @@ const HistoryPage = () => {
                         const confidence = session.quality?.confidenceLevel || session.quality?.coverageConfidence || null;
                         const isGenerated = session.status === 'Generated' || session.status === 'NeedsReview' || session.status === 'Approved' || totalTests > 0 || !!session.suiteData;
                         const targetUrl = isGenerated ? `/app/test-suites/${session._id}` : `/app/workspace/${session._id}`;
+                        const navState = {
+                            suite: session.suiteData,
+                            prompt: session.requirement,
+                            settings: { type: session.context || 'web', level: session.depth || 'Standard' },
+                            sessionId: session._id
+                        };
 
                         return (
                             <div
                                 key={session._id}
                                 className={`tn-history-card ${isArchived ? 'is-archived' : ''}`}
-                                onClick={() => navigate(targetUrl)}
+                                onClick={() => navigate(targetUrl, { state: navState })}
                             >
                                 <div className="tn-history-card-body">
                                     {/* Top Row: Title + Status + Context */}
@@ -439,6 +445,7 @@ const HistoryPage = () => {
                                 <div className="tn-history-card-actions" onClick={(e) => e.stopPropagation()}>
                                     <NavLink
                                         to={targetUrl}
+                                        state={navState}
                                         className="tn-history-action-btn primary"
                                         title={isGenerated ? "Open Test Suite" : "Open in Workspace"}
                                     >

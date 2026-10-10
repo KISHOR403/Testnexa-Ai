@@ -151,10 +151,10 @@ export const apiService = {
 
             const finalResult = {
                 ...normalized,
-                generationId: result.generationId || null,
-                testSuiteId: result.testSuiteId || result.sessionId || null,
-                sessionId: result.sessionId || result.testSuiteId || null,
-                status: result.status || 'completed'
+                generationId: result.generationId || result.data?.generationId || result.meta?.generationId || null,
+                testSuiteId: result.testSuiteId || result.data?.sessionId || result.meta?.testSuiteId || result.sessionId || null,
+                sessionId: result.sessionId || result.data?.sessionId || result.meta?.testSuiteId || result.testSuiteId || null,
+                status: result.status || result.meta?.status || 'completed'
             };
 
             window.DEBUG_LAST_RESULT = finalResult;

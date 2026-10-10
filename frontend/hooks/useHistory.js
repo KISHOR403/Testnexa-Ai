@@ -23,6 +23,16 @@ export const useHistory = () => {
     // Load history from sessionService (source of truth) with localStorage as cache
     const loadHistory = useCallback(async () => {
         if (!isAuthenticated || !user) {
+            const guestHistory = localStorage.getItem(BASE_STORAGE_KEY);
+            if (guestHistory) {
+                try {
+                    const parsed = JSON.parse(guestHistory);
+                    if (Array.isArray(parsed)) {
+                        setHistory(parsed);
+                        return;
+                    }
+                } catch (e) {}
+            }
             setHistory([]);
             return;
         }
@@ -54,7 +64,7 @@ export const useHistory = () => {
                         (item.summary?.apiChecklist || 0) +
                         (item.summary?.api || 0)
                     );
-                    const sData = item.suiteData;
+                    const sData = item.suiteData || item.data || item.suite;
                     const hasValidCases = sData && typeof sData === 'object' && Object.keys(sData).length > 0 && (
                         (Array.isArray(sData.functional) && sData.functional.length > 0) ||
                         (Array.isArray(sData.negative) && sData.negative.length > 0) ||
@@ -85,8 +95,9 @@ export const useHistory = () => {
                         date: item.updatedAt || item.createdAt,
                         createdAt: item.createdAt,
                         updatedAt: item.updatedAt,
-                        data: hasValidCases ? sData : null,
-                        suite: hasValidCases ? sData : null,
+                        data: hasValidCases ? sData : (item.data || item.suite || null),
+                        suite: hasValidCases ? sData : (item.suite || item.data || null),
+                        suiteData: hasValidCases ? sData : (item.data || item.suite || null),
                         isRemote: true
                     };
                 });
@@ -121,8 +132,6 @@ export const useHistory = () => {
 
     // Save or update session
     const saveToHistory = async (result, requirement, settings, existingSessionId = null, title = null) => {
-        if (!isAuthenticated || !user) return;
-
         const totalCases = result?.totalCases ||
             (result?.summary
                 ? (result.summary.functional || 0) +
@@ -143,8 +152,43 @@ export const useHistory = () => {
 
         const resolvedTitle = title || result?.testSuiteName || result?.feature || requirement?.slice(0, 45) || 'Generated Suite';
 
+        if (!isAuthenticated || !user) {
+            const guestHistory = JSON.parse(localStorage.getItem(BASE_STORAGE_KEY) || '[]');
+            const newGuestEntry = {
+                id: 'guest_' + Date.now(),
+                sessionId: 'guest_' + Date.now(),
+                title: resolvedTitle,
+                feature: resolvedTitle,
+                requirement: requirement || '',
+                status: 'Generated',
+                context: settings?.type || 'web',
+                depth: settings?.level || 'Standard',
+                settings: {
+                    type: settings?.type || 'web',
+                    level: settings?.level || 'Standard',
+                    testFocus: settings?.testFocus || 'mixed'
+                },
+                totalCases,
+                summary: summaryData,
+                quality: result?.quality || {},
+                currentVersion: 1,
+                date: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                data: result,
+                suite: result,
+                suiteData: result,
+                isRemote: false
+            };
+            const updated = [newGuestEntry, ...guestHistory.slice(0, 19)];
+            localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(updated));
+            setHistory(updated);
+            notifyUpdate();
+            return;
+        }
+
         try {
-            if (existingSessionId) {
+            if (existingSessionId && existingSessionId !== 'null' && existingSessionId !== 'undefined') {
                 await sessionService.update(existingSessionId, {
                     requirement,
                     title: resolvedTitle,
@@ -159,7 +203,10 @@ export const useHistory = () => {
                     requirement,
                     context: settings?.type || 'web',
                     depth: settings?.level || 'Standard',
-                    title: resolvedTitle
+                    title: resolvedTitle,
+                    suiteData: result,
+                    summary: summaryData,
+                    status: 'Generated'
                 });
             }
         } catch (err) {
@@ -174,7 +221,7 @@ export const useHistory = () => {
     // Delete session
     const deleteFromHistory = async (id) => {
         try {
-            if (id && typeof id === 'string' && id.length === 24) {
+            if (id && typeof id === 'string') {
                 await sessionService.delete(id);
             }
         } catch (err) {

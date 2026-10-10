@@ -24,23 +24,27 @@ const HistoryPage = () => {
     const filters = ['All', 'Web App', 'Mobile App', 'API'];
 
     const filteredHistory = history.filter(item => {
-        const matchesSearch = item.feature.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.requirement.toLowerCase().includes(searchQuery.toLowerCase());
+        const feature = item.feature || item.title || '';
+        const req = item.requirement || '';
+        const matchesSearch = feature.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            req.toLowerCase().includes(searchQuery.toLowerCase());
+        const appType = item.settings?.type || item.context || 'web';
         const matchesFilter = activeFilter === 'All' ||
-            (activeFilter === 'Web App' && item.settings.type === 'web') ||
-            (activeFilter === 'Mobile App' && item.settings.type === 'mobile') ||
-            (activeFilter === 'API' && item.settings.type === 'api');
+            (activeFilter === 'Web App' && appType === 'web') ||
+            (activeFilter === 'Mobile App' && appType === 'mobile') ||
+            (activeFilter === 'API' && appType === 'api');
         return matchesSearch && matchesFilter;
     });
 
     if (selectedRecord) {
+        const recordData = selectedRecord.data || selectedRecord.suite || selectedRecord.suiteData;
         return (
             <div className="container" style={{ paddingTop: '100px', paddingBottom: '5rem' }}>
                 <button className="btn-ghost" onClick={() => setSelectedRecord(null)} style={{ marginBottom: '2rem' }}>
                     &larr; Back to History
                 </button>
-                <h1 className="text-gradient" style={{ marginBottom: '2rem' }}>History: {selectedRecord.feature}</h1>
-                <ResultsSection result={selectedRecord.data} onSave={() => alert("Already in history")} />
+                <h1 className="text-gradient" style={{ marginBottom: '2rem' }}>History: {selectedRecord.feature || selectedRecord.title}</h1>
+                <ResultsSection result={recordData} onSave={() => alert("Already in history")} />
             </div>
         );
     }
@@ -92,7 +96,7 @@ const HistoryPage = () => {
                                 </div>
                             </div>
                             <div className="history-card-body">
-                                <p className="requirement-preview">{item.requirement.substring(0, 100)}...</p>
+                                <p className="requirement-preview">{(item.requirement || '').substring(0, 100)}...</p>
                             </div>
                             <div className="history-card-footer">
                                 <button className="btn-primary btn-sm" onClick={() => setSelectedRecord(item)}>

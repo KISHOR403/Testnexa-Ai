@@ -125,14 +125,20 @@ class SupabaseDataService {
 
         let query = supabase
             .from('workspace_sessions')
-            .select('id, user_id, title, status, raw_requirement, requirement, context, depth, app_type, detail_level, summary, quality, current_version, created_at, updated_at', { count: 'exact' });
+            .select('id, user_id, title, status, raw_requirement, requirement, context, depth, app_type, detail_level, summary, quality, current_version, created_at, updated_at, suite_data', { count: 'exact' });
 
         if (userId) {
             query = query.eq('user_id', userId);
         }
 
         if (status) {
-            query = query.eq('status', status);
+            if (status === 'all') {
+                // Return all statuses including Archived
+            } else if (status === 'Generated') {
+                query = query.in('status', ['Generated', 'NeedsReview', 'Approved']);
+            } else {
+                query = query.eq('status', status);
+            }
         } else {
             query = query.neq('status', 'Archived');
         }
@@ -157,7 +163,7 @@ class SupabaseDataService {
         }
 
         return {
-            sessions: (data || []).map(this._formatSession),
+            sessions: (data || []).map(row => this._formatSession(row)),
             total: count || 0,
             page,
             limit,
@@ -771,8 +777,139 @@ class SupabaseDataService {
     }
 
     // ==========================================
+    // TEST HISTORY (test_history)
+    // ==========================================
+
+    async saveTestHistory({
+        userId,
+        generationId,
+        sessionId,
+        requirement,
+        appType = 'web',
+        detailLevel = 'standard',
+        testFocus = 'mixed',
+        feature = '',
+        summary = {},
+        quality = {},
+        data = {},
+        processingTime = '',
+        model = ''
+    }) {
+        if (!this.isAvailable) return null;
+        try {
+            const payload = {
+                user_id: userId || null,
+                generation_id: generationId || null,
+                session_id: sessionId || null,
+                requirement: requirement || '',
+                app_type: appType,
+                detail_level: detailLevel,
+                test_focus: testFocus,
+                feature: feature || '',
+                summary: summary || {},
+                quality: quality || {},
+                data: data || {},
+                processing_time: processingTime || '',
+                model: model || '',
+                created_at: new Date().toISOString()
+            };
+            const { data: inserted, error } = await supabase
+                .from('test_history')
+                .insert(payload)
+                .select()
+                .maybeSingle();
+
+            if (error) {
+                logger.warn('Supabase saveTestHistory error:', error.message);
+                return null;
+            }
+            return this._formatTestHistory(inserted);
+        } catch (err) {
+            logger.warn('Supabase saveTestHistory exception:', err.message);
+            return null;
+        }
+    }
+
+    async getTestHistory(userId, { page = 1, limit = 20 } = {}) {
+        if (!this.isAvailable) throw new Error('Supabase client is not available');
+
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        let query = supabase
+            .from('test_history')
+            .select('*', { count: 'exact' });
+
+        if (userId) {
+            query = query.eq('user_id', userId);
+        }
+
+        query = query.order('created_at', { ascending: false });
+
+        const { data, count, error } = await query.range(from, to);
+
+        if (error) {
+            logger.error('Supabase getTestHistory error:', error);
+            throw error;
+        }
+
+        return {
+            history: (data || []).map(row => this._formatTestHistory(row)),
+            total: count || 0,
+            page,
+            limit,
+            totalPages: Math.ceil((count || 0) / limit)
+        };
+    }
+
+    async findHistoryByGenerationId(generationId, userId) {
+        if (!this.isAvailable || !generationId) return null;
+        try {
+            let query = supabase
+                .from('test_history')
+                .select('*')
+                .eq('generation_id', generationId);
+
+            if (userId) {
+                query = query.eq('user_id', userId);
+            }
+
+            const { data, error } = await query.maybeSingle();
+            if (error || !data) return null;
+            return this._formatTestHistory(data);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    // ==========================================
     // HELPERS
     // ==========================================
+
+    _formatTestHistory(row) {
+        if (!row) return null;
+        return {
+            _id: row.id,
+            id: row.id,
+            userId: row.user_id,
+            generationId: row.generation_id,
+            sessionId: row.session_id,
+            requirement: row.requirement || '',
+            appType: row.app_type || 'web',
+            detailLevel: row.detail_level || 'standard',
+            testFocus: row.test_focus || 'mixed',
+            feature: row.feature || 'Generated Suite',
+            title: row.feature || 'Generated Suite',
+            summary: row.summary || {},
+            quality: row.quality || {},
+            data: row.data || {},
+            suite: row.data || {},
+            processingTime: row.processing_time || '',
+            model: row.model || '',
+            createdAt: row.created_at,
+            date: row.created_at
+        };
+    }
 
     _formatSession(row) {
         if (!row) return null;
