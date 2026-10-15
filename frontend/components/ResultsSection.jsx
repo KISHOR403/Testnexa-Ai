@@ -785,7 +785,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 <div className="tn-detail-nav-header">
                     <button
                         type="button"
-                        className="tn-detail-back-link"
+                        className="tn-detail-nav-back"
                         onClick={handleCloseDetail}
                         title="Close detail panel"
                     >
@@ -796,30 +796,31 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     <div className="tn-detail-nav-controls">
                         <button
                             type="button"
-                            className="tn-detail-nav-btn"
+                            className="tn-detail-nav-arrow"
                             disabled={selectedTcIndex <= 0}
                             onClick={handlePrevTc}
                             title="Previous test case"
                             aria-label="Previous test case"
                         >
-                            <ChevronLeft size={15} />
+                            <ChevronLeft size={14} />
                         </button>
-                        <span className="tn-detail-nav-counter">
+                        <span className="tn-detail-nav-pagination">
                             {selectedTcIndex >= 0 ? `${selectedTcIndex + 1} of ${filteredTests.length}` : ''}
                         </span>
                         <button
                             type="button"
-                            className="tn-detail-nav-btn"
+                            className="tn-detail-nav-arrow"
                             disabled={selectedTcIndex >= filteredTests.length - 1}
                             onClick={handleNextTc}
                             title="Next test case"
                             aria-label="Next test case"
                         >
-                            <ChevronRight size={15} />
+                            <ChevronRight size={14} />
                         </button>
+                        <div className="tn-detail-nav-divider" />
                         <button
                             type="button"
-                            className="tn-detail-close-btn"
+                            className="tn-detail-nav-close"
                             onClick={handleCloseDetail}
                             title="Close detail panel (Esc)"
                             aria-label="Close detail panel"
@@ -829,197 +830,217 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     </div>
                 </div>
 
-                {/* 1. Test Case ID & Review Status */}
-                <div className="tn-detail-id-bar">
-                    <span className="tn-tc-id-lg">{selectedTc.id}</span>
-                    <span className="tn-detail-req-pill">{selectedTc.reqId || 'REQ-001'}</span>
-                    <StatusBadge status={selectedTc.status} />
-                    {showSavedFeedback && (
-                        <span className="tn-saved-indicator">
-                            <Check size={12} /> Saved
-                        </span>
-                    )}
-                </div>
+                {/* Main scrollable body container with consistent padding and spacing */}
+                <div className="tn-detail-body">
+                    {/* 1. Test Case ID & Review Status */}
+                    <div className="tn-detail-id-bar">
+                        <div className="tn-detail-id-left">
+                            <span className="tn-tc-id-lg">{selectedTc.id}</span>
+                            {selectedTc.reqId && (
+                                <span className="tn-req-pill">
+                                    <span className="tn-req-pill-dot" />
+                                    {selectedTc.reqId}
+                                </span>
+                            )}
+                        </div>
+                        <div className="tn-detail-id-right">
+                            <StatusBadge status={selectedTc.status} />
+                            {showSavedFeedback && (
+                                <span className="tn-saved-indicator">
+                                    <Check size={12} /> Saved
+                                </span>
+                            )}
+                        </div>
+                    </div>
 
-                {/* 2. Test Case Title */}
-                <div className="tn-detail-title-block">
-                    <h3 className="tn-detail-title">{selectedTc.title}</h3>
-                    {selectedTc.scenario && selectedTc.scenario !== selectedTc.title && (
-                        <p className="tn-detail-scenario">{selectedTc.scenario}</p>
-                    )}
-                </div>
+                    {/* 2. Test Case Title */}
+                    <div className="tn-detail-title-block">
+                        <h3 className="tn-detail-title">{selectedTc.title}</h3>
+                        {selectedTc.scenario && selectedTc.scenario !== selectedTc.title && (
+                            <p className="tn-detail-scenario">{selectedTc.scenario}</p>
+                        )}
+                    </div>
 
-                {/* 3. Primary Actions: Approve, Edit, Regenerate */}
-                <div className="tn-detail-actions-bar">
-                    <button
-                        type="button"
-                        className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
-                        onClick={() => handleApproveSingle(selectedTc.id)}
-                        title="Toggle approval status"
-                    >
-                        <Check size={13} />
-                        <span>{selectedTc.status === 'Approved' ? 'Revoke Approval' : 'Approve'}</span>
-                    </button>
-                    <button
-                        type="button"
-                        className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                        onClick={() => handleStartInlineEdit(selectedTc)}
-                        title="Edit test case"
-                    >
-                        <Edit3 size={13} />
-                        <span>Edit</span>
-                    </button>
-                    <button
-                        type="button"
-                        className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                        onClick={() => handleOpenRegenerateSingle(selectedTc)}
-                        title="Regenerate single test"
-                    >
-                        <RefreshCw size={13} />
-                        <span>Regenerate</span>
-                    </button>
-                    <div className="tn-detail-more-wrap" ref={detailMoreRef}>
+                    {/* 3. Primary Actions: Approve, Edit, Regenerate */}
+                    <div className="tn-detail-actions-bar">
                         <button
                             type="button"
-                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm tn-btn-icon-only"
-                            onClick={() => setShowDetailMore(!showDetailMore)}
-                            title="More actions"
-                            aria-label="More actions"
+                            className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
+                            onClick={() => handleApproveSingle(selectedTc.id)}
+                            title="Toggle approval status"
                         >
-                            <MoreHorizontal size={14} />
+                            <Check size={13} />
+                            <span>{selectedTc.status === 'Approved' ? 'Revoke Approval' : 'Approve'}</span>
                         </button>
-                        {showDetailMore && (
-                            <div className="tn-detail-more-dropdown">
-                                <button type="button" onClick={() => { setShowGherkin(!showGherkin); setShowDetailMore(false); }}>
-                                    <Code size={13} />
-                                    <span>{showGherkin ? 'Hide BDD Spec' : 'BDD Specification'}</span>
-                                </button>
-                                <button type="button" onClick={() => { handleCopyDetails(selectedTc); setShowDetailMore(false); }}>
-                                    <Copy size={13} />
-                                    <span>{copiedDetails ? 'Copied!' : 'Copy as Markdown'}</span>
-                                </button>
-                            </div>
-                        )}
+                        <button
+                            type="button"
+                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                            onClick={() => handleStartInlineEdit(selectedTc)}
+                            title="Edit test case"
+                        >
+                            <Edit3 size={13} />
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                            onClick={() => handleOpenRegenerateSingle(selectedTc)}
+                            title="Regenerate single test"
+                        >
+                            <RefreshCw size={13} />
+                            <span>Regenerate</span>
+                        </button>
+                        <div className="tn-detail-more-wrap" ref={detailMoreRef}>
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm tn-btn-icon-only"
+                                onClick={() => setShowDetailMore(!showDetailMore)}
+                                title="More actions"
+                                aria-label="More actions"
+                            >
+                                <MoreHorizontal size={14} />
+                            </button>
+                            {showDetailMore && (
+                                <div className="tn-detail-more-dropdown">
+                                    <button type="button" onClick={() => { setShowGherkin(!showGherkin); setShowDetailMore(false); }}>
+                                        <Code size={13} />
+                                        <span>{showGherkin ? 'Hide BDD Spec' : 'BDD Specification'}</span>
+                                    </button>
+                                    <button type="button" onClick={() => { handleCopyDetails(selectedTc); setShowDetailMore(false); }}>
+                                        <Copy size={13} />
+                                        <span>{copiedDetails ? 'Copied!' : 'Copy as Markdown'}</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
 
-                {/* 4. Structured Metadata Grid (Clean, properly spaced label-value pairs) */}
-                <div className="tn-detail-meta-grid">
-                    <div className="tn-meta-item">
-                        <span className="tn-meta-label">Type</span>
-                        <div className="tn-meta-value">
-                            <TypeBadge type={selectedTc.type} />
-                        </div>
-                    </div>
-                    <div className="tn-meta-item">
-                        <span className="tn-meta-label">Priority</span>
-                        <div className="tn-meta-value">
-                            <PriorityBadge priority={selectedTc.priority} />
-                        </div>
-                    </div>
-                    <div className="tn-meta-item">
-                        <span className="tn-meta-label">Severity</span>
-                        <div className={`tn-meta-value tn-severity-val tn-severity-val--${(selectedTc.severity || 'Major').toLowerCase()}`}>
-                            {selectedTc.severity || 'Major'}
-                        </div>
-                    </div>
-                    <div className="tn-meta-item">
-                        <span className="tn-meta-label">Traceability</span>
-                        <div className="tn-meta-value tn-traceability-val">
-                            {selectedTc.reqId || 'REQ-001'}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Gherkin View or Main Details Body */}
-                {showGherkin ? (
-                    <div className="tn-gherkin-view">
-                        <div className="tn-gherkin-header">
-                            <span>Cucumber / Behave Gherkin Feature</span>
-                        </div>
-                        <pre className="tn-gherkin-code">
-                            <code>{formatGherkin(selectedTc)}</code>
-                        </pre>
-                    </div>
-                ) : (
-                    <div className="tn-detail-sections">
-                        {/* 5. Preconditions */}
-                        <div className="tn-detail-section">
-                            <h5 className="tn-detail-section-title">Preconditions</h5>
-                            <div className="tn-preconditions-box">
-                                {Array.isArray(selectedTc.preconditions) && selectedTc.preconditions.length > 0 ? (
-                                    <ul className="tn-preconditions-list">
-                                        {selectedTc.preconditions.map((p, idx) => (
-                                            <li key={idx}>{p}</li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="tn-precon-text">
-                                        {selectedTc.preconditions || 'Standard testing environment is initialized.'}
-                                    </p>
-                                )}
+                    {/* 4. Structured Metadata Grid */}
+                    <div className="tn-detail-meta-grid">
+                        <div className="tn-meta-item">
+                            <span className="tn-meta-label">Type</span>
+                            <div className="tn-meta-value">
+                                <TypeBadge type={selectedTc.type} />
                             </div>
                         </div>
-
-                        {/* 6. Numbered Test Steps with Expected Results */}
-                        <div className="tn-detail-section">
-                            <h5 className="tn-detail-section-title">
-                                Test Steps ({selectedTc.steps?.length || 0})
-                            </h5>
-                            <div className="tn-detail-steps-flow">
-                                {Array.isArray(selectedTc.steps) && selectedTc.steps.length > 0 ? (
-                                    selectedTc.steps.map((st, idx) => {
-                                        const numStr = String(idx + 1).padStart(2, '0');
-                                        const isObj = typeof st === 'object' && st !== null;
-                                        const actionText = isObj ? (st.action || st.step) : st;
-                                        const expectedText = isObj ? st.expected : null;
-
-                                        return (
-                                            <div key={idx} className="tn-step-card">
-                                                <div className="tn-step-badge-col">
-                                                    <span className="tn-step-num">{numStr}</span>
-                                                </div>
-                                                <div className="tn-step-body">
-                                                    <div className="tn-step-action-row">
-                                                        <span className="tn-step-action-label">Action</span>
-                                                        <p className="tn-step-action-text">{actionText}</p>
-                                                    </div>
-                                                    {expectedText && (
-                                                        <div className="tn-step-expected-row">
-                                                            <span className="tn-step-expected-label">Expected Result</span>
-                                                            <p className="tn-step-expected-text">{expectedText}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <p className="tn-detail-empty">1. Execute test scenario according to specification constraints.</p>
-                                )}
+                        <div className="tn-meta-item">
+                            <span className="tn-meta-label">Priority</span>
+                            <div className="tn-meta-value">
+                                <PriorityBadge priority={selectedTc.priority} />
                             </div>
                         </div>
-
-                        {/* 7. Overall Expected Result */}
-                        <div className="tn-detail-section">
-                            <h5 className="tn-detail-section-title">Expected Result</h5>
-                            <div className="tn-expected-result-card">
-                                <CheckSquare size={16} className="tn-expected-icon" />
-                                <p className="tn-expected-text">
-                                    {selectedTc.expectedResult || 'System behaves strictly as defined in requirement specification.'}
-                                </p>
+                        <div className="tn-meta-item">
+                            <span className="tn-meta-label">Severity</span>
+                            <div className="tn-meta-value">
+                                <span className={`tn-sev-tag tn-sev-tag--${(selectedTc.severity || 'Major').toLowerCase()}`}>
+                                    {selectedTc.severity || 'Major'}
+                                </span>
                             </div>
                         </div>
+                        <div className="tn-meta-item">
+                            <span className="tn-meta-label">Traceability</span>
+                            <div className="tn-meta-value">
+                                <span className="tn-req-pill">
+                                    <span className="tn-req-pill-dot" />
+                                    {selectedTc.reqId || 'REQ-001'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* Additional info: Test Data */}
-                        {selectedTc.testData && (
+                    {/* Gherkin View or Main Details Body */}
+                    {showGherkin ? (
+                        <div className="tn-gherkin-view">
+                            <div className="tn-gherkin-header">
+                                <span>Cucumber / Behave Gherkin Feature</span>
+                            </div>
+                            <pre className="tn-gherkin-code">
+                                <code>{formatGherkin(selectedTc)}</code>
+                            </pre>
+                        </div>
+                    ) : (
+                        <div className="tn-detail-sections">
+                            {/* 5. Preconditions */}
                             <div className="tn-detail-section">
-                                <h5 className="tn-detail-section-title">Test Data & Parameters</h5>
-                                <pre className="tn-code-block">{selectedTc.testData}</pre>
+                                <h5 className="tn-detail-section-title">Preconditions</h5>
+                                <div className="tn-preconditions-box">
+                                    {Array.isArray(selectedTc.preconditions) && selectedTc.preconditions.length > 0 ? (
+                                        <ul className="tn-preconditions-list">
+                                            {selectedTc.preconditions.map((p, idx) => (
+                                                <li key={idx} className="tn-precondition-item">
+                                                    <span className="tn-precondition-bullet">•</span>
+                                                    <span className="tn-precondition-text">{p}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="tn-precon-text">
+                                            {selectedTc.preconditions || 'Standard testing environment is initialized.'}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
+
+                            {/* 6. Numbered Test Steps with Expected Results */}
+                            <div className="tn-detail-section">
+                                <h5 className="tn-detail-section-title">
+                                    Test Steps ({selectedTc.steps?.length || 0})
+                                </h5>
+                                <div className="tn-detail-steps-flow">
+                                    {Array.isArray(selectedTc.steps) && selectedTc.steps.length > 0 ? (
+                                        selectedTc.steps.map((st, idx) => {
+                                            const numStr = String(idx + 1).padStart(2, '0');
+                                            const isObj = typeof st === 'object' && st !== null;
+                                            const actionText = isObj ? (st.action || st.step) : st;
+                                            const expectedText = isObj ? st.expected : null;
+
+                                            return (
+                                                <div key={idx} className="tn-step-card">
+                                                    <div className="tn-step-badge-col">
+                                                        <span className="tn-step-num">{numStr}</span>
+                                                    </div>
+                                                    <div className="tn-step-body">
+                                                        <div className="tn-step-action-row">
+                                                            <span className="tn-step-action-label">Action</span>
+                                                            <p className="tn-step-action-text">{actionText}</p>
+                                                        </div>
+                                                        {expectedText && (
+                                                            <div className="tn-step-expected-row">
+                                                                <span className="tn-step-expected-label">Expected Result</span>
+                                                                <p className="tn-step-expected-text">{expectedText}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <p className="tn-detail-empty">1. Execute test scenario according to specification constraints.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 7. Overall Expected Result */}
+                            <div className="tn-detail-section">
+                                <h5 className="tn-detail-section-title">Expected Result</h5>
+                                <div className="tn-expected-result-card">
+                                    <CheckSquare size={16} className="tn-expected-icon" />
+                                    <p className="tn-expected-text">
+                                        {selectedTc.expectedResult || 'System behaves strictly as defined in requirement specification.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Additional info: Test Data */}
+                            {selectedTc.testData && (
+                                <div className="tn-detail-section">
+                                    <h5 className="tn-detail-section-title">Test Data & Parameters</h5>
+                                    <pre className="tn-code-block">{selectedTc.testData}</pre>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         );
     };
