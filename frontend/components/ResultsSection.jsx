@@ -19,6 +19,7 @@ import {
     Layers,
     GitBranch,
     FileText,
+    ChevronLeft,
     ChevronRight,
     ChevronDown,
     Lightbulb,
