@@ -39,10 +39,20 @@
 .app-shell-container {
   background: var(--ws-bg) !important;
   color: var(--ws-text) !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
 }
 
 .app-shell-main {
   background: var(--ws-bg) !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

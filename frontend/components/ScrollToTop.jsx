@@ -5,6 +5,7 @@ const ScrollToTop = () => {
   const { pathname, hash } = useLocation();
 
   useEffect(() => {
+    const mainEl = document.querySelector('.app-shell-main');
     if (hash) {
       // Small timeout ensures the target page has rendered the element
       setTimeout(() => {
@@ -14,10 +15,16 @@ const ScrollToTop = () => {
           const yOffset = -100; // Account for the floating navbar
           const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
           window.scrollTo({ top: y, behavior: 'smooth' });
+          if (mainEl) {
+            mainEl.scrollTo({ top: element.offsetTop - 80, behavior: 'smooth' });
+          }
         }
       }, 100);
     } else {
       window.scrollTo(0, 0);
+      if (mainEl) {
+        mainEl.scrollTo(0, 0);
+      }
     }
   }, [pathname, hash]);
 

@@ -843,7 +843,10 @@ code {
 .app-shell-container {
   width: 100%;
   max-width: 100vw;
-  overflow-x: clip;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .app-page-content {

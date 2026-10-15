@@ -14,11 +14,14 @@
 /* ─── App Shell Layout ─── */
 .app-shell-container {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    width: 100%;
     background: #080909;
     color: #F2F3F3;
     position: relative;
-    overflow-x: hidden;
+    overflow: hidden !important;
 }
 
 .app-shell-main {
@@ -26,8 +29,14 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
     background: #080909;
-    transition: margin-left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
 }
 
 .app-page-content {
@@ -44,8 +53,12 @@
     width: 240px;
     min-width: 240px;
     height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
     position: sticky;
     top: 0;
+    left: 0;
+    flex-shrink: 0;
     background: #101112;
     border-right: 1px solid #292D2D;
     display: flex;
@@ -56,6 +69,7 @@
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: #292D2D transparent;
+    -webkit-overflow-scrolling: touch;
 }
 
 .app-sidebar::-webkit-scrollbar {
