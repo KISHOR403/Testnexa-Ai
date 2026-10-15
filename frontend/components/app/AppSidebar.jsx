@@ -145,18 +145,40 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     {!isCollapsed && recentSessions.length > 0 ? (
                         <div className="app-sidebar__history-list">
                             {recentSessions.slice(0, 4).map((session) => {
-                                const totalTests = session.totalCases || (
-                                    session.summary ? (
-                                        session.summary.total ?? (
-                                            (session.summary.functional || 0) +
+                                const dataObj = session.suiteData || session.suite_data || session.suite || session.data;
+                                let totalTests = 0;
+                                if (dataObj && typeof dataObj === 'object') {
+                                    if (Array.isArray(dataObj.testCases) && dataObj.testCases.length > 0) {
+                                        totalTests = dataObj.testCases.length;
+                                    } else if (Array.isArray(dataObj.tests) && dataObj.tests.length > 0) {
+                                        totalTests = dataObj.tests.length;
+                                    } else {
+                                        totalTests = (dataObj.functional?.length || 0) +
+                                            (dataObj.negative?.length || 0) +
+                                            (dataObj.edge?.length || 0) +
+                                            (dataObj.security?.length || 0) +
+                                            (dataObj.apiChecklist?.length || 0) +
+                                            (dataObj.api?.length || 0) +
+                                            (dataObj.nonFunctional?.length || 0);
+                                    }
+                                }
+                                if (totalTests === 0 && session.summary && typeof session.summary === 'object') {
+                                    if (typeof session.summary.total === 'number' && session.summary.total > 0) {
+                                        totalTests = session.summary.total;
+                                    } else {
+                                        totalTests = (session.summary.functional || 0) +
                                             (session.summary.negative || 0) +
                                             (session.summary.edge || 0) +
+                                            (session.summary.security || 0) +
                                             (session.summary.nonFunctional || 0) +
                                             (session.summary.apiChecklist || 0) +
-                                            (session.summary.api || 0)
-                                        )
-                                    ) : 0
-                                );
+                                            (session.summary.api || 0);
+                                    }
+                                }
+                                if (totalTests === 0) {
+                                    totalTests = session.totalCases || session.totalTests || 0;
+                                }
+
                                 const targetUrl = (session.status === 'Draft' && !session.suite && totalTests === 0)
                                     ? `/app/workspace/${session.id}`
                                     : `/app/test-suites/${session.id}`;

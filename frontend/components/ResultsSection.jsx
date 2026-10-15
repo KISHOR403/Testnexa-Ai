@@ -93,35 +93,62 @@ const CollapsibleSection = ({ title, children, defaultOpen = true, count }) => {
 // ─── Helper to flatten test cases into initial state pool ───
 const flattenAllTestCases = (result) => {
     if (!result) return [];
+
+    // Unwrap if result wraps suiteData / data / suite
+    const target = (result.suiteData && typeof result.suiteData === 'object' && hasTestCases(result.suiteData))
+        ? result.suiteData
+        : (result.suite && typeof result.suite === 'object' && hasTestCases(result.suite))
+            ? result.suite
+            : (result.data && typeof result.data === 'object' && hasTestCases(result.data))
+                ? result.data
+                : result;
+
     const pool = [];
+    const seenIds = new Set();
+
     const pushAll = (items = [], defaultType = 'Functional') => {
         if (!Array.isArray(items)) return;
-        items.forEach((tc, idx) => {
+        items.forEach((tc) => {
             if (tc && typeof tc === 'object') {
+                const id = tc.id || `TC-${String(pool.length + 1).padStart(3, '0')}`;
+                if (seenIds.has(id)) return;
+                seenIds.add(id);
+
                 pool.push({
                     ...tc,
-                    id: tc.id || `TC-${String(pool.length + 1).padStart(3, '0')}`,
+                    id,
                     type: tc.type || defaultType,
                     priority: tc.priority || 'Medium',
-                    severity: tc.severity || (tc.priority === 'High' ? 'Critical' : 'Major'),
+                    severity: tc.severity || (tc.priority === 'High' || tc.priority === 'Critical' ? 'Critical' : 'Major'),
                     status: tc.status || 'Needs Review',
                     reqId: tc.requirementId || tc.reqId || 'REQ-001',
-                    preconditions: Array.isArray(tc.preconditions) ? tc.preconditions : (tc.preconditions ? [String(tc.preconditions)] : ['User is authenticated in the testing environment.']),
+                    preconditions: Array.isArray(tc.preconditions)
+                        ? tc.preconditions
+                        : (tc.preconditions ? [String(tc.preconditions)] : ['User is authenticated in the testing environment.']),
                     steps: Array.isArray(tc.steps) && tc.steps.length > 0
                         ? tc.steps.map(st => typeof st === 'object' ? st : { action: String(st), expected: 'Verification criteria satisfied.' })
                         : [{ action: 'Execute test scenario according to specification constraints.', expected: 'Output satisfies acceptance rules.' }],
                     expectedResult: tc.expectedResult || 'System behaves strictly as defined in requirement specification.',
-                    testData: tc.testData || 'method: "POST /api/v1/auth", payload: { standard: true }'
+                    testData: tc.testData || ''
                 });
             }
         });
     };
 
-    pushAll(result.functional, 'Functional');
-    pushAll(result.negative, 'Negative');
-    pushAll(result.edge, 'Edge Case');
-    pushAll(result.apiChecklist || result.api, 'API');
-    pushAll(result.nonFunctional, 'Non-Functional');
+    // If there is already a flat array of test cases
+    if (Array.isArray(target.testCases) && target.testCases.length > 0) {
+        pushAll(target.testCases);
+    } else if (Array.isArray(target.tests) && target.tests.length > 0) {
+        pushAll(target.tests);
+    } else {
+        // Categorized arrays
+        pushAll(target.functional, 'Functional');
+        pushAll(target.negative, 'Negative');
+        pushAll(target.edge, 'Edge Case');
+        pushAll(target.security, 'Security');
+        pushAll(target.apiChecklist || target.api, 'API');
+        pushAll(target.nonFunctional, 'Non-Functional');
+    }
 
     return pool;
 };
@@ -171,6 +198,9 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
     const [statusFilter, setStatusFilter] = useState('All');
     const [selectedRows, setSelectedRows] = useState([]);
     const [showGherkin, setShowGherkin] = useState(false);
+
+    // ─── Split View Detail Panel Toggle ───
+    const [isDetailOpen, setIsDetailOpen] = useState(true);
 
     // ─── Mobile detail drill-down ───
     const [mobileShowDetail, setMobileShowDetail] = useState(false);
@@ -266,10 +296,78 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
     // Derived Metrics
     const totalCount = testCases.length;
-    const highPriorityCount = testCases.filter(tc => tc.priority === 'High' || tc.priority === 'Critical').length;
-    const edgeCount = testCases.filter(tc => tc.type === 'Edge Case' || tc.type === 'Edge' || tc.type === 'Security').length;
-    const approvedCount = testCases.filter(tc => tc.status === 'Approved').length;
-    const coverageConfidence = result?.quality?.coverageConfidence || 94;
+    const highPriorityCount = useMemo(() => {
+        return testCases.filter(tc => {
+            const p = (tc.priority || '').toLowerCase();
+            return p === 'high' || p === 'critical';
+        }).length;
+    }, [testCases]);
+
+    const edgeAndSecurityCount = useMemo(() => {
+        return testCases.filter(tc => {
+            const t = (tc.type || '').toLowerCase();
+            return t.includes('edge') || t.includes('sec');
+        }).length;
+    }, [testCases]);
+
+    const approvedCount = useMemo(() => {
+        return testCases.filter(tc => (tc.status || '').toLowerCase() === 'approved').length;
+    }, [testCases]);
+
+    const coverageConfidence = useMemo(() => {
+        if (totalCount === 0) return 0;
+        const types = new Set(testCases.map(tc => (tc.type || '').toLowerCase()));
+        let baseCoverage = 45;
+        if (types.has('functional')) baseCoverage += 25;
+        if (types.has('negative')) baseCoverage += 15;
+        if (types.has('edge case') || types.has('edge')) baseCoverage += 10;
+        if (types.has('security')) baseCoverage += 5;
+        return Math.min(baseCoverage, 100);
+    }, [testCases, totalCount]);
+
+    // Dynamic insights derived from actual test suite data
+    const uncoveredCount = useMemo(() => {
+        if (Array.isArray(result?.coverageGaps) && result.coverageGaps.length > 0) {
+            return result.coverageGaps.length;
+        }
+        const hasNegative = testCases.some(tc => (tc.type || '').toLowerCase() === 'negative');
+        const hasEdge = testCases.some(tc => (tc.type || '').toLowerCase().includes('edge'));
+        let gaps = 0;
+        if (!hasNegative) gaps++;
+        if (!hasEdge) gaps++;
+        return gaps;
+    }, [result?.coverageGaps, testCases]);
+
+    const securityWarningTc = useMemo(() => {
+        return testCases.find(tc =>
+            (tc.type || '').toLowerCase().includes('sec') ||
+            (tc.severity || '').toLowerCase() === 'critical'
+        ) || null;
+    }, [testCases]);
+
+    const hasInsights = uncoveredCount > 0 || securityWarningTc !== null;
+
+    // Selected Test Case Index for prev / next navigation
+    const selectedTcIndex = useMemo(() => {
+        return filteredTests.findIndex(tc => tc.id === selectedTc?.id);
+    }, [filteredTests, selectedTc]);
+
+    const handlePrevTc = () => {
+        if (selectedTcIndex > 0) {
+            setSelectedTcId(filteredTests[selectedTcIndex - 1].id);
+        }
+    };
+
+    const handleNextTc = () => {
+        if (selectedTcIndex < filteredTests.length - 1) {
+            setSelectedTcId(filteredTests[selectedTcIndex + 1].id);
+        }
+    };
+
+    const handleCloseDetail = () => {
+        setIsDetailOpen(false);
+        setMobileShowDetail(false);
+    };
 
     // ─── Selection Handlers ───
     const toggleRowSelect = (id) => {
@@ -648,93 +746,158 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
         // Normal read-only detail view
         return (
-            <>
-                <div className="tn-detail-header">
-                    <div>
-                        <div className="tn-detail-meta-top">
-                            <span className="tn-tc-id-lg">{selectedTc.id}</span>
-                            <span className="tn-detail-req">{selectedTc.reqId || 'REQ-001'}</span>
-                            <StatusBadge status={selectedTc.status} />
-                            {showSavedFeedback && (
-                                <span className="tn-saved-indicator">
-                                    <Check size={12} /> Saved
-                                </span>
-                            )}
-                        </div>
-                        <h4 className="tn-detail-title">{selectedTc.title}</h4>
-                    </div>
-                    <div className="tn-detail-quick-actions">
-                        <button
-                            className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
-                            onClick={() => handleApproveSingle(selectedTc.id)}
-                            title="Toggle approval status"
-                        >
-                            <Check size={13} />
-                            <span>{selectedTc.status === 'Approved' ? 'Revoke' : 'Approve'}</span>
-                        </button>
-                        <button
-                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                            onClick={() => handleStartInlineEdit(selectedTc)}
-                            title="Edit test case"
-                        >
-                            <Edit3 size={13} />
-                            <span>Edit</span>
-                        </button>
-                        <button
-                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                            onClick={() => handleOpenRegenerateSingle(selectedTc)}
-                            title="Regenerate / enhance single test"
-                        >
-                            <RefreshCw size={13} />
-                            <span>Regenerate</span>
-                        </button>
-                        <div className="tn-detail-more-wrap" ref={detailMoreRef}>
-                            <button
-                                className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm tn-btn-icon-only"
-                                onClick={() => setShowDetailMore(!showDetailMore)}
-                                title="More actions"
-                            >
-                                <MoreHorizontal size={14} />
-                            </button>
-                            {showDetailMore && (
-                                <div className="tn-detail-more-dropdown">
-                                    <button onClick={() => { setShowGherkin(!showGherkin); setShowDetailMore(false); }}>
-                                        <Code size={13} />
-                                        <span>{showGherkin ? 'Hide BDD Spec' : 'BDD Specification'}</span>
-                                    </button>
-                                    <button onClick={() => { handleCopyDetails(selectedTc); setShowDetailMore(false); }}>
-                                        <Copy size={13} />
-                                        <span>{copiedDetails ? 'Copied!' : 'Copy as Markdown'}</span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <div className="tn-detail-container">
+                {/* 0. Integrated Compact Header / Navigation */}
+                <div className="tn-detail-nav-header">
+                    <button
+                        type="button"
+                        className="tn-detail-back-link"
+                        onClick={handleCloseDetail}
+                        title="Close detail panel"
+                    >
+                        <ArrowLeft size={14} />
+                        <span>Test Cases</span>
+                    </button>
 
-                {/* Metadata Grid */}
-                <div className="tn-detail-badges-row">
-                    <div>
-                        <label>TYPE</label>
-                        <span className="tn-badge-value">{selectedTc.type}</span>
-                    </div>
-                    <div>
-                        <label>PRIORITY</label>
-                        <span className={`tn-badge-value ${selectedTc.priority === 'High' ? 'text-amber-400' : 'text-teal-400'}`}>
-                            {selectedTc.priority}
+                    <div className="tn-detail-nav-controls">
+                        <button
+                            type="button"
+                            className="tn-detail-nav-btn"
+                            disabled={selectedTcIndex <= 0}
+                            onClick={handlePrevTc}
+                            title="Previous test case"
+                            aria-label="Previous test case"
+                        >
+                            <ChevronLeft size={15} />
+                        </button>
+                        <span className="tn-detail-nav-counter">
+                            {selectedTcIndex >= 0 ? `${selectedTcIndex + 1} of ${filteredTests.length}` : ''}
                         </span>
-                    </div>
-                    <div>
-                        <label>SEVERITY</label>
-                        <span className="tn-badge-value">{selectedTc.severity || 'Critical'}</span>
-                    </div>
-                    <div>
-                        <label>TRACEABILITY</label>
-                        <span className="tn-badge-value text-teal-400">{selectedTc.reqId || 'REQ-001'}</span>
+                        <button
+                            type="button"
+                            className="tn-detail-nav-btn"
+                            disabled={selectedTcIndex >= filteredTests.length - 1}
+                            onClick={handleNextTc}
+                            title="Next test case"
+                            aria-label="Next test case"
+                        >
+                            <ChevronRight size={15} />
+                        </button>
+                        <button
+                            type="button"
+                            className="tn-detail-close-btn"
+                            onClick={handleCloseDetail}
+                            title="Close detail panel (Esc)"
+                            aria-label="Close detail panel"
+                        >
+                            <X size={15} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Gherkin View or Standard Detail Body */}
+                {/* 1. Test Case ID & Review Status */}
+                <div className="tn-detail-id-bar">
+                    <span className="tn-tc-id-lg">{selectedTc.id}</span>
+                    <span className="tn-detail-req-pill">{selectedTc.reqId || 'REQ-001'}</span>
+                    <StatusBadge status={selectedTc.status} />
+                    {showSavedFeedback && (
+                        <span className="tn-saved-indicator">
+                            <Check size={12} /> Saved
+                        </span>
+                    )}
+                </div>
+
+                {/* 2. Test Case Title */}
+                <div className="tn-detail-title-block">
+                    <h3 className="tn-detail-title">{selectedTc.title}</h3>
+                    {selectedTc.scenario && selectedTc.scenario !== selectedTc.title && (
+                        <p className="tn-detail-scenario">{selectedTc.scenario}</p>
+                    )}
+                </div>
+
+                {/* 3. Primary Actions: Approve, Edit, Regenerate */}
+                <div className="tn-detail-actions-bar">
+                    <button
+                        type="button"
+                        className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
+                        onClick={() => handleApproveSingle(selectedTc.id)}
+                        title="Toggle approval status"
+                    >
+                        <Check size={13} />
+                        <span>{selectedTc.status === 'Approved' ? 'Revoke Approval' : 'Approve'}</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                        onClick={() => handleStartInlineEdit(selectedTc)}
+                        title="Edit test case"
+                    >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
+                        onClick={() => handleOpenRegenerateSingle(selectedTc)}
+                        title="Regenerate single test"
+                    >
+                        <RefreshCw size={13} />
+                        <span>Regenerate</span>
+                    </button>
+                    <div className="tn-detail-more-wrap" ref={detailMoreRef}>
+                        <button
+                            type="button"
+                            className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm tn-btn-icon-only"
+                            onClick={() => setShowDetailMore(!showDetailMore)}
+                            title="More actions"
+                            aria-label="More actions"
+                        >
+                            <MoreHorizontal size={14} />
+                        </button>
+                        {showDetailMore && (
+                            <div className="tn-detail-more-dropdown">
+                                <button type="button" onClick={() => { setShowGherkin(!showGherkin); setShowDetailMore(false); }}>
+                                    <Code size={13} />
+                                    <span>{showGherkin ? 'Hide BDD Spec' : 'BDD Specification'}</span>
+                                </button>
+                                <button type="button" onClick={() => { handleCopyDetails(selectedTc); setShowDetailMore(false); }}>
+                                    <Copy size={13} />
+                                    <span>{copiedDetails ? 'Copied!' : 'Copy as Markdown'}</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 4. Structured Metadata Grid (Clean, properly spaced label-value pairs) */}
+                <div className="tn-detail-meta-grid">
+                    <div className="tn-meta-item">
+                        <span className="tn-meta-label">Type</span>
+                        <div className="tn-meta-value">
+                            <TypeBadge type={selectedTc.type} />
+                        </div>
+                    </div>
+                    <div className="tn-meta-item">
+                        <span className="tn-meta-label">Priority</span>
+                        <div className="tn-meta-value">
+                            <PriorityBadge priority={selectedTc.priority} />
+                        </div>
+                    </div>
+                    <div className="tn-meta-item">
+                        <span className="tn-meta-label">Severity</span>
+                        <div className={`tn-meta-value tn-severity-val tn-severity-val--${(selectedTc.severity || 'Major').toLowerCase()}`}>
+                            {selectedTc.severity || 'Major'}
+                        </div>
+                    </div>
+                    <div className="tn-meta-item">
+                        <span className="tn-meta-label">Traceability</span>
+                        <div className="tn-meta-value tn-traceability-val">
+                            {selectedTc.reqId || 'REQ-001'}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Gherkin View or Main Details Body */}
                 {showGherkin ? (
                     <div className="tn-gherkin-view">
                         <div className="tn-gherkin-header">
@@ -745,32 +908,53 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                         </pre>
                     </div>
                 ) : (
-                    <div className="tn-detail-body">
-                        <CollapsibleSection title="PRECONDITIONS" defaultOpen={true}>
-                            <p className="tn-precon-text">
-                                {Array.isArray(selectedTc.preconditions) && selectedTc.preconditions.length > 0
-                                    ? selectedTc.preconditions.join(' • ')
-                                    : (selectedTc.preconditions || 'Standard testing environment is initialized.')}
-                            </p>
-                        </CollapsibleSection>
+                    <div className="tn-detail-sections">
+                        {/* 5. Preconditions */}
+                        <div className="tn-detail-section">
+                            <h5 className="tn-detail-section-title">Preconditions</h5>
+                            <div className="tn-preconditions-box">
+                                {Array.isArray(selectedTc.preconditions) && selectedTc.preconditions.length > 0 ? (
+                                    <ul className="tn-preconditions-list">
+                                        {selectedTc.preconditions.map((p, idx) => (
+                                            <li key={idx}>{p}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="tn-precon-text">
+                                        {selectedTc.preconditions || 'Standard testing environment is initialized.'}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
 
-                        <CollapsibleSection title="TEST STEPS" defaultOpen={true} count={selectedTc.steps?.length || 0}>
-                            <div className="tn-detail-steps">
+                        {/* 6. Numbered Test Steps with Expected Results */}
+                        <div className="tn-detail-section">
+                            <h5 className="tn-detail-section-title">
+                                Test Steps ({selectedTc.steps?.length || 0})
+                            </h5>
+                            <div className="tn-detail-steps-flow">
                                 {Array.isArray(selectedTc.steps) && selectedTc.steps.length > 0 ? (
                                     selectedTc.steps.map((st, idx) => {
                                         const numStr = String(idx + 1).padStart(2, '0');
                                         const isObj = typeof st === 'object' && st !== null;
+                                        const actionText = isObj ? (st.action || st.step) : st;
+                                        const expectedText = isObj ? st.expected : null;
+
                                         return (
-                                            <div key={idx} className="tn-step-item">
-                                                <span className="tn-step-num">{numStr}</span>
-                                                <div className="tn-step-content">
-                                                    <p className="tn-step-action">
-                                                        <strong>Action:</strong> {isObj ? (st.action || st.step) : st}
-                                                    </p>
-                                                    {isObj && st.expected && (
-                                                        <p className="tn-step-expected">
-                                                            <strong>Expected:</strong> {st.expected}
-                                                        </p>
+                                            <div key={idx} className="tn-step-card">
+                                                <div className="tn-step-badge-col">
+                                                    <span className="tn-step-num">{numStr}</span>
+                                                </div>
+                                                <div className="tn-step-body">
+                                                    <div className="tn-step-action-row">
+                                                        <span className="tn-step-action-label">Action</span>
+                                                        <p className="tn-step-action-text">{actionText}</p>
+                                                    </div>
+                                                    {expectedText && (
+                                                        <div className="tn-step-expected-row">
+                                                            <span className="tn-step-expected-label">Expected Result</span>
+                                                            <p className="tn-step-expected-text">{expectedText}</p>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -780,34 +964,29 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                     <p className="tn-detail-empty">1. Execute test scenario according to specification constraints.</p>
                                 )}
                             </div>
-                        </CollapsibleSection>
+                        </div>
 
-                        <CollapsibleSection title="EXPECTED RESULT" defaultOpen={true}>
-                            <div className="tn-expected-box">
-                                <CheckSquare size={16} className="text-teal-400 shrink-0" />
-                                <p>{selectedTc.expectedResult || 'System rejects the expired token, keeps credentials secure and allows the user to request a new token.'}</p>
+                        {/* 7. Overall Expected Result */}
+                        <div className="tn-detail-section">
+                            <h5 className="tn-detail-section-title">Expected Result</h5>
+                            <div className="tn-expected-result-card">
+                                <CheckSquare size={16} className="tn-expected-icon" />
+                                <p className="tn-expected-text">
+                                    {selectedTc.expectedResult || 'System behaves strictly as defined in requirement specification.'}
+                                </p>
                             </div>
-                        </CollapsibleSection>
+                        </div>
 
+                        {/* Additional info: Test Data */}
                         {selectedTc.testData && (
-                            <CollapsibleSection title="TEST DATA & PARAMETERS" defaultOpen={false}>
-                                <div className="tn-data-snippet">
-                                    <code>{selectedTc.testData}</code>
-                                </div>
-                            </CollapsibleSection>
-                        )}
-
-                        <CollapsibleSection title="TRACEABILITY" defaultOpen={false}>
-                            <div className="tn-trace-inline">
-                                <span className="tn-tc-id">{selectedTc.reqId || 'REQ-001'}</span>
-                                <span>→</span>
-                                <span className="tn-tc-id">{selectedTc.id}</span>
-                                <span className="tn-trace-inline-label">{selectedTc.title}</span>
+                            <div className="tn-detail-section">
+                                <h5 className="tn-detail-section-title">Test Data & Parameters</h5>
+                                <pre className="tn-code-block">{selectedTc.testData}</pre>
                             </div>
-                        </CollapsibleSection>
+                        )}
                     </div>
                 )}
-            </>
+            </div>
         );
     };
 
@@ -816,29 +995,16 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             {/* ─── 1. Top Suite Header ─── */}
             <div className="tn-app-header">
                 <div className="tn-app-header__identity">
-                    <div className="tn-app-header__breadcrumbs">
-                        <span className="tn-app-crumb-root">Test Suite</span>
-                        <ChevronRight size={14} className="tn-app-crumb-sep" />
-                        <span className="tn-app-crumb-active">{result.feature || result.testSuiteName || 'Password Reset Suite'}</span>
-                    </div>
+                    <h2 className="tn-suite-title">{result.feature || result.testSuiteName || 'Password Reset Suite'}</h2>
                     <div className="tn-app-header__tags">
                         <span className="tn-tag tn-tag--req">REQ-001</span>
                         <span className={`tn-tag ${suiteStatus === 'Approved' ? 'tn-tag--ready' : 'tn-tag--alert'}`}>
-                            <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? '✓ Approved' : 'Needs Review'}
+                            <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? 'Approved' : 'Needs Review'}
                         </span>
                     </div>
                 </div>
 
                 <div className="tn-app-header__actions">
-                    <button
-                        className={`tn-app-btn ${showAiCopilot ? 'tn-app-btn--primary' : 'tn-app-btn--secondary'}`}
-                        onClick={() => setShowAiCopilot(!showAiCopilot)}
-                        title="Open context-aware AI QA copilot"
-                    >
-                        <MessageSquare size={14} />
-                        <span>Ask Testnexa</span>
-                    </button>
-
                     <button
                         className="tn-app-btn tn-app-btn--secondary"
                         onClick={() => setShowShareModal(true)}
@@ -879,12 +1045,12 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             <div className="tn-app-summary-bar">
                 <div className="tn-app-stat">
                     <span className="tn-app-stat__num">{totalCount}</span>
-                    <span className="tn-app-stat__label">Test Cases</span>
+                    <span className="tn-app-stat__label">Total Test Cases</span>
                 </div>
                 <div className="tn-app-stat-divider" />
                 <div className="tn-app-stat">
                     <span className="tn-app-stat__num tn-app-stat__num--cyan">{coverageConfidence}%</span>
-                    <span className="tn-app-stat__label">Req Coverage</span>
+                    <span className="tn-app-stat__label">Requirement Coverage</span>
                 </div>
                 <div className="tn-app-stat-divider" />
                 <div className="tn-app-stat">
@@ -893,13 +1059,13 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
                 <div className="tn-app-stat-divider" />
                 <div className="tn-app-stat">
-                    <span className="tn-app-stat__num">{edgeCount}</span>
+                    <span className="tn-app-stat__num">{edgeAndSecurityCount}</span>
                     <span className="tn-app-stat__label">Edge & Security</span>
                 </div>
                 <div className="tn-app-stat-divider" />
                 <div className="tn-app-stat">
                     <span className="tn-app-stat__num tn-app-stat__num--emerald">{approvedCount} / {totalCount}</span>
-                    <span className="tn-app-stat__label">Approved</span>
+                    <span className="tn-app-stat__label">Approved Cases</span>
                 </div>
             </div>
 
@@ -907,15 +1073,44 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             <div className="tn-ai-insights-bar">
                 <div className="tn-ai-insights-bar__left">
                     <span className="tn-ai-sparkle-pill"><Lightbulb size={12} /> INSIGHTS</span>
-                    <p className="tn-ai-insights-text">
-                        <strong>2 coverage gaps detected</strong> &bull; 1 security scenario (Rate Limiting) needs verification.
-                    </p>
+                    <div className="tn-ai-insights-content">
+                        {uncoveredCount > 0 && (
+                            <button
+                                type="button"
+                                className="tn-insight-link"
+                                onClick={() => setActiveTab('coverage')}
+                                title="View uncovered requirement gaps"
+                            >
+                                {uncoveredCount} coverage {uncoveredCount === 1 ? 'gap' : 'gaps'} detected &rarr;
+                            </button>
+                        )}
+                        {uncoveredCount > 0 && securityWarningTc && (
+                            <span className="tn-insight-sep">&bull;</span>
+                        )}
+                        {securityWarningTc && (
+                            <button
+                                type="button"
+                                className="tn-insight-link"
+                                onClick={() => {
+                                    setSelectedTcId(securityWarningTc.id);
+                                    setIsDetailOpen(true);
+                                    setActiveTab('tests');
+                                }}
+                                title={`Navigate to ${securityWarningTc.id}`}
+                            >
+                                Security scenario ({securityWarningTc.id}) needs verification &rarr;
+                            </button>
+                        )}
+                        {!uncoveredCount && !securityWarningTc && (
+                            <span className="tn-ai-insights-text">All requirements verified &bull; Suite is consistent and ready for execution.</span>
+                        )}
+                    </div>
                 </div>
                 <button
                     className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
                     onClick={() => setShowAiInsightsDrawer(true)}
                 >
-                    Review &rarr;
+                    Review Details &rarr;
                 </button>
             </div>
 
@@ -943,7 +1138,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 >
                     <Shield size={15} />
                     <span>Risks</span>
-                    <span className="tn-app-tab__badge tn-app-tab__badge--alert">2</span>
+                    <span className="tn-app-tab__badge tn-app-tab__badge--alert">{uncoveredCount}</span>
                 </button>
                 <button
                     className={`tn-app-tab ${activeTab === 'traceability' ? 'is-active' : ''}`}
@@ -1065,13 +1260,13 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 </button>
                             </div>
                         ) : (
-                            <div className={`tn-app-split-workspace ${mobileShowDetail ? 'tn-mobile-detail-active' : ''}`}>
+                            <div className={`tn-app-split-workspace ${!isDetailOpen ? 'tn-split--detail-closed' : ''} ${mobileShowDetail ? 'tn-mobile-detail-active' : ''}`}>
                                 {/* Left: Data Table */}
                                 <div className="tn-app-table-pane">
                                     <table className="tn-qa-table">
                                         <thead>
                                             <tr>
-                                                <th style={{ width: '36px' }}>
+                                                <th className="tn-th-select">
                                                     <input
                                                         type="checkbox"
                                                         checked={filteredTests.length > 0 && selectedRows.length === filteredTests.length}
@@ -1079,11 +1274,11 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                                         aria-label="Select all tests"
                                                     />
                                                 </th>
-                                                <th style={{ width: '88px' }}>ID</th>
-                                                <th>Test Scenario & Title</th>
-                                                <th style={{ width: '105px' }}>Type</th>
-                                                <th style={{ width: '92px' }}>Priority</th>
-                                                <th style={{ width: '110px' }}>Status</th>
+                                                <th className="tn-th-id">ID</th>
+                                                <th className="tn-th-title">Test Scenario & Title</th>
+                                                <th className="tn-th-type">Type</th>
+                                                <th className="tn-th-priority">Priority</th>
+                                                <th className="tn-th-status">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1093,9 +1288,10 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                                 return (
                                                     <tr
                                                         key={tc.id}
-                                                        className={`tn-qa-row ${isSelected ? 'is-selected' : ''}`}
+                                                        className={`tn-qa-row ${isSelected && isDetailOpen ? 'is-selected' : ''}`}
                                                         onClick={() => {
                                                             setSelectedTcId(tc.id);
+                                                            setIsDetailOpen(true);
                                                             setIsInlineEditing(false);
                                                             setShowGherkin(false);
                                                             // On mobile, drill into detail
@@ -1104,7 +1300,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                                             }
                                                         }}
                                                     >
-                                                        <td onClick={(e) => e.stopPropagation()}>
+                                                        <td className="tn-td-select" onClick={(e) => e.stopPropagation()}>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isChecked}
@@ -1112,22 +1308,22 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                                                 aria-label={`Select ${tc.id}`}
                                                             />
                                                         </td>
-                                                        <td>
+                                                        <td className="tn-td-id">
                                                             <span className="tn-tc-id">{tc.id}</span>
                                                         </td>
-                                                        <td>
+                                                        <td className="tn-td-title">
                                                             <div className="tn-tc-title-cell">
-                                                                <strong>{tc.title}</strong>
-                                                                <span>{tc.scenario || tc.testScenario || 'Specification Verification'}</span>
+                                                                <span className="tn-tc-title-main">{tc.title}</span>
+                                                                <span className="tn-tc-title-sub">{tc.scenario || tc.testScenario || 'Specification Verification'}</span>
                                                             </div>
                                                         </td>
-                                                        <td>
+                                                        <td className="tn-td-type">
                                                             <TypeBadge type={tc.type} />
                                                         </td>
-                                                        <td>
+                                                        <td className="tn-td-priority">
                                                             <PriorityBadge priority={tc.priority} />
                                                         </td>
-                                                        <td>
+                                                        <td className="tn-td-status">
                                                             <StatusBadge status={tc.status} />
                                                         </td>
                                                     </tr>
@@ -1138,14 +1334,11 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 </div>
 
                                 {/* Right: Test Case Detail Panel */}
-                                <div className={`tn-app-detail-pane ${mobileShowDetail ? 'tn-mobile-detail-visible' : ''}`}>
-                                    {/* Mobile back button */}
-                                    <button className="tn-mobile-back-btn" onClick={handleMobileBack}>
-                                        <ArrowLeft size={16} />
-                                        <span>Back to Test Cases</span>
-                                    </button>
-                                    {renderDetailPanelContent()}
-                                </div>
+                                {isDetailOpen && (
+                                    <div className={`tn-app-detail-pane ${mobileShowDetail ? 'tn-mobile-detail-visible' : ''}`}>
+                                        {renderDetailPanelContent()}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

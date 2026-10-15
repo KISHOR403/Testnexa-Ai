@@ -12,9 +12,11 @@ const hasTestCases = (data) => {
         (Array.isArray(data.functional) && data.functional.length > 0) ||
         (Array.isArray(data.negative) && data.negative.length > 0) ||
         (Array.isArray(data.edge) && data.edge.length > 0) ||
+        (Array.isArray(data.security) && data.security.length > 0) ||
         (Array.isArray(data.nonFunctional) && data.nonFunctional.length > 0) ||
         (Array.isArray(data.apiChecklist) && data.apiChecklist.length > 0) ||
         (Array.isArray(data.api) && data.api.length > 0) ||
+        (Array.isArray(data.tests) && data.tests.length > 0) ||
         (Array.isArray(data.testCases) && data.testCases.length > 0)
     );
 };
