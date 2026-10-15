@@ -8,16 +8,26 @@ import ResultsSection from '../../components/ResultsSection';
 // Helper to determine if a suite object contains actual test cases
 const hasTestCases = (data) => {
     if (!data || typeof data !== 'object') return false;
+    const target = data.suiteData || data.suite_data || data.suite || data.data || data;
     return Boolean(
+        (Array.isArray(target.testCases) && target.testCases.length > 0) ||
+        (Array.isArray(target.tests) && target.tests.length > 0) ||
+        (Array.isArray(target.functional) && target.functional.length > 0) ||
+        (Array.isArray(target.negative) && target.negative.length > 0) ||
+        (Array.isArray(target.edge) && target.edge.length > 0) ||
+        (Array.isArray(target.security) && target.security.length > 0) ||
+        (Array.isArray(target.nonFunctional) && target.nonFunctional.length > 0) ||
+        (Array.isArray(target.apiChecklist) && target.apiChecklist.length > 0) ||
+        (Array.isArray(target.api) && target.api.length > 0) ||
+        (Array.isArray(data.testCases) && data.testCases.length > 0) ||
+        (Array.isArray(data.tests) && data.tests.length > 0) ||
         (Array.isArray(data.functional) && data.functional.length > 0) ||
         (Array.isArray(data.negative) && data.negative.length > 0) ||
         (Array.isArray(data.edge) && data.edge.length > 0) ||
         (Array.isArray(data.security) && data.security.length > 0) ||
         (Array.isArray(data.nonFunctional) && data.nonFunctional.length > 0) ||
         (Array.isArray(data.apiChecklist) && data.apiChecklist.length > 0) ||
-        (Array.isArray(data.api) && data.api.length > 0) ||
-        (Array.isArray(data.tests) && data.tests.length > 0) ||
-        (Array.isArray(data.testCases) && data.testCases.length > 0)
+        (Array.isArray(data.api) && data.api.length > 0)
     );
 };
 
@@ -45,7 +55,16 @@ const TestSuiteDetailPage = () => {
         );
         const historySuite = foundInHistory?.suite || foundInHistory?.data || foundInHistory?.suiteData;
         if (historySuite && hasTestCases(historySuite)) {
-            return historySuite;
+            const data = historySuite.suiteData || historySuite.suite || historySuite.data || historySuite;
+            return {
+                ...data,
+                testSuiteName: data.testSuiteName || data.feature || foundInHistory.title || foundInHistory.feature || 'Test Suite',
+                feature: data.feature || data.testSuiteName || foundInHistory.title || foundInHistory.feature || 'Test Suite'
+            };
+        }
+
+        if (foundInHistory && hasTestCases(foundInHistory)) {
+            return foundInHistory;
         }
 
         return null;

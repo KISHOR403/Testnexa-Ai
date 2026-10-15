@@ -90,67 +90,100 @@ const CollapsibleSection = ({ title, children, defaultOpen = true, count }) => {
     );
 };
 
+// ─── Helper to determine if an object contains test cases ───
+const hasTestCases = (data) => {
+    if (!data || typeof data !== 'object') return false;
+    const target = data.suiteData || data.suite_data || data.suite || data.data || data;
+    return Boolean(
+        (Array.isArray(target.testCases) && target.testCases.length > 0) ||
+        (Array.isArray(target.tests) && target.tests.length > 0) ||
+        (Array.isArray(target.functional) && target.functional.length > 0) ||
+        (Array.isArray(target.negative) && target.negative.length > 0) ||
+        (Array.isArray(target.edge) && target.edge.length > 0) ||
+        (Array.isArray(target.security) && target.security.length > 0) ||
+        (Array.isArray(target.nonFunctional) && target.nonFunctional.length > 0) ||
+        (Array.isArray(target.apiChecklist) && target.apiChecklist.length > 0) ||
+        (Array.isArray(target.api) && target.api.length > 0) ||
+        (Array.isArray(data.testCases) && data.testCases.length > 0) ||
+        (Array.isArray(data.tests) && data.tests.length > 0) ||
+        (Array.isArray(data.functional) && data.functional.length > 0) ||
+        (Array.isArray(data.negative) && data.negative.length > 0) ||
+        (Array.isArray(data.edge) && data.edge.length > 0) ||
+        (Array.isArray(data.security) && data.security.length > 0) ||
+        (Array.isArray(data.nonFunctional) && data.nonFunctional.length > 0) ||
+        (Array.isArray(data.apiChecklist) && data.apiChecklist.length > 0) ||
+        (Array.isArray(data.api) && data.api.length > 0)
+    );
+};
+
 // ─── Helper to flatten test cases into initial state pool ───
 const flattenAllTestCases = (result) => {
     if (!result) return [];
 
-    // Unwrap if result wraps suiteData / data / suite
-    const target = (result.suiteData && typeof result.suiteData === 'object' && hasTestCases(result.suiteData))
-        ? result.suiteData
-        : (result.suite && typeof result.suite === 'object' && hasTestCases(result.suite))
-            ? result.suite
-            : (result.data && typeof result.data === 'object' && hasTestCases(result.data))
-                ? result.data
-                : result;
+    try {
+        // Unwrap if result wraps suiteData / data / suite
+        const target = (result.suiteData && typeof result.suiteData === 'object' && hasTestCases(result.suiteData))
+            ? (result.suiteData.suiteData || result.suiteData.suite || result.suiteData.data || result.suiteData)
+            : (result.suite && typeof result.suite === 'object' && hasTestCases(result.suite))
+                ? (result.suite.suiteData || result.suite.suite || result.suite.data || result.suite)
+                : (result.data && typeof result.data === 'object' && hasTestCases(result.data))
+                    ? (result.data.suiteData || result.data.suite || result.data.data || result.data)
+                    : result;
 
-    const pool = [];
-    const seenIds = new Set();
+        const pool = [];
+        const seenIds = new Set();
 
-    const pushAll = (items = [], defaultType = 'Functional') => {
-        if (!Array.isArray(items)) return;
-        items.forEach((tc) => {
-            if (tc && typeof tc === 'object') {
-                const id = tc.id || `TC-${String(pool.length + 1).padStart(3, '0')}`;
-                if (seenIds.has(id)) return;
-                seenIds.add(id);
+        const pushAll = (items = [], defaultType = 'Functional') => {
+            if (!Array.isArray(items)) return;
+            items.forEach((tc) => {
+                if (tc && typeof tc === 'object') {
+                    const id = tc.id || `TC-${String(pool.length + 1).padStart(3, '0')}`;
+                    if (seenIds.has(id)) return;
+                    seenIds.add(id);
 
-                pool.push({
-                    ...tc,
-                    id,
-                    type: tc.type || defaultType,
-                    priority: tc.priority || 'Medium',
-                    severity: tc.severity || (tc.priority === 'High' || tc.priority === 'Critical' ? 'Critical' : 'Major'),
-                    status: tc.status || 'Needs Review',
-                    reqId: tc.requirementId || tc.reqId || 'REQ-001',
-                    preconditions: Array.isArray(tc.preconditions)
-                        ? tc.preconditions
-                        : (tc.preconditions ? [String(tc.preconditions)] : ['User is authenticated in the testing environment.']),
-                    steps: Array.isArray(tc.steps) && tc.steps.length > 0
-                        ? tc.steps.map(st => typeof st === 'object' ? st : { action: String(st), expected: 'Verification criteria satisfied.' })
-                        : [{ action: 'Execute test scenario according to specification constraints.', expected: 'Output satisfies acceptance rules.' }],
-                    expectedResult: tc.expectedResult || 'System behaves strictly as defined in requirement specification.',
-                    testData: tc.testData || ''
-                });
-            }
-        });
-    };
+                    pool.push({
+                        ...tc,
+                        id,
+                        title: tc.title || tc.testScenario || tc.scenario || `Verify ${tc.type || defaultType} Flow`,
+                        scenario: tc.scenario || tc.testScenario || tc.title || 'Specification Verification',
+                        type: tc.type || defaultType,
+                        priority: tc.priority || 'Medium',
+                        severity: tc.severity || (tc.priority === 'High' || tc.priority === 'Critical' ? 'Critical' : 'Major'),
+                        status: tc.status || 'Needs Review',
+                        reqId: tc.requirementId || tc.reqId || 'REQ-001',
+                        preconditions: Array.isArray(tc.preconditions)
+                            ? tc.preconditions
+                            : (tc.preconditions ? [String(tc.preconditions)] : ['User is authenticated in the testing environment.']),
+                        steps: Array.isArray(tc.steps) && tc.steps.length > 0
+                            ? tc.steps.map(st => typeof st === 'object' ? st : { action: String(st), expected: 'Verification criteria satisfied.' })
+                            : [{ action: 'Execute test scenario according to specification constraints.', expected: 'Output satisfies acceptance rules.' }],
+                        expectedResult: tc.expectedResult || 'System behaves strictly as defined in requirement specification.',
+                        testData: tc.testData || ''
+                    });
+                }
+            });
+        };
 
-    // If there is already a flat array of test cases
-    if (Array.isArray(target.testCases) && target.testCases.length > 0) {
-        pushAll(target.testCases);
-    } else if (Array.isArray(target.tests) && target.tests.length > 0) {
-        pushAll(target.tests);
-    } else {
-        // Categorized arrays
-        pushAll(target.functional, 'Functional');
-        pushAll(target.negative, 'Negative');
-        pushAll(target.edge, 'Edge Case');
-        pushAll(target.security, 'Security');
-        pushAll(target.apiChecklist || target.api, 'API');
-        pushAll(target.nonFunctional, 'Non-Functional');
+        // If there is already a flat array of test cases
+        if (Array.isArray(target.testCases) && target.testCases.length > 0) {
+            pushAll(target.testCases);
+        } else if (Array.isArray(target.tests) && target.tests.length > 0) {
+            pushAll(target.tests);
+        } else {
+            // Categorized arrays
+            pushAll(target.functional, 'Functional');
+            pushAll(target.negative, 'Negative');
+            pushAll(target.edge, 'Edge Case');
+            pushAll(target.security, 'Security');
+            pushAll(target.apiChecklist || target.api, 'API');
+            pushAll(target.nonFunctional, 'Non-Functional');
+        }
+
+        return pool;
+    } catch (err) {
+        console.error('Error flattening test cases in ResultsSection:', err);
+        return [];
     }
-
-    return pool;
 };
 
 // ─── Gherkin Formatter ───

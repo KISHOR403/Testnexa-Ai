@@ -4,6 +4,7 @@ import AppSidebar from '../components/app/AppSidebar';
 import AppHeader from '../components/app/AppHeader';
 import ScrollToTop from '../components/ScrollToTop';
 import AnimatedBackground from '../components/AnimatedBackground';
+import ErrorBoundary from '../components/ErrorBoundary';
 import '../styles/app/AppSidebar.css';
 import '../styles/app/WorkspaceDesignSystem.css';
 
@@ -48,7 +49,9 @@ const AppLayout = () => {
             <div className="app-shell-main">
                 <AppHeader onToggleMobile={() => setIsMobileOpen(prev => !prev)} />
                 <main className="app-page-content">
-                    <Outlet />
+                    <ErrorBoundary>
+                        <Outlet />
+                    </ErrorBoundary>
                 </main>
             </div>
         </div>
