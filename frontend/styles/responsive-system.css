@@ -524,6 +524,9 @@ code {
 }
 
 /* ─── 7. TABLES & TRACEABILITY MATRICES ────────────────────────────────────── */
+.tn-hero-table-wrap,
+.tn-ws-table-wrap,
+.tn-sw-steps-table-wrap,
 .tn-steps-table-wrap,
 .table-container,
 .tn-table-responsive {
@@ -531,12 +534,37 @@ code {
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
   display: block;
 }
 
+.tn-hero-table {
+  width: 100%;
+  min-width: 480px;
+}
+
+.tn-ws-table {
+  width: 100%;
+  min-width: 540px;
+}
+
+.tn-sw-steps-table,
 .tn-steps-table {
   width: 100%;
-  min-width: 480px; /* Internal scroll only, never body scroll */
+  min-width: 580px;
+}
+
+.tn-hero-table .td-id,
+.tn-ws-table .td-id,
+.tn-sw-steps-table .td-step {
+  white-space: nowrap !important;
+}
+
+.tn-hero-table .td-id code,
+.tn-ws-table .td-id code,
+.tn-sw-steps-table .td-step code {
+  white-space: nowrap !important;
+  display: inline-block;
 }
 
 /* Chapter 2: Test Suite Master-Detail */
