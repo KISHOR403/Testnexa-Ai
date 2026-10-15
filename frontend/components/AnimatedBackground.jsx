@@ -1,8 +1,9 @@
 import React from 'react';
+import AntigravityCanvas from './AntigravityCanvas';
 
 /**
  * Calm, restrained background for Testnexa enterprise marketing pages.
- * Replaces generic cyan glow blobs with a clean, high-performance base and subtle technical grid.
+ * Includes subtle technical grid and interactive zero-gravity particle field.
  */
 const AnimatedBackground = () => {
     return (
@@ -11,6 +12,8 @@ const AnimatedBackground = () => {
             <div className="tn-bg-base" />
             {/* Subtle technical micro-grid */}
             <div className="tn-bg-grid" />
+            {/* Interactive zero-gravity particles inspired by Antigravity */}
+            <AntigravityCanvas />
         </div>
     );
 };

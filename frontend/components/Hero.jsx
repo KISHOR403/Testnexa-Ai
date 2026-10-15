@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     ArrowRight,
     Check,
     AlertTriangle,
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
+import AntigravityTypewriter from './AntigravityTypewriter';
+import AntigravityOrbArc from './AntigravityOrbArc';
 
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
     const [activeTab, setActiveTab] = useState('cases');
     const sectionRef = useRef(null);
+    const windowRef = useRef(null);
     const [isRevealed, setIsRevealed] = useState(false);
 
     useEffect(() => {
@@ -27,6 +30,34 @@ export const Hero = () => {
         }
     };
 
+    // Spotlight mouse illumination tracker
+    const handleWindowMouseMove = useCallback((e) => {
+        if (!windowRef.current) return;
+        const rect = windowRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        windowRef.current.style.setProperty('--mouse-x', `${x}px`);
+        windowRef.current.style.setProperty('--mouse-y', `${y}px`);
+    }, []);
+
+    const handleSelectOrb = (orbId) => {
+        const targetMap = {
+            parser: 'transformation',
+            ast: 'test-suite',
+            trace: 'traceability',
+            regen: 'transformation',
+            gate: 'developers',
+            risk: 'transformation'
+        };
+        const targetId = targetMap[orbId] || 'product-canvas';
+        const el = document.getElementById(targetId);
+        if (el) {
+            const yOffset = -70;
+            const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+    };
+
     return (
         <header className="tn-hero-section" aria-labelledby="hero-main-heading" ref={sectionRef}>
             <div className="tn-container">
@@ -38,7 +69,7 @@ export const Hero = () => {
                     </div>
 
                     <h1 id="hero-main-heading" className="tn-hero-title">
-                        From requirements to<br />release&#8209;ready tests.
+                        <AntigravityTypewriter staticPrefix="From requirements to" />
                     </h1>
 
                     <p className="tn-hero-desc">
@@ -87,9 +118,16 @@ export const Hero = () => {
                     </div>
                 </div>
 
+                {/* ─── Antigravity Floating Tool Orb Arc ─── */}
+                <AntigravityOrbArc onSelectOrb={handleSelectOrb} />
+
                 {/* ─── 2. Real Product Canvas ─── */}
                 <div id="product-canvas" className="tn-hero-visual-frame" aria-label="TestNexa Product Canvas" style={{ opacity: isRevealed ? 1 : 0, transform: isRevealed ? 'translateY(0)' : 'translateY(32px)', transition: 'opacity 1s cubic-bezier(0.16,1,0.3,1) 0.2s, transform 1s cubic-bezier(0.16,1,0.3,1) 0.2s' }}>
-                    <div className="tn-software-window">
+                    <div
+                        ref={windowRef}
+                        className="tn-software-window tn-spotlight-card"
+                        onMouseMove={handleWindowMouseMove}
+                    >
                         {/* Title Bar */}
                         <div className="tn-window-header">
                             <div className="tn-window-dots" aria-hidden="true">

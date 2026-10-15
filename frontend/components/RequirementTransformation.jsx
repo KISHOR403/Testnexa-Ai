@@ -126,7 +126,14 @@ export const RequirementTransformation = () => {
 
                     {/* RIGHT COLUMN: Product Interaction with Annotation UI */}
                     <div className="tn-req-intel-workspace">
-                        <div className="tn-annotation-canvas">
+                        <div
+                            className="tn-annotation-canvas tn-spotlight-card"
+                            onMouseMove={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                            }}
+                        >
                             {/* Editor Header Bar */}
                             <div className="tn-ann-canvas-header">
                                 <div className="tn-ann-file-meta">

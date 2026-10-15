@@ -129,7 +129,14 @@ export const IntegrationsChapter = () => {
 
                     {/* Right: Authentic Developer Terminal Window */}
                     <div className="tn-int-terminal-col">
-                        <div className="tn-dev-terminal">
+                        <div
+                            className="tn-dev-terminal tn-spotlight-card"
+                            onMouseMove={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                            }}
+                        >
                             {/* Terminal Top Bar */}
                             <div className="tn-term-top-bar">
                                 <div className="tn-term-dots" aria-hidden="true">
@@ -172,10 +179,11 @@ export const IntegrationsChapter = () => {
                                 </button>
                             </div>
 
-                            {/* Code Area */}
+                            {/* Code Area with Animated Terminal Cursor */}
                             <div className="tn-term-body">
                                 <pre className="tn-term-code">
                                     <code>{tabMode === 'curl' ? curlSnippet : responseSnippet}</code>
+                                    <span className="tn-int-prompt-cursor" aria-hidden="true" />
                                 </pre>
                             </div>
 

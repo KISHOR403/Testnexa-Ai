@@ -88,7 +88,15 @@ export const TraceabilityGraph = () => {
                 </div>
 
                 {/* ─── Horizontal Traceability Flow Canvas ─── */}
-                <div className="tn-trace-flow-canvas" aria-label="Bidirectional Traceability Matrix">
+                <div
+                    className="tn-trace-flow-canvas tn-spotlight-card"
+                    aria-label="Bidirectional Traceability Matrix"
+                    onMouseMove={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                    }}
+                >
                     {/* Top Metric Bar */}
                     <div className="tn-tflow-topbar">
                         <div className="tn-tflow-breadcrumbs">
