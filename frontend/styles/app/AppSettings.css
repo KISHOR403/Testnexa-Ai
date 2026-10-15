@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════
    TESTNEXA ENTERPRISE SETTINGS EXPERIENCE
-   True Black Theme (#050505 / #0A0A0A / #111111 / #1C1C1C)
-   Accent: #4F8CFF | Text: #F5F5F5 / #A3A3A3 / #737373
+   Design System:
+   App background: #080909 | Primary surface: #101112 | Elevated: #161819
+   Borders: #292D2D | Text: #F2F3F3 / #A0A5A5 / #777E7E
+   Accent: muted jade #8BAF9A
    ═══════════════════════════════════════════════════════════════════ */
 
 .app-settings-page {
@@ -12,7 +14,7 @@
     width: 100%;
     margin: 0 auto;
     padding-bottom: 3.5rem;
-    color: #F5F5F5;
+    color: #F2F3F3;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -22,20 +24,20 @@
     flex-direction: column;
     gap: 0.35rem;
     padding-bottom: 1.25rem;
-    border-bottom: 1px solid #1C1C1C;
+    border-bottom: 1px solid #292D2D;
 }
 
 .app-settings-header__title {
     font-size: 1.65rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     letter-spacing: -0.02em;
     margin: 0;
 }
 
 .app-settings-header__desc {
     font-size: 0.88rem;
-    color: #A3A3A3;
+    color: #A0A5A5;
     margin: 0;
     line-height: 1.4;
 }
@@ -68,7 +70,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #737373;
+    color: #777E7E;
     padding: 0.25rem 0.65rem;
     margin-bottom: 0.2rem;
 }
@@ -80,7 +82,7 @@
     padding: 0.5rem 0.65rem;
     font-size: 0.84rem;
     font-weight: 500;
-    color: #A3A3A3;
+    color: #A0A5A5;
     border-radius: 6px;
     background: transparent;
     border: 1px solid transparent;
@@ -91,14 +93,15 @@
 }
 
 .app-settings-nav__item:hover {
-    color: #F5F5F5;
-    background: #0D0D0D;
+    color: #F2F3F3;
+    background: #161819;
 }
 
 .app-settings-nav__item.active {
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.08);
-    border-color: rgba(79, 140, 255, 0.2);
+    color: #F2F3F3;
+    background: #161819;
+    border-color: #292D2D;
+    border-left: 3px solid #8BAF9A;
     font-weight: 600;
 }
 
@@ -106,7 +109,7 @@
     flex-shrink: 0;
 }
 
-/* Mobile Nav Pills (Hidden on Desktop) */
+/* Mobile Nav Pills */
 .app-settings-mobile-nav {
     display: none;
     overflow-x: auto;
@@ -125,9 +128,9 @@
     font-size: 0.82rem;
     font-weight: 500;
     border-radius: 6px;
-    background: #0A0A0A;
-    color: #A3A3A3;
-    border: 1px solid #1C1C1C;
+    background: #101112;
+    color: #A0A5A5;
+    border: 1px solid #292D2D;
     white-space: nowrap;
     cursor: pointer;
     min-height: 44px;
@@ -137,9 +140,9 @@
 }
 
 .app-settings-mobile-pill.active {
-    background: rgba(79, 140, 255, 0.1);
-    color: #4F8CFF;
-    border-color: rgba(79, 140, 255, 0.3);
+    background: #161819;
+    color: #8BAF9A;
+    border-color: #8BAF9A;
     font-weight: 600;
 }
 
@@ -148,7 +151,6 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    min-width: 0;
 }
 
 .app-settings-section-header {
@@ -156,107 +158,78 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #1C1C1C;
+    flex-wrap: wrap;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #292D2D;
 }
 
 .app-settings-section-title {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     margin: 0;
 }
 
 .app-settings-section-desc {
-    font-size: 0.84rem;
-    color: #A3A3A3;
+    font-size: 0.82rem;
+    color: #A0A5A5;
     margin: 0.25rem 0 0;
+    line-height: 1.4;
 }
 
-/* ─── Profile Identity Banner ─── */
-.app-settings-identity-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+/* ─── Card Blocks ─── */
+.app-settings-card {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
     padding: 1.25rem 1.5rem;
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
-    border-radius: 10px;
-}
-
-.app-settings-identity-left {
-    display: flex;
-    align-items: center;
-    gap: 1.15rem;
-}
-
-.app-settings-avatar-large {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: #111111;
-    border: 2px solid rgba(79, 140, 255, 0.4);
-    color: #4F8CFF;
-    font-size: 1.35rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.app-settings-identity-meta {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 1.25rem;
 }
 
-.app-settings-identity-name {
-    font-size: 1.05rem;
+.app-settings-card-title {
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
+    margin: 0;
 }
 
-.app-settings-identity-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.1);
-    padding: 0.15rem 0.55rem;
-    border-radius: 4px;
-    border: 1px solid rgba(79, 140, 255, 0.25);
-    width: fit-content;
+.app-settings-card-desc {
+    font-size: 0.8rem;
+    color: #777E7E;
+    margin: 0.2rem 0 0;
 }
 
-/* ─── Information Rows (Clean enterprise layout, not card-in-card) ─── */
+/* ─── Key-Value Info List ─── */
 .app-settings-info-list {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid #1C1C1C;
 }
 
 .app-settings-info-row {
-    display: grid;
-    grid-template-columns: 200px 1fr auto;
+    display: flex;
     align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid #161616;
+    justify-content: space-between;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid #292D2D;
     gap: 1rem;
+}
+
+.app-settings-info-row:last-child {
+    border-bottom: none;
 }
 
 .app-settings-info-label {
     font-size: 0.84rem;
     font-weight: 500;
-    color: #A3A3A3;
+    color: #A0A5A5;
 }
 
 .app-settings-info-value {
     font-size: 0.88rem;
     font-weight: 500;
-    color: #F5F5F5;
+    color: #F2F3F3;
     word-break: break-all;
 }
 
@@ -268,11 +241,11 @@
 }
 
 .app-settings-input {
-    background: #050505;
-    border: 1px solid #222222;
+    background: #161819;
+    border: 1px solid #292D2D;
     border-radius: 6px;
     padding: 0.55rem 0.8rem;
-    color: #F5F5F5;
+    color: #F2F3F3;
     font-size: 0.88rem;
     width: 100%;
     max-width: 380px;
@@ -281,12 +254,12 @@
 }
 
 .app-settings-input:focus {
-    border-color: #4F8CFF;
+    border-color: #8BAF9A;
 }
 
 .app-settings-input:disabled {
-    background: #0C0C0C;
-    color: #666666;
+    background: #101112;
+    color: #777E7E;
     cursor: not-allowed;
 }
 
@@ -309,13 +282,14 @@
 }
 
 .app-settings-btn--primary {
-    background: #4F8CFF;
-    color: #000000;
-    border: 1px solid #4F8CFF;
+    background: #8BAF9A;
+    color: #080909;
+    border: 1px solid #8BAF9A;
 }
 
 .app-settings-btn--primary:hover {
-    background: #6A9DFF;
+    background: #9DBFAD;
+    border-color: #9DBFAD;
 }
 
 .app-settings-btn--primary:disabled {
@@ -324,31 +298,31 @@
 }
 
 .app-settings-btn--secondary {
-    background: #111111;
-    color: #F5F5F5;
-    border: 1px solid #242424;
+    background: #161819;
+    color: #F2F3F3;
+    border: 1px solid #292D2D;
 }
 
 .app-settings-btn--secondary:hover {
-    background: #181818;
-    border-color: #333333;
+    background: #1c1e20;
+    border-color: #383D3D;
 }
 
 .app-settings-btn--danger {
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(224, 108, 117, 0.1);
+    color: #E06C75;
+    border: 1px solid rgba(224, 108, 117, 0.3);
 }
 
 .app-settings-btn--danger:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: #EF4444;
+    background: rgba(224, 108, 117, 0.2);
+    border-color: #E06C75;
 }
 
 /* ─── Usage Progress Bar ─── */
 .app-settings-usage-box {
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
+    background: #101112;
+    border: 1px solid #292D2D;
     border-radius: 8px;
     padding: 1.25rem 1.5rem;
     display: flex;
@@ -365,29 +339,29 @@
 .app-settings-usage-label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
 }
 
 .app-settings-usage-metric {
     font-size: 0.85rem;
-    color: #A3A3A3;
+    color: #A0A5A5;
 }
 
 .app-settings-usage-metric strong {
-    color: #F5F5F5;
+    color: #F2F3F3;
 }
 
 .app-settings-progress-track {
     width: 100%;
     height: 6px;
-    background: #181818;
+    background: #161819;
     border-radius: 999px;
     overflow: hidden;
 }
 
 .app-settings-progress-bar {
     height: 100%;
-    background: #4F8CFF;
+    background: #8BAF9A;
     border-radius: 999px;
     transition: width 0.3s ease;
 }
@@ -396,16 +370,16 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.74rem;
-    color: #737373;
+    color: #777E7E;
 }
 
 /* ─── Tables (Billing / Members) ─── */
 .app-settings-table-wrap {
     width: 100%;
     overflow-x: auto;
-    border: 1px solid #1C1C1C;
+    border: 1px solid #292D2D;
     border-radius: 8px;
-    background: #0A0A0A;
+    background: #101112;
 }
 
 .app-settings-table {
@@ -416,20 +390,20 @@
 }
 
 .app-settings-table th {
-    background: #070707;
+    background: #161819;
     padding: 0.75rem 1rem;
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #737373;
-    border-bottom: 1px solid #1C1C1C;
+    color: #777E7E;
+    border-bottom: 1px solid #292D2D;
 }
 
 .app-settings-table td {
     padding: 0.85rem 1rem;
-    color: #F5F5F5;
-    border-bottom: 1px solid #161616;
+    color: #F2F3F3;
+    border-bottom: 1px solid #202323;
 }
 
 .app-settings-table tr:last-child td {
@@ -437,7 +411,7 @@
 }
 
 .app-settings-table tr:hover td {
-    background: #0E0E0E;
+    background: #161819;
 }
 
 .app-settings-status-badge {
@@ -450,58 +424,28 @@
     border-radius: 4px;
 }
 
-.app-settings-status-badge.paid,
 .app-settings-status-badge.active {
-    background: rgba(34, 197, 94, 0.12);
-    color: #22C55E;
-    border: 1px solid rgba(34, 197, 94, 0.25);
+    background: rgba(139, 175, 154, 0.12);
+    color: #8BAF9A;
+    border: 1px solid rgba(139, 175, 154, 0.28);
 }
 
-.app-settings-status-badge.inactive {
-    background: rgba(163, 163, 163, 0.1);
-    color: #A3A3A3;
-    border: 1px solid rgba(163, 163, 163, 0.2);
+.app-settings-status-badge.invited {
+    background: rgba(229, 192, 123, 0.1);
+    color: #E5C07B;
+    border: 1px solid rgba(229, 192, 123, 0.25);
 }
 
-/* ─── Security Row Block ─── */
-.app-settings-security-block {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 1.25rem 0;
-    border-bottom: 1px solid #1C1C1C;
-}
-
-.app-settings-security-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.app-settings-security-info h4 {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #F5F5F5;
-    margin: 0 0 0.25rem 0;
-}
-
-.app-settings-security-info p {
-    font-size: 0.82rem;
-    color: #737373;
-    margin: 0;
-    line-height: 1.4;
-}
-
+/* Active Sessions Cards */
 .app-settings-session-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.85rem 1rem;
-    background: #080808;
-    border: 1px solid #1A1A1A;
+    padding: 0.75rem 1rem;
     border-radius: 6px;
-    margin-top: 0.5rem;
+    background: #161819;
+    border: 1px solid #292D2D;
+    gap: 1rem;
 }
 
 .app-settings-session-meta {
@@ -510,105 +454,8 @@
     gap: 0.75rem;
 }
 
-/* ─── Danger Zone ─── */
-.app-settings-danger-zone {
-    margin-top: 1.5rem;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.03);
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-}
-
-.app-settings-danger-info h4 {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: #EF4444;
-    margin: 0 0 0.25rem 0;
-}
-
-.app-settings-danger-info p {
-    font-size: 0.82rem;
-    color: #A3A3A3;
-    margin: 0;
-    line-height: 1.4;
-}
-
-/* ─── Simple Modal for Confirmation ─── */
-.app-settings-confirm-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: 1rem;
-}
-
-.app-settings-confirm-box {
-    background: #0A0A0A;
-    border: 1px solid #222222;
-    border-radius: 10px;
-    padding: 1.5rem;
-    max-width: 440px;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
-}
-
-.app-settings-confirm-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #F5F5F5;
-    margin: 0;
-}
-
-.app-settings-confirm-desc {
-    font-size: 0.84rem;
-    color: #A3A3A3;
-    line-height: 1.5;
-    margin: 0;
-}
-
-.app-settings-confirm-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-}
-
-/* ─── Feedback Alerts ─── */
-.app-settings-feedback {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 0.9rem;
-    border-radius: 6px;
-    font-size: 0.84rem;
-    font-weight: 500;
-}
-
-.app-settings-feedback.success {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22C55E;
-    border: 1px solid rgba(34, 197, 94, 0.25);
-}
-
-.app-settings-feedback.error {
-    background: rgba(239, 68, 68, 0.1);
-    color: #EF4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-}
-
-/* ─── Responsive Media Queries ─── */
-@media (max-width: 900px) {
+/* Responsive */
+@media (max-width: 768px) {
     .app-settings-layout {
         grid-template-columns: 1fr;
         gap: 1.5rem;
@@ -620,39 +467,5 @@
 
     .app-settings-mobile-nav {
         display: flex;
-    }
-}
-
-@media (max-width: 640px) {
-    .app-settings-info-row {
-        grid-template-columns: 1fr;
-        gap: 0.4rem;
-        align-items: flex-start;
-    }
-
-    .app-settings-info-edit {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .app-settings-input {
-        max-width: 100%;
-    }
-
-    .app-settings-identity-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .app-settings-danger-zone {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .app-settings-security-top {
-        flex-direction: column;
-        align-items: flex-start;
     }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Layers, CheckCircle2, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
+import { ShieldCheck, Layers, CheckCircle2, AlertTriangle, ArrowRight, Loader2, Info } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useHistory } from '../../hooks/useHistory';
 
@@ -20,15 +20,21 @@ const CoveragePage = () => {
                 item.suite?.functional?.[0]?.reqId ||
                 `REQ-${String(idx + 1).padStart(3, '0')}`;
 
+            // Explainable coverage: ratio of covered test dimensions (functional, negative, edge)
+            const hasFunctional = functionalCount > 0 ? 1 : 0;
+            const hasNegative = negativeCount > 0 ? 1 : 0;
+            const hasEdge = edgeCount > 0 ? 1 : 0;
+            const dimensionScore = Math.round(((hasFunctional * 45) + (hasNegative * 30) + (hasEdge * 25)));
+
             const coverageNum = item.quality?.coverageConfidence
                 ? item.quality.coverageConfidence
-                : (item.summary?.requirementCoverage ? parseInt(item.summary.requirementCoverage, 10) : (totalTests > 0 ? 92 : 0));
+                : (item.summary?.requirementCoverage ? parseInt(item.summary.requirementCoverage, 10) : (totalTests > 0 ? dimensionScore : 0));
 
             const typeLabel = item.context === 'api'
-                ? 'API Integration'
+                ? 'API'
                 : item.context === 'mobile'
-                    ? 'Mobile Application'
-                    : 'Web Application';
+                    ? 'Mobile'
+                    : 'Web';
 
             return {
                 id: item.id || item.sessionId || `req-${idx + 1}`,
@@ -36,7 +42,10 @@ const CoveragePage = () => {
                 label: item.title || item.feature || item.requirement?.slice(0, 45) || `Requirement #${idx + 1}`,
                 coverage: coverageNum,
                 tests: totalTests,
-                status: coverageNum >= 95 ? 'Optimal' : coverageNum >= 85 ? 'Good' : 'Needs Work',
+                functionalCount,
+                negativeCount,
+                edgeCount,
+                status: coverageNum >= 90 ? 'Optimal' : coverageNum >= 75 ? 'Standard' : 'Needs Review',
                 type: typeLabel
             };
         });
@@ -50,174 +59,162 @@ const CoveragePage = () => {
         : '0 / 0';
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
-                        Requirement Coverage Matrix
-                    </h1>
-                    <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
-                        Automated QA verification mapping specifications to test assertions
+        <div className="ws-page-container">
+            {/* Header */}
+            <div className="ws-page-header">
+                <div className="ws-page-title-wrap">
+                    <h1>Requirement Coverage</h1>
+                    <p>
+                        Traceability-grounded coverage analysis derived from verified requirement specifications
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <NavLink to="/app/workspace" className="app-workspace-session-btn primary" style={{ padding: '0.65rem 1.15rem' }}>
+                <div className="ws-header-actions">
+                    <NavLink to="/app/workspace" className="ws-btn-primary">
                         <span>+ New Test Suite</span>
                     </NavLink>
                 </div>
             </div>
 
             {isLoading && userSuites.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A3A3A3' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: '#00D9C0' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
+                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
                     <span>Loading coverage metrics...</span>
                 </div>
             ) : userSuites.length === 0 ? (
-                /* Meaningful Empty State when no suite exists (Section 13) */
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    padding: '4.5rem 2rem',
-                    background: '#0A0A0A',
-                    borderRadius: '14px',
-                    border: '1px solid #1C1C1C',
-                    gap: '1.25rem'
-                }}>
-                    <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '14px',
-                        background: 'rgba(0, 217, 192, 0.08)',
-                        border: '1px solid rgba(0, 217, 192, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#00D9C0'
-                    }}>
+                /* Meaningful Empty State */
+                <div className="ws-empty-state">
+                    <div className="ws-empty-icon-wrap">
                         <ShieldCheck size={28} />
                     </div>
 
-                    <div style={{ maxWidth: '440px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
-                            No test suite selected.
-                        </h2>
-                        <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
-                            Generate or open a test suite to view coverage.
+                    <div className="ws-empty-text-wrap" style={{ maxWidth: '440px' }}>
+                        <h2>No test suite coverage yet.</h2>
+                        <p>
+                            Generate a test suite in AI Workspace to map requirements to test cases and view real coverage breakdowns.
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <NavLink
-                            to="/app/workspace"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.65rem 1.25rem',
-                                borderRadius: '8px',
-                                background: '#00D9C0',
-                                color: '#0A0A0A',
-                                fontSize: '0.88rem',
-                                textDecoration: 'none',
-                                fontWeight: '600'
-                            }}
-                        >
+                    <div className="ws-empty-actions">
+                        <NavLink to="/app/workspace" className="ws-btn-primary">
                             <span>Generate in AI Workspace &rarr;</span>
                         </NavLink>
-                        <NavLink
-                            to="/app/test-suites"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.65rem 1.25rem',
-                                borderRadius: '8px',
-                                background: '#121212',
-                                border: '1px solid #262626',
-                                color: '#F5F5F5',
-                                fontSize: '0.88rem',
-                                textDecoration: 'none',
-                                fontWeight: '500'
-                            }}
-                        >
-                            <span>View All Test Suites</span>
+                        <NavLink to="/app/test-suites" className="ws-btn-secondary">
+                            <span>All Test Suites</span>
                         </NavLink>
                     </div>
                 </div>
             ) : (
                 <>
-                    {/* Overview Stats (Only rendered when real suites exist) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '1rem' }}>
-                        <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>OVERALL COVERAGE</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#00D9C0', margin: '0.25rem 0 0', fontWeight: '600' }}>{avgCoverage}</h2>
+                    {/* Metrics Overview */}
+                    <div className="ws-stats-grid">
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">AVERAGE COVERAGE</span>
+                            <h2 className="ws-stat-card__val ws-stat-card__val--accent">{avgCoverage}</h2>
                         </div>
-                        <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>TOTAL TEST SCENARIOS</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#F5F5F5', margin: '0.25rem 0 0', fontWeight: '600' }}>{totalScenarios}</h2>
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">TOTAL TEST CASES</span>
+                            <h2 className="ws-stat-card__val">{totalScenarios}</h2>
                         </div>
-                        <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>COVERED REQUIREMENTS</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#22C55E', margin: '0.25rem 0 0', fontWeight: '600' }}>{coveredReqs}</h2>
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">COVERED REQUIREMENTS</span>
+                            <h2 className="ws-stat-card__val ws-stat-card__val--success">{coveredReqs}</h2>
                         </div>
-                        <div style={{ background: '#0A0A0A', padding: '1.25rem 1rem', borderRadius: '12px', border: '1px solid #1C1C1C' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#737373', fontWeight: '600' }}>VERIFIED SUITES</span>
-                            <h2 style={{ fontSize: '1.75rem', color: '#F5F5F5', margin: '0.25rem 0 0', fontWeight: '600' }}>{userSuites.length}</h2>
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">ACTIVE SUITES</span>
+                            <h2 className="ws-stat-card__val">{userSuites.length}</h2>
                         </div>
                     </div>
 
-                    {/* Coverage Table */}
-                    <div style={{ background: '#0A0A0A', borderRadius: '12px', border: '1px solid #1C1C1C', overflow: 'hidden' }}>
-                        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #161616', fontWeight: '600', color: '#F5F5F5' }}>
-                            Active Suite Requirement Coverage Breakdown
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {userSuites.map((item) => (
-                            <div
-                                key={item.id}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    flexWrap: 'wrap',
-                                    gap: '0.75rem',
-                                    padding: '1rem 1.25rem',
-                                    borderBottom: '1px solid #161616'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: '220px', flex: '1' }}>
-                                    <span style={{ color: '#00D9C0', fontWeight: '600', fontSize: '0.8rem', minWidth: '65px' }}>
-                                        {item.req}
-                                    </span>
-                                    <div>
-                                        <div style={{ color: '#F5F5F5', fontWeight: '500', fontSize: '0.88rem' }}>{item.label}</div>
-                                        <span style={{ fontSize: '0.72rem', color: '#737373' }}>{item.type}</span>
-                                    </div>
-                                </div>
+                    {/* Coverage Calculation Methodology Notice */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        background: '#101112',
+                        border: '1px solid #292D2D',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        color: '#A0A5A5'
+                    }}>
+                        <Info size={15} style={{ color: '#8BAF9A', flexShrink: 0 }} />
+                        <span>
+                            <strong>Explainable Coverage Calculation:</strong> Scores reflect multidimensional test depth across functional happy paths (45%), negative exception states (30%), and boundary edge cases (25%).
+                        </span>
+                    </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
-                                    <div style={{ width: '100px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '0.25rem', color: '#A3A3A3' }}>
-                                            <span>{item.coverage}%</span>
-                                        </div>
-                                        <div style={{ height: '5px', background: '#1C1C1C', borderRadius: '3px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', width: `${item.coverage}%`, background: '#00D9C0' }} />
+                    {/* Breakdown Table */}
+                    <div className="ws-card">
+                        <div className="ws-card-header">
+                            <span>Requirement Coverage Breakdown</span>
+                            <span style={{ fontSize: '0.75rem', color: '#777E7E', fontWeight: 500 }}>
+                                {userSuites.length} Active {userSuites.length === 1 ? 'Specification' : 'Specifications'}
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {userSuites.map((item) => (
+                                <div
+                                    key={item.id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        flexWrap: 'wrap',
+                                        gap: '0.85rem',
+                                        padding: '0.9rem 1.25rem',
+                                        borderBottom: '1px solid #292D2D',
+                                        transition: 'background 0.12s ease'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: '240px', flex: '1' }}>
+                                        <span style={{
+                                            color: '#8BAF9A',
+                                            fontWeight: '600',
+                                            fontSize: '0.78rem',
+                                            fontFamily: 'monospace',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            background: 'rgba(139, 175, 154, 0.1)',
+                                            border: '1px solid rgba(139, 175, 154, 0.2)'
+                                        }}>
+                                            {item.req}
+                                        </span>
+                                        <div>
+                                            <div style={{ color: '#F2F3F3', fontWeight: '550', fontSize: '0.86rem' }}>{item.label}</div>
+                                            <span style={{ fontSize: '0.72rem', color: '#777E7E' }}>{item.type} Target • {item.functionalCount} fn / {item.negativeCount} neg / {item.edgeCount} edge</span>
                                         </div>
                                     </div>
-                                    <span style={{ fontSize: '0.78rem', color: '#737373', minWidth: '55px' }}>{item.tests} tests</span>
-                                    <NavLink
-                                        to={`/app/test-suites/${item.id}`}
-                                        style={{ color: '#00D9C0', display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-                                    >
-                                        <ArrowRight size={14} />
-                                    </NavLink>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
+                                        <div style={{ width: '110px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginBottom: '0.25rem', color: '#A0A5A5' }}>
+                                                <span>{item.coverage}%</span>
+                                                <span style={{ color: item.coverage >= 90 ? '#8BAF9A' : '#E5C07B', fontWeight: 600 }}>{item.status}</span>
+                                            </div>
+                                            <div style={{ height: '4px', background: '#161819', borderRadius: '2px', overflow: 'hidden' }}>
+                                                <div style={{
+                                                    height: '100%',
+                                                    width: `${item.coverage}%`,
+                                                    background: '#8BAF9A',
+                                                    borderRadius: '2px'
+                                                }} />
+                                            </div>
+                                        </div>
+                                        <span style={{ fontSize: '0.78rem', color: '#777E7E', minWidth: '60px', textAlign: 'right' }}>
+                                            {item.tests} tests
+                                        </span>
+                                        <NavLink
+                                            to={`/app/test-suites/${item.id}`}
+                                            style={{ color: '#8BAF9A', display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+                                            title="View Test Suite"
+                                        >
+                                            <ArrowRight size={15} />
+                                        </NavLink>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
                         </div>
                     </div>
                 </>

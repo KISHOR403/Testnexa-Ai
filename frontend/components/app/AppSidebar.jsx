@@ -292,7 +292,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             <div style={{ fontSize: '0.74rem', color: '#888888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
                                 {user?.email || 'user@testnexa.ai'}
                             </div>
-                            <div style={{ marginTop: '0.45rem', display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(0, 217, 192, 0.12)', color: '#00D9C0', border: '1px solid rgba(0, 217, 192, 0.25)', letterSpacing: '0.04em' }}>
+                            <div style={{ marginTop: '0.45rem', display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(139, 175, 154, 0.12)', color: '#8BAF9A', border: '1px solid rgba(139, 175, 154, 0.25)', letterSpacing: '0.04em' }}>
                                 PRO WORKSPACE
                             </div>
                         </div>
@@ -341,7 +341,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
                                 <Award size={15} />
                             </div>
-                            <span style={{ color: '#00D9C0', fontWeight: 600 }}>Billing & Usage</span>
+                            <span style={{ color: '#8BAF9A', fontWeight: 600 }}>Billing & Usage</span>
                             <ArrowRight size={13} className="gpt-popup-arrow" />
                         </button>
 

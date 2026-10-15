@@ -24,11 +24,11 @@ const QUICK_EXAMPLES = [
         description: 'New users can register with an email address, password, and full name. System validates email format, enforces password complexity (min 8 chars, 1 uppercase, 1 symbol), sends email verification token, and prevents duplicate registration.'
     },
     {
-        title: 'Login',
+        title: 'Login & Session Auth',
         description: 'Users can authenticate using email and password with optional MFA. System locks account after 5 consecutive failed attempts, invalidates prior sessions on password change, and supports Remember Me for 30 days.'
     },
     {
-        title: 'Checkout',
+        title: 'Cart & Checkout',
         description: 'Users can checkout cart items with address validation, coupon code application, shipping method selection, and sales tax calculation. Verifies inventory reservation and emits order confirmation upon successful authorization.'
     },
     {
@@ -68,7 +68,7 @@ const WorkspacePage = () => {
     const [suiteData, setSuiteData] = useState(null);
     const [isLoadingSession, setIsLoadingSession] = useState(!!routeSessionId);
 
-    // Save tracking: Single clear status (Section 14)
+    // Save tracking: Single clear status
     const [saveStatus, setSaveStatus] = useState('saved'); // 'idle' | 'saving' | 'saved'
     const [lastSavedTime, setLastSavedTime] = useState(null);
     const [saveLabel, setSaveLabel] = useState('Saved');
@@ -82,13 +82,13 @@ const WorkspacePage = () => {
 
     const [showExamples, setShowExamples] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generationStage, setGenerationStage] = useState('analyzed'); // 'analyzed' | 'scenarios' | 'generating' | 'coverage' | 'traceability' | 'complete'
     const [error, setError] = useState(null);
 
-    // Contextual Floating QA Assistant State (Section 15)
+    // Contextual Floating QA Assistant State
     const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
     const textareaRef = useRef(null);
+    const examplesMenuRef = useRef(null);
     const maxLength = 2000;
 
     // Auto-save tracker
@@ -116,6 +116,19 @@ const WorkspacePage = () => {
         const interval = setInterval(updateLabel, 5000);
         return () => clearInterval(interval);
     }, [lastSavedTime, saveStatus]);
+
+    // Close examples menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (examplesMenuRef.current && !examplesMenuRef.current.contains(e.target)) {
+                setShowExamples(false);
+            }
+        };
+        if (showExamples) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showExamples]);
 
     // Load existing test suite session when routeSessionId is present
     useEffect(() => {
@@ -275,14 +288,7 @@ const WorkspacePage = () => {
         }
 
         setIsGenerating(true);
-        setGenerationStage('analyzed');
         setError(null);
-
-        // Progress milestones simulating authentic QA lifecycle transitions
-        const t1 = setTimeout(() => setGenerationStage('scenarios'), 600);
-        const t2 = setTimeout(() => setGenerationStage('generating'), 1400);
-        const t3 = setTimeout(() => setGenerationStage('coverage'), 2600);
-        const t4 = setTimeout(() => setGenerationStage('traceability'), 3600);
 
         try {
             const resolvedTitle = requirementTitle.trim() ||
@@ -295,12 +301,6 @@ const WorkspacePage = () => {
                 sessionId: currentSessionId
             });
 
-            clearTimeout(t1);
-            clearTimeout(t2);
-            clearTimeout(t3);
-            clearTimeout(t4);
-            setGenerationStage('complete');
-
             // 2. Identify the exact persisted test suite ID
             const targetSuiteId = result.testSuiteId || result.sessionId || currentSessionId;
 
@@ -311,7 +311,7 @@ const WorkspacePage = () => {
             setSuiteData(result);
             setSessionStatus('NeedsReview');
 
-            // 4. Automatic navigation directly to generated test suite (Section 10)
+            // 4. Navigate directly to generated test suite review
             navigate(`/app/test-suites/${targetSuiteId}`, {
                 state: {
                     suite: result,
@@ -322,28 +322,22 @@ const WorkspacePage = () => {
                 }
             });
         } catch (err) {
-            clearTimeout(t1);
-            clearTimeout(t2);
-            clearTimeout(t3);
-            clearTimeout(t4);
             console.error('Generation error:', err);
             const userSafeMsg = err.message?.includes('QUOTA_LIMIT')
                 ? 'AI service is temporarily busy. Please wait a moment and try again.'
                 : err.message || 'Test suite generation failed. Please check your requirement and try again.';
             setError(userSafeMsg);
             setIsGenerating(false);
-            setGenerationStage('analyzed');
         }
     };
 
     const charCount = requirement.length;
     const isInputValid = requirement.trim().length >= 10;
-    const activeReqId = currentSessionId ? `REQ-${currentSessionId.slice(-4).toUpperCase()}` : 'REQ-001';
     const displayTitle = requirementTitle.trim() || 'Untitled Requirement';
 
     return (
         <div className="app-workspace-container">
-            {/* ─── 1. PAGE HEADER (Section 3) ─── */}
+            {/* ─── 1. PAGE HEADER ─── */}
             <header className="app-workspace-header">
                 <div className="app-workspace-header__meta">
                     <div className="app-workspace-header__title-row">
@@ -362,19 +356,19 @@ const WorkspacePage = () => {
                     </p>
                 </div>
 
-                {/* Workflow Stepper: Compact & Professional (Section 3) */}
-                <div className="app-workspace-workflow-stepper" aria-label="QA Workflow Stepper">
+                {/* Compact Four-Stage Progress Indicator */}
+                <div className="app-workspace-workflow-stepper" aria-label="Workflow Stages">
                     <div className={`app-workspace-step ${!isGenerating ? 'is-active' : 'is-completed'}`}>
                         <span className="app-workspace-step-num">01</span>
                         <span className="app-workspace-step-name">Requirement</span>
                     </div>
                     <span className="app-workspace-step-arrow">→</span>
-                    <div className={`app-workspace-step ${isGenerating && (generationStage === 'analyzed' || generationStage === 'scenarios') ? 'is-active' : ''}`}>
+                    <div className={`app-workspace-step ${isGenerating ? 'is-active' : ''}`}>
                         <span className="app-workspace-step-num">02</span>
                         <span className="app-workspace-step-name">Analyze</span>
                     </div>
                     <span className="app-workspace-step-arrow">→</span>
-                    <div className={`app-workspace-step ${isGenerating && (generationStage === 'generating' || generationStage === 'coverage' || generationStage === 'traceability') ? 'is-active' : ''}`}>
+                    <div className={`app-workspace-step ${isGenerating ? 'is-active' : ''}`}>
                         <span className="app-workspace-step-num">03</span>
                         <span className="app-workspace-step-name">Generate</span>
                     </div>
@@ -385,7 +379,7 @@ const WorkspacePage = () => {
                     </div>
                 </div>
 
-                {/* Single Clear Save Status (Section 14) */}
+                {/* Single Clear Save Status */}
                 <div className="app-workspace-header__status">
                     {saveStatus === 'saving' ? (
                         <div className="app-workspace-saved-pill saving">
@@ -401,7 +395,7 @@ const WorkspacePage = () => {
                 </div>
             </header>
 
-            {/* Error Handling Banner (Section 21) */}
+            {/* Error Handling Banner with Retry */}
             {error && (
                 <div className="app-workspace-error-banner" role="alert">
                     <div className="app-workspace-error-content">
@@ -418,7 +412,7 @@ const WorkspacePage = () => {
                             className="app-workspace-btn-retry"
                         >
                             <RefreshCw size={13} />
-                            <span>Try Again</span>
+                            <span>Retry Generation</span>
                         </button>
                         <button
                             type="button"
@@ -431,168 +425,85 @@ const WorkspacePage = () => {
                 </div>
             )}
 
-            {/* ─── 2. DEDICATED GENERATION EXPERIENCE (Section 9) ─── */}
-            {isGenerating ? (
-                <div className="app-workspace-generating-container animate-fade-in">
-                    <div className="app-workspace-generating-main">
-                        <div className="app-workspace-generating-header">
-                            <span className="app-workspace-generating-badge">GENERATING TEST SUITE</span>
-                            <h2 className="app-workspace-generating-title">{displayTitle}</h2>
-                            <span className="app-workspace-generating-req-id">{activeReqId}</span>
+            {/* ─── 2. ACTIVE RESUMED SUITE BANNER (If returning to an already generated suite) ─── */}
+            {suiteData && !isGenerating && (
+                <div className="app-workspace-active-suite-banner">
+                    <div className="app-workspace-active-suite-info">
+                        <div className="app-workspace-active-suite-title-row">
+                            <Check size={15} color="#8BAF9A" strokeWidth={2.5} />
+                            <span className="app-workspace-active-suite-title">
+                                {suiteData.testSuiteName || suiteData.feature || requirementTitle || 'Generated Test Suite'}
+                            </span>
                         </div>
-
-                        {/* Truthful Progress Milestones */}
-                        <div className="app-workspace-milestones">
-                            <div className="app-workspace-milestone-row is-done">
-                                <span className="app-workspace-milestone-icon done">✓</span>
-                                <span className="app-workspace-milestone-text">Requirement analyzed</span>
-                            </div>
-
-                            <div className={`app-workspace-milestone-row ${['scenarios', 'generating', 'coverage', 'traceability', 'complete'].includes(generationStage) ? 'is-done' : 'is-current'}`}>
-                                <span className={`app-workspace-milestone-icon ${['scenarios', 'generating', 'coverage', 'traceability', 'complete'].includes(generationStage) ? 'done' : 'current'}`}>
-                                    {['scenarios', 'generating', 'coverage', 'traceability', 'complete'].includes(generationStage) ? '✓' : '●'}
-                                </span>
-                                <span className="app-workspace-milestone-text">Test scenarios identified</span>
-                            </div>
-
-                            <div className={`app-workspace-milestone-row ${['generating', 'coverage', 'traceability', 'complete'].includes(generationStage) ? (generationStage === 'generating' ? 'is-current' : 'is-done') : 'is-pending'}`}>
-                                <span className={`app-workspace-milestone-icon ${['coverage', 'traceability', 'complete'].includes(generationStage) ? 'done' : generationStage === 'generating' ? 'current' : 'pending'}`}>
-                                    {['coverage', 'traceability', 'complete'].includes(generationStage) ? '✓' : generationStage === 'generating' ? '●' : '○'}
-                                </span>
-                                <span className="app-workspace-milestone-text">Generating test cases</span>
-                            </div>
-
-                            <div className={`app-workspace-milestone-row ${['coverage', 'traceability', 'complete'].includes(generationStage) ? (generationStage === 'coverage' ? 'is-current' : 'is-done') : 'is-pending'}`}>
-                                <span className={`app-workspace-milestone-icon ${['traceability', 'complete'].includes(generationStage) ? 'done' : generationStage === 'coverage' ? 'current' : 'pending'}`}>
-                                    {['traceability', 'complete'].includes(generationStage) ? '✓' : generationStage === 'coverage' ? '●' : '○'}
-                                </span>
-                                <span className="app-workspace-milestone-text">Calculating coverage</span>
-                            </div>
-
-                            <div className={`app-workspace-milestone-row ${generationStage === 'traceability' || generationStage === 'complete' ? (generationStage === 'traceability' ? 'is-current' : 'is-done') : 'is-pending'}`}>
-                                <span className={`app-workspace-milestone-icon ${generationStage === 'complete' ? 'done' : generationStage === 'traceability' ? 'current' : 'pending'}`}>
-                                    {generationStage === 'complete' ? '✓' : generationStage === 'traceability' ? '●' : '○'}
-                                </span>
-                                <span className="app-workspace-milestone-text">Building traceability</span>
-                            </div>
-                        </div>
-
-                        {/* Subtle Progress Bar */}
-                        <div className="app-workspace-progress-bar-wrap">
-                            <div
-                                className="app-workspace-progress-bar-fill"
-                                style={{
-                                    width: generationStage === 'complete' ? '100%'
-                                        : generationStage === 'traceability' ? '88%'
-                                        : generationStage === 'coverage' ? '70%'
-                                        : generationStage === 'generating' ? '50%'
-                                        : generationStage === 'scenarios' ? '30%'
-                                        : '15%'
-                                }}
-                            />
+                        <div className="app-workspace-active-suite-meta">
+                            <span><strong>{suiteData.summary?.total || (suiteData.functional?.length || 0) + (suiteData.negative?.length || 0) + (suiteData.edge?.length || 0)}</strong> Test Cases</span>
+                            <span>•</span>
+                            <span><strong>{suiteData.summary?.functional || suiteData.functional?.length || 0}</strong> Functional</span>
+                            <span>•</span>
+                            <span><strong>{suiteData.summary?.edge || suiteData.edge?.length || 0}</strong> Edge</span>
+                            {suiteData.summary?.requirementCoverage && (
+                                <>
+                                    <span>•</span>
+                                    <span>Coverage: <strong>{suiteData.summary.requirementCoverage}</strong></span>
+                                </>
+                            )}
                         </div>
                     </div>
 
-                    {/* Generation Summary Card */}
-                    <aside className="app-workspace-generating-summary">
-                        <h3 className="app-workspace-generating-summary-title">GENERATION SUMMARY</h3>
-                        <div className="app-workspace-summary-table">
-                            <div className="app-workspace-summary-row">
-                                <span className="app-workspace-summary-label">Target:</span>
-                                <span className="app-workspace-summary-value">{settings.type.toUpperCase()}</span>
+                    <NavLink
+                        to={`/app/test-suites/${currentSessionId || 'active'}`}
+                        state={{ suite: suiteData, prompt: requirement, settings }}
+                        className="app-workspace-open-btn"
+                    >
+                        <span>Open Test Suite</span>
+                        <ArrowRight size={14} />
+                    </NavLink>
+                </div>
+            )}
+
+            {/* ─── 3. TRUTHFUL GENERATING STATE ─── */}
+            {isGenerating ? (
+                <div className="app-workspace-generating-clean">
+                    <div className="app-workspace-generating-card">
+                        <Loader2 size={36} className="animate-spin" color="#8BAF9A" />
+                        <div className="app-workspace-generating-text">
+                            <h3>Synthesizing QA Test Suite</h3>
+                            <p>
+                                Analyzing requirement specification for <strong>{displayTitle}</strong>. Synthesizing functional paths, boundary assertions, and requirement traceability...
+                            </p>
+                        </div>
+                        <div className="app-workspace-generating-specs">
+                            <div className="app-workspace-generating-spec-item">
+                                <span className="spec-label">Target</span>
+                                <span className="spec-val">{settings.type.toUpperCase()}</span>
                             </div>
-                            <div className="app-workspace-summary-row">
-                                <span className="app-workspace-summary-label">Depth:</span>
-                                <span className="app-workspace-summary-value">{settings.level}</span>
+                            <div className="app-workspace-generating-spec-item">
+                                <span className="spec-label">Coverage Depth</span>
+                                <span className="spec-val">{settings.level}</span>
                             </div>
-                            <div className="app-workspace-summary-row">
-                                <span className="app-workspace-summary-label">Specification:</span>
-                                <span className="app-workspace-summary-value">{charCount} chars</span>
-                            </div>
-                            <div className="app-workspace-summary-row">
-                                <span className="app-workspace-summary-label">Status:</span>
-                                <span className="app-workspace-summary-value highlight">Processing</span>
+                            <div className="app-workspace-generating-spec-item">
+                                <span className="spec-label">Length</span>
+                                <span className="spec-val">{charCount} characters</span>
                             </div>
                         </div>
-                        <p className="app-workspace-summary-note">
-                            TestNexa validates input assertions, maps boundary conditions, and generates executable test cases with bidirectional traceability.
-                        </p>
-                    </aside>
+                    </div>
                 </div>
             ) : isLoadingSession ? (
                 <div className="app-workspace-loading-state">
-                    <Loader2 size={24} className="animate-spin" color="#00D9C0" />
+                    <Loader2 size={24} className="animate-spin" color="#8BAF9A" />
                     <span>Loading test suite specifications...</span>
                 </div>
             ) : (
-                <>
-                    {/* Active Resumed Suite Notification (If returning to an already generated suite) */}
-                    {suiteData && (
-                        <div className="app-workspace-active-suite-banner">
-                            <div className="app-workspace-active-suite-info">
-                                <div className="app-workspace-active-suite-title-row">
-                                    <Check size={15} color="#22C55E" strokeWidth={2.5} />
-                                    <span className="app-workspace-active-suite-title">
-                                        {suiteData.testSuiteName || suiteData.feature || requirementTitle || 'Generated Test Suite'}
-                                    </span>
-                                </div>
-                                <div className="app-workspace-active-suite-meta">
-                                    <span><strong>{suiteData.summary?.total || (suiteData.functional?.length || 0) + (suiteData.negative?.length || 0) + (suiteData.edge?.length || 0)}</strong> Test Cases</span>
-                                    <span>•</span>
-                                    <span><strong>{suiteData.summary?.functional || suiteData.functional?.length || 0}</strong> Functional</span>
-                                    <span>•</span>
-                                    <span><strong>{suiteData.summary?.edge || suiteData.edge?.length || 0}</strong> Edge</span>
-                                    {suiteData.summary?.requirementCoverage && (
-                                        <>
-                                            <span>•</span>
-                                            <span>Coverage: <strong>{suiteData.summary.requirementCoverage}</strong></span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <NavLink
-                                to={`/app/test-suites/${currentSessionId || 'active'}`}
-                                state={{ suite: suiteData, prompt: requirement, settings }}
-                                className="app-workspace-open-btn"
-                            >
-                                <span>Open Test Suite</span>
-                                <ArrowRight size={14} />
-                            </NavLink>
-                        </div>
-                    )}
-
-                    {/* ─── 3. REQUIREMENT WORKBENCH (Section 4) ─── */}
-                    <section className="app-workspace-section" aria-labelledby="req-heading">
-                        <div className="app-workspace-section-header">
-                            <span id="req-heading" className="app-workspace-section-label">REQUIREMENT</span>
-                        </div>
-
-                        {/* Title Field */}
-                        <div className="app-workspace-field">
-                            <label htmlFor="req-title" className="app-workspace-field-label">
-                                Title
-                            </label>
-                            <input
-                                id="req-title"
-                                type="text"
-                                className="app-workspace-title-input"
-                                value={requirementTitle}
-                                onChange={(e) => setRequirementTitle(e.target.value)}
-                                placeholder="e.g. Password Reset"
-                                maxLength={120}
-                            />
-                        </div>
-
-                        {/* Description Field */}
-                        <div className="app-workspace-field">
-                            <div className="app-workspace-field-header">
-                                <label htmlFor="req-desc" className="app-workspace-field-label">
-                                    Description
-                                </label>
-
-                                {/* Realistic Quick Examples (Section 4) */}
-                                <div className="app-workspace-examples-anchor">
+                /* ─── 4. BALANCED TWO-COLUMN WORKBENCH (Desktop 2-col, Mobile Stacked) ─── */
+                <div className="app-workspace-2col-layout">
+                    {/* LEFT COLUMN: Requirement Specification */}
+                    <div className="app-workspace-col-main">
+                        <div className="app-workspace-card">
+                            <div className="app-workspace-card-header">
+                                <span className="app-workspace-card-label">REQUIREMENT SPECIFICATION</span>
+                                
+                                {/* Quick Examples Menu */}
+                                <div className="app-workspace-examples-anchor" ref={examplesMenuRef}>
                                     <button
                                         type="button"
                                         className="app-workspace-examples-btn"
@@ -604,8 +515,8 @@ const WorkspacePage = () => {
                                     </button>
 
                                     {showExamples && (
-                                        <div className="app-workspace-examples-menu">
-                                            <div className="app-workspace-examples-menu__label">SELECT A QA SPECIFICATION</div>
+                                        <div className="app-workspace-examples-menu" role="menu">
+                                            <div className="app-workspace-examples-menu__label">SELECT A SPECIFICATION TEMPLATE</div>
                                             {QUICK_EXAMPLES.map((ex, idx) => (
                                                 <button
                                                     key={idx}
@@ -622,87 +533,83 @@ const WorkspacePage = () => {
                                 </div>
                             </div>
 
-                            <div className="app-workspace-textarea-wrap">
-                                <textarea
-                                    id="req-desc"
-                                    ref={textareaRef}
-                                    className="app-workspace-textarea"
-                                    value={requirement}
-                                    onChange={(e) => setRequirement(e.target.value)}
-                                    maxLength={maxLength}
-                                    placeholder="Users can reset their password using their registered email address..."
-                                    aria-label="Requirement Description"
+                            {/* Title Field */}
+                            <div className="app-workspace-field">
+                                <label htmlFor="req-title" className="app-workspace-field-label">
+                                    Requirement Title
+                                </label>
+                                <input
+                                    id="req-title"
+                                    type="text"
+                                    className="app-workspace-title-input"
+                                    value={requirementTitle}
+                                    onChange={(e) => setRequirementTitle(e.target.value)}
+                                    placeholder="e.g. Password Reset Flow"
+                                    maxLength={120}
                                 />
+                            </div>
 
-                                <div className="app-workspace-textarea-actions">
-                                    <button
-                                        type="button"
-                                        className="app-workspace-icon-btn"
-                                        onClick={handlePaste}
-                                        title="Paste from clipboard"
-                                        aria-label="Paste from clipboard"
-                                    >
-                                        <Clipboard size={14} />
-                                    </button>
-                                    {charCount > 0 && (
-                                        <button
-                                            type="button"
-                                            className="app-workspace-icon-btn is-danger"
-                                            onClick={() => setRequirement('')}
-                                            title="Clear description"
-                                            aria-label="Clear description"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="app-workspace-textarea-footer">
+                            {/* Description Field */}
+                            <div className="app-workspace-field">
+                                <div className="app-workspace-field-row">
+                                    <label htmlFor="req-desc" className="app-workspace-field-label">
+                                        Requirement Description <span className="req-required">*</span>
+                                    </label>
                                     <span className="app-workspace-char-count">
                                         {charCount} / {maxLength}
                                     </span>
                                 </div>
+
+                                <div className="app-workspace-textarea-wrap">
+                                    <textarea
+                                        id="req-desc"
+                                        ref={textareaRef}
+                                        className="app-workspace-textarea"
+                                        value={requirement}
+                                        onChange={(e) => setRequirement(e.target.value)}
+                                        maxLength={maxLength}
+                                        placeholder="Enter user stories, acceptance criteria, or API contract details (e.g., Users can reset their password using their registered email address...)"
+                                        aria-label="Requirement Description"
+                                        rows={9}
+                                    />
+
+                                    <div className="app-workspace-textarea-actions">
+                                        <button
+                                            type="button"
+                                            className="app-workspace-icon-btn"
+                                            onClick={handlePaste}
+                                            title="Paste from clipboard"
+                                            aria-label="Paste from clipboard"
+                                        >
+                                            <Clipboard size={14} />
+                                        </button>
+                                        {charCount > 0 && (
+                                            <button
+                                                type="button"
+                                                className="app-workspace-icon-btn is-danger"
+                                                onClick={() => setRequirement('')}
+                                                title="Clear description"
+                                                aria-label="Clear description"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* ─── 4. WHAT WILL BE GENERATED (Section 5) ─── */}
-                        <div className="app-workspace-deliverables-box">
-                            <div className="app-workspace-deliverables-header">
-                                <span className="app-workspace-deliverables-title">TEST SUITE WILL INCLUDE</span>
+                    {/* RIGHT COLUMN: Configuration & Generation Controls */}
+                    <div className="app-workspace-col-side">
+                        <div className="app-workspace-card">
+                            <div className="app-workspace-card-header">
+                                <span className="app-workspace-card-label">GENERATION CONFIGURATION</span>
                             </div>
-                            <div className="app-workspace-deliverables-grid">
-                                <div className="app-workspace-deliverable-item">
-                                    <span className="app-workspace-check">✓</span>
-                                    <span>Functional scenarios</span>
-                                </div>
-                                <div className="app-workspace-deliverable-item">
-                                    <span className="app-workspace-check">✓</span>
-                                    <span>Negative scenarios</span>
-                                </div>
-                                <div className="app-workspace-deliverable-item">
-                                    <span className="app-workspace-check">✓</span>
-                                    <span>Edge cases</span>
-                                </div>
-                                <div className="app-workspace-deliverable-item">
-                                    <span className="app-workspace-check">✓</span>
-                                    <span>Validation scenarios</span>
-                                </div>
-                                <div className="app-workspace-deliverable-item">
-                                    <span className="app-workspace-check">✓</span>
-                                    <span>Security scenarios</span>
-                                </div>
-                                <div className="app-workspace-deliverable-item">
-                                    <span className="app-workspace-check">✓</span>
-                                    <span>Requirement traceability</span>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* ─── 5. TARGET & COVERAGE DEPTH (Sections 6 & 7) ─── */}
-                        <div className="app-workspace-options-grid">
-                            {/* TEST TARGET */}
-                            <div className="app-workspace-option-group">
-                                <span className="app-workspace-option-label">TEST TARGET</span>
+                            {/* Target Selector */}
+                            <div className="app-workspace-field">
+                                <label className="app-workspace-field-label">Target Platform</label>
                                 <div className="app-workspace-segmented">
                                     {[
                                         { id: 'web', label: 'Web', icon: Globe },
@@ -723,26 +630,26 @@ const WorkspacePage = () => {
                                 </div>
                             </div>
 
-                            {/* COVERAGE DEPTH */}
-                            <div className="app-workspace-option-group">
-                                <span className="app-workspace-option-label">COVERAGE DEPTH</span>
-                                <div className="app-workspace-depth-row">
+                            {/* Coverage Depth */}
+                            <div className="app-workspace-field">
+                                <label className="app-workspace-field-label">Coverage Depth</label>
+                                <div className="app-workspace-depth-list">
                                     {[
                                         {
                                             id: 'Essential',
                                             label: 'Essential',
-                                            sub: 'Core happy-path scenarios'
+                                            sub: 'Core happy-path validation scenarios'
                                         },
                                         {
                                             id: 'Standard',
                                             label: 'Standard',
-                                            sub: 'Functional + negative + edge scenarios',
+                                            sub: 'Functional, negative & edge case coverage',
                                             isRecommended: true
                                         },
                                         {
                                             id: 'Comprehensive',
                                             label: 'Comprehensive',
-                                            sub: 'Deep functional, edge, security & risk coverage'
+                                            sub: 'Deep functional, edge, security & boundary tests'
                                         }
                                     ].map(({ id, label, sub, isRecommended }) => (
                                         <button
@@ -763,89 +670,104 @@ const WorkspacePage = () => {
                                     ))}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* ─── 6. PRIMARY CTA (Section 8) ─── */}
-                        <div className="app-workspace-footer">
-                            <button
-                                type="button"
-                                className="app-workspace-primary-btn"
-                                onClick={handleGenerate}
-                                disabled={!isInputValid || isGenerating}
-                                id="workspace-generate-btn"
-                            >
-                                <span>Generate Test Suite →</span>
-                            </button>
-                            {!isInputValid && (
-                                <span className="app-workspace-validation-hint">
-                                    Enter at least 10 characters in requirement description to generate suite.
-                                </span>
-                            )}
-                        </div>
-                    </section>
-
-                    {/* ─── 7. RECENT WORK (Section 12) ─── */}
-                    <section className="app-workspace-recent-section" aria-labelledby="recent-work-heading">
-                        <div className="app-workspace-recent-header">
-                            <span id="recent-work-heading" className="app-workspace-recent-label">RECENT WORK</span>
-                            {history.length > 0 && (
-                                <NavLink to="/app/history" className="app-workspace-recent-link">
-                                    View All History →
-                                </NavLink>
-                            )}
-                        </div>
-
-                        {history.length === 0 ? (
-                            <div className="app-workspace-recent-empty">
-                                No previous test suites yet.
+                            {/* Compact Feature Summary */}
+                            <div className="app-workspace-deliverables-compact">
+                                <span className="app-workspace-deliverables-compact-label">TEST SUITE INCLUDES</span>
+                                <div className="app-workspace-deliverables-chips">
+                                    <span className="app-workspace-chip">✓ Functional scenarios</span>
+                                    <span className="app-workspace-chip">✓ Negative scenarios</span>
+                                    <span className="app-workspace-chip">✓ Edge cases</span>
+                                    <span className="app-workspace-chip">✓ Validation checks</span>
+                                    <span className="app-workspace-chip">✓ Security vectors</span>
+                                    <span className="app-workspace-chip">✓ Traceability map</span>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="app-workspace-recent-grid">
-                                {history.slice(0, 4).map((item) => {
-                                    const testCount = item.totalCases || (item.suite ? (
-                                        (item.suite.functional?.length || 0) +
-                                        (item.suite.negative?.length || 0) +
-                                        (item.suite.edge?.length || 0) +
-                                        (item.suite.nonFunctional?.length || 0)
-                                    ) : (item.summary?.total || 0));
 
-                                    const coverage = item.quality?.coverageConfidence
-                                        ? `${item.quality.coverageConfidence}%`
-                                        : item.summary?.requirementCoverage || (testCount > 0 ? '85%' : 'N/A');
-
-                                    const reqCode = `REQ-${(item.sessionId || item.id || '001').slice(-3).toUpperCase()}`;
-
-                                    return (
-                                        <NavLink
-                                            key={item.sessionId || item.id}
-                                            to={item.status === 'Draft' && !item.suite ? `/app/workspace/${item.sessionId || item.id}` : `/app/test-suites/${item.sessionId || item.id}`}
-                                            className="app-workspace-recent-card"
-                                        >
-                                            <div className="app-workspace-recent-card-top">
-                                                <span className="app-workspace-recent-card-title">
-                                                    {item.title || 'Untitled Suite'}
-                                                </span>
-                                                <span className="app-workspace-recent-card-context">
-                                                    {reqCode}
-                                                </span>
-                                            </div>
-                                            <div className="app-workspace-recent-card-meta">
-                                                <span>{testCount} test cases</span>
-                                                <span>·</span>
-                                                <span>{coverage} coverage</span>
-                                                <span>·</span>
-                                                <span>Updated {formatTimeAgo(item.date || item.updatedAt)}</span>
-                                            </div>
-                                        </NavLink>
-                                    );
-                                })}
+                            {/* Primary Action Button */}
+                            <div className="app-workspace-action-wrap">
+                                <button
+                                    type="button"
+                                    className="app-workspace-primary-btn"
+                                    onClick={handleGenerate}
+                                    disabled={!isInputValid || isGenerating}
+                                    id="workspace-generate-btn"
+                                >
+                                    <span>Generate Test Suite →</span>
+                                </button>
+                                {!isInputValid && (
+                                    <span className="app-workspace-validation-hint">
+                                        Enter at least 10 characters in requirement description.
+                                    </span>
+                                )}
                             </div>
-                        )}
-                    </section>
-                </>
+                        </div>
+                    </div>
+                </div>
             )}
 
-            {/* ─── 8. CONTEXTUAL FLOATING ASSISTANT (Section 15) ─── */}
+            {/* ─── 5. RECENT WORK SECTION ─── */}
+            {!isGenerating && (
+                <section className="app-workspace-recent-section" aria-labelledby="recent-work-heading">
+                    <div className="app-workspace-recent-header">
+                        <span id="recent-work-heading" className="app-workspace-recent-label">RECENT WORK</span>
+                        {history.length > 0 && (
+                            <NavLink to="/app/history" className="app-workspace-recent-link">
+                                View All History →
+                            </NavLink>
+                        )}
+                    </div>
+
+                    {history.length === 0 ? (
+                        <div className="app-workspace-recent-empty">
+                            No previous test suites yet. Generate your first suite above.
+                        </div>
+                    ) : (
+                        <div className="app-workspace-recent-grid">
+                            {history.slice(0, 4).map((item) => {
+                                const testCount = item.totalCases || (item.suite ? (
+                                    (item.suite.functional?.length || 0) +
+                                    (item.suite.negative?.length || 0) +
+                                    (item.suite.edge?.length || 0) +
+                                    (item.suite.nonFunctional?.length || 0)
+                                ) : (item.summary?.total || 0));
+
+                                const coverage = item.quality?.coverageConfidence
+                                    ? `${item.quality.coverageConfidence}%`
+                                    : item.summary?.requirementCoverage || (testCount > 0 ? '85%' : 'N/A');
+
+                                const reqCode = `REQ-${(item.sessionId || item.id || '001').slice(-3).toUpperCase()}`;
+
+                                return (
+                                    <NavLink
+                                        key={item.sessionId || item.id}
+                                        to={item.status === 'Draft' && !item.suite ? `/app/workspace/${item.sessionId || item.id}` : `/app/test-suites/${item.sessionId || item.id}`}
+                                        className="app-workspace-recent-card"
+                                    >
+                                        <div className="app-workspace-recent-card-top">
+                                            <span className="app-workspace-recent-card-title">
+                                                {item.title || 'Untitled Suite'}
+                                            </span>
+                                            <span className="app-workspace-recent-card-context">
+                                                {reqCode}
+                                            </span>
+                                        </div>
+                                        <div className="app-workspace-recent-card-meta">
+                                            <span>{testCount} test cases</span>
+                                            <span>·</span>
+                                            <span>{coverage} coverage</span>
+                                            <span>·</span>
+                                            <span>Updated {formatTimeAgo(item.date || item.updatedAt)}</span>
+                                        </div>
+                                    </NavLink>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {/* ─── 6. CONTEXTUAL FLOATING ASSISTANT (Ask Testnexa) ─── */}
             <QaCopilotDrawer
                 isOpen={isCopilotOpen}
                 onClose={() => setIsCopilotOpen(false)}

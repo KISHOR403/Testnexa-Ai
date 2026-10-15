@@ -181,16 +181,16 @@ const TestSuiteDetailPage = () => {
                 justifyContent: 'center',
                 minHeight: '60vh',
                 gap: '1.25rem',
-                color: '#A3A3A3',
+                color: '#A0A5A5',
                 textAlign: 'center',
                 padding: '2rem'
             }}>
-                <Loader2 size={36} className="animate-spin" style={{ color: '#00D9C0' }} />
+                <Loader2 size={36} className="animate-spin" style={{ color: '#8BAF9A' }} />
                 <div>
-                    <div style={{ fontSize: '1rem', fontWeight: '600', color: '#F5F5F5', marginBottom: '0.35rem' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: '600', color: '#F2F3F3', marginBottom: '0.35rem' }}>
                         Loading Test Suite
                     </div>
-                    <span style={{ fontSize: '0.85rem', color: '#737373' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#777E7E' }}>
                         Fetching test cases, coverage specifications, and verification rules...
                     </span>
                 </div>
@@ -201,77 +201,31 @@ const TestSuiteDetailPage = () => {
     // ─── Session Exists but Suite Not Generated (Draft State) ───
     if (remoteSession && !hasTestCases(suiteData)) {
         return (
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                minHeight: '55vh',
-                padding: '3.5rem 1.5rem',
-                background: '#0A0A0A',
-                borderRadius: '14px',
-                border: '1px solid #1C1C1C',
-                gap: '1.25rem',
-                margin: '1rem 0'
-            }}>
-                <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    background: 'rgba(0, 217, 192, 0.08)',
-                    border: '1px solid rgba(0, 217, 192, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#00D9C0'
-                }}>
+            <div className="ws-empty-state" style={{ margin: '1rem 0' }}>
+                <div className="ws-empty-icon-wrap">
                     <Layers size={28} />
                 </div>
 
-                <div style={{ maxWidth: '460px' }}>
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
+                <div className="ws-empty-text-wrap" style={{ maxWidth: '460px' }}>
+                    <h2>
                         {remoteSession.title || 'Requirement Specification'}
                     </h2>
-                    <p style={{ fontSize: '0.9rem', color: '#A3A3A3', lineHeight: '1.5', margin: 0 }}>
+                    <p>
                         This requirement has been saved to your workspace, but test cases have not been generated yet.
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <div className="ws-empty-actions">
                     <NavLink
                         to={`/app/workspace/${remoteSession.id || remoteSession._id || id}`}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.7rem 1.35rem',
-                            borderRadius: '8px',
-                            background: '#00D9C0',
-                            color: '#0A0A0A',
-                            fontSize: '0.88rem',
-                            textDecoration: 'none',
-                            fontWeight: '600'
-                        }}
+                        className="ws-btn-primary"
                     >
                         <span>Generate in AI Workspace &rarr;</span>
                     </NavLink>
 
                     <NavLink
                         to="/app/test-suites"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            padding: '0.7rem 1.25rem',
-                            borderRadius: '8px',
-                            border: '1px solid #262626',
-                            background: '#121212',
-                            color: '#F5F5F5',
-                            fontSize: '0.88rem',
-                            textDecoration: 'none',
-                            fontWeight: '500'
-                        }}
+                        className="ws-btn-secondary"
                     >
                         <ArrowLeft size={16} />
                         <span>All Test Suites</span>
@@ -284,60 +238,33 @@ const TestSuiteDetailPage = () => {
     // ─── Suite Not Found / Error State ───
     if (!suiteData || !hasTestCases(suiteData)) {
         return (
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                minHeight: '55vh',
-                padding: '3rem 1.5rem',
-                background: '#0A0A0A',
-                borderRadius: '14px',
-                border: '1px solid #1C1C1C',
-                gap: '1.25rem',
-                margin: '1rem 0'
-            }}>
+            <div className="ws-empty-state" style={{ margin: '1rem 0' }}>
                 <div style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '10px',
+                    background: 'rgba(224, 108, 117, 0.1)',
+                    border: '1px solid rgba(224, 108, 117, 0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#EF4444'
+                    color: '#E06C75'
                 }}>
                     <ShieldAlert size={28} />
                 </div>
 
-                <div style={{ maxWidth: '440px' }}>
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
-                        Test Suite Not Found
-                    </h2>
-                    <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
+                <div className="ws-empty-text-wrap" style={{ maxWidth: '440px' }}>
+                    <h2>Test Suite Not Found</h2>
+                    <p>
                         {loadError || "This test suite does not exist in your workspace or you do not have permission to view it."}
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <div className="ws-empty-actions">
                     <button
                         type="button"
                         onClick={handleRetry}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            padding: '0.65rem 1.25rem',
-                            borderRadius: '8px',
-                            background: '#00D9C0',
-                            color: '#0A0A0A',
-                            fontSize: '0.88rem',
-                            fontWeight: '600',
-                            border: 'none',
-                            cursor: 'pointer'
-                        }}
+                        className="ws-btn-primary"
                     >
                         <RefreshCw size={15} />
                         <span>Try Again</span>
@@ -345,19 +272,7 @@ const TestSuiteDetailPage = () => {
 
                     <NavLink
                         to="/app/test-suites"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            padding: '0.65rem 1.25rem',
-                            borderRadius: '8px',
-                            border: '1px solid #262626',
-                            background: '#121212',
-                            color: '#F5F5F5',
-                            fontSize: '0.88rem',
-                            textDecoration: 'none',
-                            fontWeight: '500'
-                        }}
+                        className="ws-btn-secondary"
                     >
                         <ArrowLeft size={16} />
                         <span>All Test Suites</span>
@@ -365,19 +280,7 @@ const TestSuiteDetailPage = () => {
 
                     <NavLink
                         to="/app/workspace"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            padding: '0.65rem 1.25rem',
-                            borderRadius: '8px',
-                            border: '1px solid #262626',
-                            background: '#121212',
-                            color: '#F5F5F5',
-                            fontSize: '0.88rem',
-                            textDecoration: 'none',
-                            fontWeight: '500'
-                        }}
+                        className="ws-btn-secondary"
                     >
                         <span>AI Workspace</span>
                     </NavLink>

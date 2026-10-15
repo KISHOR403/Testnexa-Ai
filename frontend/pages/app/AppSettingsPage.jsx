@@ -476,7 +476,7 @@ const AppSettingsPage = () => {
                                         <span className="app-settings-info-label">Theme</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <span style={{ fontSize: '0.85rem', color: '#F5F5F5', fontWeight: 600 }}>True Black</span>
-                                            <span style={{ fontSize: '0.72rem', color: '#00D9C0', background: 'rgba(0, 217, 192, 0.1)', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(0, 217, 192, 0.25)' }}>
+                                            <span style={{ fontSize: '0.72rem', color: '#8BAF9A', background: 'rgba(139, 175, 154, 0.1)', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(139, 175, 154, 0.25)' }}>
                                                 Active
                                             </span>
                                         </div>
@@ -498,7 +498,7 @@ const AppSettingsPage = () => {
                                             type="checkbox"
                                             checked={settings.emailAlerts !== false}
                                             onChange={(e) => handlePreferenceChange('emailAlerts', e.target.checked)}
-                                            style={{ transform: 'scale(1.2)', accentColor: '#00D9C0', cursor: 'pointer' }}
+                                            style={{ transform: 'scale(1.2)', accentColor: '#8BAF9A', cursor: 'pointer' }}
                                         />
                                     </div>
                                     <div className="app-settings-info-row">
@@ -511,7 +511,7 @@ const AppSettingsPage = () => {
                                             type="checkbox"
                                             checked={settings.notifications !== false}
                                             onChange={(e) => handlePreferenceChange('notifications', e.target.checked)}
-                                            style={{ transform: 'scale(1.2)', accentColor: '#00D9C0', cursor: 'pointer' }}
+                                            style={{ transform: 'scale(1.2)', accentColor: '#8BAF9A', cursor: 'pointer' }}
                                         />
                                     </div>
                                 </div>
@@ -866,9 +866,9 @@ const AppSettingsPage = () => {
                                         <div key={session.id} className="app-settings-session-card">
                                             <div className="app-settings-session-meta">
                                                 {session.device?.toLowerCase().includes('iphone') || session.device?.toLowerCase().includes('android') || session.device?.toLowerCase().includes('ios') ? (
-                                                    <Smartphone size={18} color={session.isCurrent ? "#00D9C0" : "#A3A3A3"} />
+                                                    <Smartphone size={18} color={session.isCurrent ? "#8BAF9A" : "#A3A3A3"} />
                                                 ) : (
-                                                    <Laptop size={18} color={session.isCurrent ? "#00D9C0" : "#A3A3A3"} />
+                                                    <Laptop size={18} color={session.isCurrent ? "#8BAF9A" : "#A3A3A3"} />
                                                 )}
                                                 <div>
                                                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F5F5F5' }}>
@@ -956,7 +956,7 @@ const AppSettingsPage = () => {
                                 </div>
                                 <div className="app-settings-info-row">
                                     <span className="app-settings-info-label">Workspace ID</span>
-                                    <span className="app-settings-info-value" style={{ fontFamily: 'monospace', color: '#00D9C0' }}>
+                                    <span className="app-settings-info-value" style={{ fontFamily: 'monospace', color: '#8BAF9A' }}>
                                         ws_8892fbc9_qa
                                     </span>
                                 </div>
@@ -1024,7 +1024,7 @@ const AppSettingsPage = () => {
                                                     <span style={{ fontSize: '0.74rem', color: '#737373' }}>{user?.email || 'user@example.com'}</span>
                                                 </div>
                                             </td>
-                                            <td><span style={{ color: '#00D9C0', fontWeight: 600 }}>Owner</span></td>
+                                            <td><span style={{ color: '#8BAF9A', fontWeight: 600 }}>Owner</span></td>
                                             <td><span className="app-settings-status-badge active">Active</span></td>
                                             <td style={{ textAlign: 'right', color: '#737373', fontSize: '0.75rem' }}>
                                                 Primary Admin
@@ -1219,7 +1219,7 @@ const AppSettingsPage = () => {
                             Scan the QR code with your authenticator app (e.g. Google Authenticator, 1Password) to link your account.
                         </p>
                         <div style={{ background: '#111111', padding: '1rem', borderRadius: '6px', textAlign: 'center', border: '1px solid #222222' }}>
-                            <div style={{ fontSize: '0.8rem', color: '#00D9C0', fontFamily: 'monospace' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#8BAF9A', fontFamily: 'monospace' }}>
                                 TNXA-8839-4421-9920
                             </div>
                             <span style={{ fontSize: '0.72rem', color: '#737373', marginTop: '0.35rem', display: 'block' }}>

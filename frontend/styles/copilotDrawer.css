@@ -2,7 +2,7 @@
    TESTNEXA QA COPILOT — Floating Bottom-Right Assistant
    Adheres to TestNexa Black Design System
    Background: #050505 | Surface: #0A0A0A | Elevated: #111111 | Border: #1C1C1C
-   Accent: #4F8CFF | Primary: #F5F5F5 | Secondary: #A3A3A3 | Muted: #737373
+   Accent: #8BAF9A | Primary: #F2F3F3 | Secondary: #A0A5A5 | Muted: #777E7E
    ========================================================================== */
 
 /* ─── 1. Floating Trigger Button (Bottom-Right) ─── */
@@ -11,33 +11,33 @@
   right: 24px;
   bottom: 24px;
   z-index: 900;
-  height: 52px;
-  padding: 0 20px;
-  background: #0A0A0A;
-  border: 1px solid #1C1C1C;
-  border-radius: 26px;
-  color: #F5F5F5;
-  font-size: 0.84rem;
+  height: 48px;
+  padding: 0 18px;
+  background: #101112;
+  border: 1px solid #292D2D;
+  border-radius: 24px;
+  color: #F2F3F3;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(79, 140, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 175, 154, 0.2);
   transition: all 180ms ease;
   user-select: none;
 }
 
 .tn-copilot-floating-trigger:hover {
-  background: #111111;
-  border-color: #4F8CFF;
+  background: #161819;
+  border-color: #8BAF9A;
   color: #FFFFFF;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7), 0 0 12px rgba(79, 140, 255, 0.35);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
 }
 
 .tn-copilot-floating-trigger__icon {
-  color: #4F8CFF;
+  color: #8BAF9A;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,14 +82,14 @@
   max-width: 400px;
   height: 520px;
   max-height: 540px;
-  background: #0A0A0A;
-  border: 1px solid #1C1C1C;
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  background: #101112;
+  border: 1px solid #292D2D;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
   z-index: 95;
   display: flex;
   flex-direction: column;
-  color: #F5F5F5;
+  color: #F2F3F3;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   animation: tnCopilotFloatUp 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   overflow: hidden;
@@ -159,9 +159,9 @@
   letter-spacing: 0.04em;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(79, 140, 255, 0.12);
-  color: #4F8CFF;
-  border: 1px solid rgba(79, 140, 255, 0.25);
+  background: rgba(139, 175, 154, 0.12);
+  color: #8BAF9A;
+  border: 1px solid rgba(139, 175, 154, 0.25);
 }
 
 .tn-copilot-header__subtitle {
@@ -219,7 +219,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #4F8CFF;
+  background: #8BAF9A;
   box-shadow: none;
 }
 
@@ -291,9 +291,9 @@
 }
 
 .tn-copilot-context__chip--active {
-  background: rgba(79, 140, 255, 0.08);
-  border-color: rgba(79, 140, 255, 0.3);
-  color: #4F8CFF;
+  background: rgba(139, 175, 154, 0.08);
+  border-color: rgba(139, 175, 154, 0.3);
+  color: #8BAF9A;
 }
 
 /* ─── Scope Switcher Dropdown ─── */
@@ -335,8 +335,8 @@
 }
 
 .tn-copilot-scope-option.is-active {
-  background: rgba(79, 140, 255, 0.12);
-  color: #4F8CFF;
+  background: rgba(139, 175, 154, 0.12);
+  color: #8BAF9A;
   font-weight: 600;
 }
 
@@ -401,11 +401,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #111111;
-  border: 1px solid #1C1C1C;
+  background: #161819;
+  border: 1px solid #292D2D;
   border-radius: 6px;
   padding: 8px 12px;
-  color: #F5F5F5;
+  color: #F2F3F3;
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
@@ -418,38 +418,38 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #E5E5E5;
+  color: #F2F3F3;
 }
 
 .tn-copilot-action-row__icon {
-  color: #4F8CFF;
+  color: #8BAF9A;
   display: flex;
   align-items: center;
   flex-shrink: 0;
 }
 
 .tn-copilot-action-row__arrow {
-  color: #737373;
+  color: #777E7E;
   font-size: 0.85rem;
   transition: transform 120ms ease, color 120ms ease;
   flex-shrink: 0;
 }
 
 .tn-copilot-action-row:hover {
-  background: #151515;
-  border-color: #2E2E2E;
+  background: #1c1e20;
+  border-color: #383D3D;
   color: #FFFFFF;
 }
 
 .tn-copilot-action-row:hover .tn-copilot-action-row__arrow {
-  color: #4F8CFF;
+  color: #8BAF9A;
   transform: translateX(2px);
 }
 
 .tn-copilot-action-row.is-active {
-  background: rgba(79, 140, 255, 0.08);
-  border-color: rgba(79, 140, 255, 0.35);
-  color: #4F8CFF;
+  background: rgba(139, 175, 154, 0.1);
+  border-color: rgba(139, 175, 154, 0.35);
+  color: #8BAF9A;
 }
 
 .tn-copilot-action-row:disabled {
@@ -464,15 +464,15 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  background: #0E0E0E;
-  border: 1px solid #1C1C1C;
-  border-radius: 8px;
-  color: #A3A3A3;
+  background: #161819;
+  border: 1px solid #292D2D;
+  border-radius: 6px;
+  color: #A0A5A5;
   font-size: 0.78rem;
 }
 
 .tn-copilot-loading__spinner {
-  color: #4F8CFF;
+  color: #8BAF9A;
   animation: spin 1s linear infinite;
   flex-shrink: 0;
 }
@@ -555,7 +555,7 @@
 }
 
 .tn-copilot-btn-back:hover {
-  color: #4F8CFF;
+  color: #8BAF9A;
 }
 
 .tn-copilot-analysis-title {
@@ -584,10 +584,10 @@
   line-height: 1.45;
   color: #CCCCCC;
   margin: 0;
-  background: #080808;
+  background: #161819;
   padding: 8px 10px;
   border-radius: 5px;
-  border-left: 2px solid #4F8CFF;
+  border-left: 2px solid #8BAF9A;
 }
 
 /* ─── Findings Section ─── */
@@ -725,7 +725,7 @@
   background: #111111;
   border: 1px solid #2A2A2A;
   border-radius: 4px;
-  color: #4F8CFF;
+  color: #8BAF9A;
   font-size: 0.7rem;
   font-weight: 600;
   padding: 4px 10px;
@@ -737,9 +737,9 @@
 }
 
 .tn-copilot-btn-add:hover {
-  background: rgba(79, 140, 255, 0.12);
-  border-color: rgba(79, 140, 255, 0.35);
-  color: #4F8CFF;
+  background: rgba(139, 175, 154, 0.12);
+  border-color: rgba(139, 175, 154, 0.35);
+  color: #8BAF9A;
 }
 
 .tn-copilot-btn-add.is-added {
@@ -788,8 +788,8 @@
 }
 
 .tn-copilot-diff-content--proposed {
-  background: rgba(79, 140, 255, 0.06);
-  border: 1px solid rgba(79, 140, 255, 0.25);
+  background: rgba(139, 175, 154, 0.06);
+  border: 1px solid rgba(139, 175, 154, 0.25);
   color: #FFFFFF;
 }
 
@@ -800,8 +800,8 @@
 }
 
 .tn-copilot-btn-apply {
-  background: #4F8CFF;
-  border: 1px solid #4F8CFF;
+  background: #8BAF9A;
+  border: 1px solid #8BAF9A;
   color: #050505;
   font-weight: 600;
   font-size: 0.7rem;
@@ -856,7 +856,7 @@
 }
 
 .tn-copilot-input-box:focus-within {
-  border-color: #4F8CFF;
+  border-color: #8BAF9A;
 }
 
 .tn-copilot-input-box input {
@@ -888,8 +888,8 @@
 }
 
 .tn-copilot-send-btn:hover:not(:disabled) {
-  background: #4F8CFF;
-  border-color: #4F8CFF;
+  background: #8BAF9A;
+  border-color: #8BAF9A;
   color: #050505;
 }
 
@@ -927,7 +927,7 @@
     background: #121212;
     border: 1px solid #2E2E2E;
     color: #F5F5F5;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 14px rgba(79, 140, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 14px rgba(139, 175, 154, 0.25);
     z-index: 9990;
     display: flex;
     align-items: center;
@@ -936,7 +936,7 @@
 
   .tn-copilot-floating-trigger__icon {
     display: flex !important;
-    color: #4F8CFF !important;
+    color: #8BAF9A !important;
   }
 
   .tn-copilot-floating-trigger__text {
@@ -1063,7 +1063,7 @@
 
   .tn-copilot-action-row:active {
     background: #1E1E1E !important;
-    border-color: #4F8CFF !important;
+    border-color: #8BAF9A !important;
   }
 
   .tn-copilot-action-title {

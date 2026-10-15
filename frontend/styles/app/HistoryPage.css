@@ -1,53 +1,69 @@
 /* ==========================================================================
-   TESTNEXA WORKSPACE HISTORY PAGE STYLES
-   True Black / Neutral Black Enterprise QA Platform Design System
+   TESTNEXA HISTORY PAGE STYLES
+   Production-grade QA Engineering Design System
+   App background: #080909 | Primary surface: #101112 | Elevated: #161819
+   Borders: #292D2D | Text: #F2F3F3 | Secondary: #A0A5A5 | Muted: #777E7E
+   Accent: muted jade #8BAF9A
    ========================================================================== */
 
-.tn-history-page {
+.tn-history-container {
+    max-width: 1280px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
+    animation: tnHistoryFadeIn 0.18s ease-out;
+}
+
+@keyframes tnHistoryFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ─── Header ─── */
 .tn-history-header {
     display: flex;
-    align-items: flex-start;
     justify-content: space-between;
+    align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #292D2D;
 }
 
 .tn-history-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.08);
-    border: 1px solid rgba(79, 140, 255, 0.2);
-    padding: 0.2rem 0.55rem;
-    border-radius: 20px;
-    margin-bottom: 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #8BAF9A;
+    background: rgba(139, 175, 154, 0.1);
+    border: 1px solid rgba(139, 175, 154, 0.22);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.35rem;
 }
 
 .tn-history-title {
-    font-size: 1.65rem;
+    font-size: 1.55rem;
     font-weight: 600;
-    color: #F5F5F5;
-    letter-spacing: -0.02em;
+    color: #F2F3F3;
+    letter-spacing: -0.015em;
     margin: 0;
 }
 
 .tn-history-subtitle {
-    font-size: 0.9rem;
-    color: #A3A3A3;
-    margin: 0.35rem 0 0;
+    font-size: 0.86rem;
+    color: #A0A5A5;
+    margin: 0.25rem 0 0;
     max-width: 650px;
     line-height: 1.45;
 }
@@ -56,25 +72,22 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.65rem 1.15rem;
-    background: #4F8CFF;
-    color: #000000;
+    padding: 0.6rem 1.15rem;
+    background: #8BAF9A;
+    color: #080909;
     font-weight: 600;
-    font-size: 0.85rem;
-    border: 1px solid #4F8CFF;
-    border-radius: 8px;
+    font-size: 0.82rem;
+    border: 1px solid #8BAF9A;
+    border-radius: 6px;
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: all 0.15s ease;
     white-space: nowrap;
 }
 
 .tn-history-new-btn:hover {
-    background: #6A9DFF;
-    border-color: #6A9DFF;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    background: #9DBFAD;
+    border-color: #9DBFAD;
 }
 
 /* ─── Controls Bar (Search + Tabs + Selects) ─── */
@@ -84,19 +97,19 @@
     justify-content: space-between;
     gap: 0.85rem;
     flex-wrap: wrap;
-    background: #0A0A0A;
-    padding: 0.85rem 1rem;
-    border-radius: 12px;
-    border: 1px solid #1C1C1C;
+    background: #101112;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #292D2D;
 }
 
 .tn-history-search-wrap {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: #050505;
-    border: 1px solid #222222;
-    border-radius: 8px;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
     padding: 0.45rem 0.75rem;
     flex: 1;
     min-width: 240px;
@@ -104,656 +117,364 @@
 }
 
 .tn-history-search-wrap:focus-within {
-    border-color: #4F8CFF;
-    background: #000000;
+    border-color: #8BAF9A;
 }
 
 .tn-history-search-icon {
-    color: #737373;
+    color: #777E7E;
     flex-shrink: 0;
 }
 
 .tn-history-search-input {
     background: transparent;
     border: none;
-    color: #F5F5F5;
+    color: #F2F3F3;
     font-size: 0.84rem;
-    width: 100%;
     outline: none;
+    width: 100%;
 }
 
 .tn-history-search-input::placeholder {
-    color: #666666;
+    color: #777E7E;
 }
 
-.tn-history-search-clear {
+.tn-history-clear-btn {
     background: transparent;
     border: none;
-    color: #737373;
+    color: #777E7E;
     cursor: pointer;
-    padding: 0.1rem;
     display: flex;
     align-items: center;
+    padding: 0;
 }
 
-.tn-history-search-clear:hover {
-    color: #F5F5F5;
+.tn-history-clear-btn:hover {
+    color: #F2F3F3;
 }
 
-/* ─── Status Tabs ─── */
-.tn-history-tabs {
-    display: flex;
-    gap: 0.25rem;
-    background: #050505;
-    padding: 0.25rem;
-    border-radius: 8px;
-    border: 1px solid #1A1A1A;
-}
-
-.tn-history-tab {
-    background: transparent;
-    border: none;
-    color: #A3A3A3;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.4rem 0.75rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.tn-history-tab:hover {
-    color: #F5F5F5;
-    background: #111111;
-}
-
-.tn-history-tab.active {
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.1);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-/* ─── Selects ─── */
-.tn-history-selects {
+.tn-history-filters {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tn-history-tabs {
+    display: flex;
+    background: #161819;
+    padding: 2px;
+    border-radius: 6px;
+    border: 1px solid #292D2D;
+    gap: 2px;
+}
+
+.tn-history-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+    color: #A0A5A5;
+    font-size: 0.76rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+
+.tn-history-tab:hover {
+    color: #F2F3F3;
+}
+
+.tn-history-tab.is-active {
+    background: #101112;
+    color: #8BAF9A;
+    font-weight: 600;
+}
+
+.tn-history-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    padding: 0 0.65rem;
+    height: 32px;
+    color: #777E7E;
 }
 
 .tn-history-select {
-    background: #050505;
-    border: 1px solid #222222;
-    color: #A3A3A3;
-    font-size: 0.8rem;
-    padding: 0.45rem 0.75rem;
-    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: #F2F3F3;
+    font-size: 0.78rem;
     outline: none;
     cursor: pointer;
-    transition: border-color 0.15s ease;
-}
-
-.tn-history-select:focus {
-    border-color: #4F8CFF;
-    color: #F5F5F5;
 }
 
 .tn-history-select option {
-    background: #0A0A0A;
-    color: #F5F5F5;
+    background: #101112;
+    color: #F2F3F3;
 }
 
-/* ─── Sessions List ─── */
+/* ─── List Layout ─── */
 .tn-history-list {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.75rem;
 }
 
 .tn-history-card {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.25rem;
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
-    border-radius: 12px;
-    padding: 1.15rem 1.35rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: all 0.15s ease;
     cursor: pointer;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none;
+    color: inherit;
     position: relative;
 }
 
 .tn-history-card:hover {
-    border-color: #292929;
-    background: #121212;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+    background: #161819;
+    border-color: #383D3D;
 }
 
-.tn-history-card.is-archived {
-    opacity: 0.6;
-    background: #070707;
-}
-
-.tn-history-card.is-archived:hover {
-    opacity: 0.9;
-}
-
-.tn-history-card-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* Card Top: Title + Badges */
 .tn-history-card-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-}
-
-.tn-history-card-title-wrap {
-    flex: 1;
-    min-width: 0;
-}
-
-.tn-history-card-title-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.tn-history-card-title {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #F5F5F5;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.tn-history-card:hover .tn-history-card-title {
-    color: #4F8CFF;
-}
-
-.tn-history-rename-btn {
-    background: transparent;
-    border: none;
-    color: #737373;
-    cursor: pointer;
-    padding: 0.2rem;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    opacity: 0;
-    transition: all 0.15s ease;
-}
-
-.tn-history-card:hover .tn-history-rename-btn {
-    opacity: 1;
-}
-
-.tn-history-rename-btn:hover {
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.1);
-}
-
-/* Inline Edit */
-.tn-history-inline-edit {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.tn-history-edit-input {
-    background: #050505;
-    border: 1px solid #4F8CFF;
-    border-radius: 6px;
-    color: #F5F5F5;
-    font-size: 0.95rem;
-    padding: 0.25rem 0.55rem;
-    outline: none;
-    min-width: 250px;
-}
-
-.tn-history-edit-btn {
-    background: #111111;
-    border: 1px solid #222222;
-    border-radius: 5px;
-    padding: 0.3rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: #A3A3A3;
-    transition: all 0.15s ease;
-}
-
-.tn-history-edit-btn.confirm:hover {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22C55E;
-    border-color: #22C55E;
-}
-
-.tn-history-edit-btn.cancel:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border-color: #ef4444;
-}
-
-/* Badges */
-.tn-history-card-badges {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-shrink: 0;
-}
-
-.tn-history-status-pill {
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.18rem 0.5rem;
-    border-radius: 4px;
-    background: #111111;
-    color: #737373;
-    border: 1px solid #222222;
-}
-
-.tn-history-status-pill.generated {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22C55E;
-    border: 1px solid rgba(34, 197, 94, 0.25);
-}
-
-.tn-history-status-pill.draft {
-    background: rgba(245, 158, 11, 0.1);
-    color: #F59E0B;
-    border: 1px solid rgba(245, 158, 11, 0.25);
-}
-
-.tn-history-status-pill.archived {
-    background: #111111;
-    color: #737373;
-    border: 1px solid #1C1C1C;
-}
-
-.tn-history-context-pill {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    padding: 0.18rem 0.45rem;
-    border-radius: 4px;
-    background: rgba(79, 140, 255, 0.08);
-    color: #4F8CFF;
-    border: 1px solid rgba(79, 140, 255, 0.2);
-}
-
-/* Requirement Text Excerpt */
-.tn-history-card-requirement {
-    font-size: 0.84rem;
-    color: #A3A3A3;
-    margin: 0;
-    line-height: 1.45;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.tn-history-empty-req {
-    color: #525252;
-    font-style: italic;
-}
-
-/* Card Meta (Stats + Updated time) */
-.tn-history-card-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding-top: 0.35rem;
-    border-top: 1px solid #161616;
-}
-
-.tn-history-meta-stats {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
     flex-wrap: wrap;
 }
 
-.tn-history-stat-pill {
-    display: inline-flex;
+.tn-history-title-row {
+    display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.74rem;
-    color: #A3A3A3;
-    background: #050505;
-    border: 1px solid #1A1A1A;
-    padding: 0.18rem 0.55rem;
-    border-radius: 5px;
+    gap: 0.65rem;
+    flex: 1;
+    min-width: 240px;
 }
 
-.tn-history-stat-pill strong {
-    color: #F5F5F5;
-}
-
-.tn-history-stat-pill.sub {
-    color: #737373;
-}
-
-.tn-history-stat-pill.version {
-    color: #4F8CFF;
-    background: #111111;
-    border: 1px solid rgba(79, 140, 255, 0.25);
+.tn-history-session-title {
+    font-size: 0.96rem;
     font-weight: 600;
+    color: #F2F3F3;
+    margin: 0;
 }
 
-.tn-history-stat-pill.confidence {
-    color: #22C55E;
-    background: rgba(34, 197, 94, 0.08);
-    border: 1px solid rgba(34, 197, 94, 0.2);
+.tn-history-tag {
+    font-size: 0.68rem;
     font-weight: 600;
+    padding: 0.12rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
 }
 
-.tn-history-timestamp {
-    display: inline-flex;
+.tn-history-tag.draft {
+    background: rgba(229, 192, 123, 0.1);
+    color: #E5C07B;
+    border: 1px solid rgba(229, 192, 123, 0.25);
+}
+
+.tn-history-tag.generated,
+.tn-history-tag.approved {
+    background: rgba(139, 175, 154, 0.12);
+    color: #8BAF9A;
+    border: 1px solid rgba(139, 175, 154, 0.28);
+}
+
+.tn-history-tag.archived {
+    background: #161819;
+    color: #777E7E;
+    border: 1px solid #292D2D;
+}
+
+.tn-history-card-meta {
+    display: flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.74rem;
-    color: #737373;
-    flex-shrink: 0;
+    gap: 0.75rem;
+    font-size: 0.76rem;
+    color: #777E7E;
+    flex-wrap: wrap;
 }
 
-/* Card Actions */
+.tn-history-card-meta strong {
+    color: #A0A5A5;
+}
+
+.tn-history-req-preview {
+    font-size: 0.8rem;
+    color: #A0A5A5;
+    line-height: 1.45;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .tn-history-card-actions {
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    flex-shrink: 0;
+    margin-left: auto;
 }
 
-.tn-history-action-btn.primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    background: #111111;
-    color: #4F8CFF;
-    border: 1px solid #252525;
-    border-radius: 7px;
-    text-decoration: none;
-    transition: all 0.15s ease;
-}
-
-.tn-history-action-btn.primary:hover {
-    background: #4F8CFF;
-    border-color: #4F8CFF;
-    color: #000000;
-}
-
-.tn-history-icon-btn {
-    display: inline-flex;
+.tn-history-action-btn {
+    display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: #111111;
-    border: 1px solid #222222;
-    color: #737373;
-    border-radius: 7px;
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    background: #161819;
+    border: 1px solid #292D2D;
+    color: #A0A5A5;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
 }
 
-.tn-history-icon-btn:hover {
-    color: #F5F5F5;
-    background: #181818;
-    border-color: #333333;
+.tn-history-action-btn:hover {
+    color: #F2F3F3;
+    background: #1c1e20;
+    border-color: #383D3D;
 }
 
-.tn-history-icon-btn.is-archived {
-    color: #4F8CFF;
-    border-color: rgba(79, 140, 255, 0.3);
+.tn-history-action-btn.is-delete:hover {
+    color: #E06C75;
+    background: rgba(224, 108, 117, 0.12);
+    border-color: rgba(224, 108, 117, 0.3);
 }
 
-.tn-history-icon-btn.danger:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.3);
+/* Rename Inline Input */
+.tn-history-rename-input {
+    background: #161819;
+    border: 1px solid #8BAF9A;
+    border-radius: 4px;
+    color: #F2F3F3;
+    font-size: 0.94rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    outline: none;
+    width: 100%;
+    max-width: 320px;
 }
 
-/* ─── Skeleton Loading ─── */
-.tn-history-skeleton-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-}
-
-.tn-history-skeleton-card {
-    height: 98px;
-    background: linear-gradient(90deg, #0A0A0A 25%, #151515 50%, #0A0A0A 75%);
-    background-size: 200% 100%;
-    animation: skeleton-pulse 1.6s infinite ease-in-out;
-    border-radius: 12px;
-    border: 1px solid #1C1C1C;
-}
-
-@keyframes skeleton-pulse {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* ─── Empty & Error States ─── */
-.tn-history-empty-card,
-.tn-history-error-card {
+/* Empty State */
+.tn-history-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 3.5rem 1.5rem;
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
-    border-radius: 14px;
+    padding: 4.5rem 1.5rem;
+    background: #101112;
+    border-radius: 8px;
+    border: 1px solid #292D2D;
+    gap: 1.25rem;
 }
 
 .tn-history-empty-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: rgba(79, 140, 255, 0.08);
-    border: 1px solid rgba(79, 140, 255, 0.2);
-    color: #4F8CFF;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: rgba(139, 175, 154, 0.1);
+    border: 1px solid rgba(139, 175, 154, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.25rem;
+    color: #8BAF9A;
 }
 
-.tn-history-empty-card h3,
-.tn-history-error-card h3 {
-    font-size: 1.25rem;
+.tn-history-empty-title {
+    font-size: 1.2rem;
     font-weight: 600;
-    color: #F5F5F5;
-    margin: 0 0 0.5rem;
+    color: #F2F3F3;
+    margin: 0 0 0.35rem;
 }
 
-.tn-history-empty-card p,
-.tn-history-error-card p {
-    font-size: 0.88rem;
-    color: #737373;
+.tn-history-empty-desc {
+    font-size: 0.86rem;
+    color: #A0A5A5;
+    margin: 0;
     max-width: 440px;
-    margin: 0 0 1.5rem;
     line-height: 1.5;
 }
 
-.tn-history-retry-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.55rem 1rem;
-    background: #111111;
-    border: 1px solid #222222;
-    color: #F5F5F5;
-    font-size: 0.82rem;
-    font-weight: 600;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.tn-history-retry-btn:hover {
-    background: #181818;
-    border-color: #333333;
-}
-
-/* ─── Delete Confirmation Modal ─── */
+/* Delete Modal */
 .tn-history-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1200;
-    padding: 1rem;
+    padding: 20px;
 }
 
-.tn-history-modal {
-    background: #0D0D0D;
-    border: 1px solid #222222;
-    border-radius: 14px;
-    max-width: 460px;
+.tn-history-modal-box {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
     width: 100%;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
-    overflow: hidden;
-    animation: modal-scale 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modal-scale {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-.tn-history-modal-header {
+    max-width: 460px;
+    padding: 1.5rem;
     display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-    padding: 1.35rem 1.35rem 0.85rem;
-}
-
-.tn-history-modal-icon-danger {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    color: #ef4444;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
 }
 
 .tn-history-modal-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #F5F5F5;
-    margin: 0 0 0.25rem;
-}
-
-.tn-history-modal-subtitle {
-    font-size: 0.82rem;
-    color: #A3A3A3;
+    color: #F2F3F3;
     margin: 0;
-    word-break: break-word;
 }
 
-.tn-history-modal-body {
-    padding: 0 1.35rem 1.25rem;
-    font-size: 0.84rem;
-    color: #737373;
+.tn-history-modal-msg {
+    font-size: 0.85rem;
+    color: #A0A5A5;
     line-height: 1.5;
+    margin: 0;
 }
 
-.tn-history-modal-footer {
+.tn-history-modal-actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.65rem;
-    padding: 0.85rem 1.35rem;
-    background: #080808;
-    border-top: 1px solid #1A1A1A;
 }
 
-.tn-history-modal-btn {
-    padding: 0.55rem 1rem;
+.tn-history-btn-cancel {
+    padding: 0.5rem 1rem;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 5px;
+    color: #F2F3F3;
     font-size: 0.82rem;
-    font-weight: 600;
-    border-radius: 7px;
     cursor: pointer;
-    transition: all 0.15s ease;
 }
 
-.tn-history-modal-btn.cancel {
-    background: transparent;
-    border: 1px solid #222222;
-    color: #A3A3A3;
-}
-
-.tn-history-modal-btn.cancel:hover {
-    color: #F5F5F5;
-    background: #111111;
-}
-
-.tn-history-modal-btn.delete {
-    background: #ef4444;
-    border: none;
-    color: #ffffff;
+.tn-history-btn-delete {
+    padding: 0.5rem 1rem;
+    background: #E06C75;
+    border: 1px solid #E06C75;
+    border-radius: 5px;
+    color: #080909;
     font-weight: 600;
-}
-
-.tn-history-modal-btn.delete:hover {
-    background: #dc2626;
-}
-
-.tn-history-modal-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* ─── Responsive ─── */
-@media (max-width: 768px) {
-    .tn-history-card {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.85rem;
-    }
-
-    .tn-history-card-actions {
-        justify-content: flex-end;
-        border-top: 1px solid #161616;
-        padding-top: 0.65rem;
-    }
-
-    .tn-history-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .tn-history-selects {
-        flex-direction: column;
-    }
-
-    .tn-history-tabs {
-        overflow-x: auto;
-    }
+    font-size: 0.82rem;
+    cursor: pointer;
 }

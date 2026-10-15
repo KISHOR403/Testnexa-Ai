@@ -9,6 +9,7 @@ import { useHistory } from '../../hooks/useHistory';
 const TestSuitesListPage = () => {
     const { history, isLoading } = useHistory();
     const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
 
     // Extract real suites that belong to the authenticated user's workspace
     const userSuites = history
@@ -20,7 +21,6 @@ const TestSuitesListPage = () => {
             const nonFunctionalCount = item.suite?.nonFunctional?.length || 0;
             const totalTests = item.totalCases || item.summary?.total || (functionalCount + negativeCount + edgeCount + nonFunctionalCount);
 
-            // Compute actual high-risk count from test cases
             let highRiskCount = 0;
             if (item.suite) {
                 const allCases = [
@@ -44,7 +44,7 @@ const TestSuitesListPage = () => {
 
             const coverageStr = item.quality?.coverageConfidence
                 ? `${item.quality.coverageConfidence}%`
-                : (item.summary?.requirementCoverage || (totalTests > 0 ? '92%' : '0%'));
+                : (item.summary?.requirementCoverage || (totalTests > 0 ? '90%' : '0%'));
 
             return {
                 id: item.id || item.sessionId || `suite-${idx + 1}`,
@@ -54,241 +54,185 @@ const TestSuitesListPage = () => {
                 coverage: coverageStr,
                 highRisk: highRiskCount,
                 status: item.status === 'Approved' ? 'Approved' : 'Needs Review',
-                date: new Date(item.date || item.createdAt || Date.now()).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                })
+                date: item.date || item.createdAt
+                    ? new Date(item.date || item.createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })
+                    : null
             };
         });
 
-    const filtered = userSuites.filter(s =>
-        s.title.toLowerCase().includes(search.toLowerCase()) ||
-        s.reqId.toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = userSuites.filter(s => {
+        const matchesSearch = s.title.toLowerCase().includes(search.toLowerCase()) ||
+            s.reqId.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="ws-page-container">
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
-                        All Test Suites
-                    </h1>
-                    <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
-                        Manage, review and export generated enterprise test suites
+            <div className="ws-page-header">
+                <div className="ws-page-title-wrap">
+                    <h1>Test Suites</h1>
+                    <p>
+                        Manage, inspect, and export verified test suites across all project requirements
                     </p>
                 </div>
 
-                <NavLink to="/app/workspace" className="app-workspace-session-btn primary" style={{ padding: '0.65rem 1.15rem' }}>
-                    <Plus size={16} />
-                    <span>+ New Test Suite</span>
-                </NavLink>
+                <div className="ws-header-actions">
+                    <NavLink to="/app/workspace" className="ws-btn-primary">
+                        <Plus size={15} />
+                        <span>New Test Suite</span>
+                    </NavLink>
+                </div>
             </div>
 
-            {/* Search Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#0A0A0A', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #1C1C1C' }}>
-                <Search size={16} style={{ color: '#737373' }} />
-                <input
-                    type="text"
-                    placeholder="Search test suites by title or requirement ID..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{ background: 'transparent', border: 'none', color: '#F5F5F5', outline: 'none', width: '100%', fontSize: '0.88rem' }}
-                />
+            {/* Search and Filters */}
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="ws-search-bar" style={{ flex: 1, minWidth: '240px' }}>
+                    <Search size={16} style={{ color: '#777E7E' }} />
+                    <input
+                        type="text"
+                        placeholder="Search test suites by title or requirement ID..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    {['All', 'Needs Review', 'Approved'].map(status => (
+                        <button
+                            key={status}
+                            type="button"
+                            onClick={() => setStatusFilter(status)}
+                            className={`tn-filter-pill ${statusFilter === status ? 'is-active' : ''}`}
+                        >
+                            {status}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Loading State */}
             {isLoading && userSuites.length === 0 ? (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4rem 2rem',
-                    background: '#0A0A0A',
-                    borderRadius: '12px',
-                    border: '1px solid #1C1C1C',
-                    gap: '0.85rem'
-                }}>
-                    <Loader2 size={32} className="animate-spin" style={{ color: '#00D9C0' }} />
-                    <span style={{ color: '#A3A3A3', fontSize: '0.9rem' }}>Loading test suites...</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
+                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
+                    <span>Loading test suites...</span>
                 </div>
             ) : userSuites.length === 0 ? (
-                /* Empty State for New User / No Suites */
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    padding: '4.5rem 2rem',
-                    background: '#0A0A0A',
-                    borderRadius: '14px',
-                    border: '1px solid #1C1C1C',
-                    gap: '1.25rem'
-                }}>
-                    <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '14px',
-                        background: 'rgba(0, 217, 192, 0.08)',
-                        border: '1px solid rgba(0, 217, 192, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#00D9C0'
-                    }}>
+                /* Purposeful Empty State */
+                <div className="ws-empty-state">
+                    <div className="ws-empty-icon-wrap">
                         <Layers size={28} />
                     </div>
 
-                    <div style={{ maxWidth: '440px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
-                            No test suites yet
-                        </h2>
-                        <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
-                            Generate your first test suite from a requirement and start building structured QA coverage.
+                    <div className="ws-empty-text-wrap" style={{ maxWidth: '440px' }}>
+                        <h2>No test suites saved yet.</h2>
+                        <p>
+                            Generate your first test suite in the AI Workspace. All generated suites, test cases, and coverage metrics will appear here.
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <NavLink
-                            to="/app/workspace"
-                            className="app-workspace-session-btn primary"
-                            style={{ padding: '0.65rem 1.25rem', textDecoration: 'none' }}
-                        >
-                            <Plus size={16} />
-                            <span>+ New Test Suite</span>
-                        </NavLink>
-
-                        <NavLink
-                            to="/how-it-works"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.45rem',
-                                padding: '0.65rem 1.15rem',
-                                borderRadius: '8px',
-                                border: '1px solid #262626',
-                                background: '#121212',
-                                color: '#A3A3A3',
-                                fontSize: '0.88rem',
-                                textDecoration: 'none',
-                                fontWeight: '500',
-                                transition: 'all 0.2s ease'
-                            }}
-                        >
-                            <BookOpen size={15} />
-                            <span>Learn how it works</span>
+                    <div className="ws-empty-actions">
+                        <NavLink to="/app/workspace" className="ws-btn-primary">
+                            <Plus size={15} />
+                            <span>Create a Test Suite</span>
                         </NavLink>
                     </div>
                 </div>
             ) : filtered.length === 0 ? (
-                /* Search yielded 0 results */
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    padding: '3.5rem 2rem',
-                    background: '#0A0A0A',
-                    borderRadius: '12px',
-                    border: '1px solid #1C1C1C',
-                    gap: '0.75rem'
-                }}>
-                    <Search size={28} style={{ color: '#525252' }} />
-                    <p style={{ color: '#F5F5F5', fontWeight: '600', margin: 0 }}>No matching test suites</p>
-                    <p style={{ color: '#737373', fontSize: '0.85rem', margin: 0 }}>
-                        No test suites found matching "{search}".
-                    </p>
-                    <button
-                        onClick={() => setSearch('')}
-                        style={{
-                            marginTop: '0.5rem',
-                            background: 'transparent',
-                            border: '1px solid #333',
-                            color: '#00D9C0',
-                            borderRadius: '6px',
-                            padding: '0.4rem 0.9rem',
-                            fontSize: '0.82rem',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Clear search
-                    </button>
+                <div className="ws-card" style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#777E7E' }}>
+                    No test suites matching "{search}".
                 </div>
             ) : (
-                /* Suites Grid */
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
+                /* Suites Card Grid */
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '1rem'
+                }}>
                     {filtered.map((suite) => (
                         <div
                             key={suite.id}
+                            className="ws-card"
                             style={{
-                                background: '#0A0A0A',
-                                border: '1px solid #1C1C1C',
-                                borderRadius: '12px',
-                                padding: '1.25rem',
                                 display: 'flex',
                                 flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                padding: '1.25rem',
                                 gap: '1rem',
-                                position: 'relative',
-                                transition: 'border-color 0.2s ease'
+                                transition: 'all 0.15s ease'
                             }}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#00D9C0', letterSpacing: '0.05em' }}>
-                                    {suite.reqId}
-                                </span>
-                                <span style={{
-                                    fontSize: '0.72rem',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '4px',
-                                    background: suite.status === 'Approved' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
-                                    color: suite.status === 'Approved' ? '#22C55E' : '#F59E0B',
-                                    border: suite.status === 'Approved' ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(245,158,11,0.25)',
-                                    fontWeight: '600'
-                                }}>
-                                    {suite.status}
-                                </span>
-                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                    <span style={{
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        color: '#8BAF9A',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        background: 'rgba(139, 175, 154, 0.1)',
+                                        border: '1px solid rgba(139, 175, 154, 0.2)'
+                                    }}>
+                                        {suite.reqId}
+                                    </span>
+                                    <span className={`tn-status-pill ${suite.status === 'Approved' ? 'tn-status-pill--approved' : 'tn-status-pill--review'}`}>
+                                        <span className="tn-status-dot" />
+                                        {suite.status}
+                                    </span>
+                                </div>
 
-                            <div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
+                                <h3 style={{
+                                    fontSize: '1rem',
+                                    fontWeight: 600,
+                                    color: '#F2F3F3',
+                                    margin: 0,
+                                    lineHeight: 1.35
+                                }}>
                                     {suite.title}
                                 </h3>
-                                <span style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem', display: 'block' }}>
-                                    Generated {suite.date}
-                                </span>
+
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.85rem',
+                                    fontSize: '0.76rem',
+                                    color: '#777E7E',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <span><strong>{suite.testsCount}</strong> test cases</span>
+                                    <span>•</span>
+                                    <span><strong>{suite.coverage}</strong> coverage</span>
+                                    {suite.highRisk > 0 && (
+                                        <>
+                                            <span>•</span>
+                                            <span style={{ color: '#E5C07B' }}>{suite.highRisk} high-risk</span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1rem', borderTop: '1px solid #161616', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
-                                <div>
-                                    <strong style={{ color: '#F5F5F5' }}>{suite.testsCount}</strong> <span style={{ color: '#737373' }}>Tests</span>
-                                </div>
-                                <div>
-                                    <strong style={{ color: '#00D9C0' }}>{suite.coverage}</strong> <span style={{ color: '#737373' }}>Coverage</span>
-                                </div>
-                                <div>
-                                    <strong style={{ color: '#F59E0B' }}>{suite.highRisk}</strong> <span style={{ color: '#737373' }}>High Risk</span>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                paddingTop: '0.75rem',
+                                borderTop: '1px solid #292D2D',
+                                fontSize: '0.74rem',
+                                color: '#777E7E'
+                            }}>
+                                <span>{suite.date ? `Updated ${suite.date}` : 'Recently updated'}</span>
                                 <NavLink
                                     to={`/app/test-suites/${suite.id}`}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.35rem',
-                                        fontSize: '0.82rem',
-                                        color: '#00D9C0',
-                                        textDecoration: 'none',
-                                        fontWeight: '600'
-                                    }}
+                                    className="ws-btn-secondary"
+                                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
                                 >
                                     <span>Open Suite</span>
-                                    <ArrowRight size={14} />
+                                    <ArrowRight size={13} />
                                 </NavLink>
                             </div>
                         </div>

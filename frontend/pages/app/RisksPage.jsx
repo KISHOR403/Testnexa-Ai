@@ -1,10 +1,11 @@
-import React from 'react';
-import { AlertTriangle, Shield, CheckCircle2, ShieldAlert, ArrowRight, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, Shield, CheckCircle2, ShieldAlert, ArrowRight, Loader2, Filter } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useHistory } from '../../hooks/useHistory';
 
 const RisksPage = () => {
     const { history, isLoading } = useHistory();
+    const [severityFilter, setSeverityFilter] = useState('All');
 
     // Extract real risk vectors from the user's generated test suites
     const riskItems = [];
@@ -26,167 +27,182 @@ const RisksPage = () => {
                 tc.type === 'Edge Case';
 
             if (isHighRisk) {
+                const level = tc.severity === 'Critical' ? 'Critical' : tc.priority === 'High' ? 'High' : 'Medium';
                 riskItems.push({
-                    level: tc.severity === 'Critical' ? 'Critical' : tc.priority === 'High' ? 'High' : 'Medium',
-                    title: tc.title,
+                    level,
+                    title: tc.title || tc.scenario || 'Unhandled boundary condition',
                     category: tc.type || 'Security',
-                    linkedTc: tc.id || 'TC',
+                    linkedTc: tc.id || 'TC-001',
                     desc: tc.scenario || tc.expectedResult || tc.title,
-                    suiteId: item.id || item.sessionId
+                    suiteId: item.id || item.sessionId,
+                    suiteTitle: item.title || item.feature || 'Test Suite',
+                    confirmed: tc.status === 'Approved'
                 });
             }
         });
     });
 
+    const criticalCount = riskItems.filter(r => r.level === 'Critical').length;
+    const highCount = riskItems.filter(r => r.level === 'High').length;
+    const mediumCount = riskItems.filter(r => r.level === 'Medium').length;
+
+    const filteredRisks = severityFilter === 'All'
+        ? riskItems
+        : riskItems.filter(r => r.level === severityFilter);
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: '600', color: '#F5F5F5', margin: 0 }}>
-                        Risk Vectors & Security Analysis
-                    </h1>
-                    <p style={{ fontSize: '0.88rem', color: '#A3A3A3', margin: '0.25rem 0 0' }}>
-                        Automated AI vulnerability surface detection and mitigation test suites
+        <div className="ws-page-container">
+            {/* Header */}
+            <div className="ws-page-header">
+                <div className="ws-page-title-wrap">
+                    <h1>Risk Vectors & Vulnerabilities</h1>
+                    <p>
+                        Identified boundary risks, negative security vectors, and mitigated exception paths
                     </p>
                 </div>
 
-                <NavLink to="/app/workspace" className="app-workspace-session-btn primary" style={{ padding: '0.65rem 1.15rem' }}>
-                    <span>+ New Security Audit</span>
-                </NavLink>
+                <div className="ws-header-actions">
+                    <NavLink to="/app/workspace" className="ws-btn-primary">
+                        <span>+ New Test Suite</span>
+                    </NavLink>
+                </div>
             </div>
 
             {isLoading && riskItems.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem 1rem', gap: '0.75rem', color: '#A3A3A3' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: '#00D9C0' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
+                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
                     <span>Loading risk analysis...</span>
                 </div>
             ) : riskItems.length === 0 ? (
                 /* Empty state when user has no risk items */
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center',
-                    padding: '4.5rem 2rem',
-                    background: '#0A0A0A',
-                    borderRadius: '14px',
-                    border: '1px solid #1C1C1C',
-                    gap: '1.25rem'
-                }}>
-                    <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '14px',
-                        background: 'rgba(245, 158, 11, 0.08)',
-                        border: '1px solid rgba(245, 158, 11, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#F59E0B'
-                    }}>
+                <div className="ws-empty-state">
+                    <div className="ws-empty-icon-wrap" style={{ background: 'rgba(229, 192, 123, 0.1)', borderColor: 'rgba(229, 192, 123, 0.25)', color: '#E5C07B' }}>
                         <ShieldAlert size={28} />
                     </div>
 
-                    <div style={{ maxWidth: '440px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.5rem' }}>
-                            No test suite selected.
-                        </h2>
-                        <p style={{ fontSize: '0.9rem', color: '#737373', lineHeight: '1.5', margin: 0 }}>
-                            Generate or open a test suite to view risk vectors & security audits.
+                    <div className="ws-empty-text-wrap" style={{ maxWidth: '440px' }}>
+                        <h2>No risk vectors identified yet.</h2>
+                        <p>
+                            Generate a test suite in AI Workspace to evaluate security vulnerabilities, negative edge scenarios, and exception flows.
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <NavLink
-                            to="/app/workspace"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.65rem 1.25rem',
-                                borderRadius: '8px',
-                                background: '#00D9C0',
-                                color: '#0A0A0A',
-                                fontSize: '0.88rem',
-                                textDecoration: 'none',
-                                fontWeight: '600'
-                            }}
-                        >
+                    <div className="ws-empty-actions">
+                        <NavLink to="/app/workspace" className="ws-btn-primary">
                             <span>Generate in AI Workspace &rarr;</span>
                         </NavLink>
-                        <NavLink
-                            to="/app/test-suites"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.65rem 1.25rem',
-                                borderRadius: '8px',
-                                background: '#121212',
-                                border: '1px solid #262626',
-                                color: '#F5F5F5',
-                                fontSize: '0.88rem',
-                                textDecoration: 'none',
-                                fontWeight: '500'
-                            }}
-                        >
-                            <span>View All Test Suites</span>
+                        <NavLink to="/app/test-suites" className="ws-btn-secondary">
+                            <span>All Test Suites</span>
                         </NavLink>
                     </div>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
-                    {riskItems.map((item, idx) => (
-                        <div
-                            key={idx}
-                            style={{
-                                background: '#0A0A0A',
-                                border: '1px solid #1C1C1C',
-                                borderRadius: '12px',
-                                padding: '1.25rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.85rem'
-                            }}
-                        >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{
-                                    fontSize: '0.72rem',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '4px',
-                                    background: item.level === 'Critical' ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)',
-                                    color: item.level === 'Critical' ? '#ef4444' : '#f59e0b',
-                                    fontWeight: '600',
-                                    border: item.level === 'Critical' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(245,158,11,0.25)'
-                                }}>
-                                    {item.level} Risk
-                                </span>
-                                <span style={{ fontSize: '0.75rem', color: '#737373' }}>{item.category}</span>
-                            </div>
-
-                            <div>
-                                <h3 style={{ fontSize: '1.05rem', fontWeight: '600', color: '#F5F5F5', margin: '0 0 0.4rem' }}>
-                                    {item.title}
-                                </h3>
-                                <p style={{ fontSize: '0.82rem', color: '#A3A3A3', margin: 0, lineHeight: 1.5 }}>
-                                    {item.desc}
-                                </p>
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #161616', paddingTop: '0.75rem', fontSize: '0.8rem' }}>
-                                <span style={{ color: '#00D9C0', fontWeight: '600' }}>Linked Test: {item.linkedTc}</span>
-                                <NavLink
-                                    to={`/app/test-suites/${item.suiteId}`}
-                                    style={{ color: '#00D9C0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem' }}
-                                >
-                                    <span>Inspect Suite</span>
-                                    <ArrowRight size={12} />
-                                </NavLink>
-                            </div>
+                <>
+                    {/* Severity Metrics */}
+                    <div className="ws-stats-grid">
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">TOTAL RISK VECTORS</span>
+                            <h2 className="ws-stat-card__val">{riskItems.length}</h2>
                         </div>
-                    ))}
-                </div>
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">CRITICAL SEVERITY</span>
+                            <h2 className="ws-stat-card__val" style={{ color: '#E06C75' }}>{criticalCount}</h2>
+                        </div>
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">HIGH SEVERITY</span>
+                            <h2 className="ws-stat-card__val" style={{ color: '#E5C07B' }}>{highCount}</h2>
+                        </div>
+                        <div className="ws-stat-card">
+                            <span className="ws-stat-card__label">MEDIUM SEVERITY</span>
+                            <h2 className="ws-stat-card__val ws-stat-card__val--accent">{mediumCount}</h2>
+                        </div>
+                    </div>
+
+                    {/* Filter Bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {['All', 'Critical', 'High', 'Medium'].map((lvl) => (
+                            <button
+                                key={lvl}
+                                type="button"
+                                onClick={() => setSeverityFilter(lvl)}
+                                className={`tn-filter-pill ${severityFilter === lvl ? 'is-active' : ''}`}
+                            >
+                                {lvl === 'All' ? `All Risks (${riskItems.length})` : `${lvl} (${riskItems.filter(r => r.level === lvl).length})`}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Risk Vectors List */}
+                    <div className="ws-card">
+                        <div className="ws-card-header">
+                            <span>Identified Risk Vectors & Linked Test Cases</span>
+                            <span style={{ fontSize: '0.75rem', color: '#777E7E', fontWeight: 500 }}>
+                                {filteredRisks.length} {filteredRisks.length === 1 ? 'Record' : 'Records'}
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {filteredRisks.map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        justifyContent: 'space-between',
+                                        gap: '1rem',
+                                        padding: '1rem 1.25rem',
+                                        borderBottom: '1px solid #292D2D',
+                                        transition: 'background 0.12s ease'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', gap: '0.85rem', flex: 1 }}>
+                                        <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                                            <span className={`tn-prio-tag tn-prio-tag--${item.level.toLowerCase()}`}>
+                                                {item.level}
+                                            </span>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                                <span style={{ color: '#F2F3F3', fontWeight: 600, fontSize: '0.88rem' }}>
+                                                    {item.title}
+                                                </span>
+                                                <span className="tn-type-tag tn-type-tag--security">
+                                                    {item.category}
+                                                </span>
+                                                {item.confirmed && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#8BAF9A', background: 'rgba(139, 175, 154, 0.1)', padding: '1px 5px', borderRadius: '3px', border: '1px solid rgba(139, 175, 154, 0.25)' }}>
+                                                        ✓ Confirmed
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#A0A5A5', lineHeight: 1.45 }}>
+                                                {item.desc}
+                                            </p>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.2rem', fontSize: '0.74rem', color: '#777E7E' }}>
+                                                <span>Suite: <strong style={{ color: '#A0A5A5' }}>{item.suiteTitle}</strong></span>
+                                                <span>•</span>
+                                                <span>Linked Case: <strong style={{ color: '#8BAF9A', fontFamily: 'monospace' }}>{item.linkedTc}</strong></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <NavLink
+                                        to={`/app/test-suites/${item.suiteId}`}
+                                        className="ws-btn-secondary"
+                                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.76rem', flexShrink: 0 }}
+                                        title="Inspect Test Case"
+                                    >
+                                        <span>View Case</span>
+                                        <ArrowRight size={13} />
+                                    </NavLink>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );

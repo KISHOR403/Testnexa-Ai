@@ -5,6 +5,7 @@ import AppHeader from '../components/app/AppHeader';
 import ScrollToTop from '../components/ScrollToTop';
 import AnimatedBackground from '../components/AnimatedBackground';
 import '../styles/app/AppSidebar.css';
+import '../styles/app/WorkspaceDesignSystem.css';
 
 const AppLayout = () => {
     const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -28,7 +29,6 @@ const AppLayout = () => {
     return (
         <div className="app-shell-container">
             <ScrollToTop />
-            <AnimatedBackground />
 
             {/* Mobile Drawer Backdrop */}
             <div

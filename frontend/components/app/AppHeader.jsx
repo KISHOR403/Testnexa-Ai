@@ -92,9 +92,9 @@ const AppHeader = ({ onToggleMobile }) => {
                     title="Account Settings"
                     onClick={() => navigate('/app/settings?tab=profile')}
                     style={{
-                        background: '#111111',
-                        border: '1px solid #1C1C1C',
-                        color: '#F5F5F5',
+                        background: '#161819',
+                        border: '1px solid #292D2D',
+                        color: '#8BAF9A',
                         fontWeight: '600',
                         fontSize: '0.8rem',
                         cursor: 'pointer'
