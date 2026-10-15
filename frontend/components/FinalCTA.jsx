@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 export const FinalCTA = () => {
@@ -11,15 +11,15 @@ export const FinalCTA = () => {
                 <div className="tn-final-cta-canvas">
                     <div className="tn-chapter-eyebrow">
                         <span className="tn-kicker-dot" />
-                        <span>PRODUCTION-READY QUALITY GATE</span>
+                        <span>GET STARTED</span>
                     </div>
 
                     <h2 id="final-cta-heading" className="tn-final-cta-title">
-                        Your next requirement is already waiting.
+                        Start with a requirement.<br />Leave with a test suite.
                     </h2>
 
                     <p className="tn-final-cta-subtitle">
-                        Turn raw specifications into deterministic, execution-ready test suites in seconds.
+                        Turn unstructured requirements into reviewable, traceable QA work.
                     </p>
 
                     <div className="tn-final-cta-actions">
@@ -34,27 +34,11 @@ export const FinalCTA = () => {
                                 handleWorkspaceEntry('/app/workspace');
                             }}
                         >
-                            <span>{isOpening ? 'Opening Workspace…' : 'Create a test suite →'}</span>
+                            <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
+                            <ArrowRight size={15} />
                         </a>
 
                         <span className="tn-cta-note">No credit card required &bull; Free instant workspace</span>
-                    </div>
-
-                    <div className="tn-final-cta-assurances">
-                        <div className="tn-assurance-item">
-                            <CheckCircle2 size={13} className="text-green" />
-                            <span>Zero setup required</span>
-                        </div>
-                        <div className="tn-assurance-divider" />
-                        <div className="tn-assurance-item">
-                            <CheckCircle2 size={13} className="text-green" />
-                            <span>Playwright, Cypress & Cucumber BDD export</span>
-                        </div>
-                        <div className="tn-assurance-divider" />
-                        <div className="tn-assurance-item">
-                            <CheckCircle2 size={13} className="text-green" />
-                            <span>Stateless, isolated data privacy</span>
-                        </div>
                     </div>
                 </div>
             </div>

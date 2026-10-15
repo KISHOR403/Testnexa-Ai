@@ -1,24 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ArrowRight,
     Check,
-    FileText,
-    Layers,
-    Shield,
-    GitBranch,
-    CheckSquare,
     AlertTriangle,
-    SlidersHorizontal,
-    Search,
-    Download,
-    ExternalLink,
-    Play
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
-    const [activeTab, setActiveTab] = useState('cases'); // 'requirement' | 'analysis' | 'scenarios' | 'cases'
+    const [activeTab, setActiveTab] = useState('cases');
+    const sectionRef = useRef(null);
+    const [isRevealed, setIsRevealed] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setIsRevealed(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleExploreWorkflow = (e) => {
         e.preventDefault();
@@ -31,21 +28,22 @@ export const Hero = () => {
     };
 
     return (
-        <header className="tn-hero-section" aria-labelledby="hero-main-heading">
+        <header className="tn-hero-section" aria-labelledby="hero-main-heading" ref={sectionRef}>
             <div className="tn-container">
-                {/* ─── 1. Hero Headline & CTAs (Clean Open Canvas) ─── */}
-                <div className="tn-hero-content">
+                {/* ─── 1. Hero Headline & CTAs ─── */}
+                <div className="tn-hero-content" style={{ opacity: isRevealed ? 1 : 0, transform: isRevealed ? 'translateY(0)' : 'translateY(20px)', transition: 'opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1)' }}>
                     <div className="tn-hero-kicker">
                         <span className="tn-kicker-dot" />
-                        <span>ENTERPRISE QA PLATFORM &bull; SPECIFICATION TO SUITE</span>
+                        <span>QA ENGINEERING PLATFORM</span>
                     </div>
 
                     <h1 id="hero-main-heading" className="tn-hero-title">
-                        Turn requirements into executable test cases.
+                        From requirements to<br />release&#8209;ready tests.
                     </h1>
 
                     <p className="tn-hero-desc">
-                        Analyze specifications, synthesize deterministic test scenarios, audit coverage, and lock bidirectional traceability — all in one engineering workflow.
+                        Turn product requirements into structured test cases, review coverage,
+                        identify risk, and trace every test back to its source.
                     </p>
 
                     <div className="tn-hero-actions">
@@ -70,11 +68,10 @@ export const Hero = () => {
                             className="tn-btn-secondary tn-btn-secondary--lg"
                             onClick={handleExploreWorkflow}
                         >
-                            <span>Explore Workflow</span>
+                            <span>Explore the Workflow</span>
                         </button>
                     </div>
 
-                    {/* Small Inline Navigation Pipeline Bar */}
                     <div className="tn-hero-pipeline-strip" aria-label="QA Pipeline Steps">
                         <span className="tn-hpipe-item is-active">01 Requirement</span>
                         <span className="tn-hpipe-sep">──</span>
@@ -90,8 +87,8 @@ export const Hero = () => {
                     </div>
                 </div>
 
-                {/* ─── 2. Real Product Canvas Emerging from Page ─── */}
-                <div id="product-canvas" className="tn-hero-visual-frame" aria-label="TestNexa Product Canvas">
+                {/* ─── 2. Real Product Canvas ─── */}
+                <div id="product-canvas" className="tn-hero-visual-frame" aria-label="TestNexa Product Canvas" style={{ opacity: isRevealed ? 1 : 0, transform: isRevealed ? 'translateY(0)' : 'translateY(32px)', transition: 'opacity 1s cubic-bezier(0.16,1,0.3,1) 0.2s, transform 1s cubic-bezier(0.16,1,0.3,1) 0.2s' }}>
                     <div className="tn-software-window">
                         {/* Title Bar */}
                         <div className="tn-window-header">
@@ -111,48 +108,27 @@ export const Hero = () => {
                             </div>
                         </div>
 
-                        {/* App Sub-header: Navigation Tabs & Metrics */}
+                        {/* App Sub-header */}
                         <div className="tn-canvas-subbar">
                             <div className="tn-canvas-tabs" role="tablist">
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={activeTab === 'requirement'}
-                                    className={`tn-canvas-tab ${activeTab === 'requirement' ? 'is-active' : ''}`}
-                                    onClick={() => setActiveTab('requirement')}
-                                >
-                                    <span>Requirement</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={activeTab === 'analysis'}
-                                    className={`tn-canvas-tab ${activeTab === 'analysis' ? 'is-active' : ''}`}
-                                    onClick={() => setActiveTab('analysis')}
-                                >
-                                    <span>AI Analysis</span>
-                                    <span className="tn-tab-counter">3 risks</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={activeTab === 'scenarios'}
-                                    className={`tn-canvas-tab ${activeTab === 'scenarios' ? 'is-active' : ''}`}
-                                    onClick={() => setActiveTab('scenarios')}
-                                >
-                                    <span>Scenarios</span>
-                                    <span className="tn-tab-counter">4 groups</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={activeTab === 'cases'}
-                                    className={`tn-canvas-tab ${activeTab === 'cases' ? 'is-active' : ''}`}
-                                    onClick={() => setActiveTab('cases')}
-                                >
-                                    <span>Test Cases</span>
-                                    <span className="tn-tab-counter">24 cases</span>
-                                </button>
+                                {[
+                                    { key: 'requirement', label: 'Requirement' },
+                                    { key: 'analysis', label: 'AI Analysis', counter: '3 risks' },
+                                    { key: 'scenarios', label: 'Scenarios', counter: '4 groups' },
+                                    { key: 'cases', label: 'Test Cases', counter: '24 cases' }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.key}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={activeTab === tab.key}
+                                        className={`tn-canvas-tab ${activeTab === tab.key ? 'is-active' : ''}`}
+                                        onClick={() => setActiveTab(tab.key)}
+                                    >
+                                        <span>{tab.label}</span>
+                                        {tab.counter && <span className="tn-tab-counter">{tab.counter}</span>}
+                                    </button>
+                                ))}
                             </div>
 
                             <div className="tn-canvas-metrics">
@@ -178,9 +154,9 @@ export const Hero = () => {
                             </div>
                         </div>
 
-                        {/* Interactive Main Canvas View */}
+                        {/* Main Canvas View */}
                         <div className="tn-canvas-body">
-                            {/* Left Pane: Specification & Deconstructed Logic */}
+                            {/* Left Pane: Specification */}
                             <div className="tn-cbody-pane tn-cbody-pane--spec">
                                 <div className="tn-cpane-head">
                                     <span className="tn-cpane-tag">SPECIFICATION INGESTION</span>
@@ -189,7 +165,7 @@ export const Hero = () => {
 
                                 <div className="tn-spec-text-block">
                                     <p className="tn-spec-quote">
-                                        “Users can reset their password using their registered email address.”
+                                        "Users can reset their password using their registered email address."
                                     </p>
                                 </div>
 
@@ -214,7 +190,7 @@ export const Hero = () => {
                                 </div>
                             </div>
 
-                            {/* Right Pane: Generated Scenarios & Test Suite Table */}
+                            {/* Right Pane: Generated Test Suite */}
                             <div className="tn-cbody-pane tn-cbody-pane--tests">
                                 <div className="tn-cpane-head">
                                     <div className="tn-suite-head-left">
@@ -261,7 +237,7 @@ export const Hero = () => {
                                                 <td className="td-id"><code>TC-003</code></td>
                                                 <td className="td-title">
                                                     <div className="tc-name">Expired token redemption attempt</div>
-                                                    <div className="tc-sub">Reject token &gt; 15m &bull; Assert HTTP 401 TOKEN_EXPIRED &bull; Session purge</div>
+                                                    <div className="tc-sub">Reject token &gt; 15m &bull; Assert HTTP 401 TOKEN_EXPIRED</div>
                                                 </td>
                                                 <td className="td-type"><span className="tc-type tc-type--neg">Negative</span></td>
                                                 <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
@@ -270,7 +246,7 @@ export const Hero = () => {
                                                 <td className="td-id"><code>TC-004</code></td>
                                                 <td className="td-title">
                                                     <div className="tc-name">Brute-force throttle enforcement</div>
-                                                    <div className="tc-sub">Simulate 6 req/min &bull; Assert HTTP 429 TOO_MANY_REQUESTS &bull; Retry-After header</div>
+                                                    <div className="tc-sub">Simulate 6 req/min &bull; Assert HTTP 429 TOO_MANY_REQUESTS</div>
                                                 </td>
                                                 <td className="td-type"><span className="tc-type tc-type--sec">Security</span></td>
                                                 <td className="td-status"><span className="tc-status is-review"><AlertTriangle size={11} /> Review</span></td>
