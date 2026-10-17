@@ -8,6 +8,7 @@ import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 import ProfileModal from './ProfileModal';
 import UpgradeModal from './UpgradeModal';
 import NavbarAccountMenu from './NavbarAccountMenu';
+import TestNexaLogo from './TestNexaLogo';
 
 const MARKETING_LINKS = [
     { type: 'scroll', id: 'product-canvas', label: 'Product' },
@@ -90,13 +91,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                             }}
                         >
                             <div className="tn-brand-logo-box">
-                                <img
-                                    src="/testnexa-logo.png"
-                                    alt="TestNexa AI"
-                                    width="28"
-                                    height="28"
-                                    style={{ borderRadius: '6px', objectFit: 'cover' }}
-                                />
+                                <TestNexaLogo size={28} />
                             </div>
                             <span className="tn-brand-title">TestNexa</span>
                         </NavLink>

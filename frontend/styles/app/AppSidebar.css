@@ -114,8 +114,7 @@
 .app-sidebar__logo {
     width: 26px;
     height: 26px;
-    border-radius: 6px;
-    object-fit: cover;
+    object-fit: contain;
     flex-shrink: 0;
 }
 

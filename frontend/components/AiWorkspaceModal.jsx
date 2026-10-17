@@ -6,6 +6,7 @@ import {
     CheckCheck, Layers, Terminal, Lock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import TestNexaLogo from './TestNexaLogo';
 import '../styles/AiWorkspaceModal.css';
 
 const EXAMPLE_REQUIREMENTS = [
@@ -171,13 +172,7 @@ const AiWorkspaceModal = ({
                 <header className="tn-workspace-header">
                     <div className="tn-workspace-header__left">
                         <div className="tn-workspace-header__brand">
-                            <img
-                                src="/testnexa-logo.png"
-                                alt="TestNexa AI"
-                                width="24"
-                                height="24"
-                                className="tn-workspace-header__logo"
-                            />
+                            <TestNexaLogo size={24} className="tn-workspace-header__logo" />
                             <span>Testnexa AI</span>
                         </div>
                         <span className="tn-workspace-header__sep">/</span>

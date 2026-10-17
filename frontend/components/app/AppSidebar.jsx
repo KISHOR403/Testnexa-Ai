@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
+import TestNexaLogo from '../TestNexaLogo';
 import '../../styles/app/AppSidebar.css';
 
 const formatTimeAgo = (dateInput) => {
@@ -67,7 +68,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
             {/* Header */}
             <div className="app-sidebar__header">
                 <NavLink to="/app/workspace" className="app-sidebar__brand" onClick={handleNavClick}>
-                    <img src="/testnexa-logo.png" alt="TestNexa AI" width="28" height="28" className="app-sidebar__logo" />
+                    <TestNexaLogo size={26} className="app-sidebar__logo" />
                     {!isCollapsed && (
                         <div className="app-sidebar__brand-name">
                             <span>TESTNEXA AI</span>

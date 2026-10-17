@@ -5,6 +5,7 @@ import {
     Globe, Smartphone, Server, Gauge, Target, Rocket
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import TestNexaLogo from './TestNexaLogo';
 
 const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSettings }) => {
     const { isAuthenticated, guestGenerationsUsed, GUEST_LIMIT } = useAuth();
@@ -94,7 +95,7 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
             <div className="ip-header">
                 <div className="ip-header-left">
                     <div className="ip-logo-badge">
-                        <img src="/testnexa-logo.png" alt="TestNexa AI" width="32" height="32" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
+                        <TestNexaLogo size={24} />
                     </div>
                     <div>
                         <h3 className="ip-title">AI Workspace</h3>

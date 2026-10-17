@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Twitter, Github, Linkedin, Mail } from 'lucide-react';
+import TestNexaLogo from './TestNexaLogo';
 
 export const Footer = () => {
     return (
@@ -9,13 +10,7 @@ export const Footer = () => {
                 {/* Brand column */}
                 <div className="tn-footer__brand">
                     <Link to="/" className="tn-footer__logo">
-                        <img
-                            src="/testnexa-logo.png"
-                            alt="TestNexa AI"
-                            width="24"
-                            height="24"
-                            style={{ borderRadius: '6px', objectFit: 'cover' }}
-                        />
+                        <TestNexaLogo size={24} />
                         <span className="tn-footer__logo-text">TestNexa</span>
                     </Link>
                     <p className="tn-footer__desc">

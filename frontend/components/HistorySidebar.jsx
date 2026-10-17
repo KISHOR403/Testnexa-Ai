@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import ProfileModal from './ProfileModal';
 import FeedbackModal from './FeedbackModal';
 import UpgradeModal from './UpgradeModal';
+import TestNexaLogo from './TestNexaLogo';
 
 const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
     const { history, deleteFromHistory } = useHistory();
@@ -246,7 +247,7 @@ const HistorySidebar = ({ isOpen, onClose, onOpen, onNewAnalysis }) => {
                 {/* Top section: Logo + collapse button */}
                 <div className="gpt-sidebar-top">
                     <div className="gpt-sidebar-logo">
-                        <img src="/testnexa-logo.png" alt="TestNexa AI" width="24" height="24" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px' }} />
+                        <TestNexaLogo size={24} />
                     </div>
                     <button className="gpt-sidebar-collapse" onClick={onClose} title="Close sidebar">
                         <Menu size={20} />

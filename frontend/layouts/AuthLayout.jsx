@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import TestNexaLogo from '../components/TestNexaLogo';
 import '../styles/auth.css';
 
 const AuthLayout = () => {
@@ -9,13 +10,7 @@ const AuthLayout = () => {
             {/* Minimal Top Navigation */}
             <header className="tn-auth-header">
                 <Link to="/" className="tn-auth-brand" aria-label="TestNexa Home">
-                    <img
-                        src="/testnexa-logo.png"
-                        alt="TestNexa AI Logo"
-                        width="28"
-                        height="28"
-                        className="tn-auth-brand-logo"
-                    />
+                    <TestNexaLogo size={28} className="tn-auth-brand-logo" />
                     <span className="tn-auth-brand-text">TestNexa</span>
                 </Link>
 
