@@ -948,6 +948,30 @@ class SupabaseDataService {
 
     _formatSession(row) {
         if (!row) return null;
+        const summary = row.summary && typeof row.summary === 'object' ? { ...row.summary } : {};
+        if (typeof summary.total !== 'number' || summary.total === 0) {
+            const sum = (summary.functional || 0) +
+                (summary.negative || 0) +
+                (summary.edge || 0) +
+                (summary.nonFunctional || 0) +
+                (summary.apiChecklist || 0) +
+                (summary.security || 0);
+            if (sum > 0) {
+                summary.total = sum;
+            } else if (row.suite_data && typeof row.suite_data === 'object') {
+                const sd = row.suite_data;
+                const sdTotal = (sd.testCases?.length || 0) ||
+                    (sd.tests?.length || 0) ||
+                    ((sd.functional?.length || 0) +
+                    (sd.negative?.length || 0) +
+                    (sd.edge?.length || 0) +
+                    (sd.nonFunctional?.length || 0) +
+                    (sd.apiChecklist?.length || 0) +
+                    (sd.security?.length || 0));
+                if (sdTotal > 0) summary.total = sdTotal;
+            }
+        }
+
         return {
             _id: row.id,
             id: row.id,
@@ -962,7 +986,7 @@ class SupabaseDataService {
             detailLevel: row.detail_level || row.depth || 'standard',
             messages: row.messages || [],
             suiteData: row.suite_data || {},
-            summary: row.summary || {},
+            summary: summary,
             quality: row.quality || {},
             currentVersion: row.current_version || 1,
             versions: row.versions || [],

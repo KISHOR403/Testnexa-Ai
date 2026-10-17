@@ -25,6 +25,40 @@ const formatTimeAgo = (dateInput) => {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const calculateTotalTests = (session) => {
+    if (typeof session?.summary?.total === 'number' && session.summary.total > 0) {
+        return session.summary.total;
+    }
+    const sumFromSummary =
+        (session?.summary?.functional || 0) +
+        (session?.summary?.negative || 0) +
+        (session?.summary?.edge || 0) +
+        (session?.summary?.nonFunctional || 0) +
+        (session?.summary?.apiChecklist || 0) +
+        (session?.summary?.security || 0);
+    if (sumFromSummary > 0) return sumFromSummary;
+
+    const dataObj = session?.suiteData || session?.suite_data || session?.suite || session?.data;
+    if (dataObj && typeof dataObj === 'object') {
+        if (Array.isArray(dataObj.testCases) && dataObj.testCases.length > 0) {
+            return dataObj.testCases.length;
+        }
+        if (Array.isArray(dataObj.tests) && dataObj.tests.length > 0) {
+            return dataObj.tests.length;
+        }
+        const sumFromData =
+            (dataObj.functional?.length || 0) +
+            (dataObj.negative?.length || 0) +
+            (dataObj.edge?.length || 0) +
+            (dataObj.nonFunctional?.length || 0) +
+            (dataObj.apiChecklist?.length || 0) +
+            (dataObj.security?.length || 0);
+        if (sumFromData > 0) return sumFromData;
+    }
+    return session?.totalCases || session?.totalTests || 0;
+};
+
+
 const HistoryPage = () => {
     const navigate = useNavigate();
     const { loadHistory: refreshSidebarHistory } = useHistory();
@@ -319,7 +353,9 @@ const HistoryPage = () => {
                     {sessions.map((session) => {
                         const isEditing = editingId === session._id;
                         const isArchived = session.status === 'Archived';
-                        const totalTests = session.summary?.total || 0;
+                        const totalTests = calculateTotalTests(session);
+                        const functionalCount = session.summary?.functional ?? (session.suiteData?.functional?.length || 0);
+                        const edgeCount = session.summary?.edge ?? (session.suiteData?.edge?.length || 0);
                         const confidence = session.quality?.confidenceLevel || session.quality?.coverageConfidence || null;
                         const isGenerated = session.status === 'Generated' || session.status === 'NeedsReview' || session.status === 'Approved' || totalTests > 0 || !!session.suiteData;
                         const targetUrl = isGenerated ? `/app/test-suites/${session._id}` : `/app/workspace/${session._id}`;
@@ -411,14 +447,14 @@ const HistoryPage = () => {
                                                 <Layers size={13} />
                                                 <strong>{totalTests}</strong> Tests
                                             </div>
-                                            {session.summary?.functional > 0 && (
+                                            {functionalCount > 0 && (
                                                 <div className="tn-history-stat-pill sub">
-                                                    <span>{session.summary.functional} Functional</span>
+                                                    <span>{functionalCount} Functional</span>
                                                 </div>
                                             )}
-                                            {session.summary?.edge > 0 && (
+                                            {edgeCount > 0 && (
                                                 <div className="tn-history-stat-pill sub">
-                                                    <span>{session.summary.edge} Edge</span>
+                                                    <span>{edgeCount} Edge</span>
                                                 </div>
                                             )}
                                             {session.currentVersion > 1 && (

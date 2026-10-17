@@ -132,22 +132,27 @@ export const useHistory = () => {
 
     // Save or update session
     const saveToHistory = async (result, requirement, settings, existingSessionId = null, title = null) => {
-        const totalCases = result?.totalCases ||
-            (result?.summary
-                ? (result.summary.functional || 0) +
-                (result.summary.negative || 0) +
-                (result.summary.edge || 0) +
-                (result.summary.apiChecklist || 0) +
-                (result.summary.nonFunctional || 0)
-                : 0);
+        const functionalCount = result?.summary?.functional ?? (result?.functional?.length || 0);
+        const negativeCount = result?.summary?.negative ?? (result?.negative?.length || 0);
+        const edgeCount = result?.summary?.edge ?? (result?.edge?.length || 0);
+        const nonFunctionalCount = result?.summary?.nonFunctional ?? (result?.nonFunctional?.length || 0);
+        const apiChecklistCount = result?.summary?.apiChecklist ?? (result?.apiChecklist?.length || 0);
+        const sumOfCategories = functionalCount + negativeCount + edgeCount + nonFunctionalCount + apiChecklistCount;
 
-        const summaryData = result?.summary || {
+        const totalCases = result?.totalCases ||
+            result?.summary?.total ||
+            (result?.testCases?.length || 0) ||
+            (result?.tests?.length || 0) ||
+            sumOfCategories;
+
+        const summaryData = {
+            ...(result?.summary || {}),
             total: totalCases,
-            functional: result?.functional?.length || 0,
-            negative: result?.negative?.length || 0,
-            edge: result?.edge?.length || 0,
-            nonFunctional: result?.nonFunctional?.length || 0,
-            apiChecklist: result?.apiChecklist?.length || 0
+            functional: functionalCount,
+            negative: negativeCount,
+            edge: edgeCount,
+            nonFunctional: nonFunctionalCount,
+            apiChecklist: apiChecklistCount
         };
 
         const resolvedTitle = title || result?.testSuiteName || result?.feature || requirement?.slice(0, 45) || 'Generated Suite';

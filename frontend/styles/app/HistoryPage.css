@@ -6,7 +6,7 @@
    Accent: muted jade #8BAF9A
    ========================================================================== */
 
-.tn-history-container {
+.tn-history-page {
     max-width: 1280px;
     margin: 0 auto;
     display: flex;
@@ -33,23 +33,23 @@
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
-    padding-bottom: 1rem;
+    padding-bottom: 1.25rem;
     border-bottom: 1px solid #292D2D;
 }
 
 .tn-history-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.05em;
     color: #8BAF9A;
     background: rgba(139, 175, 154, 0.1);
     border: 1px solid rgba(139, 175, 154, 0.22);
-    padding: 0.15rem 0.5rem;
+    padding: 0.2rem 0.55rem;
     border-radius: 4px;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.45rem;
 }
 
 .tn-history-title {
@@ -63,7 +63,7 @@
 .tn-history-subtitle {
     font-size: 0.86rem;
     color: #A0A5A5;
-    margin: 0.25rem 0 0;
+    margin: 0.35rem 0 0;
     max-width: 650px;
     line-height: 1.45;
 }
@@ -138,7 +138,7 @@
     color: #777E7E;
 }
 
-.tn-history-clear-btn {
+.tn-history-search-clear {
     background: transparent;
     border: none;
     color: #777E7E;
@@ -148,21 +148,15 @@
     padding: 0;
 }
 
-.tn-history-clear-btn:hover {
+.tn-history-search-clear:hover {
     color: #F2F3F3;
 }
 
-.tn-history-filters {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
+/* Status Filter Tabs */
 .tn-history-tabs {
     display: flex;
     background: #161819;
-    padding: 2px;
+    padding: 3px;
     border-radius: 6px;
     border: 1px solid #292D2D;
     gap: 2px;
@@ -172,10 +166,10 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.35rem 0.7rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 4px;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: #A0A5A5;
     font-size: 0.76rem;
     font-weight: 500;
@@ -188,31 +182,38 @@
     color: #F2F3F3;
 }
 
+.tn-history-tab.active,
 .tn-history-tab.is-active {
     background: #101112;
     color: #8BAF9A;
     font-weight: 600;
+    border-color: rgba(139, 175, 154, 0.25);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.tn-history-select-wrap {
+/* Select Dropdowns */
+.tn-history-selects {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 0 0.65rem;
-    height: 32px;
-    color: #777E7E;
+    gap: 0.5rem;
 }
 
 .tn-history-select {
-    background: transparent;
-    border: none;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    padding: 0 0.75rem;
+    height: 32px;
     color: #F2F3F3;
     font-size: 0.78rem;
     outline: none;
     cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.tn-history-select:hover,
+.tn-history-select:focus {
+    border-color: #383D3D;
 }
 
 .tn-history-select option {
@@ -220,21 +221,22 @@
     color: #F2F3F3;
 }
 
-/* ─── List Layout ─── */
+/* ─── List Layout & Cards ─── */
 .tn-history-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.85rem;
 }
 
 .tn-history-card {
     background: #101112;
     border: 1px solid #292D2D;
     border-radius: 8px;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
     transition: all 0.15s ease;
     cursor: pointer;
     text-decoration: none;
@@ -243,79 +245,187 @@
 }
 
 .tn-history-card:hover {
-    background: #161819;
+    background: #141617;
     border-color: #383D3D;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
+.tn-history-card.is-archived {
+    opacity: 0.65;
+    border-style: dashed;
+}
+
+.tn-history-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+/* Card Top: Title & Badges */
 .tn-history-card-top {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    flex-wrap: wrap;
 }
 
-.tn-history-title-row {
+.tn-history-card-title-wrap {
+    min-width: 0;
+    flex: 1;
+}
+
+.tn-history-card-title-group {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    flex: 1;
-    min-width: 240px;
+    gap: 0.55rem;
+    min-width: 0;
 }
 
-.tn-history-session-title {
-    font-size: 0.96rem;
+.tn-history-card-title {
+    font-size: 1.05rem;
     font-weight: 600;
     color: #F2F3F3;
     margin: 0;
-}
-
-.tn-history-tag {
-    font-size: 0.68rem;
-    font-weight: 600;
-    padding: 0.12rem 0.45rem;
-    border-radius: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
 }
 
-.tn-history-tag.draft {
-    background: rgba(229, 192, 123, 0.1);
-    color: #E5C07B;
-    border: 1px solid rgba(229, 192, 123, 0.25);
-}
-
-.tn-history-tag.generated,
-.tn-history-tag.approved {
-    background: rgba(139, 175, 154, 0.12);
-    color: #8BAF9A;
-    border: 1px solid rgba(139, 175, 154, 0.28);
-}
-
-.tn-history-tag.archived {
-    background: #161819;
+.tn-history-rename-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid transparent;
     color: #777E7E;
-    border: 1px solid #292D2D;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.12s ease;
 }
 
-.tn-history-card-meta {
+.tn-history-rename-btn:hover {
+    background: #161819;
+    border-color: #292D2D;
+    color: #F2F3F3;
+}
+
+/* Inline Rename */
+.tn-history-inline-edit {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 0.76rem;
+    gap: 0.35rem;
+}
+
+.tn-history-edit-input {
+    background: #161819;
+    border: 1px solid #8BAF9A;
+    border-radius: 4px;
+    color: #F2F3F3;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    outline: none;
+    width: 100%;
+    max-width: 320px;
+}
+
+.tn-history-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid #292D2D;
+    background: #161819;
+    color: #A0A5A5;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.tn-history-edit-btn.confirm:hover {
+    color: #8BAF9A;
+    border-color: #8BAF9A;
+    background: rgba(139, 175, 154, 0.1);
+}
+
+.tn-history-edit-btn.cancel:hover {
+    color: #E06C75;
+    border-color: #E06C75;
+    background: rgba(224, 108, 117, 0.1);
+}
+
+/* Badges */
+.tn-history-card-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.tn-history-status-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    border: 1px solid #292D2D;
+    background: #161819;
+    color: #A0A5A5;
+}
+
+.tn-history-status-pill.generated,
+.tn-history-status-pill.approved {
+    background: rgba(139, 175, 154, 0.12);
+    color: #8BAF9A;
+    border-color: rgba(139, 175, 154, 0.3);
+}
+
+.tn-history-status-pill.draft {
+    background: rgba(229, 192, 123, 0.12);
+    color: #E5C07B;
+    border-color: rgba(229, 192, 123, 0.3);
+}
+
+.tn-history-status-pill.needsreview {
+    background: rgba(97, 175, 239, 0.12);
+    color: #61AFEF;
+    border-color: rgba(97, 175, 239, 0.3);
+}
+
+.tn-history-status-pill.archived {
+    background: #161819;
     color: #777E7E;
-    flex-wrap: wrap;
+    border-color: #292D2D;
 }
 
-.tn-history-card-meta strong {
-    color: #A0A5A5;
+.tn-history-context-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: #777E7E;
+    background: #161819;
+    border: 1px solid #292D2D;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
 }
 
-.tn-history-req-preview {
-    font-size: 0.8rem;
+/* Requirement preview */
+.tn-history-card-requirement {
+    font-size: 0.84rem;
     color: #A0A5A5;
-    line-height: 1.45;
+    line-height: 1.5;
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -323,55 +433,210 @@
     overflow: hidden;
 }
 
-.tn-history-card-actions {
+.tn-history-empty-req {
+    color: #555A5A;
+    font-style: italic;
+}
+
+/* Metadata & Metrics Row */
+.tn-history-card-meta {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 0.15rem;
+}
+
+.tn-history-meta-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tn-history-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: #A0A5A5;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 4px;
+    padding: 0.2rem 0.55rem;
+    line-height: 1;
+}
+
+.tn-history-stat-pill strong {
+    color: #F2F3F3;
+    font-weight: 600;
+}
+
+.tn-history-stat-pill.sub {
+    color: #777E7E;
+}
+
+.tn-history-stat-pill.version {
+    color: #8BAF9A;
+    font-weight: 600;
+    border-color: rgba(139, 175, 154, 0.2);
+}
+
+.tn-history-stat-pill.confidence {
+    color: #98C379;
+    gap: 0.3rem;
+}
+
+.tn-history-timestamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    color: #777E7E;
     margin-left: auto;
 }
 
-.tn-history-action-btn {
+/* ─── Card Actions (Open, Archive, Delete) ─── */
+.tn-history-card-actions {
     display: flex;
     align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+.tn-history-action-btn.primary {
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 5px;
+    gap: 0.45rem;
+    padding: 0 0.95rem;
+    height: 34px;
+    width: auto;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    color: #F2F3F3;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.tn-history-action-btn.primary:hover {
+    background: #202324;
+    border-color: #8BAF9A;
+    color: #8BAF9A;
+}
+
+.tn-history-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
     background: #161819;
     border: 1px solid #292D2D;
     color: #A0A5A5;
     cursor: pointer;
-    transition: all 0.12s ease;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
 }
 
-.tn-history-action-btn:hover {
-    color: #F2F3F3;
-    background: #1c1e20;
+.tn-history-icon-btn:hover {
+    background: #202324;
     border-color: #383D3D;
+    color: #F2F3F3;
 }
 
-.tn-history-action-btn.is-delete:hover {
+.tn-history-icon-btn.is-archived {
+    color: #E5C07B;
+    border-color: rgba(229, 192, 123, 0.3);
+}
+
+.tn-history-icon-btn.danger:hover {
     color: #E06C75;
     background: rgba(224, 108, 117, 0.12);
     border-color: rgba(224, 108, 117, 0.3);
 }
 
-/* Rename Inline Input */
-.tn-history-rename-input {
-    background: #161819;
-    border: 1px solid #8BAF9A;
-    border-radius: 4px;
-    color: #F2F3F3;
-    font-size: 0.94rem;
-    font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    outline: none;
-    width: 100%;
-    max-width: 320px;
+/* ─── Skeleton Loading State ─── */
+.tn-history-skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
 }
 
-/* Empty State */
-.tn-history-empty {
+.tn-history-skeleton-card {
+    height: 104px;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    animation: tnHtPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes tnHtPulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* ─── Error State ─── */
+.tn-history-error-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    gap: 0.85rem;
+}
+
+.tn-history-error-card h3 {
+    font-size: 1.15rem;
+    color: #F2F3F3;
+    margin: 0;
+}
+
+.tn-history-error-card p {
+    font-size: 0.85rem;
+    color: #A0A5A5;
+    margin: 0;
+    max-width: 420px;
+}
+
+.tn-history-retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1rem;
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    color: #F2F3F3;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tn-history-retry-btn:hover {
+    background: #202324;
+    border-color: #8BAF9A;
+    color: #8BAF9A;
+}
+
+/* ─── Empty State ─── */
+.tn-history-empty-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -381,7 +646,7 @@
     background: #101112;
     border-radius: 8px;
     border: 1px solid #292D2D;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
 .tn-history-empty-icon {
@@ -396,14 +661,14 @@
     color: #8BAF9A;
 }
 
-.tn-history-empty-title {
+.tn-history-empty-card h3 {
     font-size: 1.2rem;
     font-weight: 600;
     color: #F2F3F3;
-    margin: 0 0 0.35rem;
+    margin: 0;
 }
 
-.tn-history-empty-desc {
+.tn-history-empty-card p {
     font-size: 0.86rem;
     color: #A0A5A5;
     margin: 0;
@@ -411,7 +676,7 @@
     line-height: 1.5;
 }
 
-/* Delete Modal */
+/* ─── Delete Confirmation Modal ─── */
 .tn-history-modal-overlay {
     position: fixed;
     inset: 0;
@@ -424,57 +689,148 @@
     padding: 20px;
 }
 
-.tn-history-modal-box {
+.tn-history-modal {
     background: #101112;
     border: 1px solid #292D2D;
     border-radius: 8px;
     width: 100%;
-    max-width: 460px;
+    max-width: 480px;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+    animation: tnModalScaleIn 0.15s ease-out;
+}
+
+@keyframes tnModalScaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tn-history-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.tn-history-modal-icon-danger {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(224, 108, 117, 0.12);
+    border: 1px solid rgba(224, 108, 117, 0.3);
+    color: #E06C75;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .tn-history-modal-title {
     font-size: 1.1rem;
     font-weight: 600;
     color: #F2F3F3;
-    margin: 0;
+    margin: 0 0 0.25rem;
 }
 
-.tn-history-modal-msg {
-    font-size: 0.85rem;
+.tn-history-modal-subtitle {
+    font-size: 0.84rem;
+    color: #A0A5A5;
+    margin: 0;
+    line-height: 1.45;
+}
+
+.tn-history-modal-body {
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+}
+
+.tn-history-modal-body p {
+    font-size: 0.82rem;
     color: #A0A5A5;
     line-height: 1.5;
     margin: 0;
 }
 
-.tn-history-modal-actions {
+.tn-history-modal-footer {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.65rem;
 }
 
-.tn-history-btn-cancel {
-    padding: 0.5rem 1rem;
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 5px;
-    color: #F2F3F3;
+.tn-history-modal-btn {
+    padding: 0.55rem 1.05rem;
+    border-radius: 6px;
     font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: all 0.15s ease;
 }
 
-.tn-history-btn-delete {
-    padding: 0.5rem 1rem;
+.tn-history-modal-btn.cancel {
+    background: #161819;
+    border: 1px solid #292D2D;
+    color: #F2F3F3;
+}
+
+.tn-history-modal-btn.cancel:hover:not(:disabled) {
+    background: #202324;
+    border-color: #383D3D;
+}
+
+.tn-history-modal-btn.delete {
     background: #E06C75;
     border: 1px solid #E06C75;
-    border-radius: 5px;
     color: #080909;
     font-weight: 600;
-    font-size: 0.82rem;
-    cursor: pointer;
+}
+
+.tn-history-modal-btn.delete:hover:not(:disabled) {
+    background: #E57D85;
+    border-color: #E57D85;
+}
+
+.tn-history-modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .tn-history-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .tn-history-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-left: 0;
+        padding-top: 0.5rem;
+        border-top: 1px solid #1c1e20;
+    }
+
+    .tn-history-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tn-history-tabs {
+        overflow-x: auto;
+    }
+
+    .tn-history-selects {
+        flex-direction: column;
+    }
 }
