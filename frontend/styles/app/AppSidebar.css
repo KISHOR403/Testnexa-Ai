@@ -575,20 +575,26 @@
 .app-header__left {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+    min-width: 0;
+    flex: 1;
 }
 
 .app-header__mobile-toggle {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 7px;
     background: #161819;
     border: 1px solid #292D2D;
     color: #F2F3F3;
     cursor: pointer;
+    flex-shrink: 0;
+    touch-action: manipulation;
 }
 
 .app-header__breadcrumbs {
@@ -597,12 +603,16 @@
     gap: 0.45rem;
     font-size: 0.82rem;
     color: #777E7E;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
 }
 
 .app-header__crumb-link {
     color: #A0A5A5;
     text-decoration: none;
     transition: color 0.15s ease;
+    flex-shrink: 0;
 }
 
 .app-header__crumb-link:hover {
@@ -612,12 +622,17 @@
 .app-header__crumb-current {
     color: #F2F3F3;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .app-header__right {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.65rem;
+    flex-shrink: 0;
 }
 
 .app-header__btn {
@@ -710,13 +725,16 @@
     }
 
     .app-page-content {
-        padding: 1rem 0.85rem 2rem;
+        padding: 0.75rem 0.65rem 1.5rem !important;
+        box-sizing: border-box !important;
     }
 }
 
 @media (max-width: 640px) {
     .app-header {
-        padding: 0 1rem;
+        padding: 0 0.85rem;
+        padding-left: max(0.85rem, env(safe-area-inset-left));
+        padding-right: max(0.85rem, env(safe-area-inset-right));
     }
 
     .app-header__crumb-link,
@@ -725,6 +743,7 @@
     }
 
     .app-header__crumb-current {
-        font-size: 0.85rem;
+        font-size: 0.84rem;
+        max-width: 170px;
     }
 }

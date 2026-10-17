@@ -703,6 +703,138 @@
   vertical-align: middle;
 }
 
+/* ─── Mobile Stacked Test Cards (< 768px) ─── */
+.tn-qa-mobile-list {
+  display: none;
+}
+
+.tn-qa-mobile-card {
+  background: var(--ws-surface-elevated, #101112);
+  border: 1px solid var(--ws-border, #202324);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  text-align: left;
+}
+
+.tn-qa-mobile-card:hover,
+.tn-qa-mobile-card:active {
+  background: var(--ws-surface-hover, #16181a);
+  border-color: var(--ws-border-hover, #2f3436);
+}
+
+.tn-qa-mobile-card.is-selected {
+  border-color: var(--ws-accent-border, rgba(139, 175, 154, 0.4));
+  box-shadow: inset 3px 0 0 var(--ws-accent, #8BAF9A);
+}
+
+.tn-mobile-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.tn-mobile-card__select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tn-mobile-card__select input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  cursor: pointer;
+  accent-color: var(--ws-accent, #8BAF9A);
+}
+
+.tn-mobile-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tn-mobile-card__title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.tn-mobile-card__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ws-text, #F0F2F2);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.tn-mobile-card__scenario {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ws-text-muted, #8A9090);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.tn-mobile-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.tn-mobile-card__meta-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.tn-mobile-card__steps-badge {
+  font-size: 0.7rem;
+  font-weight: 550;
+  color: var(--ws-text-secondary, #A0A5A5);
+  background: var(--ws-surface, #141517);
+  border: 1px solid var(--ws-border, #292D2D);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tn-mobile-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ws-accent, #8BAF9A);
+  flex-shrink: 0;
+}
+
 .tn-tc-id {
   font-family: var(--ws-mono);
   font-size: 0.74rem;
@@ -1576,55 +1708,563 @@
   gap: 8px;
 }
 
-/* ─── Responsive Split View for ResultsSection ─── */
-@media (max-width: 1024px) {
+/* ══════════════════════════════════════════════════════════════════════════
+   PRODUCTION-GRADE RESPONSIVE SYSTEM (ResultsSection, Mobile Cards, Split Panes)
+   Breakpoints:
+     - Small Android phones: 320–359px
+     - Standard phones: 360–430px
+     - Large phones: 431–767px
+     - Tablets: 768–1023px
+     - Desktop: 1024px and above
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Tablet View (768px - 1023px) ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
   .tn-app-split-workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
   .tn-app-table-pane {
-    border-right: none;
-    border-bottom: 1px solid var(--ws-border);
-    max-height: 440px;
+    border-right: none !important;
+    border-bottom: 1px solid var(--ws-border) !important;
+    max-height: 440px !important;
   }
   .tn-app-detail-pane {
-    max-height: none;
+    max-height: none !important;
+    border-left: none !important;
   }
 }
 
-@media (max-width: 768px) {
+/* ─── Mobile View (< 768px: 320px - 767px) ─── */
+@media (max-width: 767px) {
+  /* Workspace Card Boundary */
+  .tn-app-workspace {
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 1. Header */
   .tn-app-header {
-    padding: 10px 14px;
-    gap: 10px;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+    min-height: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+
+  .tn-app-header__identity {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
   .tn-suite-title {
-    font-size: 1rem;
+    font-size: 1.08rem !important;
+    line-height: 1.35 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    margin: 0 !important;
+    width: 100% !important;
   }
+
+  .tn-app-header__tags {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+  }
+
+  .tn-app-header__actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .tn-app-header__actions .tn-app-btn {
+    width: 100% !important;
+    min-height: 38px !important;
+    justify-content: center !important;
+    font-size: 0.8rem !important;
+    padding: 0 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-app-header__actions .tn-app-btn--primary,
+  .tn-app-header__actions .tn-app-approved-tag {
+    grid-column: span 2 !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* 2. Summary Metric Bar (2-Column Responsive KPI Grid) */
   .tn-app-summary-bar {
-    padding: 8px 12px;
-    gap: 12px;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+    min-height: auto !important;
+    overflow-x: visible !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+
+  .tn-app-stat-divider {
+    display: none !important;
+  }
+
+  .tn-app-stat {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    background: var(--ws-surface, #141517) !important;
+    border: 1px solid var(--ws-border, #292D2D) !important;
+    border-radius: 6px !important;
+    padding: 8px 10px !important;
+    gap: 2px !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
+  }
+
+  /* The 5th stat tile (Approved Cases) spans full width */
+  .tn-app-stat:nth-child(9) {
+    grid-column: span 2 !important;
+  }
+
+  .tn-app-stat__num {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+  }
+
+  .tn-app-stat__label {
+    font-size: 0.67rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: var(--ws-text-muted, #8A9090) !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 3. AI Insights Bar */
+  .tn-ai-insights-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 10px 12px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-ai-insights-bar__left {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .tn-ai-insights-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .tn-insight-sep {
+    display: none !important;
+  }
+
+  .tn-insight-link {
+    text-align: left !important;
+    font-size: 0.8rem !important;
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .tn-ai-insights-bar > button {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 36px !important;
+  }
+
+  /* 4. Tabs */
+  .tn-app-tabs {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 10px !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-app-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .tn-app-tab {
+    padding: 0 12px !important;
+    height: 42px !important;
+    font-size: 0.78rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 5. Toolbar */
   .tn-app-toolbar {
-    padding: 8px 12px;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+
+  .tn-app-toolbar__left {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .tn-app-search {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-app-filter-pills {
+    display: flex !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-app-filter-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .tn-filter-pill {
+    padding: 6px 11px !important;
+    font-size: 0.75rem !important;
+    flex-shrink: 0 !important;
+    min-height: 32px !important;
+  }
+
+  .tn-app-toolbar__right {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-app-select-filter {
+    width: 100% !important;
+    height: 36px !important;
+    justify-content: space-between !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-app-select-filter select {
+    width: 100% !important;
+    font-size: 0.78rem !important;
+  }
+
+  .tn-app-count-label {
+    grid-column: span 2 !important;
+    text-align: right !important;
+    font-size: 0.72rem !important;
+    color: var(--ws-text-muted) !important;
+  }
+
+  /* 6. Floating Bulk Bar */
+  .tn-bulk-floating {
+    left: 10px !important;
+    right: 10px !important;
+    transform: none !important;
+    width: calc(100% - 20px) !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-bulk-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  /* 7. Master-Detail Switch (Phone Viewport) */
+  .tn-app-split-workspace {
+    display: block !important;
+    min-height: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* When mobile detail is NOT active: Show test cards list, Hide detail pane */
+  .tn-app-split-workspace:not(.tn-mobile-detail-active) .tn-app-table-pane {
+    display: block !important;
+    width: 100% !important;
+    max-height: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+  }
+
+  .tn-app-split-workspace:not(.tn-mobile-detail-active) .tn-app-detail-pane {
+    display: none !important;
+  }
+
+  /* When mobile detail IS active: Hide test cards list, Show detail pane full width */
   .tn-app-split-workspace.tn-mobile-detail-active .tn-app-table-pane {
-    display: none;
+    display: none !important;
   }
+
   .tn-app-split-workspace.tn-mobile-detail-active .tn-app-detail-pane {
-    display: flex;
-    width: 100%;
-    min-height: 520px;
+    display: flex !important;
+    width: 100% !important;
+    min-height: 480px !important;
+    max-height: none !important;
+    border-left: none !important;
   }
+
+  /* Desktop Table vs Mobile Cards */
+  .tn-qa-desktop-table {
+    display: none !important;
+  }
+
+  .tn-qa-mobile-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 8. Mobile Detail Panel Content */
+  .tn-detail-nav-header {
+    padding: 8px 12px !important;
+    min-height: 44px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-detail-nav-back {
+    min-height: 38px !important;
+    padding: 6px 10px !important;
+    font-size: 0.82rem !important;
+  }
+
   .tn-detail-body {
-    padding: 14px 14px;
+    padding: 12px 14px !important;
+    gap: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+
+  .tn-detail-actions-bar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding-bottom: 12px !important;
+  }
+
+  .tn-detail-actions-bar .tn-app-btn {
+    flex: 1 1 auto !important;
+    min-height: 38px !important;
+    justify-content: center !important;
+    font-size: 0.78rem !important;
+    padding: 0 10px !important;
+  }
+
+  .tn-detail-more-wrap {
+    margin-left: 0 !important;
+  }
+
+  .tn-detail-more-wrap .tn-app-btn {
+    flex: 0 0 38px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+  }
+
   .tn-detail-meta-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
-  .tn-qa-table th.tn-th-type,
-  .tn-qa-table td.tn-td-type,
-  .tn-qa-table th.tn-th-priority,
-  .tn-qa-table td.tn-td-priority {
-    display: none;
+
+  .tn-step-card {
+    padding: 12px 12px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-step-action-text,
+  .tn-step-expected-text {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .tn-expected-result-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-code-block,
+  .tn-gherkin-code {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    font-size: 0.76rem !important;
+  }
+
+  /* 9. Coverage, Risks, and Traceability Tabs */
+  .tn-coverage-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .tn-coverage-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+  }
+
+  .tn-coverage-row__meta {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .tn-coverage-row__bar-wrap {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .tn-coverage-bar {
+    flex: 1 !important;
+  }
+
+  .tn-uncovered-box {
+    padding: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-risks-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .tn-risk-card {
+    padding: 12px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-risk-card__top {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .tn-trace-branches {
+    padding-left: 6px !important;
+    padding-top: 10px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-trace-leaf {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .tn-trace-leaf code {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* ─── Small Android Phones (320px - 359px) ─── */
+@media (max-width: 359px) {
+  .tn-app-summary-bar {
+    gap: 6px !important;
+    padding: 8px 8px !important;
+  }
+
+  .tn-app-stat {
+    padding: 6px 8px !important;
+  }
+
+  .tn-app-stat__num {
+    font-size: 1.05rem !important;
+  }
+
+  .tn-app-stat__label {
+    font-size: 0.62rem !important;
+  }
+
+  .tn-app-header {
+    padding: 10px 10px !important;
+  }
+
+  .tn-detail-body {
+    padding: 10px 10px !important;
+  }
+
+  .tn-detail-meta-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .tn-step-card {
+    padding: 10px 8px !important;
+    gap: 8px !important;
   }
 }
 

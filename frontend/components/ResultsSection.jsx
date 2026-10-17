@@ -786,8 +786,9 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                     <button
                         type="button"
                         className="tn-detail-nav-back"
-                        onClick={handleCloseDetail}
-                        title="Close detail panel"
+                        onClick={handleMobileBack}
+                        title="Back to test cases list"
+                        aria-label="Back to test cases list"
                     >
                         <ArrowLeft size={14} />
                         <span>Test Cases</span>
@@ -1316,9 +1317,10 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                             </div>
                         ) : (
                             <div className={`tn-app-split-workspace ${!isDetailOpen ? 'tn-split--detail-closed' : ''} ${mobileShowDetail ? 'tn-mobile-detail-active' : ''}`}>
-                                {/* Left: Data Table */}
+                                {/* Left: Data Table & Mobile Cards */}
                                 <div className="tn-app-table-pane">
-                                    <table className="tn-qa-table">
+                                    {/* Desktop Data Table (hidden on mobile via CSS) */}
+                                    <table className="tn-qa-table tn-qa-desktop-table">
                                         <thead>
                                             <tr>
                                                 <th className="tn-th-select">
@@ -1386,6 +1388,68 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                             })}
                                         </tbody>
                                     </table>
+
+                                    {/* Mobile Stacked Test Cards (< 768px, shown on mobile via CSS) */}
+                                    <div className="tn-qa-mobile-list" role="list" aria-label="Test cases list">
+                                        {filteredTests.map((tc) => {
+                                            const isSelected = selectedTcId === tc.id;
+                                            const isChecked = selectedRows.includes(tc.id);
+                                            const stepsCount = Array.isArray(tc.steps) ? tc.steps.length : 0;
+                                            return (
+                                                <div
+                                                    key={tc.id}
+                                                    className={`tn-qa-mobile-card ${isSelected ? 'is-selected' : ''}`}
+                                                    onClick={() => handleSelectTestMobile(tc.id)}
+                                                    role="listitem"
+                                                    tabIndex={0}
+                                                >
+                                                    <div className="tn-mobile-card__header">
+                                                        <div className="tn-mobile-card__select" onClick={(e) => e.stopPropagation()}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => toggleRowSelect(tc.id)}
+                                                                aria-label={`Select ${tc.id}`}
+                                                            />
+                                                            <span className="tn-tc-id">{tc.id}</span>
+                                                        </div>
+                                                        <div className="tn-mobile-card__badges">
+                                                            <StatusBadge status={tc.status} />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="tn-mobile-card__title-row">
+                                                        <h4 className="tn-mobile-card__title">{tc.title}</h4>
+                                                        {(tc.scenario || tc.testScenario) && (tc.scenario || tc.testScenario) !== tc.title && (
+                                                            <p className="tn-mobile-card__scenario">{tc.scenario || tc.testScenario}</p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="tn-mobile-card__footer">
+                                                        <div className="tn-mobile-card__meta-tags">
+                                                            <TypeBadge type={tc.type} />
+                                                            <PriorityBadge priority={tc.priority} />
+                                                            {tc.reqId && (
+                                                                <span className="tn-req-pill">
+                                                                    <span className="tn-req-pill-dot" />
+                                                                    {tc.reqId}
+                                                                </span>
+                                                            )}
+                                                            {stepsCount > 0 && (
+                                                                <span className="tn-mobile-card__steps-badge">
+                                                                    {stepsCount} {stepsCount === 1 ? 'step' : 'steps'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="tn-mobile-card__action">
+                                                            <span>Details</span>
+                                                            <ChevronRight size={14} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 {/* Right: Test Case Detail Panel */}
