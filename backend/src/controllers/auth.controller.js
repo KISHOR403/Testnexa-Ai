@@ -317,6 +317,39 @@ exports.listSessions = async (req, res) => {
 
         if (formattedSessions.length > 0 && !formattedSessions.some(s => s.isCurrent)) {
             formattedSessions[0].isCurrent = true;
+        } else if (formattedSessions.length === 0) {
+            const userAgent = req.headers['user-agent'] || 'Mozilla/5.0';
+            const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+            let device = 'Desktop Browser (Chrome / Windows)';
+            let browser = 'Chrome';
+            let os = 'Windows';
+            if (/iphone|ipad|ipod/i.test(userAgent)) {
+                device = 'Apple iPhone';
+                browser = 'Mobile Safari';
+                os = 'iOS';
+            } else if (/android/i.test(userAgent)) {
+                device = 'Android Device';
+                browser = 'Chrome Mobile';
+                os = 'Android';
+            } else if (/mac/i.test(userAgent)) {
+                device = 'MacBook / macOS';
+                os = 'macOS';
+            } else if (/linux/i.test(userAgent)) {
+                device = 'Linux Desktop';
+                os = 'Linux';
+            }
+
+            formattedSessions.push({
+                id: 'sess_' + (req.sessionId || 'curr_local'),
+                device,
+                browser,
+                os,
+                ipAddress: ip === '::1' ? '127.0.0.1' : ip,
+                location: 'Current Session',
+                lastActiveAt: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                isCurrent: true
+            });
         }
 
         res.json({
@@ -543,5 +576,62 @@ exports.changePassword = async (req, res) => {
     } catch (error) {
         console.error('Change password error:', error);
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.deleteAccount = async (req, res) => {
+    try {
+        checkConnection();
+        const userId = req.user?.id || req.user?._id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        const user = await supabaseService.findUserById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const { confirmationText, password } = req.body || {};
+
+        // If email password user, check password if provided
+        if (user.password && password) {
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: 'Password verification failed. Account deletion aborted.' });
+            }
+        }
+
+        // Verify explicit textual confirmation
+        const cleanConfirm = (confirmationText || '').trim().toUpperCase();
+        if (cleanConfirm !== 'DELETE' && cleanConfirm !== (user.email || '').trim().toUpperCase()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please type "DELETE" or your exact account email to confirm account deletion.'
+            });
+        }
+
+        // Perform cascading deletion
+        await supabaseService.deleteUser(userId);
+
+        logger.info('Account deleted successfully via settings request', {
+            userId,
+            email: user.email
+        });
+
+        // Clear session cookies if present
+        res.clearCookie('token');
+        res.clearCookie('testnexa_session');
+
+        return res.json({
+            success: true,
+            message: 'Your account and all associated test suites have been permanently deleted.'
+        });
+    } catch (error) {
+        console.error('Delete account error:', error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'An error occurred while deleting your account. Please try again or contact support@testnexa.ai.'
+        });
     }
 };

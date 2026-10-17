@@ -405,6 +405,41 @@ class SupabaseDataService {
         return data;
     }
 
+    async deleteUser(id) {
+        if (!this.isAvailable) throw new Error('Supabase client is not available');
+
+        // Cascade delete auth sessions, workspace sessions, test history, and user record
+        try {
+            await supabase.from('auth_sessions').delete().eq('user_id', id);
+        } catch (e) {
+            logger.warn('Non-fatal: failed to delete auth_sessions for user', id);
+        }
+
+        try {
+            await supabase.from('test_history').delete().eq('user_id', id);
+        } catch (e) {
+            logger.warn('Non-fatal: failed to delete test_history for user', id);
+        }
+
+        try {
+            await supabase.from('workspace_sessions').delete().eq('user_id', id);
+        } catch (e) {
+            logger.warn('Non-fatal: failed to delete workspace_sessions for user', id);
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            logger.error('Supabase deleteUser error:', error);
+            throw error;
+        }
+
+        return true;
+    }
+
     async upsertOAuthUser({ email, name, avatar, provider = 'google' }) {
         if (!this.isAvailable) throw new Error('Supabase client is not available');
         const now = new Date().toISOString();

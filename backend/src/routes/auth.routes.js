@@ -90,4 +90,7 @@ router.get('/me', protect, authController.getMe);
 router.put('/update-profile', protect, authController.updateProfile);
 router.put('/change-password', protect, authController.changePassword);
 
+// Delete Account Route
+router.delete('/account', protect, authController.deleteAccount);
+
 module.exports = router;

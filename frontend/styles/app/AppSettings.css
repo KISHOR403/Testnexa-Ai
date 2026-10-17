@@ -1,24 +1,27 @@
 /* ═══════════════════════════════════════════════════════════════════
    TESTNEXA ENTERPRISE SETTINGS EXPERIENCE
    Design System:
-   App background: #080909 | Primary surface: #101112 | Elevated: #161819
-   Borders: #292D2D | Text: #F2F3F3 / #A0A5A5 / #777E7E
-   Accent: muted jade #8BAF9A
+     App background: #080909 | Primary surface: #101112 | Elevated: #161819
+     Borders: #292D2D        | Subtle divider: #1E2122
+     Text: #F2F3F3 / #A0A5A5 / #777E7E
+     Accent: muted jade #8BAF9A
+     Destructive: #E06C75
    ═══════════════════════════════════════════════════════════════════ */
 
 .app-settings-page {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-width: 1140px;
+    max-width: 1160px;
     width: 100%;
     margin: 0 auto;
-    padding-bottom: 3.5rem;
+    padding-bottom: 4rem;
     color: #F2F3F3;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    box-sizing: border-box;
 }
 
-/* ─── Page Header ─── */
+/* ─── Breadcrumbs & Header ─── */
 .app-settings-header {
     display: flex;
     flex-direction: column;
@@ -27,26 +30,51 @@
     border-bottom: 1px solid #292D2D;
 }
 
+.app-settings-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #777E7E;
+    margin-bottom: 0.25rem;
+}
+
+.app-settings-breadcrumb__item {
+    color: #A0A5A5;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.app-settings-breadcrumb__item:hover {
+    color: #8BAF9A;
+}
+
+.app-settings-breadcrumb__current {
+    color: #F2F3F3;
+    font-weight: 500;
+}
+
 .app-settings-header__title {
-    font-size: 1.65rem;
+    font-size: 1.6rem;
     font-weight: 600;
     color: #F2F3F3;
     letter-spacing: -0.02em;
     margin: 0;
+    line-height: 1.2;
 }
 
 .app-settings-header__desc {
     font-size: 0.88rem;
     color: #A0A5A5;
     margin: 0;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 /* ─── Main Settings Layout (Desktop 2-col) ─── */
 .app-settings-layout {
     display: grid;
-    grid-template-columns: 210px 1fr;
-    gap: 2.5rem;
+    grid-template-columns: 220px 1fr;
+    gap: 2.25rem;
     align-items: start;
 }
 
@@ -54,7 +82,7 @@
 .app-settings-nav {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
     position: sticky;
     top: 1rem;
 }
@@ -79,7 +107,7 @@
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    padding: 0.5rem 0.65rem;
+    padding: 0.55rem 0.75rem;
     font-size: 0.84rem;
     font-weight: 500;
     color: #A0A5A5;
@@ -109,7 +137,7 @@
     flex-shrink: 0;
 }
 
-/* Mobile Nav Pills */
+/* ─── Mobile Navigation Pills ─── */
 .app-settings-mobile-nav {
     display: none;
     overflow-x: auto;
@@ -133,10 +161,11 @@
     border: 1px solid #292D2D;
     white-space: nowrap;
     cursor: pointer;
-    min-height: 44px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     gap: 0.45rem;
+    transition: all 0.15s ease;
 }
 
 .app-settings-mobile-pill.active {
@@ -150,7 +179,8 @@
 .app-settings-content {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.75rem;
+    min-width: 0;
 }
 
 .app-settings-section-header {
@@ -174,10 +204,103 @@
     font-size: 0.82rem;
     color: #A0A5A5;
     margin: 0.25rem 0 0;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
-/* ─── Card Blocks ─── */
+/* ─── Profile Identity Section (Cohesive Summary) ─── */
+.app-settings-identity-card {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+}
+
+.app-settings-identity-left {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    min-width: 0;
+}
+
+.app-settings-avatar-large {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    background: #161819;
+    border: 1px solid #292D2D;
+    color: #8BAF9A;
+    font-weight: 600;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    user-select: none;
+}
+
+.app-settings-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.app-settings-identity-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.app-settings-identity-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-settings-identity-sub {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.app-settings-identity-email {
+    font-size: 0.84rem;
+    color: #A0A5A5;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.app-settings-verified-badge {
+    color: #8BAF9A;
+    display: inline-flex;
+    align-items: center;
+}
+
+.app-settings-identity-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8BAF9A;
+    background: rgba(139, 175, 154, 0.08);
+    border: 1px solid rgba(139, 175, 154, 0.22);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+}
+
+/* ─── Card Blocks & Information Rows ─── */
 .app-settings-card {
     background: #101112;
     border: 1px solid #292D2D;
@@ -186,6 +309,14 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+}
+
+.app-settings-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #1E2122;
 }
 
 .app-settings-card-title {
@@ -201,19 +332,22 @@
     margin: 0.2rem 0 0;
 }
 
-/* ─── Key-Value Info List ─── */
 .app-settings-info-list {
     display: flex;
     flex-direction: column;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .app-settings-info-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.85rem 0;
-    border-bottom: 1px solid #292D2D;
-    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid #1E2122;
+    gap: 1.5rem;
 }
 
 .app-settings-info-row:last-child {
@@ -224,43 +358,112 @@
     font-size: 0.84rem;
     font-weight: 500;
     color: #A0A5A5;
+    flex-shrink: 0;
 }
 
 .app-settings-info-value {
     font-size: 0.88rem;
     font-weight: 500;
     color: #F2F3F3;
+    text-align: right;
     word-break: break-all;
 }
 
-.app-settings-info-edit {
+/* Inline Edit Form */
+.app-settings-edit-card {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    padding: 1.5rem;
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.app-settings-edit-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    margin: 0 0 0.25rem;
+}
+
+.app-settings-edit-desc {
+    font-size: 0.82rem;
+    color: #A0A5A5;
+    margin: 0;
+}
+
+.app-settings-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.app-settings-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #F2F3F3;
 }
 
 .app-settings-input {
     background: #161819;
     border: 1px solid #292D2D;
     border-radius: 6px;
-    padding: 0.55rem 0.8rem;
+    padding: 0.65rem 0.85rem;
     color: #F2F3F3;
     font-size: 0.88rem;
     width: 100%;
-    max-width: 380px;
     outline: none;
-    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .app-settings-input:focus {
     border-color: #8BAF9A;
+    box-shadow: 0 0 0 1px #8BAF9A;
 }
 
 .app-settings-input:disabled {
     background: #101112;
     color: #777E7E;
+    border-color: #202323;
     cursor: not-allowed;
+}
+
+.app-settings-input-hint {
+    font-size: 0.76rem;
+    color: #777E7E;
+    line-height: 1.4;
+}
+
+.app-settings-edit-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+/* ─── Feedback Banners ─── */
+.app-settings-feedback {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.app-settings-feedback.success {
+    background: rgba(139, 175, 154, 0.1);
+    border: 1px solid rgba(139, 175, 154, 0.28);
+    color: #8BAF9A;
+}
+
+.app-settings-feedback.error {
+    background: rgba(224, 108, 117, 0.1);
+    border: 1px solid rgba(224, 108, 117, 0.28);
+    color: #F87171;
 }
 
 /* ─── Buttons ─── */
@@ -279,44 +482,339 @@
     white-space: nowrap;
     min-height: 36px;
     font-family: inherit;
+    border: 1px solid transparent;
+}
+
+.app-settings-btn:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: 2px;
 }
 
 .app-settings-btn--primary {
     background: #8BAF9A;
     color: #080909;
-    border: 1px solid #8BAF9A;
+    border-color: #8BAF9A;
 }
 
-.app-settings-btn--primary:hover {
+.app-settings-btn--primary:hover:not(:disabled) {
     background: #9DBFAD;
     border-color: #9DBFAD;
 }
 
 .app-settings-btn--primary:disabled {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: not-allowed;
 }
 
 .app-settings-btn--secondary {
     background: #161819;
     color: #F2F3F3;
-    border: 1px solid #292D2D;
+    border-color: #292D2D;
 }
 
-.app-settings-btn--secondary:hover {
-    background: #1c1e20;
+.app-settings-btn--secondary:hover:not(:disabled) {
+    background: #1C1E20;
     border-color: #383D3D;
 }
 
 .app-settings-btn--danger {
     background: rgba(224, 108, 117, 0.1);
     color: #E06C75;
-    border: 1px solid rgba(224, 108, 117, 0.3);
+    border-color: rgba(224, 108, 117, 0.3);
 }
 
-.app-settings-btn--danger:hover {
+.app-settings-btn--danger:hover:not(:disabled) {
     background: rgba(224, 108, 117, 0.2);
     border-color: #E06C75;
+}
+
+.app-settings-btn--danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Danger Zone (Delete Account) ─── */
+.app-settings-danger-card {
+    background: #101112;
+    border: 1px solid rgba(224, 108, 117, 0.28);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.app-settings-danger-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.app-settings-danger-title {
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: #E06C75;
+    margin: 0;
+}
+
+.app-settings-danger-desc {
+    font-size: 0.82rem;
+    color: #A0A5A5;
+    margin: 0;
+    line-height: 1.45;
+    max-width: 580px;
+}
+
+/* ─── Modal Dialog (Delete Account Confirmation & Modals) ─── */
+.app-settings-modal-backdrop,
+.app-settings-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.app-settings-modal,
+.app-settings-confirm-box {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    max-width: 480px;
+    width: 100%;
+    padding: 1.75rem;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: tnModalFade 0.15s ease-out;
+}
+
+.app-settings-confirm-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    margin: 0;
+}
+
+.app-settings-confirm-desc {
+    font-size: 0.84rem;
+    color: #A0A5A5;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.app-settings-confirm-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+@keyframes tnModalFade {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.app-settings-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.app-settings-modal-icon-danger {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(224, 108, 117, 0.12);
+    border: 1px solid rgba(224, 108, 117, 0.3);
+    color: #E06C75;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-settings-modal-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    margin: 0 0 0.25rem 0;
+}
+
+.app-settings-modal-subtitle {
+    font-size: 0.82rem;
+    color: #A0A5A5;
+    margin: 0;
+    line-height: 1.45;
+}
+
+.app-settings-modal-consequences {
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    font-size: 0.8rem;
+    color: #A0A5A5;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.app-settings-modal-consequences strong {
+    color: #F2F3F3;
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.app-settings-modal-consequences ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.app-settings-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+/* ─── Security Tab Components ─── */
+.app-settings-security-block {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    margin-bottom: 1.25rem;
+}
+
+.app-settings-security-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.app-settings-security-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.app-settings-security-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: #161819;
+    border: 1px solid #292D2D;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8BAF9A;
+    flex-shrink: 0;
+}
+
+.app-settings-security-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.app-settings-security-info h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.app-settings-security-info p {
+    font-size: 0.82rem;
+    color: #A0A5A5;
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* Session Cards */
+.app-settings-session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.app-settings-session-card {
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: border-color 0.15s ease;
+}
+
+.app-settings-session-card:hover {
+    border-color: #383E3E;
+}
+
+.app-settings-session-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.app-settings-session-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: #101112;
+    border: 1px solid #292D2D;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-settings-session-title {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    margin: 0;
+}
+
+.app-settings-session-subtitle {
+    font-size: 0.76rem;
+    color: #A0A5A5;
+    margin-top: 0.15rem;
+}
+
+.app-settings-password-form {
+    background: #161819;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-top: 0.25rem;
+    animation: tnModalFade 0.15s ease-out;
 }
 
 /* ─── Usage Progress Bar ─── */
@@ -436,7 +934,7 @@
     border: 1px solid rgba(229, 192, 123, 0.25);
 }
 
-/* Active Sessions Cards */
+/* ─── Active Sessions Cards ─── */
 .app-settings-session-card {
     display: flex;
     align-items: center;
@@ -454,8 +952,8 @@
     gap: 0.75rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ─── Responsive Media Queries ─── */
+@media (max-width: 900px) {
     .app-settings-layout {
         grid-template-columns: 1fr;
         gap: 1.5rem;
@@ -467,5 +965,68 @@
 
     .app-settings-mobile-nav {
         display: flex;
+    }
+}
+
+@media (max-width: 600px) {
+    .app-settings-page {
+        padding-bottom: 3rem;
+    }
+
+    .app-settings-identity-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .app-settings-identity-card .app-settings-btn {
+        width: 100%;
+    }
+
+    .app-settings-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .app-settings-info-value {
+        text-align: left;
+    }
+
+    .app-settings-danger-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .app-settings-danger-card .app-settings-btn--danger {
+        width: 100%;
+    }
+
+    .app-settings-edit-actions {
+        flex-direction: column-reverse;
+        width: 100%;
+    }
+
+    .app-settings-edit-actions .app-settings-btn {
+        width: 100%;
+    }
+
+    .app-settings-modal-footer {
+        flex-direction: column-reverse;
+        width: 100%;
+    }
+
+    .app-settings-modal-footer .app-settings-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 360px) {
+    .app-settings-header__title {
+        font-size: 1.4rem;
+    }
+
+    .app-settings-identity-left {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
