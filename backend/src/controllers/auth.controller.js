@@ -592,7 +592,15 @@ exports.deleteAccount = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const { confirmationText, password } = req.body || {};
+        const { confirmationText, password, reason, feedback } = req.body || {};
+
+        // Validate reason is provided
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please select a reason for deleting your account.'
+            });
+        }
 
         // If email password user, check password if provided
         if (user.password && password) {
@@ -611,12 +619,21 @@ exports.deleteAccount = async (req, res) => {
             });
         }
 
+        logger.warn('User requested permanent account deletion with exit survey', {
+            userId,
+            email: user.email,
+            reason: reason.trim(),
+            feedback: (feedback || '').trim(),
+            deletedAt: new Date().toISOString()
+        });
+
         // Perform cascading deletion
         await supabaseService.deleteUser(userId);
 
         logger.info('Account deleted successfully via settings request', {
             userId,
-            email: user.email
+            email: user.email,
+            reason: reason.trim()
         });
 
         // Clear session cookies if present

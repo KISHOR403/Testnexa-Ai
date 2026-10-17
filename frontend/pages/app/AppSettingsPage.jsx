@@ -21,6 +21,16 @@ const TABS = [
     { id: 'integrations', label: 'Integrations', icon: Puzzle, group: 'Workspace' },
 ];
 
+const DELETION_REASONS = [
+    { id: 'no_longer_need', label: 'I no longer need AI test generation / automated QA' },
+    { id: 'switching_tool', label: 'I switched to another testing solution or framework' },
+    { id: 'too_complex', label: 'Too complicated or difficult to integrate with my codebase' },
+    { id: 'pricing', label: 'Subscription pricing is too high for my current needs' },
+    { id: 'bugs_errors', label: 'Encountered bugs, test generation inaccuracies, or runner errors' },
+    { id: 'temporary', label: 'Temporary break / resetting with a fresh workspace' },
+    { id: 'other', label: 'Other reason' }
+];
+
 const formatMemberDate = (dateString) => {
     if (!dateString) return 'September 2026';
     try {
@@ -95,11 +105,24 @@ const AppSettingsPage = () => {
     const [isRevokingOthers, setIsRevokingOthers] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState(null);
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+    const [deleteStep, setDeleteStep] = useState(1); // 1 = Reason survey, 2 = Permanent confirmation
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleteFeedback, setDeleteFeedback] = useState('');
     const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
     const [deletePassword, setDeletePassword] = useState('');
     const [isDeletingAccount, setIsDeletingAccount] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+    const resetDeleteModal = () => {
+        setShowDeleteAccountModal(false);
+        setDeleteStep(1);
+        setDeleteReason('');
+        setDeleteFeedback('');
+        setDeleteConfirmationText('');
+        setDeletePassword('');
+        setDeleteError(null);
+    };
 
     // Workspace & Preferences Feedback
     const [preferencesSaved, setPreferencesSaved] = useState(false);
@@ -206,10 +229,12 @@ const AppSettingsPage = () => {
             if (deleteAccount) {
                 const res = await deleteAccount({
                     confirmationText: deleteConfirmationText,
-                    password: deletePassword
+                    password: deletePassword,
+                    reason: deleteReason,
+                    feedback: deleteFeedback
                 });
                 if (res.success) {
-                    setShowDeleteAccountModal(false);
+                    resetDeleteModal();
                     navigate('/signup', { replace: true });
                 } else {
                     setDeleteError(res.message || 'Failed to delete account. Please check your confirmation.');
@@ -557,9 +582,7 @@ const AppSettingsPage = () => {
                                     type="button"
                                     className="app-settings-btn app-settings-btn--danger"
                                     onClick={() => {
-                                        setDeleteConfirmationText('');
-                                        setDeletePassword('');
-                                        setDeleteError(null);
+                                        resetDeleteModal();
                                         setShowDeleteAccountModal(true);
                                     }}
                                 >
@@ -1341,99 +1364,180 @@ const AppSettingsPage = () => {
                 </div>
             )}
 
-            {/* Delete Account Modal */}
+            {/* Delete Account Modal (2-Step Flow: Survey -> Final Confirmation) */}
             {showDeleteAccountModal && (
                 <div className="app-settings-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
-                    <div className="app-settings-confirm-box" style={{ maxWidth: '480px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
-                                <AlertCircle size={18} />
-                            </div>
-                            <h3 id="delete-account-title" className="app-settings-confirm-title" style={{ color: '#EF4444', margin: 0 }}>
-                                Permanently delete account?
-                            </h3>
-                        </div>
+                    <div className="app-settings-confirm-box" style={{ maxWidth: '520px' }}>
+                        {deleteStep === 1 ? (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+                                        <AlertCircle size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="app-settings-survey-step-indicator">Step 1 of 2 · Exit Survey</div>
+                                        <h3 id="delete-account-title" className="app-settings-confirm-title" style={{ margin: 0 }}>
+                                            Why do you want to delete your account?
+                                        </h3>
+                                    </div>
+                                </div>
 
-                        <p className="app-settings-confirm-desc" style={{ marginBottom: '1rem', lineHeight: '1.5' }}>
-                            This action is immediate and cannot be undone. All your created test suites, coverage matrices, workspace history, and active session tokens will be permanently erased.
-                        </p>
+                                <p className="app-settings-confirm-desc" style={{ marginBottom: '0.65rem', lineHeight: '1.45' }}>
+                                    We're sorry to see you go. Please tell us why you are deleting your account so we can improve TestNexa AI.
+                                </p>
 
-                        {deleteError && (
-                            <div className="app-settings-feedback error" style={{ marginBottom: '1rem' }}>
-                                <AlertCircle size={14} />
-                                <span>{deleteError}</span>
-                            </div>
-                        )}
+                                <div className="app-settings-survey-list">
+                                    {DELETION_REASONS.map((r) => {
+                                        const isSelected = deleteReason === r.label;
+                                        return (
+                                            <div
+                                                key={r.id}
+                                                className={`app-settings-survey-option ${isSelected ? 'selected' : ''}`}
+                                                onClick={() => setDeleteReason(r.label)}
+                                                role="radio"
+                                                aria-checked={isSelected}
+                                            >
+                                                <div className="app-settings-survey-radio">
+                                                    {isSelected && <div className="app-settings-survey-radio-dot" />}
+                                                </div>
+                                                <span className="app-settings-survey-text">{r.label}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
 
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label htmlFor="confirm-delete-input" style={{ display: 'block', fontSize: '0.78rem', color: '#A0A5A5', marginBottom: '0.4rem' }}>
-                                To confirm, please type <strong style={{ color: '#F2F3F3' }}>DELETE</strong> or your email (<span style={{ color: '#8BAF9A' }}>{displayEmail}</span>):
-                            </label>
-                            <input
-                                id="confirm-delete-input"
-                                type="text"
-                                className="app-settings-input"
-                                placeholder="Type DELETE or your email"
-                                value={deleteConfirmationText}
-                                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                                disabled={isDeletingAccount}
-                                autoFocus
-                            />
-                        </div>
+                                <div style={{ marginTop: '0.65rem' }}>
+                                    <label htmlFor="delete-feedback-input" style={{ display: 'block', fontSize: '0.78rem', color: '#A0A5A5', marginBottom: '0.35rem' }}>
+                                        What could we have done better? (Optional)
+                                    </label>
+                                    <textarea
+                                        id="delete-feedback-input"
+                                        className="app-settings-survey-textarea"
+                                        placeholder="Tell us what could have made TestNexa better for you..."
+                                        value={deleteFeedback}
+                                        onChange={(e) => setDeleteFeedback(e.target.value)}
+                                        rows={2}
+                                    />
+                                </div>
 
-                        {(!user?.provider || user?.provider === 'email') && (
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <label htmlFor="confirm-delete-password" style={{ display: 'block', fontSize: '0.78rem', color: '#A0A5A5', marginBottom: '0.4rem' }}>
-                                    Confirm with account password:
-                                </label>
-                                <input
-                                    id="confirm-delete-password"
-                                    type="password"
-                                    className="app-settings-input"
-                                    placeholder="Enter your current password"
-                                    value={deletePassword}
-                                    onChange={(e) => setDeletePassword(e.target.value)}
-                                    disabled={isDeletingAccount}
-                                />
-                            </div>
-                        )}
+                                <div className="app-settings-confirm-actions" style={{ marginTop: '0.85rem' }}>
+                                    <button
+                                        type="button"
+                                        className="app-settings-btn app-settings-btn--secondary"
+                                        onClick={resetDeleteModal}
+                                    >
+                                        Keep Account
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="app-settings-btn app-settings-btn--danger"
+                                        disabled={!deleteReason}
+                                        onClick={() => setDeleteStep(2)}
+                                    >
+                                        Continue to Deletion →
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+                                        <AlertCircle size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="app-settings-survey-step-indicator">Step 2 of 2 · Permanent Deletion</div>
+                                        <h3 id="delete-account-title" className="app-settings-confirm-title" style={{ color: '#EF4444', margin: 0 }}>
+                                            Permanently delete account?
+                                        </h3>
+                                    </div>
+                                </div>
 
-                        <div className="app-settings-confirm-actions">
-                            <button
-                                type="button"
-                                className="app-settings-btn app-settings-btn--secondary"
-                                onClick={() => {
-                                    setShowDeleteAccountModal(false);
-                                    setDeleteConfirmationText('');
-                                    setDeletePassword('');
-                                    setDeleteError(null);
-                                }}
-                                disabled={isDeletingAccount}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="app-settings-btn app-settings-btn--danger"
-                                disabled={
-                                    isDeletingAccount ||
-                                    !(
-                                        deleteConfirmationText.trim() === 'DELETE' ||
-                                        deleteConfirmationText.trim().toLowerCase() === displayEmail.toLowerCase()
-                                    )
-                                }
-                                onClick={handleDeleteAccount}
-                            >
-                                {isDeletingAccount ? (
-                                    <>
-                                        <Loader2 size={14} className="spin" />
-                                        <span>Deleting...</span>
-                                    </>
-                                ) : (
-                                    'Permanently Delete Account'
+                                <p className="app-settings-confirm-desc" style={{ marginBottom: '0.85rem', lineHeight: '1.5' }}>
+                                    This action is immediate and cannot be undone. All your created test suites, coverage matrices, workspace history, and active session tokens will be permanently erased.
+                                </p>
+
+                                <div style={{ background: '#161819', border: '1px solid #292D2D', borderRadius: '6px', padding: '0.65rem 0.85rem', marginBottom: '1rem' }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#777E7E', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.2rem' }}>
+                                        Selected Reason:
+                                    </span>
+                                    <span style={{ fontSize: '0.82rem', color: '#F2F3F3', fontWeight: 500 }}>
+                                        {deleteReason}
+                                    </span>
+                                </div>
+
+                                {deleteError && (
+                                    <div className="app-settings-feedback error" style={{ marginBottom: '1rem' }}>
+                                        <AlertCircle size={14} />
+                                        <span>{deleteError}</span>
+                                    </div>
                                 )}
-                            </button>
-                        </div>
+
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label htmlFor="confirm-delete-input" style={{ display: 'block', fontSize: '0.78rem', color: '#A0A5A5', marginBottom: '0.4rem' }}>
+                                        To confirm, please type <strong style={{ color: '#F2F3F3' }}>DELETE</strong> or your email (<span style={{ color: '#8BAF9A' }}>{displayEmail}</span>):
+                                    </label>
+                                    <input
+                                        id="confirm-delete-input"
+                                        type="text"
+                                        className="app-settings-input"
+                                        placeholder="Type DELETE or your email"
+                                        value={deleteConfirmationText}
+                                        onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                                        disabled={isDeletingAccount}
+                                        autoFocus
+                                    />
+                                </div>
+
+                                {(!user?.provider || user?.provider === 'email') && (
+                                    <div style={{ marginBottom: '1.25rem' }}>
+                                        <label htmlFor="confirm-delete-password" style={{ display: 'block', fontSize: '0.78rem', color: '#A0A5A5', marginBottom: '0.4rem' }}>
+                                            Confirm with account password:
+                                        </label>
+                                        <input
+                                            id="confirm-delete-password"
+                                            type="password"
+                                            className="app-settings-input"
+                                            placeholder="Enter your current password"
+                                            value={deletePassword}
+                                            onChange={(e) => setDeletePassword(e.target.value)}
+                                            disabled={isDeletingAccount}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="app-settings-confirm-actions">
+                                    <button
+                                        type="button"
+                                        className="app-settings-btn app-settings-btn--secondary"
+                                        onClick={() => setDeleteStep(1)}
+                                        disabled={isDeletingAccount}
+                                    >
+                                        ← Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="app-settings-btn app-settings-btn--danger"
+                                        disabled={
+                                            isDeletingAccount ||
+                                            !(
+                                                deleteConfirmationText.trim() === 'DELETE' ||
+                                                deleteConfirmationText.trim().toLowerCase() === displayEmail.toLowerCase()
+                                            )
+                                        }
+                                        onClick={handleDeleteAccount}
+                                    >
+                                        {isDeletingAccount ? (
+                                            <>
+                                                <Loader2 size={14} className="spin" />
+                                                <span>Deleting...</span>
+                                            </>
+                                        ) : (
+                                            'Permanently Delete Account'
+                                        )}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

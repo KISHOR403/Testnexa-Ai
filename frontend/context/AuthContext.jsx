@@ -418,12 +418,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const deleteAccount = async ({ confirmationText, password }) => {
+    const deleteAccount = async ({ confirmationText, password, reason, feedback }) => {
         try {
             const token = localStorage.getItem('testnexa_token');
             const response = await axios.delete(`${API_URL}/auth/account`, {
                 headers: { Authorization: `Bearer ${token}` },
-                data: { confirmationText, password }
+                data: { confirmationText, password, reason, feedback }
             });
 
             if (response.data.success) {
