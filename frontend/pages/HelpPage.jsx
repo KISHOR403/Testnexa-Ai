@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     Search, X, FileText, CheckSquare, Layers, AlertTriangle,
     GitBranch, Clock, ShieldCheck, Download, ChevronRight,
-    ChevronDown, BookOpen, ExternalLink, HelpCircle, ArrowRight,
-    Sparkles, CheckCircle2, MessageSquare, Terminal, RefreshCw
+    ChevronDown, BookOpen, ArrowRight, RefreshCw
 } from 'lucide-react';
 import '../styles/HelpPage.css';
 
@@ -71,7 +70,7 @@ const ARTICLES = [
                 <section id="next-steps">
                     <h2>Next Steps</h2>
                     <p>
-                        After generating your suite, explore the <strong>Coverage Matrix</strong> to verify requirement completeness or export the test cases to Playwright or Cypress.
+                        After generating your suite, explore the <strong>Coverage Matrix</strong> to verify requirement completeness, or review the <strong>Traceability Matrix</strong> to confirm every acceptance criterion is mapped to test scenarios.
                     </p>
                 </section>
             </>
@@ -415,15 +414,23 @@ const ARTICLES = [
     }
 ];
 
-// ─── FAQ ACCORDIONS DATA ───
+// ─── FAQ DATA ───
 const FAQS = [
     {
         question: 'How does Testnexa generate test cases?',
-        answer: 'Testnexa parses your natural-language requirement, decomposes it into explicit acceptance criteria and implied failure modes, and applies structured QA heuristics across positive paths, negative error states, edge boundaries, and security vectors to generate executable test scenarios.'
+        answer: (
+            <>
+                Testnexa parses your natural-language requirement, decomposes it into explicit acceptance criteria and implied failure modes, and applies structured QA heuristics across positive paths, negative error states, edge boundaries, and security vectors to generate executable test scenarios. <Link to="/help/first-test-suite">Learn more →</Link>
+            </>
+        )
     },
     {
         question: 'Can I edit generated test cases?',
-        answer: 'Yes. From any Test Suite detail page, you can click on individual test cases to update their preconditions, execution steps, or expected assertions to match your exact internal specifications.'
+        answer: (
+            <>
+                Yes. From any Test Suite detail page, you can click on individual test cases to update their preconditions, execution steps, or expected assertions to match your exact internal specifications. <Link to="/help/review-tests">See how →</Link>
+            </>
+        )
     },
     {
         question: 'Can I regenerate an individual test case or scenario?',
@@ -431,15 +438,27 @@ const FAQS = [
     },
     {
         question: 'How is requirement coverage calculated?',
-        answer: 'Coverage is calculated as the ratio of verified acceptance criteria and risk conditions to the total requirements identified in your prompt. The Coverage Matrix displays full percentage breakdowns across Web, Mobile, and API surfaces.'
+        answer: (
+            <>
+                Coverage is calculated as the ratio of verified acceptance criteria and risk conditions to the total requirements identified in your prompt. The Coverage Matrix displays full percentage breakdowns across Web, Mobile, and API surfaces. <Link to="/help/coverage-guide">View coverage docs →</Link>
+            </>
+        )
     },
     {
-        question: 'Can I export my test suite into Playwright or Cypress?',
-        answer: 'Yes. Testnexa provides direct exports into runnable Playwright (TypeScript and Python), Cypress (JavaScript), Gherkin / Cucumber BDD feature files, and standard JSON/CSV reports.'
+        question: 'Which export formats are supported?',
+        answer: (
+            <>
+                Testnexa supports export into Playwright (TypeScript and Python), Cypress (JavaScript), Gherkin / Cucumber BDD feature files, and standard JSON/CSV reports. <Link to="/help/exporting-tests">Export guide →</Link>
+            </>
+        )
     },
     {
-        question: 'Where can I find my previous test suites?',
-        answer: 'All your previous generation sessions and snapshots are automatically saved to your workspace History. You can access them at any time from the application sidebar or by visiting /app/history.'
+        question: 'Where can I find previously saved suites?',
+        answer: (
+            <>
+                All your previous generation sessions and snapshots are automatically saved to your workspace History. You can access them at any time from the application sidebar or by visiting <code>/app/history</code>. <Link to="/help/history-guide">Learn more →</Link>
+            </>
+        )
     }
 ];
 
@@ -447,7 +466,7 @@ const FAQS = [
 const CATEGORIES = [
     {
         title: 'Getting Started',
-        desc: 'Learn the core workflow, terminology, and interface of Testnexa.',
+        desc: 'Learn the core workflow, terminology, and workspace interface.',
         icon: FileText,
         articleId: 'first-test-suite'
     },
@@ -458,37 +477,150 @@ const CATEGORIES = [
         articleId: 'effective-requirements'
     },
     {
-        title: 'Test Cases',
+        title: 'Test Cases and Review',
         desc: 'Inspect preconditions, steps, assertions, and verification tags.',
         icon: Layers,
         articleId: 'review-tests'
     },
     {
-        title: 'Coverage & Traceability',
+        title: 'Coverage and Traceability',
         desc: 'Analyze coverage percentages, detect gaps, and map requirements.',
         icon: GitBranch,
         articleId: 'coverage-guide'
     },
     {
-        title: 'Risks & Edge Cases',
-        desc: 'Audit critical failure vectors, boundary thresholds, and security vectors.',
+        title: 'Risks and Edge Cases',
+        desc: 'Audit critical failure vectors, boundary thresholds, and security risks.',
         icon: AlertTriangle,
         articleId: 'risks-guide'
     },
     {
-        title: 'Account & Workspace',
-        desc: 'Manage personal profile, billing subscription, and active security sessions.',
+        title: 'History and Export',
+        desc: 'Restore previous sessions, review snapshots, and export test suites.',
+        icon: Clock,
+        articleId: 'history-guide'
+    },
+    {
+        title: 'Account and Workspace',
+        desc: 'Manage your profile, workspace preferences, and active sessions.',
         icon: ShieldCheck,
         link: '/app/settings'
     }
 ];
 
+// ─── QA FUNDAMENTALS ───
+const QA_TERMS = [
+    {
+        term: 'Requirement',
+        icon: FileText,
+        iconColor: '#8BAF9A',
+        desc: 'A formal description of what a system should do and how it should respond to user actions.',
+        example: '"User can reset password with an email link valid for 15 minutes."',
+        articleId: 'what-is-a-requirement'
+    },
+    {
+        term: 'Test Case',
+        icon: CheckSquare,
+        iconColor: '#8BAF9A',
+        desc: 'A structured scenario with preconditions, execution steps, and expected outcome assertions.',
+        example: '"Verify redirect to dashboard and session token creation after valid login."',
+        articleId: 'what-is-a-test-case'
+    },
+    {
+        term: 'Negative Testing',
+        icon: X,
+        iconColor: '#E87070',
+        desc: 'Testing how the system handles invalid input, boundary violations, or unexpected user behavior.',
+        example: '"Verify validation error when submitting password shorter than 8 characters."',
+        articleId: 'negative-testing'
+    },
+    {
+        term: 'Edge Cases',
+        icon: AlertTriangle,
+        iconColor: '#D4A843',
+        desc: 'Testing behaviors at extreme operational thresholds, null values, and concurrency conditions.',
+        example: '"Verify system response when 10,000 users initiate checkout simultaneously."',
+        articleId: 'edge-cases'
+    },
+    {
+        term: 'Preconditions',
+        icon: Layers,
+        iconColor: '#8BAF9A',
+        desc: 'The required system state or setup before a test case can be executed.',
+        example: '"User is authenticated with admin role and has an active subscription."'
+    },
+    {
+        term: 'Expected Results',
+        icon: CheckSquare,
+        iconColor: '#6EBF8B',
+        desc: 'The concrete, verifiable outcome that determines whether a test passes or fails.',
+        example: '"HTTP 200 response with updated user profile in the response body."'
+    },
+    {
+        term: 'Regression Testing',
+        icon: RefreshCw,
+        iconColor: '#8BAF9A',
+        desc: 'Re-running existing test cases after code changes to ensure no previously working functionality is broken.',
+        example: '"Re-run login suite after authentication service refactor."'
+    },
+    {
+        term: 'Requirement Traceability',
+        icon: GitBranch,
+        iconColor: '#8BAF9A',
+        desc: 'Bidirectional mapping linking every acceptance criterion to specific positive, negative, and edge test cases.',
+        example: '"Requirement R-001 → TC-001, TC-002, TC-005"',
+        articleId: 'traceability-guide'
+    }
+];
+
+// ─── WORKFLOW STEPS ───
+const WORKFLOW_STEPS = [
+    {
+        title: 'Enter a requirement',
+        desc: 'Provide a clear, specific user story or product requirement with acceptance criteria.',
+        articleId: 'effective-requirements'
+    },
+    {
+        title: 'Configure target and coverage depth',
+        desc: 'Select the target environment (Web, Mobile, API) and coverage level (Essential, Standard, Comprehensive).',
+        articleId: 'first-test-suite'
+    },
+    {
+        title: 'Generate test cases',
+        desc: 'Testnexa decomposes your requirement into positive, negative, edge, and security scenarios.',
+        articleId: 'first-test-suite'
+    },
+    {
+        title: 'Review and edit scenarios',
+        desc: 'Inspect preconditions, steps, and expected results for each test case. Edit inline to match your conventions.',
+        articleId: 'review-tests'
+    },
+    {
+        title: 'Approve and save the suite',
+        desc: 'Mark verified test cases as approved. The suite is saved to your workspace history automatically.',
+        articleId: 'review-tests'
+    },
+    {
+        title: 'Inspect coverage, risks, and traceability',
+        desc: 'Use the Coverage Matrix, Risk Analysis, and Traceability Matrix to verify completeness.',
+        articleId: 'coverage-guide'
+    },
+    {
+        title: 'Reopen history or export results',
+        desc: 'Return to any previous session from workspace history, or export suites to Playwright, Cypress, JSON, or CSV.',
+        articleId: 'history-guide'
+    }
+];
+
+
 const HelpPage = () => {
     const { articleId } = useParams();
     const navigate = useNavigate();
+    const searchInputRef = useRef(null);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [openFaqIndices, setOpenFaqIndices] = useState({});
+    const [selectedSearchIdx, setSelectedSearchIdx] = useState(-1);
 
     // Active article lookup
     const activeArticle = useMemo(() => {
@@ -510,11 +642,43 @@ const HelpPage = () => {
         });
     }, [searchQuery]);
 
+    // Reset selected index when search results change
+    useEffect(() => {
+        setSelectedSearchIdx(-1);
+    }, [searchResults.length, searchQuery]);
+
     const toggleFaq = (idx) => {
         setOpenFaqIndices(prev => ({
             ...prev,
             [idx]: !prev[idx]
         }));
+    };
+
+    // Keyboard navigation for search results
+    const handleSearchKeyDown = (e) => {
+        if (!searchQuery.trim() || searchResults.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedSearchIdx(prev =>
+                prev < searchResults.length - 1 ? prev + 1 : 0
+            );
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedSearchIdx(prev =>
+                prev > 0 ? prev - 1 : searchResults.length - 1
+            );
+        } else if (e.key === 'Enter' && selectedSearchIdx >= 0) {
+            e.preventDefault();
+            const result = searchResults[selectedSearchIdx];
+            if (result) {
+                setSearchQuery('');
+                navigate(`/help/${result.id}`);
+            }
+        } else if (e.key === 'Escape') {
+            setSearchQuery('');
+            searchInputRef.current?.blur();
+        }
     };
 
     return (
@@ -528,7 +692,7 @@ const HelpPage = () => {
                     {activeArticle && (
                         <>
                             <ChevronRight size={13} style={{ opacity: 0.4 }} />
-                            <span style={{ color: '#737373' }}>{activeArticle.category}</span>
+                            <span style={{ color: '#777E7E' }}>{activeArticle.category}</span>
                             <ChevronRight size={13} style={{ opacity: 0.4 }} />
                             <span className="help-breadcrumb-current">{activeArticle.title}</span>
                         </>
@@ -542,7 +706,7 @@ const HelpPage = () => {
                             <Link
                                 to="/help"
                                 className="help-btn help-btn--secondary"
-                                style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', minHeight: '32px' }}
+                                style={{ padding: '0.35rem 0.85rem', fontSize: '0.82rem', minHeight: '34px' }}
                             >
                                 ← Back to Help Center
                             </Link>
@@ -562,7 +726,7 @@ const HelpPage = () => {
                             {/* Article Body */}
                             <article className="help-article-body">
                                 <header className="help-article-header">
-                                    <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#4F8CFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8BAF9A', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                                         {activeArticle.category}
                                     </span>
                                     <h1 className="help-article-title">{activeArticle.title}</h1>
@@ -608,30 +772,35 @@ const HelpPage = () => {
                         {/* Hero Section */}
                         <header className="help-hero">
                             <div className="help-hero__badge">
-                                <BookOpen size={13} />
+                                <BookOpen size={12} />
                                 <span>Product Documentation</span>
                             </div>
                             <h1 className="help-hero__title">Help Center</h1>
                             <p className="help-hero__desc">
-                                Find answers, learn how Testnexa works, and get the most out of your QA workflow.
+                                Learn how to create, review, and manage test suites. Search the documentation or browse by topic below.
                             </p>
 
-                            {/* Prominent Search Bar */}
+                            {/* Search Bar */}
                             <div className="help-search-box">
-                                <Search size={18} className="help-search-icon" />
+                                <Search size={17} className="help-search-icon" />
                                 <input
+                                    ref={searchInputRef}
                                     type="text"
                                     className="help-search-input"
-                                    placeholder="Search guides, features, test suites, coverage..."
+                                    placeholder="Search documentation..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={handleSearchKeyDown}
                                     aria-label="Search documentation"
+                                    aria-autocomplete="list"
+                                    role="combobox"
+                                    aria-expanded={searchQuery.trim() !== '' && searchResults.length > 0}
                                 />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         className="help-search-clear"
-                                        onClick={() => setSearchQuery('')}
+                                        onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
                                         aria-label="Clear search"
                                     >
                                         <X size={15} />
@@ -640,17 +809,28 @@ const HelpPage = () => {
                             </div>
                         </header>
 
-                        {/* Search Results Display */}
+                        {/* Search Results */}
                         {searchQuery.trim() !== '' && (
-                            <section className="help-search-results" aria-live="polite">
+                            <section className="help-search-results" aria-live="polite" role="listbox">
                                 <div className="help-search-results-header">
-                                    <span>Search results ({searchResults.length})</span>
-                                    {searchResults.length > 0 && <span>Click any result to read guide</span>}
+                                    <span>{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}</span>
+                                    {searchResults.length > 0 && <span>Use ↑↓ arrows then Enter, or click a result</span>}
                                 </div>
 
                                 {searchResults.length > 0 ? (
-                                    searchResults.map(result => (
-                                        <Link key={result.id} to={`/help/${result.id}`} className="help-result-card">
+                                    searchResults.map((result, idx) => (
+                                        <Link
+                                            key={result.id}
+                                            to={`/help/${result.id}`}
+                                            className="help-result-card"
+                                            role="option"
+                                            aria-selected={idx === selectedSearchIdx}
+                                            style={idx === selectedSearchIdx ? {
+                                                background: '#161819',
+                                                borderColor: '#8BAF9A'
+                                            } : undefined}
+                                            onClick={() => setSearchQuery('')}
+                                        >
                                             <div className="help-result-card__top">
                                                 <span className="help-result-card__title">{result.title}</span>
                                                 <span className="help-result-card__cat">{result.category}</span>
@@ -660,70 +840,67 @@ const HelpPage = () => {
                                     ))
                                 ) : (
                                     <div className="help-search-empty">
-                                        <AlertTriangle size={24} color="#A3A3A3" />
-                                        <h3>No results found for "{searchQuery}"</h3>
-                                        <p>Try searching for terms like "coverage", "test case", "requirements", or "export".</p>
-                                        <Link to="/contact" className="help-btn help-btn--secondary" style={{ marginTop: '0.5rem' }}>
-                                            Contact Support
-                                        </Link>
+                                        <Search size={22} color="#777E7E" />
+                                        <h3>No results for "{searchQuery}"</h3>
+                                        <p>Try searching for "coverage", "test case", "requirement", or "export".</p>
                                     </div>
                                 )}
                             </section>
                         )}
 
-                        {/* ─── SECTION 1: GETTING STARTED ─── */}
+                        {/* ─── SECTION A: START HERE ─── */}
                         <section className="help-section">
                             <div className="help-section-header">
-                                <span className="help-section-label">Getting Started</span>
-                                <h2 className="help-section-title">Start here if you're new to Testnexa</h2>
-                                <p className="help-section-desc">Essential workflows to turn requirements into high-coverage test suites.</p>
+                                <span className="help-section-label">Start here</span>
+                                <h2 className="help-section-title">Essential workflows</h2>
+                                <p className="help-section-desc">The key steps to get started with Testnexa.</p>
                             </div>
 
                             <div className="help-cards-grid">
                                 <Link to="/help/first-test-suite" className="help-card">
                                     <div className="help-card-icon-wrap">
-                                        <FileText size={16} />
+                                        <FileText size={15} />
                                     </div>
                                     <h3 className="help-card-title">Create your first test suite</h3>
-                                    <p className="help-card-desc">Learn how to input requirements, set coverage depth, and generate test scenarios.</p>
+                                    <p className="help-card-desc">Input a requirement, set coverage depth, and generate structured test scenarios.</p>
                                     <span className="help-card-link">Read guide <ArrowRight size={12} /></span>
                                 </Link>
 
                                 <Link to="/help/review-tests" className="help-card">
                                     <div className="help-card-icon-wrap">
-                                        <CheckSquare size={16} />
+                                        <CheckSquare size={15} />
                                     </div>
-                                    <h3 className="help-card-title">Review generated tests</h3>
-                                    <p className="help-card-desc">Understand preconditions, execution steps, expected assertions, and review workflows.</p>
+                                    <h3 className="help-card-title">Review generated test cases</h3>
+                                    <p className="help-card-desc">Inspect preconditions, steps, and expected results. Edit inline before approving.</p>
                                     <span className="help-card-link">Read guide <ArrowRight size={12} /></span>
                                 </Link>
 
                                 <Link to="/help/coverage-guide" className="help-card">
                                     <div className="help-card-icon-wrap">
-                                        <Layers size={16} />
+                                        <Layers size={15} />
                                     </div>
-                                    <h3 className="help-card-title">Understand coverage</h3>
-                                    <p className="help-card-desc">Learn how requirement coverage is measured and how to eliminate untested edge gaps.</p>
+                                    <h3 className="help-card-title">Understand requirement coverage</h3>
+                                    <p className="help-card-desc">Learn how coverage is calculated and how to detect untested gaps.</p>
                                     <span className="help-card-link">Read guide <ArrowRight size={12} /></span>
                                 </Link>
 
                                 <Link to="/help/history-guide" className="help-card">
                                     <div className="help-card-icon-wrap">
-                                        <Clock size={16} />
+                                        <Clock size={15} />
                                     </div>
-                                    <h3 className="help-card-title">Use History</h3>
-                                    <p className="help-card-desc">Find, restore, and continue previous generation sessions and saved test suite snapshots.</p>
+                                    <h3 className="help-card-title">Reopen previous work</h3>
+                                    <p className="help-card-desc">Find, restore, and continue previous generation sessions from workspace history.</p>
                                     <span className="help-card-link">Read guide <ArrowRight size={12} /></span>
                                 </Link>
                             </div>
                         </section>
 
-                        {/* ─── SECTION 2: DOCUMENTATION CATEGORIES ─── */}
+                        {/* ─── SECTION B: DOCUMENTATION BY TOPIC ─── */}
                         <section className="help-section">
                             <div className="help-section-header">
                                 <span className="help-section-label">Documentation</span>
-                                <h2 className="help-section-title">Explore documentation by topic</h2>
-                                <p className="help-section-desc">Comprehensive reference guides for all features and QA methodologies.</p>
+                                <h2 className="help-section-title">Browse by topic</h2>
+                                <p className="help-section-desc">All documentation organized by category.</p>
                             </div>
 
                             <div className="help-category-grid">
@@ -733,157 +910,107 @@ const HelpPage = () => {
                                     return (
                                         <Link key={i} to={destination} className="help-category-card">
                                             <div className="help-card-icon-wrap">
-                                                <Icon size={16} />
+                                                <Icon size={15} />
                                             </div>
                                             <div className="help-category-content">
                                                 <h3 className="help-category-title">{cat.title}</h3>
                                                 <p className="help-category-desc">{cat.desc}</p>
                                             </div>
-                                            <ChevronRight size={16} className="help-category-arrow" />
+                                            <ChevronRight size={15} className="help-category-arrow" />
                                         </Link>
                                     );
                                 })}
                             </div>
                         </section>
 
-                        {/* ─── SECTION 3: QA FUNDAMENTALS ─── */}
+                        {/* ─── SECTION C: QA FUNDAMENTALS ─── */}
                         <section className="help-section">
                             <div className="help-section-header">
                                 <span className="help-section-label">QA Fundamentals</span>
-                                <h2 className="help-section-title">Core software quality principles</h2>
-                                <p className="help-section-desc">Foundational testing concepts implemented by the Testnexa platform.</p>
+                                <h2 className="help-section-title">Testing terminology</h2>
+                                <p className="help-section-desc">Core concepts used throughout Testnexa and software quality assurance.</p>
                             </div>
 
                             <div className="help-qa-list">
-                                <div className="help-qa-row">
-                                    <div className="help-qa-title">
-                                        <FileText size={16} color="#4F8CFF" />
-                                        <span>Requirement</span>
-                                    </div>
-                                    <div>
-                                        <p className="help-qa-desc">A formal description of what a system should do and how it should respond to user actions.</p>
-                                        <span className="help-qa-example">Example: "User can reset password with an email link valid for 15 minutes."</span>
-                                    </div>
-                                    <Link to="/help/what-is-a-requirement" className="help-btn help-btn--secondary" style={{ padding: '0.35rem 0.75rem', minHeight: '32px', fontSize: '0.78rem' }}>
-                                        Read article →
-                                    </Link>
-                                </div>
-
-                                <div className="help-qa-row">
-                                    <div className="help-qa-title">
-                                        <CheckSquare size={16} color="#4F8CFF" />
-                                        <span>Test Case</span>
-                                    </div>
-                                    <div>
-                                        <p className="help-qa-desc">A structured scenario with preconditions, execution steps, and expected outcome assertions.</p>
-                                        <span className="help-qa-example">Example: "Verify redirect to dashboard and session token creation after valid login."</span>
-                                    </div>
-                                    <Link to="/help/what-is-a-test-case" className="help-btn help-btn--secondary" style={{ padding: '0.35rem 0.75rem', minHeight: '32px', fontSize: '0.78rem' }}>
-                                        Read article →
-                                    </Link>
-                                </div>
-
-                                <div className="help-qa-row">
-                                    <div className="help-qa-title">
-                                        <X size={16} color="#F87171" />
-                                        <span>Negative Testing</span>
-                                    </div>
-                                    <div>
-                                        <p className="help-qa-desc">Testing how the system handles invalid input, boundary violations, or unexpected user behavior.</p>
-                                        <span className="help-qa-example">Example: "Verify validation error when submitting password shorter than 8 characters."</span>
-                                    </div>
-                                    <Link to="/help/negative-testing" className="help-btn help-btn--secondary" style={{ padding: '0.35rem 0.75rem', minHeight: '32px', fontSize: '0.78rem' }}>
-                                        Read article →
-                                    </Link>
-                                </div>
-
-                                <div className="help-qa-row">
-                                    <div className="help-qa-title">
-                                        <AlertTriangle size={16} color="#FBBF24" />
-                                        <span>Edge Cases</span>
-                                    </div>
-                                    <div>
-                                        <p className="help-qa-desc">Testing behaviors at extreme operational thresholds, null values, and concurrency conditions.</p>
-                                        <span className="help-qa-example">Example: "Verify system response when 10,000 users initiate checkout at the same second."</span>
-                                    </div>
-                                    <Link to="/help/edge-cases" className="help-btn help-btn--secondary" style={{ padding: '0.35rem 0.75rem', minHeight: '32px', fontSize: '0.78rem' }}>
-                                        Read article →
-                                    </Link>
-                                </div>
+                                {QA_TERMS.map((term, i) => {
+                                    const Icon = term.icon;
+                                    return (
+                                        <div key={i} className="help-qa-row">
+                                            <div className="help-qa-title">
+                                                <Icon size={15} color={term.iconColor} />
+                                                <span>{term.term}</span>
+                                            </div>
+                                            <div>
+                                                <p className="help-qa-desc">{term.desc}</p>
+                                                <span className="help-qa-example">{term.example}</span>
+                                            </div>
+                                            {term.articleId ? (
+                                                <Link to={`/help/${term.articleId}`} className="help-btn help-btn--secondary" style={{ padding: '0.3rem 0.7rem', minHeight: '32px', fontSize: '0.78rem' }}>
+                                                    Read article →
+                                                </Link>
+                                            ) : (
+                                                <span />
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </section>
 
-                        {/* ─── SECTION 4: FEATURE GUIDES ─── */}
+                        {/* ─── SECTION D: FEATURE GUIDES (WORKFLOW) ─── */}
                         <section className="help-section">
                             <div className="help-section-header">
                                 <span className="help-section-label">Feature Guides</span>
-                                <h2 className="help-section-title">In-depth workflows for each tool</h2>
-                                <p className="help-section-desc">Learn how each component in Testnexa accelerates the QA lifecycle.</p>
+                                <h2 className="help-section-title">The Testnexa workflow</h2>
+                                <p className="help-section-desc">End-to-end walkthrough of the test generation and review lifecycle.</p>
                             </div>
 
-                            <div className="help-cards-grid">
-                                <Link to="/help/first-test-suite" className="help-card">
-                                    <h3 className="help-card-title">Test Suite Generator</h3>
-                                    <p className="help-card-desc">Generate production-ready test scenarios from user stories in seconds.</p>
-                                    <span className="help-card-link">View guide →</span>
-                                </Link>
-
-                                <Link to="/help/coverage-guide" className="help-card">
-                                    <h3 className="help-card-title">Coverage Matrix</h3>
-                                    <p className="help-card-desc">Understand requirement coverage, track tested surfaces, and isolate gaps.</p>
-                                    <span className="help-card-link">View guide →</span>
-                                </Link>
-
-                                <Link to="/help/risks-guide" className="help-card">
-                                    <h3 className="help-card-title">Risk Analysis</h3>
-                                    <p className="help-card-desc">Identify high-risk authentication, data integrity, and concurrency vectors.</p>
-                                    <span className="help-card-link">View guide →</span>
-                                </Link>
-
-                                <Link to="/help/traceability-guide" className="help-card">
-                                    <h3 className="help-card-title">Traceability</h3>
-                                    <p className="help-card-desc">Connect every requirement statement to its verifying positive and negative tests.</p>
-                                    <span className="help-card-link">View guide →</span>
-                                </Link>
-
-                                <Link to="/help/history-guide" className="help-card">
-                                    <h3 className="help-card-title">History Snapshots</h3>
-                                    <p className="help-card-desc">Return to previous QA sessions, recover requirements, and review revisions.</p>
-                                    <span className="help-card-link">View guide →</span>
-                                </Link>
-
-                                <Link to="/help/exporting-tests" className="help-card">
-                                    <h3 className="help-card-title">Suite Export</h3>
-                                    <p className="help-card-desc">Export test suites into Playwright, Cypress, Gherkin, JSON, or CSV formats.</p>
-                                    <span className="help-card-link">View guide →</span>
-                                </Link>
+                            <div className="help-workflow-list">
+                                {WORKFLOW_STEPS.map((step, i) => (
+                                    <Link key={i} to={`/help/${step.articleId}`} className="help-workflow-step">
+                                        <span className="help-workflow-number">{i + 1}</span>
+                                        <div className="help-workflow-body">
+                                            <h3 className="help-workflow-title">{step.title}</h3>
+                                            <p className="help-workflow-desc">{step.desc}</p>
+                                            <span className="help-workflow-link-text">
+                                                View guide <ArrowRight size={11} />
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         </section>
 
-                        {/* ─── SECTION 5: FAQ ACCORDION ─── */}
+                        {/* ─── SECTION: FAQ ACCORDION ─── */}
                         <section className="help-section">
                             <div className="help-section-header">
                                 <span className="help-section-label">FAQ</span>
-                                <h2 className="help-section-title">Frequently Asked Questions</h2>
-                                <p className="help-section-desc">Common questions about generation, coverage, and exports.</p>
+                                <h2 className="help-section-title">Frequently asked questions</h2>
                             </div>
 
-                            <div className="help-faq-list">
+                            <div className="help-faq-list" role="list">
                                 {FAQS.map((faq, idx) => {
                                     const isOpen = !!openFaqIndices[idx];
                                     return (
-                                        <div key={idx} className={`help-faq-item ${isOpen ? 'is-open' : ''}`}>
+                                        <div key={idx} className={`help-faq-item ${isOpen ? 'is-open' : ''}`} role="listitem">
                                             <button
                                                 type="button"
                                                 className="help-faq-trigger"
                                                 onClick={() => toggleFaq(idx)}
                                                 aria-expanded={isOpen}
+                                                aria-controls={`faq-content-${idx}`}
+                                                id={`faq-trigger-${idx}`}
                                             >
                                                 <span>{faq.question}</span>
                                                 <ChevronDown size={16} className="help-faq-chevron" />
                                             </button>
                                             {isOpen && (
-                                                <div className="help-faq-content">
+                                                <div
+                                                    className="help-faq-content"
+                                                    id={`faq-content-${idx}`}
+                                                    role="region"
+                                                    aria-labelledby={`faq-trigger-${idx}`}
+                                                >
                                                     {faq.answer}
                                                 </div>
                                             )}
@@ -893,11 +1020,11 @@ const HelpPage = () => {
                             </div>
                         </section>
 
-                        {/* ─── SECTION 6: SUPPORT CTA ─── */}
+                        {/* ─── SUPPORT CTA ─── */}
                         <section className="help-support-box">
                             <div className="help-support-info">
                                 <h3>Still need help?</h3>
-                                <p>Can't find what you're looking for? Reach out to our engineering support team.</p>
+                                <p>Can't find what you're looking for? Reach out to our support team or jump into your workspace.</p>
                             </div>
                             <div className="help-support-actions">
                                 <Link to="/contact" className="help-btn help-btn--primary">

@@ -1,23 +1,27 @@
 /* ═══════════════════════════════════════════════════════════════════
-   TESTNEXA ENTERPRISE HELP CENTER & DOCUMENTATION
-   True Black Theme (#050505 / #0A0A0A / #111111 / #1C1C1C)
-   Accent: #4F8CFF | Text: #F5F5F5 / #A3A3A3 / #737373
+   TESTNEXA AI — HELP CENTER & DOCUMENTATION
+   Palette:
+     Background: #080909    Surface: #101112    Elevated: #161819
+     Border: #292D2D        Primary Text: #F2F3F3
+     Secondary: #A0A5A5     Muted: #777E7E     Accent: #8BAF9A
    ═══════════════════════════════════════════════════════════════════ */
 
 .help-center-root {
     width: 100%;
     min-height: 100vh;
-    background: #050505;
-    color: #F5F5F5;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    padding-top: 5rem;
+    background: #080909;
+    color: #F2F3F3;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-top: 4.5rem;
     padding-bottom: 5rem;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .help-container {
-    max-width: 1120px;
+    max-width: 1080px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 0 2rem;
 }
 
 /* ─── Breadcrumbs ─── */
@@ -25,79 +29,89 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.8rem;
-    color: #737373;
-    margin-bottom: 1.5rem;
+    font-size: 0.82rem;
+    color: #777E7E;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
 }
 
 .help-breadcrumb-link {
-    color: #A3A3A3;
+    color: #A0A5A5;
     text-decoration: none;
     transition: color 0.15s ease;
 }
 
 .help-breadcrumb-link:hover {
-    color: #4F8CFF;
+    color: #8BAF9A;
+}
+
+.help-breadcrumb-link:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 .help-breadcrumb-current {
-    color: #F5F5F5;
+    color: #F2F3F3;
     font-weight: 500;
 }
 
-/* ─── Hero Section (Compact, Efficient) ─── */
+/* ─── Hero Section ─── */
 .help-hero {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 1rem 0 2.5rem;
-    border-bottom: 1px solid #161616;
+    align-items: flex-start;
+    text-align: left;
+    padding: 2rem 0 2.75rem;
+    border-bottom: 1px solid #292D2D;
 }
 
 .help-hero__badge {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.08);
-    border: 1px solid rgba(79, 140, 255, 0.2);
+    color: #8BAF9A;
+    background: rgba(139, 175, 154, 0.07);
+    border: 1px solid rgba(139, 175, 154, 0.18);
     padding: 0.2rem 0.65rem;
     border-radius: 999px;
-    margin-bottom: 0.85rem;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 .help-hero__title {
-    font-size: 2.25rem;
+    font-size: clamp(2rem, 4vw, 2.75rem);
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     letter-spacing: -0.025em;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.6rem 0;
+    line-height: 1.15;
 }
 
 .help-hero__desc {
-    font-size: 0.95rem;
-    color: #A3A3A3;
+    font-size: 1rem;
+    color: #A0A5A5;
     max-width: 580px;
     margin: 0 0 1.75rem 0;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 /* ─── Search Bar ─── */
 .help-search-box {
     position: relative;
     width: 100%;
-    max-width: 720px;
+    max-width: 620px;
 }
 
 .help-search-icon {
     position: absolute;
-    left: 1.15rem;
+    left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #737373;
+    color: #777E7E;
     pointer-events: none;
     transition: color 0.15s ease;
 }
@@ -105,145 +119,163 @@
 .help-search-input {
     width: 100%;
     height: 48px;
-    background: #0A0A0A;
-    border: 1px solid #222222;
+    background: #101112;
+    border: 1px solid #292D2D;
     border-radius: 8px;
-    padding: 0 3rem 0 3rem;
-    color: #F5F5F5;
-    font-size: 0.92rem;
+    padding: 0 3rem 0 2.85rem;
+    color: #F2F3F3;
+    font-size: 0.93rem;
+    font-family: inherit;
     outline: none;
-    transition: all 0.15s ease;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.help-search-input::placeholder {
+    color: #777E7E;
 }
 
 .help-search-input:focus {
-    border-color: #4F8CFF;
-    background: #0E0E0E;
-    box-shadow: 0 0 0 1px rgba(79, 140, 255, 0.3), 0 6px 24px rgba(0, 0, 0, 0.6);
+    border-color: #8BAF9A;
+    box-shadow: 0 0 0 1px rgba(139, 175, 154, 0.25);
 }
 
 .help-search-box:focus-within .help-search-icon {
-    color: #4F8CFF;
+    color: #8BAF9A;
 }
 
 .help-search-clear {
     position: absolute;
-    right: 1rem;
+    right: 0.85rem;
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
     border: none;
-    color: #737373;
+    color: #777E7E;
     cursor: pointer;
     padding: 0.3rem;
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
 .help-search-clear:hover {
-    color: #F5F5F5;
-    background: #1A1A1A;
+    color: #F2F3F3;
+    background: #161819;
 }
 
-/* ─── Search Results Drawer / Overlay ─── */
+.help-search-clear:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: 2px;
+}
+
+/* ─── Search Results ─── */
 .help-search-results {
-    margin-top: 2rem;
+    margin-top: 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .help-search-results-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 0.85rem;
-    color: #A3A3A3;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #1C1C1C;
+    font-size: 0.82rem;
+    color: #A0A5A5;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #292D2D;
+    margin-bottom: 0.25rem;
 }
 
 .help-result-card {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    padding: 1rem 1.25rem;
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
-    border-radius: 8px;
+    gap: 0.3rem;
+    padding: 0.9rem 1.15rem;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
     text-align: left;
 }
 
 .help-result-card:hover {
-    background: #111111;
-    border-color: #282828;
-    transform: translateY(-1px);
+    background: #161819;
+    border-color: #3A3F40;
+}
+
+.help-result-card:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: -2px;
 }
 
 .help-result-card__top {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
 }
 
 .help-result-card__title {
-    font-size: 0.95rem;
+    font-size: 0.93rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
 }
 
 .help-result-card__cat {
     font-size: 0.7rem;
-    font-weight: 600;
-    color: #4F8CFF;
-    background: rgba(79, 140, 255, 0.08);
-    padding: 0.1rem 0.45rem;
+    font-weight: 500;
+    color: #8BAF9A;
+    background: rgba(139, 175, 154, 0.07);
+    padding: 0.12rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid rgba(79, 140, 255, 0.2);
+    border: 1px solid rgba(139, 175, 154, 0.18);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .help-result-card__desc {
-    font-size: 0.84rem;
-    color: #A3A3A3;
+    font-size: 0.85rem;
+    color: #A0A5A5;
     margin: 0;
-    line-height: 1.4;
+    line-height: 1.45;
 }
 
 .help-search-empty {
-    padding: 2.5rem 1rem;
+    padding: 2.5rem 1.5rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
+    gap: 0.65rem;
+    background: #101112;
+    border: 1px solid #292D2D;
     border-radius: 8px;
 }
 
 .help-search-empty h3 {
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     margin: 0;
 }
 
 .help-search-empty p {
     font-size: 0.85rem;
-    color: #737373;
-    max-width: 440px;
+    color: #777E7E;
+    max-width: 420px;
     margin: 0;
+    line-height: 1.5;
 }
 
 /* ─── Section Shared Styles ─── */
 .help-section {
-    padding: 2.75rem 0;
-    border-bottom: 1px solid #161616;
+    padding: 3rem 0;
+    border-bottom: 1px solid #1E2122;
 }
 
 .help-section:last-of-type {
@@ -253,8 +285,8 @@
 .help-section-header {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    margin-bottom: 1.5rem;
+    gap: 0.3rem;
+    margin-bottom: 1.75rem;
 }
 
 .help-section-label {
@@ -262,57 +294,63 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #4F8CFF;
+    color: #8BAF9A;
 }
 
 .help-section-title {
-    font-size: 1.35rem;
+    font-size: clamp(1.25rem, 2.5vw, 1.5rem);
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     letter-spacing: -0.015em;
     margin: 0;
+    line-height: 1.3;
 }
 
 .help-section-desc {
-    font-size: 0.86rem;
-    color: #A3A3A3;
-    margin: 0;
+    font-size: 0.9rem;
+    color: #A0A5A5;
+    margin: 0.15rem 0 0;
+    line-height: 1.5;
 }
 
-/* ─── Getting Started (4-col / 2-col responsive) ─── */
+/* ─── Getting Started Cards (compact 2-col) ─── */
 .help-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
 }
 
 .help-card {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.5rem;
     padding: 1.15rem 1.25rem;
-    background: #0A0A0A;
-    border: 1px solid #1A1A1A;
-    border-radius: 8px;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 6px;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .help-card:hover {
-    background: #111111;
-    border-color: #262626;
-    transform: translateY(-1px);
+    background: #161819;
+    border-color: #3A3F40;
+}
+
+.help-card:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: -2px;
 }
 
 .help-card-icon-wrap {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: #111111;
-    border: 1px solid #222222;
-    color: #4F8CFF;
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    background: rgba(139, 175, 154, 0.07);
+    border: 1px solid rgba(139, 175, 154, 0.15);
+    color: #8BAF9A;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -320,17 +358,18 @@
 }
 
 .help-card-title {
-    font-size: 0.92rem;
+    font-size: 0.93rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     margin: 0;
+    line-height: 1.3;
 }
 
 .help-card-desc {
-    font-size: 0.82rem;
-    color: #A3A3A3;
+    font-size: 0.84rem;
+    color: #A0A5A5;
     margin: 0;
-    line-height: 1.45;
+    line-height: 1.5;
     flex: 1;
 }
 
@@ -340,130 +379,243 @@
     gap: 0.35rem;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #4F8CFF;
-    margin-top: 0.25rem;
+    color: #8BAF9A;
+    margin-top: auto;
+    padding-top: 0.15rem;
+    transition: color 0.15s ease;
 }
 
-/* ─── Documentation Categories (2-Col Enterprise Layout) ─── */
+.help-card:hover .help-card-link {
+    color: #a2c5b3;
+}
+
+/* ─── Documentation by Topic (row-based list) ─── */
 .help-category-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .help-category-card {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
-    padding: 1.2rem 1.35rem;
-    background: #0A0A0A;
-    border: 1px solid #1A1A1A;
-    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    background: #101112;
+    border-bottom: 1px solid #1E2122;
     text-decoration: none;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease;
+}
+
+.help-category-card:last-child {
+    border-bottom: none;
 }
 
 .help-category-card:hover {
-    background: #111111;
-    border-color: #282828;
+    background: #161819;
+}
+
+.help-category-card:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: -2px;
 }
 
 .help-category-content {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.15rem;
     flex: 1;
     min-width: 0;
 }
 
 .help-category-title {
-    font-size: 0.95rem;
+    font-size: 0.93rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     margin: 0;
 }
 
 .help-category-desc {
     font-size: 0.82rem;
-    color: #A3A3A3;
+    color: #A0A5A5;
     margin: 0;
     line-height: 1.4;
 }
 
 .help-category-arrow {
-    color: #737373;
-    margin-top: 0.2rem;
+    color: #777E7E;
     flex-shrink: 0;
     transition: transform 0.15s ease, color 0.15s ease;
 }
 
 .help-category-card:hover .help-category-arrow {
-    color: #4F8CFF;
-    transform: translateX(3px);
+    color: #8BAF9A;
+    transform: translateX(2px);
 }
 
-/* ─── QA Fundamentals (Clean Rows) ─── */
+/* ─── QA Fundamentals (readable definition rows) ─── */
 .help-qa-list {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid #1C1C1C;
 }
 
 .help-qa-row {
     display: grid;
-    grid-template-columns: 210px 1fr auto;
-    align-items: center;
-    padding: 1.1rem 0;
-    border-bottom: 1px solid #161616;
+    grid-template-columns: 180px 1fr auto;
+    align-items: start;
+    padding: 1.15rem 0;
+    border-bottom: 1px solid #1E2122;
     gap: 1.5rem;
 }
 
+.help-qa-row:last-child {
+    border-bottom: none;
+}
+
 .help-qa-title {
-    font-size: 0.92rem;
+    font-size: 0.93rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding-top: 0.1rem;
 }
 
 .help-qa-desc {
-    font-size: 0.84rem;
-    color: #A3A3A3;
-    line-height: 1.45;
+    font-size: 0.86rem;
+    color: #A0A5A5;
+    line-height: 1.55;
     margin: 0;
 }
 
 .help-qa-example {
     font-size: 0.78rem;
-    color: #737373;
-    font-family: monospace;
-    background: #080808;
-    padding: 0.15rem 0.45rem;
+    color: #777E7E;
+    font-family: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+    background: #0C0D0D;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid #181818;
-    margin-top: 0.25rem;
+    border: 1px solid #1E2122;
+    margin-top: 0.35rem;
     display: inline-block;
+    line-height: 1.45;
+}
+
+/* ─── Feature Guides (workflow steps) ─── */
+.help-workflow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    counter-reset: workflow-step;
+}
+
+.help-workflow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #1E2122;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    counter-increment: workflow-step;
+}
+
+.help-workflow-step:last-child {
+    border-bottom: none;
+}
+
+.help-workflow-step:hover {
+    background: rgba(139, 175, 154, 0.02);
+}
+
+.help-workflow-step:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: -1px;
+    border-radius: 4px;
+}
+
+.help-workflow-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(139, 175, 154, 0.08);
+    border: 1px solid rgba(139, 175, 154, 0.18);
+    color: #8BAF9A;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.help-workflow-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.help-workflow-title {
+    font-size: 0.93rem;
+    font-weight: 600;
+    color: #F2F3F3;
+    margin: 0;
+}
+
+.help-workflow-desc {
+    font-size: 0.84rem;
+    color: #A0A5A5;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.help-workflow-link-text {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #8BAF9A;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+    transition: color 0.15s ease;
+}
+
+.help-workflow-step:hover .help-workflow-link-text {
+    color: #a2c5b3;
 }
 
 /* ─── FAQ Accordion ─── */
 .help-faq-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .help-faq-item {
-    background: #0A0A0A;
-    border: 1px solid #1A1A1A;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: border-color 0.15s ease;
+    background: #101112;
+    border-bottom: 1px solid #1E2122;
+    transition: background 0.15s ease;
+}
+
+.help-faq-item:last-child {
+    border-bottom: none;
 }
 
 .help-faq-item.is-open {
-    border-color: #242424;
+    background: #131516;
 }
 
 .help-faq-trigger {
@@ -474,46 +626,65 @@
     padding: 1.1rem 1.25rem;
     background: transparent;
     border: none;
-    color: #F5F5F5;
-    font-size: 0.92rem;
+    color: #F2F3F3;
+    font-size: 0.93rem;
     font-weight: 600;
     text-align: left;
     cursor: pointer;
     min-height: 48px;
+    font-family: inherit;
+    gap: 1rem;
+    transition: color 0.15s ease;
 }
 
 .help-faq-trigger:hover {
-    color: #4F8CFF;
+    color: #8BAF9A;
+}
+
+.help-faq-trigger:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: -2px;
 }
 
 .help-faq-chevron {
-    color: #737373;
-    transition: transform 0.2s ease;
+    color: #777E7E;
+    transition: transform 0.2s ease, color 0.2s ease;
     flex-shrink: 0;
 }
 
 .help-faq-item.is-open .help-faq-chevron {
     transform: rotate(180deg);
-    color: #4F8CFF;
+    color: #8BAF9A;
 }
 
 .help-faq-content {
-    padding: 0 1.25rem 1.2rem;
-    font-size: 0.85rem;
-    color: #A3A3A3;
-    line-height: 1.6;
-    border-top: 1px solid #141414;
-    margin-top: 0;
-    padding-top: 0.75rem;
+    padding: 0 1.25rem 1.25rem;
+    font-size: 0.88rem;
+    color: #A0A5A5;
+    line-height: 1.65;
+    border-top: 1px solid #1E2122;
+    padding-top: 0.85rem;
+    margin-top: -0.15rem;
+}
+
+.help-faq-content a {
+    color: #8BAF9A;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.help-faq-content a:hover {
+    color: #a2c5b3;
+    text-decoration: underline;
 }
 
 /* ─── Support CTA Section ─── */
 .help-support-box {
-    margin-top: 2rem;
-    padding: 2.25rem 1.5rem;
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
-    border-radius: 10px;
+    margin-top: 2.5rem;
+    padding: 2rem 1.5rem;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -521,16 +692,17 @@
 }
 
 .help-support-info h3 {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     margin: 0 0 0.25rem 0;
 }
 
 .help-support-info p {
-    font-size: 0.85rem;
-    color: #A3A3A3;
+    font-size: 0.86rem;
+    color: #A0A5A5;
     margin: 0;
+    line-height: 1.5;
 }
 
 .help-support-actions {
@@ -540,6 +712,7 @@
     flex-shrink: 0;
 }
 
+/* ─── Buttons ─── */
 .help-btn {
     display: inline-flex;
     align-items: center;
@@ -551,37 +724,47 @@
     border-radius: 6px;
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     min-height: 40px;
     font-family: inherit;
     white-space: nowrap;
 }
 
+.help-btn:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: 2px;
+}
+
 .help-btn--primary {
-    background: #4F8CFF;
-    color: #000000;
-    border: 1px solid #4F8CFF;
+    background: #8BAF9A;
+    color: #080909;
+    border: 1px solid #8BAF9A;
 }
 
 .help-btn--primary:hover {
-    background: #6A9DFF;
+    background: #9cc0ab;
+    border-color: #9cc0ab;
 }
 
 .help-btn--secondary {
-    background: #111111;
-    color: #F5F5F5;
-    border: 1px solid #242424;
+    background: #161819;
+    color: #F2F3F3;
+    border: 1px solid #292D2D;
 }
 
 .help-btn--secondary:hover {
-    background: #181818;
-    border-color: #333333;
+    background: #1E2122;
+    border-color: #3A3F40;
 }
 
-/* ─── Dedicated Article Layout (2-Column TOC + Article Body) ─── */
+/* ─── Article Layout (2-Column TOC + Body) ─── */
+.help-article-view {
+    padding-top: 0.5rem;
+}
+
 .help-article-layout {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 220px 1fr;
     gap: 3rem;
     align-items: start;
     margin-top: 1rem;
@@ -589,12 +772,12 @@
 
 .help-article-toc {
     position: sticky;
-    top: 6.5rem;
+    top: 6rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
     padding-right: 1rem;
-    border-right: 1px solid #1C1C1C;
+    border-right: 1px solid #292D2D;
 }
 
 .help-article-toc-title {
@@ -602,28 +785,34 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #737373;
-    margin-bottom: 0.25rem;
+    color: #777E7E;
+    margin-bottom: 0.35rem;
 }
 
 .help-article-toc-link {
     font-size: 0.84rem;
-    color: #A3A3A3;
+    color: #A0A5A5;
     text-decoration: none;
-    padding: 0.35rem 0;
+    padding: 0.3rem 0;
     transition: color 0.15s ease;
     display: block;
 }
 
 .help-article-toc-link:hover {
-    color: #4F8CFF;
+    color: #8BAF9A;
+}
+
+.help-article-toc-link:focus-visible {
+    outline: 2px solid #8BAF9A;
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 .help-article-body {
     display: flex;
     flex-direction: column;
     gap: 1.75rem;
-    max-width: 780px;
+    max-width: 740px;
     min-width: 0;
 }
 
@@ -632,106 +821,131 @@
     flex-direction: column;
     gap: 0.5rem;
     padding-bottom: 1.5rem;
-    border-bottom: 1px solid #1C1C1C;
+    border-bottom: 1px solid #292D2D;
 }
 
 .help-article-title {
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     letter-spacing: -0.02em;
     margin: 0;
     line-height: 1.25;
 }
 
 .help-article-lead {
-    font-size: 1.05rem;
-    color: #A3A3A3;
+    font-size: 1rem;
+    color: #A0A5A5;
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .help-article-meta {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    font-size: 0.76rem;
-    color: #737373;
+    gap: 0.75rem;
+    font-size: 0.78rem;
+    color: #777E7E;
     margin-top: 0.25rem;
 }
 
 .help-article-content {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    font-size: 0.92rem;
-    color: #D4D4D4;
+    gap: 1.25rem;
+    font-size: 0.95rem;
+    color: #D0D3D3;
     line-height: 1.7;
 }
 
 .help-article-content h2 {
     font-size: 1.35rem;
     font-weight: 600;
-    color: #F5F5F5;
-    margin: 1.25rem 0 0.5rem 0;
+    color: #F2F3F3;
+    margin: 1.5rem 0 0.5rem 0;
     letter-spacing: -0.01em;
 }
 
 .help-article-content h3 {
     font-size: 1.05rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #F2F3F3;
     margin: 1rem 0 0.35rem 0;
 }
 
 .help-article-content p {
-    margin: 0 0 0.75rem 0;
+    margin: 0 0 0.5rem 0;
 }
 
 .help-article-content ol,
 .help-article-content ul {
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.75rem 0;
     padding-left: 1.35rem;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
 }
 
+.help-article-content li {
+    line-height: 1.65;
+}
+
+.help-article-content code {
+    font-family: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+    background: #0C0D0D;
+    border: 1px solid #1E2122;
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+    font-size: 0.87em;
+    color: #c5ccd3;
+}
+
 .help-article-callout {
-    background: #0A0A0A;
-    border: 1px solid #1C1C1C;
-    border-left: 3px solid #4F8CFF;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-left: 3px solid #8BAF9A;
     border-radius: 6px;
     padding: 1rem 1.25rem;
-    font-size: 0.86rem;
-    color: #A3A3A3;
+    font-size: 0.88rem;
+    color: #A0A5A5;
     margin: 0.5rem 0;
+    line-height: 1.6;
 }
 
 .help-article-callout strong {
-    color: #F5F5F5;
+    color: #F2F3F3;
 }
 
-/* Related articles at bottom */
+/* Related articles */
 .help-article-related {
     margin-top: 2rem;
     padding-top: 2rem;
-    border-top: 1px solid #1C1C1C;
+    border-top: 1px solid #292D2D;
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
 .help-article-related-title {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #F5F5F5;
+    color: #777E7E;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     margin: 0;
 }
 
-/* ─── Responsive Media Queries ─── */
+/* ─── Responsive ─── */
+
+/* Tablet/landscape */
+@media (max-width: 1024px) {
+    .help-container {
+        max-width: 100%;
+        padding: 0 1.5rem;
+    }
+}
+
+/* Tablet portrait */
 @media (max-width: 900px) {
     .help-article-layout {
         grid-template-columns: 1fr;
@@ -739,16 +953,27 @@
     }
 
     .help-article-toc {
-        display: none;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid #292D2D;
+        padding-right: 0;
+        padding-bottom: 1rem;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.25rem 1rem;
     }
 
-    .help-category-grid {
-        grid-template-columns: 1fr;
+    .help-cards-grid {
+        grid-template-columns: 1fr 1fr;
     }
 
     .help-qa-row {
         grid-template-columns: 1fr;
         gap: 0.5rem;
+    }
+
+    .help-qa-row .help-btn {
+        align-self: start;
     }
 
     .help-support-box {
@@ -758,21 +983,85 @@
     }
 }
 
+/* Mobile */
 @media (max-width: 600px) {
+    .help-center-root {
+        padding-top: 3.5rem;
+        padding-bottom: 3.5rem;
+    }
+
+    .help-container {
+        padding: 0 1rem;
+    }
+
+    .help-hero {
+        padding: 1.5rem 0 2rem;
+    }
+
     .help-hero__title {
         font-size: 1.75rem;
     }
 
     .help-hero__desc {
-        font-size: 0.88rem;
+        font-size: 0.92rem;
     }
 
     .help-search-input {
-        font-size: 0.85rem;
+        font-size: 0.88rem;
         height: 44px;
+    }
+
+    .help-section {
+        padding: 2.25rem 0;
+    }
+
+    .help-section-title {
+        font-size: 1.2rem;
     }
 
     .help-cards-grid {
         grid-template-columns: 1fr;
+    }
+
+    .help-faq-trigger {
+        font-size: 0.88rem;
+        padding: 1rem;
+    }
+
+    .help-faq-content {
+        padding: 0 1rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .help-support-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .help-support-actions .help-btn {
+        width: 100%;
+    }
+
+    .help-workflow-step {
+        padding: 0.85rem 0;
+    }
+
+    .help-article-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 380px) {
+    .help-container {
+        padding: 0 0.75rem;
+    }
+
+    .help-hero__title {
+        font-size: 1.5rem;
+    }
+
+    .help-breadcrumbs {
+        font-size: 0.75rem;
     }
 }

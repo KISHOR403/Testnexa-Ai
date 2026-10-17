@@ -86,8 +86,8 @@ const authPasswordResetRateLimiter = createRateLimiter({
 
 const contactRateLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    max: 5,
-    message: 'Too many message submissions. Please wait 15 minutes before trying again.'
+    max: 10,
+    message: 'Too many message submissions from this connection. Please wait 15 minutes before trying again.'
 });
 
 module.exports = {
