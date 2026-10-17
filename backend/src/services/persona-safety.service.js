@@ -100,10 +100,12 @@ class PersonaSafetyValidator {
      */
     getSecurityTests(testCases) {
         const all = [];
-        ['functional', 'negative', 'edge', 'nonFunctional'].forEach(cat => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional'].forEach(cat => {
             if (testCases[cat]) {
                 all.push(...testCases[cat].filter(t =>
-                (t.riskType === 'Security' || t.businessImpact === 'Security' ||
+                (cat === 'security' ||
+                    (t.type && t.type.toLowerCase() === 'security') ||
+                    t.riskType === 'Security' || t.businessImpact === 'Security' ||
                     (t.title && t.title.toLowerCase().includes('security')) ||
                     (t.title && t.title.toLowerCase().includes('unauthorized')) ||
                     (t.title && t.title.toLowerCase().includes('authentication')))
@@ -120,7 +122,7 @@ class PersonaSafetyValidator {
      */
     countTotalTests(testCases) {
         let count = 0;
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(cat => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(cat => {
             if (testCases[cat] && Array.isArray(testCases[cat])) {
                 count += testCases[cat].length;
             }
@@ -165,7 +167,7 @@ class PersonaSafetyValidator {
      */
     getAllTests(testCases) {
         const all = [];
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(cat => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(cat => {
             if (testCases[cat] && Array.isArray(testCases[cat])) {
                 all.push(...testCases[cat]);
             }

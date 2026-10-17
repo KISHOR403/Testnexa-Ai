@@ -276,7 +276,7 @@ class ConfidenceScorer {
      */
     getAllTestCases(testCases) {
         const all = [];
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(category => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(category => {
             if (testCases[category] && Array.isArray(testCases[category])) {
                 all.push(...testCases[category]);
             }
@@ -297,7 +297,7 @@ class ConfidenceScorer {
         const adjustedConfidence = baseConfidence * (1 - (ambiguityScore * 0.5));
 
         // Adjust individual test priorities if ambiguity is high
-        const categories = ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'];
+        const categories = ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'];
 
         categories.forEach(category => {
             if (testCases[category] && Array.isArray(testCases[category])) {

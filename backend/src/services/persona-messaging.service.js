@@ -28,7 +28,7 @@ class PersonaMessagingAdapter {
         }
 
         // Adapt priority explanations for each test case
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(category => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(category => {
             if (adapted[category] && Array.isArray(adapted[category])) {
                 adapted[category] = adapted[category].map(tc => ({
                     ...tc,

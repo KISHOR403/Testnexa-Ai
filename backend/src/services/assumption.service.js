@@ -119,7 +119,7 @@ class AssumptionValidator {
     getAllTestCases(response) {
         const testCases = [];
 
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(category => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(category => {
             if (response[category] && Array.isArray(response[category])) {
                 testCases.push(...response[category]);
             }

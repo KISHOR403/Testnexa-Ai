@@ -58,6 +58,7 @@ const generateTestCases = async (req, res) => {
                 functional: result.functional,
                 negative: result.negative,
                 edge: result.edge,
+                security: result.security || [],
                 apiChecklist: result.apiChecklist,
                 nonFunctional: result.nonFunctional,
 
@@ -84,6 +85,7 @@ const generateTestCases = async (req, res) => {
                     functional: result.functional.length,
                     negative: result.negative.length,
                     edge: result.edge.length,
+                    security: result.security?.length || 0,
                     nonFunctional: result.nonFunctional.length,
                     apiChecklist: result.apiChecklist.length
                 }

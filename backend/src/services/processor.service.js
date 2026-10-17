@@ -6,6 +6,7 @@ const generateTestCaseId = (category, index) => {
         functional: 'TC_FUNC',
         negative: 'TC_NEG',
         edge: 'TC_EDGE',
+        security: 'TC_SEC',
         api: 'TC_API',
         nonFunctional: 'TC_NF',
     };
@@ -95,6 +96,7 @@ const deriveTestScenario = (testCase, category, feature) => {
         functional: 'Functionality',
         negative: 'Negative Validation',
         edge: 'Boundary Testing',
+        security: 'Security & Access Control',
         api: 'API Integration',
         apiChecklist: 'API Integration',
         nonFunctional: 'Non-Functional Quality',
@@ -108,7 +110,8 @@ const normalizeTestCase = (testCase, category, index, feature) => {
     const typeMap = {
         functional: 'Functional',
         negative: 'Negative',
-        edge: 'Edge',
+        edge: 'Edge Case',
+        security: 'Security',
         api: 'API',
         apiChecklist: 'API',
         nonFunctional: 'Non-Functional',
@@ -134,7 +137,7 @@ const normalizeTestCase = (testCase, category, index, feature) => {
 
 // Process all test cases
 const processTestCases = (rawTestCases, feature) => {
-    const categories = ['functional', 'negative', 'edge', 'apiChecklist', 'nonFunctional'];
+    const categories = ['functional', 'negative', 'edge', 'security', 'apiChecklist', 'nonFunctional'];
     const processed = {};
 
     for (const category of categories) {
@@ -161,12 +164,14 @@ const generateSummary = (processedTestCases) => {
         functional: processedTestCases.functional.length,
         negative: processedTestCases.negative.length,
         edge: processedTestCases.edge.length,
+        security: processedTestCases.security?.length || 0,
         api: processedTestCases.apiChecklist.length,
         nonFunctional: processedTestCases.nonFunctional.length,
         total:
             processedTestCases.functional.length +
             processedTestCases.negative.length +
             processedTestCases.edge.length +
+            (processedTestCases.security?.length || 0) +
             processedTestCases.apiChecklist.length +
             processedTestCases.nonFunctional.length,
     };

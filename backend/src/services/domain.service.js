@@ -298,7 +298,7 @@ class DomainDetector {
 
     getAllTestCases(testCases) {
         const all = [];
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(category => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(category => {
             if (testCases[category] && Array.isArray(testCases[category])) {
                 all.push(...testCases[category]);
             }

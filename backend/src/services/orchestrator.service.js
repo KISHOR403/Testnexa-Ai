@@ -153,7 +153,7 @@ STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 12
 - "testScenario": string (high-level functionality being tested, e.g. "User Authentication", "Payment Processing")
 - "module": string (feature module name, e.g. "Login", "Payment")
 - "title": string (concise test case title, max 80 chars, NO prose)
-- "type": string (MUST be one of: "Functional", "Negative", "Edge", "API", "Non-Functional")
+- "type": string (MUST be one of: "Functional", "Negative", "Edge Case", "Security", "API", "Non-Functional")
 - "priority": string (MUST be one of: "High", "Medium", "Low")
 - "severity": string (impact if test fails, MUST be one of: "Critical", "Major", "Minor", "Trivial")
 - "preconditions": string[] (array of prerequisite conditions, each a short declarative statement)
@@ -217,7 +217,8 @@ Return ONLY valid JSON with this exact structure:
     }
   ],
   "negative": [{"id": "TC_NEG_001", "testScenario": "Payment Validation", "module": "Module", "title": "Expired Card Rejection", "type": "Negative", "priority": "High", "severity": "Critical", "preconditions": ["User on payment page"], "testData": "Card: 4111111111111111, Exp: 01/20 (expired)", "steps": [{"action": "Enter expired card details", "expected": "System displays expiration error message"}], "expectedResult": "Payment rejected with clear error", "requirementId": "REQ_001"}],
-  "edge": [{"id": "TC_EDGE_001", "testScenario": "Order Amount Boundaries", "module": "Module", "title": "Boundary Amount Test", "type": "Edge", "priority": "Medium", "severity": "Minor", "preconditions": ["Cart ready"], "testData": "Amount: $0.01 (minimum valid)", "steps": [{"action": "Set order total to $0.01", "expected": "System accepts minimum amount"}], "expectedResult": "Order processes for minimum valid amount", "requirementId": "REQ_001"}],
+  "edge": [{"id": "TC_EDGE_001", "testScenario": "Order Amount Boundaries", "module": "Module", "title": "Boundary Amount Test", "type": "Edge Case", "priority": "Medium", "severity": "Minor", "preconditions": ["Cart ready"], "testData": "Amount: $0.01 (minimum valid)", "steps": [{"action": "Set order total to $0.01", "expected": "System accepts minimum amount"}], "expectedResult": "Order processes for minimum valid amount", "requirementId": "REQ_001"}],
+  "security": [{"id": "TC_SEC_001", "testScenario": "Authentication & Data Security", "module": "Security", "title": "Auth Token Expiration and Abuse Prevention", "type": "Security", "priority": "High", "severity": "Critical", "preconditions": ["Valid security gateway configured"], "testData": "Expired or tampered token payload", "steps": [{"action": "Attempt sensitive operation with expired or altered token", "expected": "HTTP 401 Unauthorized or HTTP 403 Forbidden is returned"}], "expectedResult": "System blocks unauthorized access and logs security anomaly without data leakage", "requirementId": "REQ_001"}],
   "apiChecklist": [{"id": "TC_API_001", "testScenario": "Payment API Integration", "module": "Payment API", "title": "POST /api/payment - Valid Card", "type": "API", "priority": "High", "severity": "Critical", "preconditions": ["API server running", "Valid auth token"], "testData": "POST body: {cardNumber: '4111...', amount: 50.00}", "steps": [{"action": "Send POST with valid card payload", "expected": "Response status 200"}, {"action": "Validate response schema", "expected": "Body contains transactionId and status=success"}], "expectedResult": "HTTP 200 with valid transaction object", "requirementId": "REQ_API_001"}],
   "nonFunctional": [{"id": "TC_NF_001", "testScenario": "Checkout Performance", "module": "Module", "title": "Checkout Page Load Time", "type": "Non-Functional", "priority": "Medium", "severity": "Major", "preconditions": ["Standard network conditions"], "testData": "Items: 10, Network: 4G, Browser: Chrome", "steps": [{"action": "Load checkout page with 10 items", "expected": "Page renders within 2 seconds"}], "expectedResult": "Page load time under 2s at P95", "requirementId": "REQ_NF_001"}],
   "questions": ["Clarification question 1?"]
@@ -230,7 +231,7 @@ CRITICAL RULES:
 4. NO prose anywhere in test case bodies. Keep all values concise and machine-readable.
 5. "title" must be under 80 characters. NO sentences. Noun phrase only.
 6. For "apiChecklist": include HTTP method, endpoint path, status codes, and response schema validation.
-7. Generate comprehensive coverage across functional, negative, edge, API, and non-functional categories.
+7. Generate comprehensive coverage across functional, negative, edge, security, API, and non-functional categories.
 8. List ALL assumptions explicitly in the "assumptions" array.
 9. "testScenario" must describe the high-level functionality being tested (e.g. "User Authentication", "Payment Processing").
 10. "testData" must contain specific input values needed for test execution.
@@ -389,7 +390,8 @@ Return ONLY a JSON object with this exact structure:
     }
   ],
   "negative": [{ "id": "TC_NEG_001", "testScenario": "Scenario", "module": "Module", "title": "...", "type": "Negative", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
-  "edge": [{ "id": "TC_EDGE_001", "testScenario": "Scenario", "module": "Module", "title": "...", "type": "Edge", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "edge": [{ "id": "TC_EDGE_001", "testScenario": "Scenario", "module": "Module", "title": "...", "type": "Edge Case", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_001" }],
+  "security": [{ "id": "TC_SEC_001", "testScenario": "Security Scenario", "module": "Security", "title": "...", "type": "Security", "priority": "High", "severity": "Critical", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_SEC_001" }],
   "apiChecklist": [{ "id": "TC_API_001", "testScenario": "API Scenario", "module": "API Module", "title": "...", "type": "API", "priority": "High", "severity": "Critical", "preconditions": "...", "testData": "...", "steps": ["Check 1"], "expectedResult": "...", "requirementId": "REQ_API_001" }],
   "nonFunctional": [{ "id": "TC_NF_001", "testScenario": "NFR Scenario", "module": "Module", "title": "...", "type": "Non-Functional", "priority": "...", "severity": "...", "preconditions": "...", "testData": "...", "steps": ["..."], "expectedResult": "...", "requirementId": "REQ_NF_001" }],
   "questions": ["Clarification question 1?"]
@@ -478,6 +480,43 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
             personaEnhanced.personaSafetyCheck = safetyCheck;
         }
 
+        // Ensure edge cases have standard 'Edge Case' type
+        if (Array.isArray(personaEnhanced.edge)) {
+            personaEnhanced.edge = personaEnhanced.edge.map(tc => ({
+                ...tc,
+                type: 'Edge Case'
+            }));
+        }
+
+        // Ensure security tests are categorized and populated
+        if (!Array.isArray(personaEnhanced.security) || personaEnhanced.security.length === 0) {
+            personaEnhanced.security = [];
+            const isSec = (tc) => {
+                if (!tc || typeof tc !== 'object') return false;
+                if ((tc.type || '').toLowerCase() === 'security') return true;
+                if (tc.riskType === 'Security' || tc.businessImpact === 'Security') return true;
+                const text = `${tc.title || ''} ${tc.testScenario || ''} ${tc.scenario || ''} ${tc.module || ''} ${tc.expectedResult || ''}`.toLowerCase();
+                return /security|auth|token|breach|sql\s*injection|injection|csrf|xss|vulnerab|sanitiz|unauthoriz|permission|access\s*control|privilege|credential|encrypt|brute\s*force|rate\s*limit|tamper|bypass|replay|session\s*fixation|dos|ddos/.test(text);
+            };
+
+            if (Array.isArray(personaEnhanced.nonFunctional)) {
+                const remainingNf = [];
+                personaEnhanced.nonFunctional.forEach(tc => {
+                    if (isSec(tc)) {
+                        personaEnhanced.security.push({ ...tc, type: 'Security' });
+                    } else {
+                        remainingNf.push(tc);
+                    }
+                });
+                personaEnhanced.nonFunctional = remainingNf;
+            }
+        } else {
+            personaEnhanced.security = personaEnhanced.security.map(tc => ({
+                ...tc,
+                type: 'Security'
+            }));
+        }
+
         // Step 7: Compile final response
         const finalResponse = {
             // Original AI output
@@ -508,6 +547,7 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
             functional: personaEnhanced.functional || [],
             negative: personaEnhanced.negative || [],
             edge: personaEnhanced.edge || [],
+            security: personaEnhanced.security || [],
             apiChecklist: personaEnhanced.apiChecklist || personaEnhanced.api || [],
             nonFunctional: personaEnhanced.nonFunctional || [],
 
@@ -824,7 +864,7 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
             const result = {};
 
             // Try to extract top-level arrays by key name
-            const arrayKeys = ['assumptions', 'functional', 'negative', 'edge', 'apiChecklist', 'nonFunctional', 'questions'];
+            const arrayKeys = ['assumptions', 'functional', 'negative', 'edge', 'security', 'apiChecklist', 'nonFunctional', 'questions'];
 
             for (const key of arrayKeys) {
                 const regex = new RegExp(`"${key}"\\s*:\\s*\\[`, 'g');
@@ -880,7 +920,7 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
      */
     countTotalTests(testCases) {
         let total = 0;
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(category => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(category => {
             if (testCases[category] && Array.isArray(testCases[category])) {
                 total += testCases[category].length;
             }

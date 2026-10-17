@@ -14,6 +14,7 @@ const RisksPage = () => {
     userSuites.forEach((item) => {
         const suite = item.suite;
         const allCases = [
+            ...(suite.security || []),
             ...(suite.negative || []),
             ...(suite.edge || []),
             ...(suite.nonFunctional || []),
@@ -24,7 +25,8 @@ const RisksPage = () => {
             const isHighRisk = tc.priority === 'High' ||
                 tc.severity === 'Critical' ||
                 tc.type === 'Security' ||
-                tc.type === 'Edge Case';
+                tc.type === 'Edge Case' ||
+                tc.type === 'Edge';
 
             if (isHighRisk) {
                 const level = tc.severity === 'Critical' ? 'Critical' : tc.priority === 'High' ? 'High' : 'Medium';

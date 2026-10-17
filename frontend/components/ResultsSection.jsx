@@ -118,6 +118,28 @@ const hasTestCases = (data) => {
     );
 };
 
+// ─── Security test case heuristic ───
+const isSecurityCase = (tc) => {
+    if (!tc || typeof tc !== 'object') return false;
+    const rawType = String(tc.type || '').toLowerCase();
+    if (rawType === 'security') return true;
+    if (tc.riskType === 'Security' || tc.businessImpact === 'Security' || tc.concept === 'Security Testing') return true;
+    if (tc.id && /_sec_/i.test(tc.id)) return true;
+    const text = `${tc.title || ''} ${tc.testScenario || ''} ${tc.scenario || ''} ${tc.module || ''} ${tc.expectedResult || ''} ${Array.isArray(tc.steps) ? tc.steps.map(s => typeof s === 'object' ? `${s.action} ${s.expected}` : String(s)).join(' ') : ''}`.toLowerCase();
+    return /security|auth|token|breach|sql\s*injection|injection|csrf|xss|vulnerab|sanitiz|unauthoriz|permission|access\s*control|privilege|credential|encrypt|brute\s*force|rate\s*limit|tamper|bypass|replay|session\s*fixation|dos|ddos/i.test(text);
+};
+
+// ─── Edge case heuristic ───
+const isEdgeCase = (tc, defaultType = '') => {
+    if (!tc || typeof tc !== 'object') return false;
+    const rawType = String(tc.type || '').toLowerCase();
+    if (rawType === 'edge' || rawType === 'edge case' || rawType === 'edgecase' || rawType === 'boundary') return true;
+    if (String(defaultType).toLowerCase().includes('edge')) return true;
+    if (tc.id && /edge/i.test(tc.id)) return true;
+    const text = `${tc.title || ''} ${tc.testScenario || ''} ${tc.scenario || ''}`.toLowerCase();
+    return /boundary|threshold|limit|edge\s*case|overflow|underflow|race\s*condition|concurrency/i.test(text);
+};
+
 // ─── Helper to flatten test cases into initial state pool ───
 const flattenAllTestCases = (result) => {
     if (!result) return [];
@@ -143,12 +165,24 @@ const flattenAllTestCases = (result) => {
                     if (seenIds.has(id)) return;
                     seenIds.add(id);
 
+                    // Determine normalized test case type
+                    let normalizedType = tc.type || defaultType;
+                    if (isEdgeCase(tc, defaultType)) {
+                        normalizedType = 'Edge Case';
+                    } else if (defaultType === 'Security' || String(tc.type || '').toLowerCase() === 'security') {
+                        normalizedType = 'Security';
+                    } else if (isSecurityCase(tc) && (defaultType === 'Non-Functional' || normalizedType === 'Non-Functional' || !tc.type || tc.type === 'Functional' || (tc.id && /_sec_/i.test(tc.id)))) {
+                        normalizedType = 'Security';
+                    } else if (normalizedType === 'Edge' || normalizedType === 'edge') {
+                        normalizedType = 'Edge Case';
+                    }
+
                     pool.push({
                         ...tc,
                         id,
-                        title: tc.title || tc.testScenario || tc.scenario || `Verify ${tc.type || defaultType} Flow`,
+                        title: tc.title || tc.testScenario || tc.scenario || `Verify ${normalizedType} Flow`,
                         scenario: tc.scenario || tc.testScenario || tc.title || 'Specification Verification',
-                        type: tc.type || defaultType,
+                        type: normalizedType,
                         priority: tc.priority || 'Medium',
                         severity: tc.severity || (tc.priority === 'High' || tc.priority === 'Critical' ? 'Critical' : 'Major'),
                         status: tc.status || 'Needs Review',
@@ -178,7 +212,20 @@ const flattenAllTestCases = (result) => {
             pushAll(target.edge, 'Edge Case');
             pushAll(target.security, 'Security');
             pushAll(target.apiChecklist || target.api, 'API');
-            pushAll(target.nonFunctional, 'Non-Functional');
+            if (Array.isArray(target.nonFunctional)) {
+                if (!target.security || target.security.length === 0) {
+                    const sec = [];
+                    const nf = [];
+                    target.nonFunctional.forEach(tc => {
+                        if (isSecurityCase(tc)) sec.push(tc);
+                        else nf.push(tc);
+                    });
+                    pushAll(sec, 'Security');
+                    pushAll(nf, 'Non-Functional');
+                } else {
+                    pushAll(target.nonFunctional, 'Non-Functional');
+                }
+            }
         }
 
         return pool;
@@ -318,7 +365,53 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 (tc.reqId || '').toLowerCase().includes(q) ||
                 (tc.module || '').toLowerCase().includes(q);
 
-            const matchesType = typeFilter === 'All' || tc.type === typeFilter;
+            const matchesType = (() => {
+                if (typeFilter === 'All') return true;
+
+                const filterNorm = typeFilter.toLowerCase().replace(/[\s-_]/g, '');
+                const typeNorm = (tc.type || '').toLowerCase().replace(/[\s-_]/g, '');
+
+                // 1. Edge Case filter
+                if (filterNorm === 'edgecase' || filterNorm === 'edge') {
+                    return (
+                        typeNorm === 'edgecase' ||
+                        typeNorm === 'edge' ||
+                        typeNorm === 'boundary' ||
+                        (tc.id && /edge/i.test(tc.id)) ||
+                        isEdgeCase(tc)
+                    );
+                }
+
+                // 2. Security filter
+                if (filterNorm === 'security') {
+                    return (
+                        typeNorm === 'security' ||
+                        (tc.id && /_sec_/i.test(tc.id)) ||
+                        tc.riskType === 'Security' ||
+                        tc.businessImpact === 'Security' ||
+                        tc.concept === 'Security Testing' ||
+                        isSecurityCase(tc)
+                    );
+                }
+
+                // 3. Functional filter
+                if (filterNorm === 'functional') {
+                    return typeNorm === 'functional' || typeNorm === 'functionality';
+                }
+
+                // 4. Negative filter
+                if (filterNorm === 'negative') {
+                    return typeNorm === 'negative';
+                }
+
+                // 5. API filter
+                if (filterNorm === 'api') {
+                    return typeNorm === 'api' || (tc.id && /api/i.test(tc.id));
+                }
+
+                return typeNorm === filterNorm;
+            })();
+
             const matchesPriority = priorityFilter === 'All' || tc.priority === priorityFilter;
             const matchesStatus = statusFilter === 'All' ||
                 (statusFilter === 'Approved' && tc.status === 'Approved') ||
@@ -341,7 +434,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
     const edgeAndSecurityCount = useMemo(() => {
         return testCases.filter(tc => {
             const t = (tc.type || '').toLowerCase();
-            return t.includes('edge') || t.includes('sec');
+            return t.includes('edge') || t.includes('sec') || isEdgeCase(tc) || isSecurityCase(tc);
         }).length;
     }, [testCases]);
 

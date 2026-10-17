@@ -282,7 +282,7 @@ class PriorityEngine {
      * @returns {Object} Test cases with updated priorities
      */
     processAllPriorities(testCases, understanding, domainContext) {
-        const categories = ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'];
+        const categories = ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'];
 
         categories.forEach(category => {
             if (testCases[category] && Array.isArray(testCases[category])) {

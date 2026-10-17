@@ -19,7 +19,7 @@ class PersonaMetadataEnhancer {
         const enhanced = { ...testCases };
 
         // Enhance individual test cases
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(category => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(category => {
             if (enhanced[category] && Array.isArray(enhanced[category])) {
                 enhanced[category] = enhanced[category].map(tc =>
                     this.enhanceTestCase(tc, persona, understanding)
@@ -339,7 +339,7 @@ class PersonaMetadataEnhancer {
     // Utility Methods
     getAllTests(testCases) {
         const all = [];
-        ['functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist'].forEach(cat => {
+        ['functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist'].forEach(cat => {
             if (testCases[cat]) all.push(...testCases[cat]);
         });
         return all;
