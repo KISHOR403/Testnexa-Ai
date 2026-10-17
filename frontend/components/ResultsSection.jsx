@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 import QaCopilotDrawer from './copilot/QaCopilotDrawer';
+import '../styles/app/WorkspaceDesignSystem.css';
 
 // ─── Status Badge Component ───
 const StatusBadge = ({ status }) => {
@@ -359,18 +360,103 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         return Math.min(baseCoverage, 100);
     }, [testCases, totalCount]);
 
-    // Dynamic insights derived from actual test suite data
-    const uncoveredCount = useMemo(() => {
+    // Dynamic specification requirement groups
+    const requirementGroups = useMemo(() => {
+        const groups = {};
+        const suiteFeatureTitle = result?.feature || result?.testSuiteName || 'Primary Specification Requirements';
+
+        testCases.forEach(tc => {
+            const reqKey = tc.reqId || 'REQ-001';
+            if (!groups[reqKey]) {
+                const reqTitle = tc.module || (reqKey === 'REQ-001' ? suiteFeatureTitle : `${suiteFeatureTitle} (${reqKey})`);
+                groups[reqKey] = {
+                    reqId: reqKey,
+                    title: reqTitle,
+                    tests: []
+                };
+            }
+            groups[reqKey].tests.push(tc);
+        });
+
+        return Object.values(groups).map(g => ({
+            ...g,
+            coveragePct: coverageConfidence || 95
+        }));
+    }, [testCases, result?.feature, result?.testSuiteName, coverageConfidence]);
+
+    // Dynamic specification gap analysis derived from active suite
+    const uncoveredGaps = useMemo(() => {
         if (Array.isArray(result?.coverageGaps) && result.coverageGaps.length > 0) {
-            return result.coverageGaps.length;
+            return result.coverageGaps.map(g => {
+                if (typeof g === 'object' && g !== null) {
+                    return {
+                        title: g.title || g.name || 'Boundary Assertion',
+                        description: g.description || g.desc || 'Validation boundary requiring test verification.'
+                    };
+                }
+                const parts = String(g).split(':');
+                if (parts.length > 1) {
+                    return { title: parts[0].trim(), description: parts.slice(1).join(':').trim() };
+                }
+                return { title: 'Specification Boundary', description: String(g) };
+            });
         }
+
+        const gaps = [];
         const hasNegative = testCases.some(tc => (tc.type || '').toLowerCase() === 'negative');
         const hasEdge = testCases.some(tc => (tc.type || '').toLowerCase().includes('edge'));
-        let gaps = 0;
-        if (!hasNegative) gaps++;
-        if (!hasEdge) gaps++;
+        const hasSec = testCases.some(tc => (tc.type || '').toLowerCase().includes('sec'));
+        const featureName = result?.feature || result?.testSuiteName || 'Target Specification';
+
+        if (!hasNegative) {
+            gaps.push({
+                title: 'Fault Tolerance & Exception Handling',
+                description: `Invalid payload validation, gateway 5xx recovery, and timeout behaviors for ${featureName}.`
+            });
+        }
+        if (!hasEdge) {
+            gaps.push({
+                title: 'Boundary Limits & Race Conditions',
+                description: `High-frequency concurrent requests and boundary thresholds for ${featureName}.`
+            });
+        }
+        if (!hasSec) {
+            gaps.push({
+                title: 'Authorization & Security Bounds',
+                description: `Permission isolation, token expiry handling, and replay prevention for ${featureName}.`
+            });
+        }
+
+        if (gaps.length === 0) {
+            gaps.push({
+                title: 'Rate Limiting & Idempotency',
+                description: `Ensure rapid repeated dispatches return HTTP 429 and idempotent transactions do not duplicate processing for ${featureName}.`
+            });
+            gaps.push({
+                title: 'Network Partition Resilience',
+                description: `Verify graceful degradation and retry backoff under unstable upstream connectivity for ${featureName}.`
+            });
+        }
+
         return gaps;
-    }, [result?.coverageGaps, testCases]);
+    }, [result?.coverageGaps, result?.feature, result?.testSuiteName, testCases]);
+
+    const uncoveredCount = uncoveredGaps.length;
+
+    // High Risk Cases for Risk Matrix
+    const highRiskCases = useMemo(() => {
+        const prioritized = testCases.filter(tc => {
+            const p = (tc.priority || '').toLowerCase();
+            const t = (tc.type || '').toLowerCase();
+            const s = (tc.severity || '').toLowerCase();
+            return p === 'critical' || p === 'high' || t.includes('sec') || t.includes('edge') || s === 'critical';
+        });
+
+        if (prioritized.length > 0) {
+            return prioritized.slice(0, 6);
+        }
+        return testCases.slice(0, 4);
+    }, [testCases]);
 
     const securityWarningTc = useMemo(() => {
         return testCases.find(tc =>
@@ -490,45 +576,29 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
     // ─── Add Missing Tests from AI Recommendation ───
     const handleAddMissingTests = () => {
-        const newTests = [
-            {
-                id: `TC-${String(testCases.length + 1).padStart(3, '0')}`,
-                title: 'Enforce rate limiting on repeated reset dispatches',
-                scenario: 'Block brute-force mail server flooding via 5+ requests in 60s',
-                type: 'Security',
-                priority: 'High',
-                severity: 'Critical',
-                status: 'Needs Review',
-                reqId: 'REQ-001',
-                preconditions: ['User or automated client on /forgot-password endpoint.'],
-                steps: [
-                    { action: 'Submit 5 consecutive password reset requests within 30 seconds.', expected: 'First 3 requests process normally; 4th and 5th return HTTP 429 Too Many Requests.' },
-                    { action: 'Inspect retry-after header.', expected: 'Header contains "Retry-After: 60" cooldown window.' }
-                ],
-                expectedResult: 'API gateway throttles excessive reset requests and logs anomaly event.',
-                testData: 'rateLimit: "3 req/min", clientIP: "198.51.100.42"'
-            },
-            {
-                id: `TC-${String(testCases.length + 2).padStart(3, '0')}`,
-                title: 'Account enumeration timing mitigation verification',
-                scenario: 'Ensure identical response latency for valid vs non-existent emails',
-                type: 'Security',
-                priority: 'High',
-                severity: 'Major',
-                status: 'Needs Review',
-                reqId: 'REQ-001',
-                preconditions: ['Endpoint configured with constant-time response dummy hashing.'],
-                steps: [
-                    { action: 'Dispatch reset request for verified user "alex@company.com".', expected: 'Response returned in ~180ms.' },
-                    { action: 'Dispatch reset request for unregistered user "ghost@nowhere.com".', expected: 'Response returned in ~180ms with identical generic success message.' }
-                ],
-                expectedResult: 'Attacker cannot determine user registration status via response delta.',
-                testData: 'timingThreshold: "< 25ms variance"'
-            }
-        ];
+        const featureName = result?.feature || result?.testSuiteName || 'Specification Flow';
+        const newTests = uncoveredGaps.map((gap, idx) => ({
+            id: `TC-${String(testCases.length + idx + 1).padStart(3, '0')}`,
+            title: `${gap.title} - ${featureName}`,
+            scenario: gap.description,
+            type: gap.title.toLowerCase().includes('security') || gap.title.toLowerCase().includes('authorization') ? 'Security' : 'Edge Case',
+            priority: 'High',
+            severity: 'Critical',
+            status: 'Needs Review',
+            reqId: testCases[0]?.reqId || 'REQ-001',
+            preconditions: [`Testing environment configured with network telemetry for ${featureName}.`],
+            steps: [
+                { action: `Trigger ${gap.title.toLowerCase()} condition under simulated workload.`, expected: 'System detects anomaly boundary and safely isolates transaction.' },
+                { action: 'Inspect error status codes, retry-after telemetry, and audit persistence.', expected: 'Consistent state preserved with structured audit log.' }
+            ],
+            expectedResult: `System reliably executes ${gap.title.toLowerCase()} handling according to specification standards.`,
+            testData: `condition: "${gap.title}", scope: "${featureName}"`
+        }));
 
         setTestCases(prev => [...prev, ...newTests]);
-        setSelectedTcId(newTests[0].id);
+        if (newTests.length > 0) {
+            setSelectedTcId(newTests[0].id);
+        }
         setActiveTab('tests');
         setShowAiInsightsDrawer(false);
     };
@@ -1051,9 +1121,9 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             {/* ─── 1. Top Suite Header ─── */}
             <div className="tn-app-header">
                 <div className="tn-app-header__identity">
-                    <h2 className="tn-suite-title">{result.feature || result.testSuiteName || 'Password Reset Suite'}</h2>
+                    <h2 className="tn-suite-title">{result.feature || result.testSuiteName || 'Test Suite Specification'}</h2>
                     <div className="tn-app-header__tags">
-                        <span className="tn-tag tn-tag--req">REQ-001</span>
+                        <span className="tn-tag tn-tag--req">{testCases[0]?.reqId || 'REQ-001'}</span>
                         <span className={`tn-tag ${suiteStatus === 'Approved' ? 'tn-tag--ready' : 'tn-tag--alert'}`}>
                             <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? 'Approved' : 'Needs Review'}
                         </span>
@@ -1471,47 +1541,52 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 <h4>Requirement Coverage Matrix</h4>
                                 <p>Systematic verification status mapped to specification requirements.</p>
                             </div>
-                            <span className="tn-coverage-overall-badge">94% Total Verified</span>
+                            <span className="tn-coverage-overall-badge">{coverageConfidence}% Total Verified</span>
                         </div>
 
                         <div className="tn-coverage-list">
-                            <div className="tn-coverage-row">
-                                <div className="tn-coverage-row__meta">
-                                    <span className="tn-tc-id">REQ-001</span>
-                                    <strong>Password Reset Core Flow</strong>
-                                    <span className="tn-coverage-count">{totalCount} Tests Covered</span>
-                                </div>
-                                <div className="tn-coverage-row__bar-wrap">
-                                    <div className="tn-coverage-bar">
-                                        <div className="tn-coverage-bar__fill" style={{ width: '94%' }} />
+                            {requirementGroups.map((group) => (
+                                <div key={group.reqId} className="tn-coverage-row">
+                                    <div className="tn-coverage-row__meta">
+                                        <div className="tn-coverage-row__meta-left">
+                                            <span className="tn-tc-id">{group.reqId}</span>
+                                            <strong>{group.title}</strong>
+                                        </div>
+                                        <span className="tn-coverage-count">{group.tests.length} Tests Covered</span>
                                     </div>
-                                    <span className="tn-coverage-pct">94%</span>
+                                    <div className="tn-coverage-row__bar-wrap">
+                                        <div className="tn-coverage-bar">
+                                            <div className="tn-coverage-bar__fill" style={{ width: `${group.coveragePct}%` }} />
+                                        </div>
+                                        <span className="tn-coverage-pct">{group.coveragePct}%</span>
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
                         </div>
 
                         {/* Uncovered Gaps Callout */}
-                        <div className="tn-uncovered-box">
-                            <div className="tn-uncovered-header">
-                                <AlertTriangle size={18} className="text-amber-400" />
-                                <div>
-                                    <h5>Uncovered Specification Areas (2)</h5>
-                                    <p>Identified logic gaps where additional boundary assertions are recommended:</p>
+                        {uncoveredGaps.length > 0 && (
+                            <div className="tn-uncovered-box">
+                                <div className="tn-uncovered-header">
+                                    <AlertTriangle size={18} className="text-amber-400" />
+                                    <div>
+                                        <h5>Uncovered Specification Areas ({uncoveredGaps.length})</h5>
+                                        <p>Identified logic gaps where additional boundary assertions are recommended:</p>
+                                    </div>
                                 </div>
+                                <ul className="tn-uncovered-list">
+                                    {uncoveredGaps.map((gap, i) => (
+                                        <li key={i}>
+                                            <strong>{gap.title}:</strong> {gap.description}
+                                        </li>
+                                    ))}
+                                </ul>
+                                <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
+                                    <Zap size={13} />
+                                    <span>Generate Missing Tests ({uncoveredGaps.length})</span>
+                                </button>
                             </div>
-                            <ul className="tn-uncovered-list">
-                                <li>
-                                    <strong>Rate Limiting:</strong> Repeated password reset requests from single IP or target account.
-                                </li>
-                                <li>
-                                    <strong>Concurrent Redemptions:</strong> Dual redemption of identical token across race conditions.
-                                </li>
-                            </ul>
-                            <button className="tn-app-btn tn-app-btn--primary tn-app-btn--sm" onClick={handleAddMissingTests}>
-                                <Zap size={13} />
-                                <span>Generate Missing Tests (2)</span>
-                            </button>
-                        </div>
+                        )}
                     </div>
                 )}
 
@@ -1526,43 +1601,35 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                         </div>
 
                         <div className="tn-risks-grid">
-                            <div className="tn-risk-card tn-risk-card--high">
-                                <div className="tn-risk-card__top">
-                                    <span className="tn-risk-badge tn-risk-badge--high">Critical Risk</span>
-                                    <span className="tn-risk-cat">Security</span>
-                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-014'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
-                                        Linked: TC-014 &rarr;
-                                    </span>
-                                </div>
-                                <h5>Expired Reset Token Handling</h5>
-                                <p><strong>Why flagged:</strong> Tokens that remain active beyond their 15-minute TTL allow account takeover vectors.</p>
-                                <p className="text-slate-400 text-xs"><strong>Recommended:</strong> Assert strict token invalidation upon timeout and database cleanup.</p>
-                            </div>
+                            {highRiskCases.map((tc) => {
+                                const isCritical = (tc.priority || '').toLowerCase() === 'critical' || (tc.severity || '').toLowerCase() === 'critical';
+                                const isHigh = (tc.priority || '').toLowerCase() === 'high';
+                                const badgeClass = isCritical ? 'tn-risk-badge--high' : isHigh ? 'tn-risk-badge--high' : 'tn-risk-badge--medium';
+                                const cardClass = isCritical || isHigh ? 'tn-risk-card--high' : 'tn-risk-card--medium';
+                                const badgeLabel = isCritical ? 'Critical Risk' : isHigh ? 'High Risk' : 'Medium Risk';
 
-                            <div className="tn-risk-card tn-risk-card--high">
-                                <div className="tn-risk-card__top">
-                                    <span className="tn-risk-badge tn-risk-badge--high">Critical Risk</span>
-                                    <span className="tn-risk-cat">Security</span>
-                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-006'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
-                                        Linked: TC-006 &rarr;
-                                    </span>
-                                </div>
-                                <h5>Token Replay / Nonce Reuse</h5>
-                                <p><strong>Why flagged:</strong> Consumed tokens not burned in atomic transaction allow session replay attacks.</p>
-                                <p className="text-slate-400 text-xs"><strong>Recommended:</strong> Enforce one-time cryptographic nonce invalidation.</p>
-                            </div>
-
-                            <div className="tn-risk-card tn-risk-card--medium">
-                                <div className="tn-risk-card__top">
-                                    <span className="tn-risk-badge tn-risk-badge--medium">Medium Risk</span>
-                                    <span className="tn-risk-cat">Validation</span>
-                                    <span className="tn-risk-linked" onClick={() => { setSelectedTcId('TC-009'); setActiveTab('tests'); }} style={{ cursor: 'pointer' }}>
-                                        Linked: TC-009 &rarr;
-                                    </span>
-                                </div>
-                                <h5>Invalid Email Format Exception Handling</h5>
-                                <p><strong>Why flagged:</strong> Malformed email payloads may cause unhandled gateway 500 errors instead of clean 422 schema validation.</p>
-                            </div>
+                                return (
+                                    <div key={tc.id} className={`tn-risk-card ${cardClass}`}>
+                                        <div className="tn-risk-card__top">
+                                            <span className={`tn-risk-badge ${badgeClass}`}>{badgeLabel}</span>
+                                            <span className="tn-risk-cat">{tc.type || 'Security'}</span>
+                                            <span
+                                                className="tn-risk-linked"
+                                                onClick={() => { setSelectedTcId(tc.id); setActiveTab('tests'); }}
+                                                style={{ cursor: 'pointer' }}
+                                                title={`View ${tc.id}`}
+                                            >
+                                                Linked: {tc.id} &rarr;
+                                            </span>
+                                        </div>
+                                        <h5>{tc.title}</h5>
+                                        <p><strong>Scenario:</strong> {tc.scenario || tc.title}</p>
+                                        <p className="text-slate-400 text-xs">
+                                            <strong>Validation Target:</strong> {tc.expectedResult || 'Assert strict verification and error boundary handling.'}
+                                        </p>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -1575,29 +1642,31 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                             <p>End-to-end bi-directional traceability graph mapping every executable test scenario back to source specification clauses.</p>
                         </div>
                         <div className="tn-trace-tree">
-                            <div className="tn-trace-root">
-                                <div className="tn-trace-root__node">
-                                    <span className="tn-tc-id">REQ-001</span>
-                                    <strong>{result.feature || 'Password Reset Specification'}</strong>
-                                    <span className="tn-trace-status">Source Requirement</span>
+                            {requirementGroups.map((group) => (
+                                <div key={group.reqId} className="tn-trace-root" style={{ marginBottom: '24px' }}>
+                                    <div className="tn-trace-root__node">
+                                        <span className="tn-tc-id">{group.reqId}</span>
+                                        <strong>{group.title}</strong>
+                                        <span className="tn-trace-status">Source Requirement</span>
+                                    </div>
+                                    <div className="tn-trace-branches">
+                                        {group.tests.map((tc) => (
+                                            <div
+                                                key={tc.id}
+                                                className="tn-trace-leaf"
+                                                onClick={() => { setSelectedTcId(tc.id); setActiveTab('tests'); }}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <span className="tn-trace-leaf__connector" />
+                                                <code>{tc.id}: {tc.title}</code>
+                                                <TypeBadge type={tc.type} />
+                                                <PriorityBadge priority={tc.priority} />
+                                                <StatusBadge status={tc.status} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="tn-trace-branches">
-                                    {testCases.map((tc) => (
-                                        <div
-                                            key={tc.id}
-                                            className="tn-trace-leaf"
-                                            onClick={() => { setSelectedTcId(tc.id); setActiveTab('tests'); }}
-                                            style={{ cursor: 'pointer' }}
-                                        >
-                                            <span className="tn-trace-leaf__connector" />
-                                            <code>{tc.id}: {tc.title}</code>
-                                            <TypeBadge type={tc.type} />
-                                            <PriorityBadge priority={tc.priority} />
-                                            <StatusBadge status={tc.status} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 )}
