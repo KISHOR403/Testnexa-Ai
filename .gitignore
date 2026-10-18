@@ -15,10 +15,11 @@ dist-ssr
 # Environment files — NEVER commit these
 .env
 .env.*
+.env*.local
+*.env
+*.env.*
 !.env.example
-backend/.env
-backend/.env.*
-!backend/.env.example
+!**/.env.example
 
 # Debug output
 backend/debug_last_result.json
