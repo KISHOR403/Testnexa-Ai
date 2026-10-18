@@ -6,7 +6,9 @@ const {
     updateWorkspaceSettings,
     getWorkspaceEnvironments,
     createWorkspaceEnvironment,
-    deleteWorkspaceEnvironment
+    deleteWorkspaceEnvironment,
+    getWorkspaceBilling,
+    updateWorkspacePlan
 } = require('../controllers/workspace.controller');
 
 const router = express.Router();
@@ -24,6 +26,12 @@ router.patch('/current/settings', updateWorkspaceSettings);
 router.put('/current/settings', updateWorkspaceSettings);
 router.patch('/current', updateWorkspaceSettings);
 router.put('/current', updateWorkspaceSettings);
+
+// Workspace Billing & Usage
+router.get('/current/billing', getWorkspaceBilling);
+router.post('/current/billing/plan', updateWorkspacePlan);
+router.get('/:workspaceId/billing', getWorkspaceBilling);
+router.post('/:workspaceId/billing/plan', updateWorkspacePlan);
 
 // Workspace settings operations
 router.get('/:workspaceId/settings', getWorkspaceSettings);

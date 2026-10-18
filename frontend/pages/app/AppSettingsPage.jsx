@@ -11,6 +11,7 @@ import { useSettings } from '../../context/SettingsContext';
 import workspaceService from '../../services/workspaceService';
 import { InlineTestSignal } from '../../components/loading';
 import UpgradeModal from '../../components/UpgradeModal';
+import BillingControlRoom from '../../components/app/BillingControlRoom';
 import '../../styles/app/AppSettings.css';
 
 const TABS = [
@@ -954,150 +955,9 @@ const AppSettingsPage = () => {
                         </>
                     )}
 
-                    {/* ══════════════ TAB 3: BILLING & USAGE ══════════════ */}
+                    {/* ══════════════ TAB 3: BILLING & USAGE (ENGINEERING CONTROL ROOM) ══════════════ */}
                     {activeTab === 'billing' && (
-                        <>
-                            <div className="app-settings-section-header">
-                                <div>
-                                    <h2 className="app-settings-section-title">Billing & Usage</h2>
-                                    <p className="app-settings-section-desc">
-                                        Monitor your monthly generation limits, subscription plan, and invoices.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="app-settings-btn app-settings-btn--primary"
-                                    onClick={() => setShowUpgradeModal(true)}
-                                >
-                                    Manage Plan
-                                </button>
-                            </div>
-
-                            {/* Current Plan & Usage Box */}
-                            <div className="app-settings-usage-box">
-                                <div className="app-settings-usage-top">
-                                    <span className="app-settings-usage-label">Monthly Usage</span>
-                                    <span className="app-settings-usage-metric">
-                                        <strong>{user?.totalTestsGenerated || 342}</strong> / 1,000 generations
-                                    </span>
-                                </div>
-
-                                <div className="app-settings-progress-track">
-                                    <div
-                                        className="app-settings-progress-bar"
-                                        style={{ width: `${Math.min(100, Math.round(((user?.totalTestsGenerated || 342) / 1000) * 100))}%` }}
-                                    />
-                                </div>
-
-                                <div className="app-settings-usage-meta">
-                                    <span>{Math.round(((user?.totalTestsGenerated || 342) / 1000) * 100)}% used this cycle</span>
-                                    <span>Resets in 30 days</span>
-                                </div>
-                            </div>
-
-                            {/* Subscription Details */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#F5F5F5', margin: 0 }}>Subscription</h3>
-                                <div className="app-settings-info-list">
-                                    <div className="app-settings-info-row">
-                                        <span className="app-settings-info-label">Current Plan</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F5F5F5' }}>Pro Plan</span>
-                                            <span className="app-settings-status-badge active">Active</span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="app-settings-btn app-settings-btn--secondary"
-                                            onClick={() => setShowUpgradeModal(true)}
-                                        >
-                                            Change Plan
-                                        </button>
-                                    </div>
-                                    <div className="app-settings-info-row">
-                                        <span className="app-settings-info-label">Billing cycle</span>
-                                        <span className="app-settings-info-value">$29.00 / month (Renews Oct 12, 2026)</span>
-                                    </div>
-                                    <div className="app-settings-info-row">
-                                        <span className="app-settings-info-label">Payment method</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <CreditCard size={16} color="#A3A3A3" />
-                                            <span className="app-settings-info-value">Visa ending in 4242 · Expires 12/28</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Billing History */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#F5F5F5', margin: 0 }}>Billing History</h3>
-                                <div className="app-settings-table-wrap">
-                                    <table className="app-settings-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Description</th>
-                                                <th>Amount</th>
-                                                <th>Status</th>
-                                                <th style={{ textAlign: 'right' }}>Invoice</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Sep 01, 2026</td>
-                                                <td>Pro Plan — Monthly Subscription</td>
-                                                <td>$29.00</td>
-                                                <td><span className="app-settings-status-badge paid">Paid</span></td>
-                                                <td style={{ textAlign: 'right' }}>
-                                                    <button
-                                                        type="button"
-                                                        className="app-settings-btn app-settings-btn--secondary"
-                                                        style={{ padding: '0.25rem 0.55rem', minHeight: '28px', fontSize: '0.75rem' }}
-                                                        onClick={() => alert('Downloading Invoice #INV-2026-09...')}
-                                                    >
-                                                        <Download size={13} />
-                                                        <span>PDF</span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Aug 01, 2026</td>
-                                                <td>Pro Plan — Monthly Subscription</td>
-                                                <td>$29.00</td>
-                                                <td><span className="app-settings-status-badge paid">Paid</span></td>
-                                                <td style={{ textAlign: 'right' }}>
-                                                    <button
-                                                        type="button"
-                                                        className="app-settings-btn app-settings-btn--secondary"
-                                                        style={{ padding: '0.25rem 0.55rem', minHeight: '28px', fontSize: '0.75rem' }}
-                                                        onClick={() => alert('Downloading Invoice #INV-2026-08...')}
-                                                    >
-                                                        <Download size={13} />
-                                                        <span>PDF</span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Jul 01, 2026</td>
-                                                <td>Pro Plan — Monthly Subscription</td>
-                                                <td>$29.00</td>
-                                                <td><span className="app-settings-status-badge paid">Paid</span></td>
-                                                <td style={{ textAlign: 'right' }}>
-                                                    <button
-                                                        type="button"
-                                                        className="app-settings-btn app-settings-btn--secondary"
-                                                        style={{ padding: '0.25rem 0.55rem', minHeight: '28px', fontSize: '0.75rem' }}
-                                                        onClick={() => alert('Downloading Invoice #INV-2026-07...')}
-                                                    >
-                                                        <Download size={13} />
-                                                        <span>PDF</span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </>
+                        <BillingControlRoom />
                     )}
 
                     {/* ══════════════ TAB 4: SECURITY ══════════════ */}

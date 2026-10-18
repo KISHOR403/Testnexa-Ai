@@ -543,12 +543,139 @@ const deleteWorkspaceEnvironment = async (req, res) => {
     }
 };
 
+/**
+ * GET /api/v1/workspaces/:workspaceId/billing
+ * Retrieve subscription, quota, and usage metrics for a workspace
+ */
+const getWorkspaceBilling = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let effectiveWorkspaceId = req.params.workspaceId;
+        if (!effectiveWorkspaceId || effectiveWorkspaceId === 'current') {
+            const primary = await supabaseService.getUserPrimaryWorkspace(userId, req.user.name || '');
+            if (!primary) {
+                return res.status(404).json({
+                    success: false,
+                    code: 'WORKSPACE_NOT_FOUND',
+                    message: 'No active workspace found for user.'
+                });
+            }
+            effectiveWorkspaceId = primary.id;
+        }
+
+        const membership = await supabaseService.getWorkspaceMembership(effectiveWorkspaceId, userId);
+        if (!membership || membership.status !== 'active') {
+            return res.status(403).json({
+                success: false,
+                code: 'FORBIDDEN',
+                message: 'You do not have permission to view billing for this workspace.'
+            });
+        }
+
+        const billingData = await supabaseService.getWorkspaceBilling(effectiveWorkspaceId, userId);
+
+        return res.json({
+            success: true,
+            data: billingData
+        });
+    } catch (error) {
+        logger.error('Error in getWorkspaceBilling:', error);
+        return res.status(500).json({
+            success: false,
+            code: 'INTERNAL_ERROR',
+            message: error.message || 'Failed to retrieve workspace billing details.'
+        });
+    }
+};
+
+/**
+ * POST /api/v1/workspaces/:workspaceId/billing/plan
+ * Update subscription plan tier (free, pro, team, enterprise)
+ */
+const updateWorkspacePlan = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let effectiveWorkspaceId = req.params.workspaceId;
+        if (!effectiveWorkspaceId || effectiveWorkspaceId === 'current') {
+            const primary = await supabaseService.getUserPrimaryWorkspace(userId, req.user.name || '');
+            if (!primary) {
+                return res.status(404).json({
+                    success: false,
+                    code: 'WORKSPACE_NOT_FOUND',
+                    message: 'No active workspace found for user.'
+                });
+            }
+            effectiveWorkspaceId = primary.id;
+        }
+
+        const membership = await supabaseService.getWorkspaceMembership(effectiveWorkspaceId, userId);
+        if (!membership || membership.status !== 'active') {
+            return res.status(403).json({
+                success: false,
+                code: 'FORBIDDEN',
+                message: 'You do not have permission to modify billing for this workspace.'
+            });
+        }
+
+        if (membership.role !== 'owner' && membership.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                code: 'PERMISSION_DENIED',
+                message: 'Only workspace owners and administrators can change subscription plans.'
+            });
+        }
+
+        const { plan, interval = 'monthly' } = req.body || {};
+        if (!plan) {
+            return res.status(400).json({
+                success: false,
+                code: 'MISSING_PLAN',
+                message: 'Plan identifier is required.'
+            });
+        }
+
+        const auditMeta = {
+            ipAddress: parseClientIp(req),
+            userAgent: req.headers['user-agent'] || ''
+        };
+
+        const updatedBilling = await supabaseService.updateWorkspacePlan(
+            effectiveWorkspaceId,
+            { plan, interval },
+            userId,
+            auditMeta
+        );
+
+        return res.json({
+            success: true,
+            message: `Workspace subscription updated to ${plan.toUpperCase()} tier (${interval}).`,
+            data: updatedBilling
+        });
+    } catch (error) {
+        if (error.code === 'INVALID_PLAN' || error.code === 'INVALID_INTERVAL') {
+            return res.status(400).json({
+                success: false,
+                code: error.code,
+                message: error.message
+            });
+        }
+        logger.error('Error in updateWorkspacePlan:', error);
+        return res.status(500).json({
+            success: false,
+            code: 'INTERNAL_ERROR',
+            message: error.message || 'Failed to update subscription plan.'
+        });
+    }
+};
+
 module.exports = {
     getCurrentWorkspaceSettings,
     getWorkspaceSettings,
     updateWorkspaceSettings,
     getWorkspaceEnvironments,
     createWorkspaceEnvironment,
-    deleteWorkspaceEnvironment
+    deleteWorkspaceEnvironment,
+    getWorkspaceBilling,
+    updateWorkspacePlan
 };
 

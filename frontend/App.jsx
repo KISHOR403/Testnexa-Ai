@@ -113,6 +113,7 @@ function AppContent() {
             <Route path="risks" element={<RisksPage />} />
             <Route path="traceability" element={<TraceabilityPage />} />
             <Route path="settings" element={<AppSettingsPage />} />
+            <Route path="billing" element={<Navigate to="/app/settings?tab=billing" replace />} />
           </Route>
 
           {/* ─── DIRECT REDIRECTS FOR CONVENIENCE & SHARE LINKS ─── */}
@@ -121,6 +122,7 @@ function AppContent() {
           <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/history" element={<Navigate to="/app/history" replace />} />
           <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
+          <Route path="/billing" element={<Navigate to="/app/settings?tab=billing" replace />} />
 
           {/* ─── CATCH-ALL 404 NOT FOUND ─── */}
           <Route element={<MarketingLayout />}>

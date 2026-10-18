@@ -1147,7 +1147,8 @@ class SupabaseDataService {
                         this.workspacesTableAvailable = true;
                         const ws = this._formatWorkspace(wsRow);
                         ws.role = member.role;
-                        return ws;
+                        const memoryWs = this.inMemoryWorkspaces.get(member.workspaceId);
+                        return memoryWs ? { ...ws, ...memoryWs, role: member.role } : ws;
                     }
                 }
 
@@ -1271,6 +1272,8 @@ class SupabaseDataService {
     async getWorkspace(workspaceId) {
         if (!workspaceId) return null;
 
+        const memoryWs = this.inMemoryWorkspaces.get(workspaceId);
+
         if (this.isAvailable && this.workspacesTableAvailable !== false) {
             try {
                 const { data, error } = await supabase
@@ -1280,13 +1283,16 @@ class SupabaseDataService {
                     .maybeSingle();
 
                 if (!error && data) {
-                    return this._formatWorkspace(data);
+                    const formatted = this._formatWorkspace(data);
+                    if (memoryWs) {
+                        return { ...formatted, ...memoryWs };
+                    }
+                    return formatted;
                 }
             } catch (err) {}
         }
 
-        const ws = this.inMemoryWorkspaces.get(workspaceId);
-        return ws ? { ...ws } : null;
+        return memoryWs ? { ...memoryWs } : null;
     }
 
     /**
@@ -1582,7 +1588,20 @@ class SupabaseDataService {
     /**
      * Add a member to a workspace (helper for testing and administration)
      */
-    async addWorkspaceMember({ workspaceId, userId, role = 'member', status = 'active' }) {
+    async addWorkspaceMember(param1, param2, param3, param4) {
+        let workspaceId, userId, role = 'member', status = 'active';
+        if (typeof param1 === 'object' && param1 !== null) {
+            workspaceId = param1.workspaceId;
+            userId = param1.userId;
+            role = param1.role || 'member';
+            status = param1.status || 'active';
+        } else {
+            workspaceId = param1;
+            userId = param2;
+            role = param3 || 'member';
+            status = param4 || 'active';
+        }
+
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
         const memberObj = {
@@ -1595,6 +1614,8 @@ class SupabaseDataService {
             updatedAt: now
         };
 
+        this.inMemoryWorkspaceMembers.set(`${workspaceId}_${userId}`, memberObj);
+
         if (this.isAvailable && this.workspacesTableAvailable !== false) {
             try {
                 await supabase.from('workspace_members').upsert({
@@ -1606,12 +1627,208 @@ class SupabaseDataService {
                     created_at: now,
                     updated_at: now
                 }, { onConflict: 'workspace_id,user_id' });
-                return memberObj;
             } catch (err) {}
         }
 
-        this.inMemoryWorkspaceMembers.set(`${workspaceId}_${userId}`, memberObj);
         return memberObj;
+    }
+
+    /**
+     * Get authoritative billing, quota, and usage metrics for a workspace
+     */
+    async getWorkspaceBilling(workspaceId, userId) {
+        const workspace = await this.getWorkspace(workspaceId);
+        if (!workspace) {
+            const err = new Error('Workspace not found');
+            err.code = 'WORKSPACE_NOT_FOUND';
+            throw err;
+        }
+
+        const planId = workspace.plan || 'free';
+        const billingInterval = workspace.billingInterval || 'monthly';
+        const planStatus = workspace.planStatus || 'active';
+
+        // Plan quota mappings
+        const PLAN_QUOTAS = {
+            free: 50,
+            pro: 500,
+            team: 2000,
+            enterprise: 10000
+        };
+
+        const PLAN_SEATS = {
+            free: 1,
+            pro: 1,
+            team: 5,
+            enterprise: 25
+        };
+
+        const quota = PLAN_QUOTAS[planId] || 50;
+        const seatsLimit = PLAN_SEATS[planId] || 1;
+
+        // Current billing period calculation
+        const now = new Date();
+        const startOfMonth = new Date(Date.now());
+        startOfMonth.setUTCDate(1);
+        startOfMonth.setUTCHours(0, 0, 0, 0);
+
+        const endOfMonth = new Date(Date.now());
+        endOfMonth.setUTCMonth(endOfMonth.getUTCMonth() + 1);
+        endOfMonth.setUTCDate(0);
+        endOfMonth.setUTCHours(23, 59, 59, 999);
+
+        const diffTime = endOfMonth.getTime() - now.getTime();
+        const daysRemaining = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+        // Get actual usage count for this user or workspace
+        let usedGenerations = typeof workspace.usedGenerations === 'number' ? workspace.usedGenerations : 0;
+        let lifetimeTestCases = 0;
+
+        if (userId && usedGenerations === 0) {
+            try {
+                const user = await this.findUserById(userId);
+                if (user) {
+                    lifetimeTestCases = user.total_tests_generated || 0;
+                }
+            } catch (err) {}
+        }
+
+        // Count test history records created this cycle
+        if (this.isAvailable && typeof workspace.usedGenerations !== 'number') {
+            try {
+                let query = supabase
+                    .from('test_history')
+                    .select('id, summary', { count: 'exact' })
+                    .gte('created_at', startOfMonth.toISOString())
+                    .lte('created_at', endOfMonth.toISOString());
+
+                if (userId) query = query.eq('user_id', userId);
+
+                const { count } = await query;
+                if (count !== null && count !== undefined) {
+                    usedGenerations = count;
+                }
+            } catch (err) {}
+        }
+
+        // Fallback: estimate from lifetime if period count is 0
+        if (usedGenerations === 0 && lifetimeTestCases > 0) {
+            usedGenerations = Math.min(quota, Math.max(1, Math.round(lifetimeTestCases / 15)));
+        }
+
+        const remainingGenerations = Math.max(0, quota - usedGenerations);
+        const usagePercent = Math.min(100, Math.round((usedGenerations / quota) * 100));
+
+        // Environments count
+        const environments = await this.getWorkspaceEnvironments(workspaceId);
+
+        // Members count
+        let memberCount = 1;
+        for (const [key] of this.inMemoryWorkspaceMembers.entries()) {
+            if (key.startsWith(`${workspaceId}_`)) memberCount++;
+        }
+
+        return {
+            workspaceId,
+            plan: planId,
+            status: planStatus,
+            billingInterval,
+            quota,
+            usedGenerations,
+            remainingGenerations,
+            usagePercent,
+            seatsLimit,
+            activeSeats: Math.min(seatsLimit, memberCount),
+            currentPeriodStart: startOfMonth.toISOString(),
+            currentPeriodEnd: endOfMonth.toISOString(),
+            daysRemaining,
+            meteredMetrics: {
+                activeEnvironments: environments.length,
+                lifetimeTestCases,
+                workspaceMembers: memberCount,
+                generationQuota: quota
+            },
+            invoices: workspace.invoices || [],
+            paymentMethod: workspace.paymentMethod || null
+        };
+    }
+
+    /**
+     * Update workspace subscription plan with validation and audit logging
+     */
+    async updateWorkspacePlan(workspaceId, { plan, interval = 'monthly' }, actorId, auditMeta = {}) {
+        const allowedPlans = ['free', 'pro', 'team', 'enterprise'];
+        const allowedIntervals = ['monthly', 'annual'];
+
+        const cleanPlan = (plan || '').toLowerCase().trim();
+        const cleanInterval = (interval || 'monthly').toLowerCase().trim();
+
+        if (!allowedPlans.includes(cleanPlan)) {
+            const err = new Error(`Invalid plan "${plan}". Allowed plans: ${allowedPlans.join(', ')}.`);
+            err.code = 'INVALID_PLAN';
+            throw err;
+        }
+
+        if (!allowedIntervals.includes(cleanInterval)) {
+            const err = new Error(`Invalid billing interval "${interval}". Allowed intervals: monthly, annual.`);
+            err.code = 'INVALID_INTERVAL';
+            throw err;
+        }
+
+        const current = await this.getWorkspace(workspaceId);
+        if (!current) {
+            const err = new Error('Workspace not found');
+            err.code = 'WORKSPACE_NOT_FOUND';
+            throw err;
+        }
+
+        const prevPlan = current.plan || 'free';
+        const prevInterval = current.billingInterval || 'monthly';
+        const now = new Date().toISOString();
+
+        current.plan = cleanPlan;
+        current.billingInterval = cleanInterval;
+        current.planUpdatedAt = now;
+        current.updatedAt = now;
+
+        // Record a mock transaction invoice if moving to paid plan
+        if (cleanPlan !== 'free' && prevPlan === 'free') {
+            const invoiceRef = 'INV-' + now.slice(0, 7).replace('-', '') + '-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+            const prices = {
+                pro: cleanInterval === 'annual' ? '$288.00' : '$29.00',
+                team: cleanInterval === 'annual' ? '$948.00' : '$99.00',
+                enterprise: 'Custom Agreement'
+            };
+
+            const newInvoice = {
+                id: crypto.randomUUID(),
+                reference: invoiceRef,
+                date: now,
+                description: `${cleanPlan.toUpperCase()} Plan — ${cleanInterval === 'annual' ? 'Annual Prepaid' : 'Monthly Cycle'}`,
+                amount: prices[cleanPlan] || '$29.00',
+                status: 'paid'
+            };
+
+            current.invoices = [newInvoice, ...(current.invoices || [])];
+        }
+
+        this.inMemoryWorkspaces.set(workspaceId, current);
+        this._saveDiskWorkspacesStore();
+
+        // Audit log
+        await this.recordWorkspaceAuditLog({
+            workspaceId,
+            actorId,
+            action: 'workspace.plan.update',
+            changes: {
+                plan: { from: prevPlan, to: cleanPlan },
+                billingInterval: { from: prevInterval, to: cleanInterval }
+            },
+            ipAddress: auditMeta.ipAddress || '',
+            userAgent: auditMeta.userAgent || ''
+        });
+
+        return await this.getWorkspaceBilling(workspaceId, actorId);
     }
 }
 

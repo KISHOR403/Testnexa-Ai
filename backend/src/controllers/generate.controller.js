@@ -25,6 +25,31 @@ const generateTestCases = async (req, res) => {
         const validatedData = validateGenerateRequest(req.body);
         const { requirement, appType, detailLevel, testFocus } = validatedData;
 
+        // Step 1.5: Enforce Subscription Plan Generation Quota for Authenticated Users
+        if (req.user) {
+            const targetUserId = req.user._id || req.user.id;
+            try {
+                const primaryWs = await supabaseService.getUserPrimaryWorkspace(targetUserId, req.user.name || '');
+                if (primaryWs) {
+                    const billing = await supabaseService.getWorkspaceBilling(primaryWs.id, targetUserId);
+                    if (billing && billing.quota && billing.usedGenerations >= billing.quota) {
+                        return res.status(429).json({
+                            success: false,
+                            code: 'GENERATION_QUOTA_EXCEEDED',
+                            message: `Monthly generation quota reached (${billing.usedGenerations}/${billing.quota} suites on ${billing.plan.toUpperCase()} tier). Upgrade in Billing & Usage to unlock additional capacity.`,
+                            data: {
+                                plan: billing.plan,
+                                quota: billing.quota,
+                                used: billing.usedGenerations
+                            }
+                        });
+                    }
+                }
+            } catch (quotaErr) {
+                logger.warn('Quota verification check notice:', quotaErr.message);
+            }
+        }
+
         // Step 2: Use Two-Step Orchestration for Enhanced Accuracy
         logger.info('Starting two-step orchestration', {
             testFocus: testFocus || 'mixed',
