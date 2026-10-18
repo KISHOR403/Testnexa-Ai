@@ -36,5 +36,7 @@ backend/data/
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
-testnexa-*.png
+# Scratch screenshots (root level only)
+/testnexa-*.png
+!public/branding/testnexa-logo.png
+!public/screenshots/*

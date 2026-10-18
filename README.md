@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/KISHOR403/Testnexa-Ai">
-    <img src="public/branding/testnexa-logo.png" alt="TestNexa AI Logo" width="110" height="110" style="border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 212, 170, 0.25);" />
+    <img src="https://raw.githubusercontent.com/KISHOR403/Testnexa-Ai/main/public/branding/testnexa-logo.png" alt="TestNexa AI Logo" width="110" height="110" style="border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 212, 170, 0.25);" />
   </a>
 </p>
 
@@ -43,9 +43,15 @@
 ## 📸 Live Workbench Preview
 
 <p align="center">
-  <img src="public/screenshots/hero-preview.png" alt="TestNexa AI Production Workbench" width="100%" style="border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);" />
+  <img src="https://raw.githubusercontent.com/KISHOR403/Testnexa-Ai/main/public/screenshots/product-canvas.png" alt="TestNexa AI Production Workbench" width="100%" style="border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);" />
   <br/>
-  <em>Figure 1.0: TestNexa AI Interactive QA Workbench — real-time 4-tier test case generation, inline test editor, ambiguity resolution, and QA Copilot drawer.</em>
+  <em>Figure 1.0: TestNexa AI Production Workbench — real-time 4-tier test suite generation (Functional, Negative, Security), ambiguity signals, and 100% bidirectional traceability.</em>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/KISHOR403/Testnexa-Ai/main/public/screenshots/transformation-preview.png" alt="Requirement Deconstruction & Security Intelligence" width="100%" style="border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);" />
+  <br/>
+  <em>Figure 1.1: Requirement Intelligence & Risk Engine — automated deconstruction of specs, account enumeration vulnerability detection, and acceptance criteria extraction.</em>
 </p>
 
 ---
