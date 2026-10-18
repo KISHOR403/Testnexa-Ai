@@ -65,53 +65,55 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
 
     return (
         <aside className={`app-sidebar ${isCollapsed ? 'is-collapsed' : ''} ${isMobileOpen ? 'mobile-is-open' : ''}`}>
-            {/* Header */}
-            <div className="app-sidebar__header">
-                <NavLink to="/app/workspace" className="app-sidebar__brand" onClick={handleNavClick}>
-                    <TestNexaLogo size={26} className="app-sidebar__logo" />
-                    {!isCollapsed && (
-                        <div className="app-sidebar__brand-name">
-                            <span>TESTNEXA AI</span>
-                        </div>
-                    )}
-                </NavLink>
+            {/* Stationary Top Header Section */}
+            <div className="app-sidebar__top">
+                <div className="app-sidebar__header">
+                    <NavLink to="/app/workspace" className="app-sidebar__brand" onClick={handleNavClick}>
+                        <TestNexaLogo size={26} className="app-sidebar__logo" />
+                        {!isCollapsed && (
+                            <div className="app-sidebar__brand-name">
+                                <span>TESTNEXA AI</span>
+                            </div>
+                        )}
+                    </NavLink>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                        type="button"
-                        className="app-sidebar__collapse-btn"
-                        onClick={onToggleCollapse}
-                        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                        aria-label="Toggle Sidebar Collapse"
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                            type="button"
+                            className="app-sidebar__collapse-btn"
+                            onClick={onToggleCollapse}
+                            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                            aria-label="Toggle Sidebar Collapse"
+                        >
+                            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+                        </button>
+                        <button
+                            type="button"
+                            className="app-sidebar__mobile-close-btn"
+                            onClick={onCloseMobile}
+                            title="Close sidebar"
+                            aria-label="Close mobile sidebar"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* + New Test Suite CTA */}
+                <div className="app-sidebar__action-wrap">
+                    <NavLink
+                        to="/app/workspace"
+                        className="app-sidebar__new-btn"
+                        onClick={handleNavClick}
+                        title="New Test Suite"
                     >
-                        {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-                    </button>
-                    <button
-                        type="button"
-                        className="app-sidebar__mobile-close-btn"
-                        onClick={onCloseMobile}
-                        title="Close sidebar"
-                        aria-label="Close mobile sidebar"
-                    >
-                        <X size={16} />
-                    </button>
+                        <Plus size={16} />
+                        <span>+ New Test Suite</span>
+                    </NavLink>
                 </div>
             </div>
 
-            {/* + New Test Suite CTA */}
-            <div className="app-sidebar__action-wrap">
-                <NavLink
-                    to="/app/workspace"
-                    className="app-sidebar__new-btn"
-                    onClick={handleNavClick}
-                    title="New Test Suite"
-                >
-                    <Plus size={16} />
-                    <span>+ New Test Suite</span>
-                </NavLink>
-            </div>
-
-            {/* Navigation Groups */}
+            {/* Scrollable Middle Navigation Section */}
             <nav className="app-sidebar__nav">
                 {/* WORKSPACE GROUP */}
                 <div className="app-sidebar__group">

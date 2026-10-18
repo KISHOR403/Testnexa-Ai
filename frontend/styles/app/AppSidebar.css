@@ -55,6 +55,7 @@
     height: 100vh;
     height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     position: sticky;
     top: 0;
     left: 0;
@@ -65,25 +66,22 @@
     flex-direction: column;
     z-index: 50;
     transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: #292D2D transparent;
-    -webkit-overflow-scrolling: touch;
-}
-
-.app-sidebar::-webkit-scrollbar {
-    width: 4px;
-}
-
-.app-sidebar::-webkit-scrollbar-thumb {
-    background: #292D2D;
-    border-radius: 2px;
+    overflow: visible;
 }
 
 .app-sidebar.is-collapsed {
     width: 68px;
     min-width: 68px;
+}
+
+/* ─── Sidebar Top Stationary Section (Header + Action CTA) ─── */
+.app-sidebar__top {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: #101112;
+    z-index: 10;
+    overflow: hidden;
 }
 
 /* ─── Sidebar Top Header ─── */
@@ -158,6 +156,8 @@
 /* ─── New Suite Primary Button ─── */
 .app-sidebar__action-wrap {
     padding: 1rem 0.75rem 0.5rem;
+    flex-shrink: 0;
+    background: #101112;
 }
 
 .app-sidebar__new-btn {
@@ -193,13 +193,36 @@
     display: none;
 }
 
-/* ─── Sidebar Navigation Groups ─── */
+/* ─── Sidebar Navigation Groups (Scrollable Middle) ─── */
 .app-sidebar__nav {
-    flex: 1;
-    padding: 0.5rem 0.65rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem 0.65rem 1rem 0.65rem;
     display: flex;
     flex-direction: column;
     gap: 1.15rem;
+    scrollbar-width: thin;
+    scrollbar-color: #292D2D transparent;
+    -webkit-overflow-scrolling: touch;
+}
+
+.app-sidebar__nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.app-sidebar__nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.app-sidebar__nav::-webkit-scrollbar-thumb {
+    background: #292D2D;
+    border-radius: 2px;
+}
+
+.app-sidebar__nav::-webkit-scrollbar-thumb:hover {
+    background: #383D3D;
 }
 
 .app-sidebar__group {
@@ -391,7 +414,7 @@
     font-style: italic;
 }
 
-/* ─── Sidebar Footer / User Section ─── */
+/* ─── Sidebar Footer / User Section (Fixed Bottom) ─── */
 .app-sidebar__footer {
     padding: 0.65rem 0.75rem;
     border-top: 1px solid #292D2D;
@@ -400,7 +423,9 @@
     flex-direction: column;
     gap: 0.4rem;
     flex-shrink: 0;
+    margin-top: auto;
     position: relative;
+    z-index: 20;
 }
 
 .app-sidebar__user {
@@ -558,6 +583,22 @@
     color: #E06C75;
 }
 
+/* Collapsed footer and profile popover */
+.app-sidebar.is-collapsed .app-sidebar__footer {
+    padding: 0.65rem 0.4rem;
+}
+
+.app-sidebar.is-collapsed .app-sidebar__user {
+    justify-content: center;
+    padding: 0.4rem 0;
+}
+
+.app-sidebar.is-collapsed .gpt-profile-popup {
+    left: 8px;
+    right: auto;
+    width: 224px;
+}
+
 /* ─── Top Application Header (AppHeader) ─── */
 .app-header {
     height: 56px;
@@ -695,6 +736,7 @@
         bottom: 0;
         height: 100dvh;
         height: 100vh;
+        max-height: 100dvh;
         width: min(280px, 85vw) !important;
         min-width: min(280px, 85vw) !important;
         transform: translateX(-100%);
@@ -702,6 +744,17 @@
         box-shadow: 0 0 50px rgba(0, 0, 0, 0.95);
         z-index: 1001;
         background: #101112;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+    }
+
+    .app-sidebar__top {
+        padding-top: max(0rem, env(safe-area-inset-top));
+    }
+
+    .app-sidebar__footer {
+        padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
     }
 
     .app-sidebar.mobile-is-open {
