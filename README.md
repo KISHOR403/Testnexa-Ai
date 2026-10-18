@@ -1,10 +1,7 @@
 # TestNexa AI
 
 <p align="center">
-  <img src="public/screenshots/hero-preview.png" alt="TestNexa AI - Intelligent QA Design & Test Generation Platform" width="100%" />
-</p>
-
-<p align="center">
+  <img src="public/branding/testnexa-logo.png" alt="TestNexa AI Logo" width="80" height="80" /><br/>
   <b>Enterprise-Grade AI Test Generation, Coverage Intelligence & Traceability Engine</b><br/>
   <i>Deconstruct raw software requirements into comprehensive, audit-ready, 4-tier test suites in seconds.</i>
 </p>
@@ -222,8 +219,6 @@ The production UI is built with a sleek, dark developer aesthetic utilizing a cu
 +--------------------------------------------------------------------------------------------------+
 ```
 
-*For live visual representation, inspect [public/screenshots/hero-preview.png](public/screenshots/hero-preview.png).*
-
 ---
 
 ## 5. Technology Stack
@@ -376,7 +371,6 @@ Testnexa-AI/
 ├── tsconfig.json                    # TypeScript configuration for IDE intellisense
 ├── public/                          # Static public assets
 │   ├── branding/                    # Official SVG & PNG logos
-│   ├── screenshots/                 # Real documentation images (hero-preview.png)
 │   ├── robots.txt                   # Crawler directives
 │   └── sitemap.xml                  # Search engine sitemap
 ├── frontend/                        # Frontend React 19 application
