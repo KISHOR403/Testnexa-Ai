@@ -25,8 +25,6 @@ export const FinalCTA = () => {
                     <div className="tn-final-cta-actions">
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className={`tn-btn-primary tn-btn-primary--lg ${isOpening ? 'is-opening' : ''}`}
                             id="final-cta-btn"
                             onClick={(e) => {

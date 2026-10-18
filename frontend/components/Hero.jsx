@@ -74,8 +74,6 @@ export const Hero = () => {
                     <div className="tn-hero-actions">
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className={`tn-btn-primary tn-btn-primary--lg ${isOpening ? 'is-opening' : ''}`}
                             id="hero-generate-cta"
                             onClick={(e) => {

@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 /**
  * Validates and sanitizes a return URL to prevent Open Redirect vulnerabilities.
  * Only relative paths starting with a single '/' are permitted.
  * Protocol-relative ('//'), backslash ('/\\'), and external URL schemes are rejected.
+ * Also normalizes convenience alias routes to canonical application routes.
  *
  * @param {string} url - Candidate return URL
  * @param {string} fallback - Safe fallback URL (defaults to '/app/workspace')
@@ -29,24 +31,47 @@ export const getSafeReturnUrl = (url, fallback = '/app/workspace') => {
         const parsed = new URL(trimmed, dummyBase);
         // Ensure the origin did not change
         if (parsed.origin !== dummyBase) return fallback;
-        return parsed.pathname + parsed.search + parsed.hash;
+
+        let pathname = parsed.pathname;
+
+        // Route normalization for common convenience aliases
+        if (
+            pathname === '/workspace' ||
+            pathname === '/workspace/new-test-suite' ||
+            pathname === '/app/workspace/new-test-suite' ||
+            pathname === '/generator' ||
+            pathname === '/new-test-suite'
+        ) {
+            pathname = '/app/workspace';
+        } else if (pathname === '/suites') {
+            pathname = '/app/test-suites';
+        } else if (pathname.startsWith('/suites/')) {
+            pathname = pathname.replace('/suites/', '/app/test-suites/');
+        } else if (pathname === '/billing') {
+            pathname = '/app/settings';
+            if (!parsed.search.includes('tab=')) {
+                parsed.search = parsed.search ? `${parsed.search}&tab=billing` : '?tab=billing';
+            }
+        }
+
+        return pathname + parsed.search + parsed.hash;
     } catch {
         return fallback;
     }
 };
 
 /**
- * Custom hook providing a centralized entry point into the AI Workspace.
+ * Custom hook providing a centralized entry point into the AI Workspace / Test Suite generator.
  *
  * Requirements satisfied:
- * 1. Synchronous new-tab opening in direct user click event (avoids popup blockers).
- * 2. Authenticated users navigate directly to /app/workspace.
- * 3. Unauthenticated users navigate to /login?returnTo=/app/workspace.
- * 4. Original landing page tab remains open and undisturbed.
- * 5. Rapid double-clicks are debounced to prevent duplicate tabs.
+ * 1. Authenticated users navigate directly to the intended destination (default: /app/workspace).
+ * 2. Unauthenticated visitors navigate seamlessly to /login?next=... preserving destination and parameters.
+ * 3. Supports in-page SPA navigation while safely supporting explicit new-tab requests.
+ * 4. Rapid clicks are debounced.
  */
 export const useWorkspaceEntry = () => {
     const { isAuthenticated, isLoading } = useAuth();
+    const navigate = useNavigate();
     const [isOpening, setIsOpening] = useState(false);
     const isOpeningRef = useRef(false);
 
@@ -76,39 +101,42 @@ export const useWorkspaceEntry = () => {
         if (loggedIn) {
             return safeDestination;
         }
-        return `/login?returnTo=${encodeURIComponent(safeDestination)}`;
+        return `/login?next=${encodeURIComponent(safeDestination)}`;
     }, [checkIsLoggedIn]);
 
     /**
      * Centralized navigation handler for Get Started & Generate Test Suite CTAs.
-     * Opens a new tab immediately while leaving the current tab intact.
+     * Navigates in the current tab by default for standard SPA behavior, or opens a new tab if requested.
      *
      * @param {string} destination - Intended destination path (default: '/app/workspace')
+     * @param {Object} options - Navigation options (e.g. { newTab: true })
      */
-    const handleWorkspaceEntry = useCallback((destination = '/app/workspace') => {
+    const handleWorkspaceEntry = useCallback((destination = '/app/workspace', options = {}) => {
         if (isOpeningRef.current) return;
         isOpeningRef.current = true;
         setIsOpening(true);
 
         const targetUrl = getTargetUrl(destination);
 
-        // Open in a new tab immediately to comply with browser popup blocker rules
-        try {
-            const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-            if (newWindow) {
-                newWindow.opener = null;
+        if (options.newTab) {
+            try {
+                const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                if (newWindow) {
+                    newWindow.opener = null;
+                }
+            } catch (e) {
+                navigate(targetUrl);
             }
-        } catch (e) {
-            // Fallback in case window.open fails (e.g. strict embedded webviews)
-            window.location.href = targetUrl;
+        } else {
+            navigate(targetUrl);
         }
 
-        // Release debounce lock after 800ms
+        // Release debounce lock after 500ms
         setTimeout(() => {
             isOpeningRef.current = false;
             setIsOpening(false);
-        }, 800);
-    }, [getTargetUrl]);
+        }, 500);
+    }, [getTargetUrl, navigate]);
 
     return {
         handleWorkspaceEntry,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Check, Circle } from 'lucide-react';
+import { Eye, EyeOff, Check, Circle, MailCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { InlineTestSignal } from '../components/loading';
 import { getSafeReturnUrl } from '../hooks/useWorkspaceEntry';
@@ -8,7 +8,7 @@ import { getSafeReturnUrl } from '../hooks/useWorkspaceEntry';
 const SignUpPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, loginWithGoogle, loginWithGitHub, isAuthenticated } = useAuth();
+  const { register, loginWithGoogle, loginWithGitHub, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -20,18 +20,19 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerificationRequired, setIsVerificationRequired] = useState(false);
 
-  // Read returnTo from search params or router location state (with open-redirect protection)
+  // Read destination from 'next' or 'returnTo' search params or router location state (with open-redirect protection)
   const searchParams = new URLSearchParams(location.search);
-  const rawReturnTo = searchParams.get('returnTo') || location.state?.from?.pathname;
+  const rawReturnTo = searchParams.get('next') || searchParams.get('returnTo') || location.state?.from?.pathname;
   const destination = getSafeReturnUrl(rawReturnTo, '/app/workspace');
 
-  // If user is already authenticated, redirect to workspace
+  // If user is already authenticated and loading is complete, redirect to workspace
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthLoading && isAuthenticated) {
       navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, destination, navigate]);
+  }, [isAuthLoading, isAuthenticated, destination, navigate]);
 
   // Password rules
   const passwordRules = [
@@ -91,7 +92,11 @@ const SignUpPage = () => {
         formData.password
       );
       if (result.success) {
-        navigate(destination, { replace: true });
+        if (result.requiresVerification) {
+          setIsVerificationRequired(true);
+        } else {
+          navigate(destination, { replace: true });
+        }
       } else {
         setErrors({ submit: result.message || 'Registration failed. Please try again.' });
       }
@@ -104,9 +109,9 @@ const SignUpPage = () => {
 
   const handleSocialSignUp = (provider) => {
     if (provider === 'Google') {
-      loginWithGoogle();
+      loginWithGoogle(destination);
     } else if (provider === 'GitHub') {
-      loginWithGitHub();
+      loginWithGitHub(destination);
     }
   };
 
@@ -127,6 +132,44 @@ const SignUpPage = () => {
       setErrors((prev) => ({ ...prev, submit: '' }));
     }
   };
+
+  if (isVerificationRequired) {
+    return (
+      <div className="tn-auth-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            background: 'rgba(79, 140, 255, 0.1)',
+            border: '1px solid rgba(79, 140, 255, 0.28)',
+            display: 'grid',
+            placeItems: 'center',
+            color: '#4F8CFF'
+          }}>
+            <MailCheck size={20} />
+          </div>
+          <h1 className="tn-auth-title" style={{ margin: 0 }}>Verify your work email</h1>
+        </div>
+
+        <p className="tn-auth-subtitle" style={{ marginBottom: '20px' }}>
+          We sent a verification link to <strong style={{ color: '#F5F5F5' }}>{formData.email}</strong>. Once verified, you will be automatically redirected to your test suite workspace.
+        </p>
+
+        <div className="tn-auth-success-banner" style={{ marginBottom: '24px' }}>
+          Please check your inbox or spam folder. Your destination has been preserved.
+        </div>
+
+        <Link
+          to={`/login${location.search}`}
+          className="tn-auth-btn-primary"
+          style={{ textDecoration: 'none', textAlign: 'center', display: 'block' }}
+        >
+          Continue to sign in
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="tn-auth-card">

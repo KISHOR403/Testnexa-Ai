@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, Check, Circle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { InlineTestSignal } from '../components/loading';
@@ -7,6 +7,7 @@ import { InlineTestSignal } from '../components/loading';
 const ResetPasswordPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { resetPassword } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -216,7 +217,7 @@ const ResetPasswordPage = () => {
           </p>
 
           <Link
-            to="/login"
+            to={`/login${location.search}`}
             className="tn-auth-btn-primary"
             style={{ textDecoration: 'none', textAlign: 'center' }}
           >

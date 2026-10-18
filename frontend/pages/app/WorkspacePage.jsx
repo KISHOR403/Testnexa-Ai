@@ -155,13 +155,34 @@ const WorkspacePage = () => {
     useEffect(() => {
         if (!routeSessionId) {
             setCurrentSessionId(null);
-            setRequirementTitle('');
             setSessionStatus('Draft');
             setSuiteData(null);
-            setRequirement('');
             setIsLoadingSession(false);
             setSaveStatus('saved');
             setLastSavedTime(new Date());
+
+            // Preserve draft requirement input collected prior to authentication
+            const params = new URLSearchParams(window.location.search);
+            const reqParam = params.get('requirement') || params.get('prompt') || params.get('q');
+            const titleParam = params.get('title');
+
+            let draftReq = reqParam ? decodeURIComponent(reqParam) : '';
+            let draftTitle = titleParam ? decodeURIComponent(titleParam) : '';
+
+            if (!draftReq) {
+                try {
+                    const stored = sessionStorage.getItem('testnexa_draft_requirement');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        draftReq = parsed.requirement || '';
+                        draftTitle = parsed.title || '';
+                        sessionStorage.removeItem('testnexa_draft_requirement');
+                    }
+                } catch (e) {}
+            }
+
+            setRequirement(draftReq);
+            setRequirementTitle(draftTitle);
             return;
         }
 

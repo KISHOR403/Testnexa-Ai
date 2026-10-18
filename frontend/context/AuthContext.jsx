@@ -199,17 +199,15 @@ export const AuthProvider = ({ children }) => {
         };
         window.addEventListener('storage', handleStorageChange);
 
-        // 3. Axios response interceptor for automatic handling of revoked sessions
+        // 3. Axios response interceptor for automatic handling of revoked or expired sessions
         const interceptorId = axios.interceptors.response.use(
             response => response,
             error => {
                 if (error.response?.status === 401) {
-                    const code = error.response.data?.code;
-                    if (code === 'SESSION_REVOKED' || error.response.data?.message?.includes('revoked')) {
-                        clearLocalAuthState();
-                        if (window.location.pathname.startsWith('/app')) {
-                            window.location.href = '/login';
-                        }
+                    clearLocalAuthState();
+                    if (window.location.pathname.startsWith('/app')) {
+                        const targetPath = window.location.pathname + window.location.search + window.location.hash;
+                        window.location.href = `/login?next=${encodeURIComponent(targetPath)}`;
                     }
                 }
                 return Promise.reject(error);
@@ -233,7 +231,8 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('testnexa_token', token);
                 const url = new URL(window.location);
                 url.searchParams.delete('token');
-                window.history.replaceState({}, document.title, url.pathname);
+                const cleanUrl = url.pathname + (url.search ? url.search : '') + url.hash;
+                window.history.replaceState({}, document.title, cleanUrl || '/');
                 await checkAuth();
             } else {
                 await checkAuth();
@@ -292,6 +291,14 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await axios.post(`${API_URL}/auth/register`, { name, email, password });
             if (response.data.success) {
+                if (response.data.requiresVerification) {
+                    return {
+                        success: true,
+                        requiresVerification: true,
+                        message: response.data.message
+                    };
+                }
+
                 const { user, token, workspace } = response.data;
                 localStorage.setItem('testnexa_token', token);
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
@@ -322,12 +329,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const loginWithGoogle = () => {
-        window.location.href = `${API_URL}/auth/google`;
+    const loginWithGoogle = (returnTo = '/app/workspace') => {
+        window.location.href = `${API_URL}/auth/google?next=${encodeURIComponent(returnTo)}`;
     };
 
-    const loginWithGitHub = () => {
-        window.location.href = `${API_URL}/auth/github`;
+    const loginWithGitHub = (returnTo = '/app/workspace') => {
+        window.location.href = `${API_URL}/auth/github?next=${encodeURIComponent(returnTo)}`;
     };
 
     // Active session management APIs

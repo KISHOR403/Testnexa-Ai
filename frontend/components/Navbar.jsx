@@ -142,7 +142,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                         ) : (
                             <div className="tn-auth-buttons-row">
                                 <NavLink
-                                    to="/login?returnTo=%2Fapp%2Fworkspace"
+                                    to="/login?next=%2Fapp%2Fworkspace"
                                     className="tn-btn-nav-ghost"
                                 >
                                     Sign in
@@ -150,8 +150,6 @@ export const Navbar = ({ isMarketingLayout = true }) => {
 
                                 <a
                                     href={getTargetUrl('/app/workspace')}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
                                     className={`tn-btn-nav-primary ${isOpening ? 'is-opening' : ''}`}
                                     onClick={(e) => {
                                         e.preventDefault();
@@ -239,7 +237,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                             {!isAuthenticated ? (
                                 <div className="tn-mobile-auth-grid">
                                     <NavLink
-                                        to="/login?returnTo=%2Fapp%2Fworkspace"
+                                        to="/login?next=%2Fapp%2Fworkspace"
                                         className="tn-btn-secondary tn-btn-secondary--full"
                                         onClick={() => setIsMobileNavOpen(false)}
                                     >
@@ -248,8 +246,6 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                                     </NavLink>
                                     <a
                                         href={getTargetUrl('/app/workspace')}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
                                         className="tn-btn-primary tn-btn-primary--full"
                                         onClick={(e) => {
                                             e.preventDefault();

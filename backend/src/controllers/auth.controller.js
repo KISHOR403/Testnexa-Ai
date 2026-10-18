@@ -66,6 +66,19 @@ const createAuthSession = async (userId, req, rememberMe = true) => {
         const durationDays = rememberMe ? 30 : 1;
         const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
 
+        // Check for existing active session on same device/IP to prevent duplicates on repeated submissions
+        try {
+            const existingSessions = await supabaseService.listAuthSessions(userId);
+            const activeSession = existingSessions?.find(s =>
+                (s.ipAddress === ipAddress || s.ip_address === ipAddress) &&
+                (s.userAgent === userAgent || s.user_agent === userAgent) &&
+                !s.isRevoked && !s.is_revoked
+            );
+            if (activeSession) {
+                return activeSession;
+            }
+        } catch (e) {}
+
         const session = await supabaseService.createAuthSession({
             userId,
             device: deviceDisplay,
@@ -140,6 +153,15 @@ exports.register = async (req, res) => {
             createdAt: sbUser.created_at
         };
 
+        // If email verification is required by policy, don't return an authenticated session yet
+        if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true') {
+            return res.status(201).json({
+                success: true,
+                requiresVerification: true,
+                message: 'Account created! Please check your email to verify your account before logging in.'
+            });
+        }
+
         // Active session & token
         const session = await createAuthSession(sbUser.id, req);
         const token = generateToken(sbUser.id, session?.id || session?._id);
@@ -183,6 +205,15 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Incorrect email or password.' });
+        }
+
+        // If email verification is required and account is unverified, reject with proper verification message
+        if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true' && user.is_verified === false) {
+            return res.status(403).json({
+                success: false,
+                requiresVerification: true,
+                message: 'Your email address is not verified. Please check your inbox for the verification link.'
+            });
         }
 
         // 2. Update user stats in Supabase
@@ -665,5 +696,33 @@ exports.deleteAccount = async (req, res) => {
             success: false,
             message: error.message || 'An error occurred while deleting your account. Please try again or contact support@testnexa.ai.'
         });
+    }
+};
+
+exports.verifyEmail = async (req, res) => {
+    try {
+        const { token, next = '/app/workspace' } = req.query;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const safeDestination = (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\'))
+            ? next
+            : '/app/workspace';
+
+        if (!token) {
+            return res.redirect(`${frontendUrl}/login?error=missing_verification_token`);
+        }
+
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+            if (decoded && decoded.id) {
+                await supabaseService.updateUser(decoded.id, { is_verified: true });
+                return res.redirect(`${frontendUrl}/login?verified=true&next=${encodeURIComponent(safeDestination)}`);
+            }
+        } catch (jwtErr) {
+            return res.redirect(`${frontendUrl}/login?error=invalid_or_expired_verification_token`);
+        }
+    } catch (err) {
+        console.error('Verify email error:', err);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?error=verification_failed`);
     }
 };

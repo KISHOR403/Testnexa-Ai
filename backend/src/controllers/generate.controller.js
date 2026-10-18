@@ -25,29 +25,46 @@ const generateTestCases = async (req, res) => {
         const validatedData = validateGenerateRequest(req.body);
         const { requirement, appType, detailLevel, testFocus } = validatedData;
 
-        // Step 1.5: Enforce Subscription Plan Generation Quota for Authenticated Users
-        if (req.user) {
-            const targetUserId = req.user._id || req.user.id;
-            try {
-                const primaryWs = await supabaseService.getUserPrimaryWorkspace(targetUserId, req.user.name || '');
-                if (primaryWs) {
-                    const billing = await supabaseService.getWorkspaceBilling(primaryWs.id, targetUserId);
-                    if (billing && billing.quota && billing.usedGenerations >= billing.quota) {
-                        return res.status(429).json({
-                            success: false,
-                            code: 'GENERATION_QUOTA_EXCEEDED',
-                            message: `Monthly generation quota reached (${billing.usedGenerations}/${billing.quota} suites on ${billing.plan.toUpperCase()} tier). Upgrade in Billing & Usage to unlock additional capacity.`,
-                            data: {
-                                plan: billing.plan,
-                                quota: billing.quota,
-                                used: billing.usedGenerations
-                            }
-                        });
-                    }
-                }
-            } catch (quotaErr) {
-                logger.warn('Quota verification check notice:', quotaErr.message);
+        // Step 1.2: Enforce Backend Authentication & Workspace Access
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required. Please sign in to generate test suites.'
+            });
+        }
+
+        const targetUserId = req.user._id || req.user.id;
+
+        if (req.body.workspaceId) {
+            const hasAccess = await supabaseService.verifyUserWorkspaceAccess(req.body.workspaceId, targetUserId);
+            if (!hasAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You do not have permission to generate test suites in the specified workspace.'
+                });
             }
+        }
+
+        // Step 1.5: Enforce Subscription Plan Generation Quota for Authenticated Users
+        try {
+            const primaryWs = await supabaseService.getUserPrimaryWorkspace(targetUserId, req.user.name || '');
+            if (primaryWs) {
+                const billing = await supabaseService.getWorkspaceBilling(primaryWs.id, targetUserId);
+                if (billing && billing.quota && billing.usedGenerations >= billing.quota) {
+                    return res.status(429).json({
+                        success: false,
+                        code: 'GENERATION_QUOTA_EXCEEDED',
+                        message: `Monthly generation quota reached (${billing.usedGenerations}/${billing.quota} suites on ${billing.plan.toUpperCase()} tier). Upgrade in Billing & Usage to unlock additional capacity.`,
+                        data: {
+                            plan: billing.plan,
+                            quota: billing.quota,
+                            used: billing.usedGenerations
+                        }
+                    });
+                }
+            }
+        } catch (quotaErr) {
+            logger.warn('Quota verification check notice:', quotaErr.message);
         }
 
         // Step 2: Use Two-Step Orchestration for Enhanced Accuracy
@@ -127,7 +144,6 @@ const generateTestCases = async (req, res) => {
         // Step 4: Persist test generation history and workspace session in Supabase
         let savedSessionId = null;
         const generationId = 'gen_' + crypto.randomUUID().replace(/-/g, '');
-        const targetUserId = req.user ? (req.user._id || req.user.id) : null;
 
         if (targetUserId && supabaseService.isAvailable) {
             try {

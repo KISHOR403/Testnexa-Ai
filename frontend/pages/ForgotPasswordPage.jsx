@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, MailCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { InlineTestSignal } from '../components/loading';
 
 const ForgotPasswordPage = () => {
+  const location = useLocation();
   const { forgotPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -94,7 +95,7 @@ const ForgotPasswordPage = () => {
           </form>
 
           <div className="tn-auth-prompt">
-            <Link to="/login" className="tn-auth-back-link" style={{ justifyContent: 'center' }}>
+            <Link to={`/login${location.search}`} className="tn-auth-back-link" style={{ justifyContent: 'center' }}>
               <ArrowLeft size={14} /> Back to sign in
             </Link>
           </div>
@@ -126,7 +127,7 @@ const ForgotPasswordPage = () => {
           </div>
 
           <Link
-            to="/login"
+            to={`/login${location.search}`}
             className="tn-auth-btn-primary"
             style={{ textDecoration: 'none', textAlign: 'center' }}
           >

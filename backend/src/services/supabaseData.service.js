@@ -1267,6 +1267,37 @@ class SupabaseDataService {
     }
 
     /**
+     * Verifies whether a given user has access to a specific workspace.
+     */
+    async verifyUserWorkspaceAccess(workspaceId, userId) {
+        if (!workspaceId || !userId) return false;
+        try {
+            const primary = await this.getUserPrimaryWorkspace(userId);
+            if (primary && (primary.id === workspaceId || primary._id === workspaceId)) {
+                return true;
+            }
+            for (const mem of this.inMemoryWorkspaceMembers.values()) {
+                if (mem.workspaceId === workspaceId && mem.userId === userId && mem.status === 'active') {
+                    return true;
+                }
+            }
+            if (this.isAvailable && this.workspacesTableAvailable !== false) {
+                const { data } = await supabase
+                    .from('workspace_members')
+                    .select('id')
+                    .eq('workspace_id', workspaceId)
+                    .eq('user_id', userId)
+                    .eq('status', 'active')
+                    .maybeSingle();
+                if (data) return true;
+            }
+        } catch (e) {
+            logger.warn('verifyUserWorkspaceAccess check error:', e.message);
+        }
+        return false;
+    }
+
+    /**
      * Get a workspace by ID
      */
     async getWorkspace(workspaceId) {

@@ -8,7 +8,7 @@ import { getSafeReturnUrl } from '../hooks/useWorkspaceEntry';
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, loginWithGoogle, loginWithGitHub, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, loginWithGitHub, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -19,17 +19,18 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Read returnTo from search params or router location state (with open-redirect protection)
+  // Read destination from 'next' or 'returnTo' search params or router location state (with open-redirect protection)
   const searchParams = new URLSearchParams(location.search);
-  const rawReturnTo = searchParams.get('returnTo') || location.state?.from?.pathname;
+  const rawReturnTo = searchParams.get('next') || searchParams.get('returnTo') || location.state?.from?.pathname;
   const destination = getSafeReturnUrl(rawReturnTo, '/app/workspace');
+  const isEmailVerified = searchParams.get('verified') === 'true' || searchParams.get('verified') === '1';
 
-  // If user is already authenticated, redirect straight to their intended workspace
+  // If user is already authenticated and auth verification finished, redirect straight to their intended workspace
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthLoading && isAuthenticated) {
       navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, destination, navigate]);
+  }, [isAuthLoading, isAuthenticated, destination, navigate]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -74,9 +75,9 @@ const LoginPage = () => {
 
   const handleSocialLogin = (provider) => {
     if (provider === 'Google') {
-      loginWithGoogle();
+      loginWithGoogle(destination);
     } else if (provider === 'GitHub') {
-      loginWithGitHub();
+      loginWithGitHub(destination);
     }
   };
 
@@ -141,6 +142,13 @@ const LoginPage = () => {
         <span>or continue with email</span>
       </div>
 
+      {/* Email Verified Banner */}
+      {isEmailVerified && (
+        <div className="tn-auth-success-banner" style={{ marginBottom: '16px' }} role="status">
+          Email verified successfully. You can now sign in to access your workspace.
+        </div>
+      )}
+
       {/* Form Error Banner */}
       {errors.submit && (
         <div className="tn-auth-error-banner" role="alert">
@@ -184,7 +192,7 @@ const LoginPage = () => {
               Password
             </label>
             <Link
-              to="/forgot-password"
+              to={`/forgot-password${location.search}`}
               className="tn-auth-forgot-link"
               tabIndex={0}
             >

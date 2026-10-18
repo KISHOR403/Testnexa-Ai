@@ -105,6 +105,7 @@ function AppContent() {
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/app/workspace" replace />} />
             <Route path="workspace" element={<WorkspacePage />} />
+            <Route path="workspace/new-test-suite" element={<Navigate to="/app/workspace" replace />} />
             <Route path="workspace/:sessionId" element={<WorkspacePage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="test-suites" element={<TestSuitesListPage />} />
@@ -119,7 +120,10 @@ function AppContent() {
           {/* ─── DIRECT REDIRECTS FOR CONVENIENCE & SHARE LINKS ─── */}
           <Route path="/suites/:id" element={<SuiteShareRedirect />} />
           <Route path="/suites" element={<Navigate to="/app/test-suites" replace />} />
+          <Route path="/workspace/new-test-suite" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
+          <Route path="/new-test-suite" element={<Navigate to="/app/workspace" replace />} />
+          <Route path="/generator" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/history" element={<Navigate to="/app/history" replace />} />
           <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
           <Route path="/billing" element={<Navigate to="/app/settings?tab=billing" replace />} />

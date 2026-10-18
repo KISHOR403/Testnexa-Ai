@@ -33,10 +33,10 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!isAuthenticated) {
-        const targetPath = location.pathname + location.search;
+        const targetPath = location.pathname + location.search + location.hash;
         return (
             <Navigate
-                to={`/login?returnTo=${encodeURIComponent(targetPath)}`}
+                to={`/login?next=${encodeURIComponent(targetPath)}`}
                 state={{ from: location }}
                 replace
             />
