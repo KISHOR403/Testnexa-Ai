@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect } = require('../middleware/auth.middleware');
+const { protect, optionalProtect } = require('../middleware/auth.middleware');
 const {
     listSessions,
     createSession,
@@ -7,23 +7,30 @@ const {
     updateSession,
     deleteSession,
     getVersions,
-    createVersion
+    createVersion,
+    createShare,
+    getShare,
+    revokeShare
 } = require('../controllers/session.controller');
 
 const router = express.Router();
 
-// All test-suite routes strictly require authentication
-router.use(protect);
+// Share management (strictly owner/authenticated)
+router.get('/:id/share', protect, getShare);
+router.post('/:id/share', protect, createShare);
+router.delete('/:id/share', protect, revokeShare);
 
-// Test Suite CRUD — Scoped to authenticated user's workspace
-router.get('/', listSessions);
-router.post('/', createSession);
-router.get('/:id', getSession);
-router.patch('/:id', updateSession);
-router.delete('/:id', deleteSession);
+// Read test suite: supports authenticated users and shared links (guests & collaborators)
+router.get('/:id', optionalProtect, getSession);
+
+// Protected workspace routes
+router.get('/', protect, listSessions);
+router.post('/', protect, createSession);
+router.patch('/:id', optionalProtect, updateSession); // Enforces owner / editor / reviewer / viewer roles
+router.delete('/:id', protect, deleteSession);
 
 // Version management
-router.get('/:id/versions', getVersions);
-router.post('/:id/versions', createVersion);
+router.get('/:id/versions', protect, getVersions);
+router.post('/:id/versions', protect, createVersion);
 
 module.exports = router;

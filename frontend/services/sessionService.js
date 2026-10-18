@@ -15,7 +15,11 @@ const getHeaders = () => {
 const handleResponse = async (response) => {
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Request failed (${response.status})`);
+        const error = new Error(errorData.message || `Request failed (${response.status})`);
+        error.status = response.status;
+        error.code = errorData.code;
+        error.data = errorData;
+        throw error;
     }
     return response.json();
 };
@@ -55,15 +59,21 @@ export const sessionService = {
     },
 
     /**
-     * Get a single session with full data (messages, suiteData, versions)
+     * Get a single session with full data (supports share token)
      */
-    get: async (sessionId) => {
+    get: async (sessionId, token = null) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000);
         try {
-            const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
+            const queryParams = new URLSearchParams();
+            if (token) queryParams.set('token', token);
+            const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+            const headers = getHeaders();
+            if (token) headers['X-Share-Token'] = token;
+
+            const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}${queryStr}`, {
                 method: 'GET',
-                headers: getHeaders(),
+                headers,
                 credentials: 'include',
                 signal: controller.signal
             });
@@ -76,10 +86,16 @@ export const sessionService = {
     /**
      * Partial update a session
      */
-    update: async (sessionId, patch) => {
-        const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
+    update: async (sessionId, patch, token = null) => {
+        const queryParams = new URLSearchParams();
+        if (token) queryParams.set('token', token);
+        const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        const headers = getHeaders();
+        if (token) headers['X-Share-Token'] = token;
+
+        const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}${queryStr}`, {
             method: 'PATCH',
-            headers: getHeaders(),
+            headers,
             credentials: 'include',
             body: JSON.stringify(patch),
         });
@@ -91,6 +107,43 @@ export const sessionService = {
      */
     delete: async (sessionId) => {
         const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Get share configuration for session
+     */
+    getShareConfig: async (sessionId) => {
+        const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/share`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Create or update share configuration
+     */
+    saveShareConfig: async (sessionId, { role = 'reviewer', isPublic = true, status = 'active' } = {}) => {
+        const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/share`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ role, isPublic, status }),
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Revoke share link
+     */
+    revokeShareConfig: async (sessionId) => {
+        const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/share`, {
             method: 'DELETE',
             headers: getHeaders(),
             credentials: 'include',
@@ -140,13 +193,19 @@ export const testSuiteService = {
         });
         return handleResponse(response);
     },
-    get: async (id) => {
+    get: async (id, token = null) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000);
         try {
-            const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+            const queryParams = new URLSearchParams();
+            if (token) queryParams.set('token', token);
+            const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+            const headers = getHeaders();
+            if (token) headers['X-Share-Token'] = token;
+
+            const response = await fetch(`${API_BASE_URL}/test-suites/${id}${queryStr}`, {
                 method: 'GET',
-                headers: getHeaders(),
+                headers,
                 credentials: 'include',
                 signal: controller.signal
             });
@@ -164,10 +223,16 @@ export const testSuiteService = {
         });
         return handleResponse(response);
     },
-    update: async (id, patch) => {
-        const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+    update: async (id, patch, token = null) => {
+        const queryParams = new URLSearchParams();
+        if (token) queryParams.set('token', token);
+        const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        const headers = getHeaders();
+        if (token) headers['X-Share-Token'] = token;
+
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}${queryStr}`, {
             method: 'PATCH',
-            headers: getHeaders(),
+            headers,
             credentials: 'include',
             body: JSON.stringify(patch),
         });
@@ -175,6 +240,31 @@ export const testSuiteService = {
     },
     delete: async (id) => {
         const response = await fetch(`${API_BASE_URL}/test-suites/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+    getShareConfig: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}/share`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+    saveShareConfig: async (id, { role = 'reviewer', isPublic = true, status = 'active' } = {}) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}/share`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ role, isPublic, status }),
+        });
+        return handleResponse(response);
+    },
+    revokeShareConfig: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/test-suites/${id}/share`, {
             method: 'DELETE',
             headers: getHeaders(),
             credentials: 'include',

@@ -17,6 +17,8 @@ class SupabaseDataService {
         this.inMemoryWorkspaces = new Map();
         this.inMemoryWorkspaceMembers = new Map();
         this.inMemoryEnvironments = new Map();
+        this.inMemorySuiteShares = new Map();
+        this.inMemorySuiteSharesByToken = new Map();
         this.inMemoryAuditLogs = [];
         this.workspacesTableAvailable = null;
         this.storeFilePath = path.resolve(__dirname, '../../data/workspaces_store.json');
@@ -43,6 +45,14 @@ class SupabaseDataService {
                         this.inMemoryEnvironments.set(k, v);
                     }
                 }
+                if (data.shares && typeof data.shares === 'object') {
+                    for (const [k, v] of Object.entries(data.shares)) {
+                        this.inMemorySuiteShares.set(k, v);
+                        if (v.shareToken) {
+                            this.inMemorySuiteSharesByToken.set(v.shareToken, v);
+                        }
+                    }
+                }
                 if (Array.isArray(data.auditLogs)) {
                     this.inMemoryAuditLogs = data.auditLogs;
                 }
@@ -62,6 +72,7 @@ class SupabaseDataService {
                 workspaces: Object.fromEntries(this.inMemoryWorkspaces),
                 members: Object.fromEntries(this.inMemoryWorkspaceMembers),
                 environments: Object.fromEntries(this.inMemoryEnvironments),
+                shares: Object.fromEntries(this.inMemorySuiteShares),
                 auditLogs: this.inMemoryAuditLogs.slice(-200)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
@@ -151,6 +162,242 @@ class SupabaseDataService {
         }
 
         return this._formatSession(data);
+    }
+
+    async getSuiteShare(suiteId) {
+        if (!suiteId) return null;
+        let share = this.inMemorySuiteShares.get(suiteId);
+        if (!share && this.isAvailable) {
+            try {
+                const { data } = await supabase
+                    .from('workspace_sessions')
+                    .select('suite_data')
+                    .eq('id', suiteId)
+                    .maybeSingle();
+                if (data?.suite_data?.shareSettings) {
+                    share = data.suite_data.shareSettings;
+                    this.inMemorySuiteShares.set(suiteId, share);
+                    if (share.shareToken) {
+                        this.inMemorySuiteSharesByToken.set(share.shareToken, share);
+                    }
+                }
+            } catch (err) {
+                logger.warn('Error reading share settings from session:', err.message);
+            }
+        }
+        return share || null;
+    }
+
+    async getSuiteShareByToken(shareToken) {
+        if (!shareToken) return null;
+        let share = this.inMemorySuiteSharesByToken.get(shareToken);
+        if (!share && this.isAvailable) {
+            for (const s of this.inMemorySuiteShares.values()) {
+                if (s.shareToken === shareToken) {
+                    this.inMemorySuiteSharesByToken.set(shareToken, s);
+                    return s;
+                }
+            }
+        }
+        return share || null;
+    }
+
+    async createOrUpdateSuiteShare({ suiteId, ownerId, role = 'reviewer', isPublic = true, status = 'active' }) {
+        if (!suiteId) throw new Error('suiteId is required');
+        const allowedRoles = ['viewer', 'reviewer', 'editor'];
+        const cleanRole = (role || 'reviewer').toLowerCase().trim();
+        if (!allowedRoles.includes(cleanRole)) {
+            throw new Error(`Invalid share role "${role}". Allowed roles: ${allowedRoles.join(', ')}`);
+        }
+
+        const existing = await this.getSuiteShare(suiteId);
+        const shareToken = existing?.shareToken || ('sh_' + crypto.randomBytes(16).toString('hex'));
+        const now = new Date().toISOString();
+
+        const shareRecord = {
+            id: existing?.id || ('shr_' + crypto.randomBytes(8).toString('hex')),
+            suiteId,
+            ownerId: ownerId || existing?.ownerId,
+            shareToken,
+            role: cleanRole,
+            status: status || 'active',
+            isPublic: isPublic !== false,
+            createdAt: existing?.createdAt || now,
+            updatedAt: now
+        };
+
+        this.inMemorySuiteShares.set(suiteId, shareRecord);
+        this.inMemorySuiteSharesByToken.set(shareToken, shareRecord);
+        this._saveDiskWorkspacesStore();
+
+        if (this.isAvailable) {
+            try {
+                const { data: currentSession } = await supabase
+                    .from('workspace_sessions')
+                    .select('suite_data')
+                    .eq('id', suiteId)
+                    .maybeSingle();
+
+                if (currentSession) {
+                    const updatedSuiteData = {
+                        ...(currentSession.suite_data || {}),
+                        shareSettings: shareRecord
+                    };
+                    await supabase
+                        .from('workspace_sessions')
+                        .update({ suite_data: updatedSuiteData })
+                        .eq('id', suiteId);
+                }
+            } catch (err) {
+                logger.warn('Failed to persist shareSettings into Supabase session:', err.message);
+            }
+        }
+
+        return shareRecord;
+    }
+
+    async revokeSuiteShare(suiteId, ownerId) {
+        if (!suiteId) throw new Error('suiteId is required');
+        const existing = await this.getSuiteShare(suiteId);
+        if (!existing) {
+            const err = new Error('No share configuration found for this test suite');
+            err.statusCode = 404;
+            err.code = 'SHARE_NOT_FOUND';
+            throw err;
+        }
+
+        if (ownerId && existing.ownerId && existing.ownerId !== ownerId) {
+            const err = new Error('You do not have permission to revoke this share link');
+            err.statusCode = 403;
+            err.code = 'PERMISSION_DENIED';
+            throw err;
+        }
+
+        const now = new Date().toISOString();
+        existing.status = 'revoked';
+        existing.updatedAt = now;
+
+        this.inMemorySuiteShares.set(suiteId, existing);
+        if (existing.shareToken) {
+            this.inMemorySuiteSharesByToken.set(existing.shareToken, existing);
+        }
+        this._saveDiskWorkspacesStore();
+
+        if (this.isAvailable) {
+            try {
+                const { data: currentSession } = await supabase
+                    .from('workspace_sessions')
+                    .select('suite_data')
+                    .eq('id', suiteId)
+                    .maybeSingle();
+
+                if (currentSession) {
+                    const updatedSuiteData = {
+                        ...(currentSession.suite_data || {}),
+                        shareSettings: existing
+                    };
+                    await supabase
+                        .from('workspace_sessions')
+                        .update({ suite_data: updatedSuiteData })
+                        .eq('id', suiteId);
+                }
+            } catch (err) {
+                logger.warn('Failed to update revoked shareSettings in Supabase:', err.message);
+            }
+        }
+
+        return existing;
+    }
+
+    async getSharedSession(sessionId, shareToken, userId) {
+        if (!this.isAvailable) throw new Error('Supabase client is not available');
+        if (!sessionId) {
+            return { error: 'INVALID_ID', status: 400, message: 'Invalid session ID' };
+        }
+
+        const { data: rawSession, error } = await supabase
+            .from('workspace_sessions')
+            .select('*')
+            .eq('id', sessionId)
+            .maybeSingle();
+
+        if (error) {
+            logger.error('Supabase getSharedSession error:', error);
+            return { error: 'SERVER_ERROR', status: 500, message: 'Database error retrieving session' };
+        }
+
+        if (!rawSession) {
+            return { error: 'SUITE_NOT_FOUND', status: 404, message: 'Test suite not found or has been deleted' };
+        }
+
+        const session = this._formatSession(rawSession);
+
+        const sessionOwnerId = rawSession.user_id || session.userId;
+        if (userId && sessionOwnerId && String(userId) === String(sessionOwnerId)) {
+            return {
+                session: {
+                    ...session,
+                    accessRole: 'owner',
+                    isOwner: true,
+                    isShared: false
+                }
+            };
+        }
+
+        let share = await this.getSuiteShare(sessionId);
+        if (!share && shareToken) {
+            share = await this.getSuiteShareByToken(shareToken);
+        }
+
+        if (!share) {
+            return {
+                error: 'SUITE_NOT_FOUND',
+                status: 404,
+                message: 'Session not found'
+            };
+        }
+
+        // For non-owners, an active share link and matching shareToken are strictly required
+        if (share.status === 'revoked') {
+            return {
+                error: 'SHARE_REVOKED',
+                status: 403,
+                message: 'This share link has been revoked by the owner'
+            };
+        }
+
+        if (!shareToken || (share.shareToken && shareToken !== share.shareToken)) {
+            if (!shareToken) {
+                return {
+                    error: 'SUITE_NOT_FOUND',
+                    status: 404,
+                    message: 'Session not found'
+                };
+            }
+            return {
+                error: 'ACCESS_DENIED',
+                status: 403,
+                message: 'Invalid or expired share token'
+            };
+        }
+
+        if (!share.isPublic && !userId) {
+            return {
+                error: 'AUTHENTICATION_REQUIRED',
+                status: 401,
+                message: 'Authentication required to view this private test suite'
+            };
+        }
+
+        return {
+            session: {
+                ...session,
+                accessRole: share.role || 'viewer',
+                isOwner: false,
+                isShared: true,
+                shareToken: share.shareToken
+            }
+        };
     }
 
     async findSessionByGenerationId(generationId, userId) {

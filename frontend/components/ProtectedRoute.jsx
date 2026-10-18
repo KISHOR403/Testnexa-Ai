@@ -32,7 +32,11 @@ const ProtectedRoute = ({ children }) => {
         );
     }
 
-    if (!isAuthenticated) {
+    // Allow shared test suite links with a share token to pass through without forcing login
+    const isSharedSuiteRoute = location.pathname.startsWith('/app/test-suites/') &&
+        (new URLSearchParams(location.search).get('token') || new URLSearchParams(location.search).get('share'));
+
+    if (!isAuthenticated && !isSharedSuiteRoute) {
         const targetPath = location.pathname + location.search + location.hash;
         return (
             <Navigate

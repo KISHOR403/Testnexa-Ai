@@ -49,6 +49,8 @@ import {
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 import QaCopilotDrawer from './copilot/QaCopilotDrawer';
 import { InlineTestSignal } from './loading';
+import Modal from './ui/Modal';
+import { testSuiteService } from '../services/sessionService';
 import '../styles/app/WorkspaceDesignSystem.css';
 
 // ─── Status Badge Component ───
@@ -256,7 +258,7 @@ const formatGherkin = (tc) => {
 };
 
 // ─── Main Results Section ───
-const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true }) => {
+const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true, suiteId = null, accessRole = null }) => {
     if (!result) {
         return (
             <div className="tn-app-workspace tn-empty-workspace">
@@ -268,6 +270,9 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
             </div>
         );
     }
+
+    const resolvedSuiteId = suiteId || result?.id || result?._id || result?.sessionId || result?.suiteId;
+    const effectiveRole = accessRole || result?.accessRole || (result?.isShared ? 'reviewer' : 'owner');
 
     // ─── Interactive State ───
     const [testCases, setTestCases] = useState(() => flattenAllTestCases(result));
@@ -304,6 +309,8 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
     const [regenGoal, setRegenGoal] = useState('Improve scenario clarity and add boundary asserts');
     const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
+
+    // ─── Export Modal State ───
     const [showExportModal, setShowExportModal] = useState(false);
     const [exportFormat, setExportFormat] = useState('json');
     const [exportOptions, setExportOptions] = useState({
@@ -313,9 +320,18 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         priority: true,
         traceability: true
     });
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportError, setExportError] = useState(null);
+
+    // ─── Share Modal State ───
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareRole, setShareRole] = useState('Reviewer');
+    const [shareToken, setShareToken] = useState('');
+    const [shareUrl, setShareUrl] = useState('');
+    const [isLoadingShare, setIsLoadingShare] = useState(false);
+    const [shareError, setShareError] = useState(null);
     const [copiedLink, setCopiedLink] = useState(false);
+    const [copyError, setCopyError] = useState(null);
     const [copiedDetails, setCopiedDetails] = useState(false);
     const [isRefineRegenerating, setIsRefineRegenerating] = useState(false);
 
@@ -711,68 +727,231 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
         setTimeout(() => setCopiedDetails(false), 2000);
     };
 
-    // ─── Export Handler ───
-    const handleExecuteExport = () => {
-        let content = '';
-        let filename = `TestSuite_${(result.feature || 'TestPlan').replace(/\s+/g, '_')}`;
-        let mime = 'application/json';
-
-        if (exportFormat === 'json') {
-            content = JSON.stringify({
-                metadata: {
-                    suite: result.feature || 'Password Reset Suite',
-                    requirement: 'REQ-001',
-                    status: suiteStatus,
-                    exported_at: new Date().toISOString()
-                },
-                testCases: testCases.map(tc => ({
-                    id: tc.id,
-                    title: tc.title,
-                    type: tc.type,
-                    priority: tc.priority,
-                    severity: tc.severity,
-                    status: tc.status,
-                    preconditions: exportOptions.preconditions ? tc.preconditions : undefined,
-                    steps: exportOptions.steps ? tc.steps : undefined,
-                    expectedResult: exportOptions.expected ? tc.expectedResult : undefined,
-                    requirementId: exportOptions.traceability ? tc.reqId : undefined
-                }))
-            }, null, 2);
-            filename += '.json';
-            mime = 'application/json';
-        } else {
-            // CSV / Excel
-            const headers = ['ID', 'Title', 'Type', 'Priority', 'Severity', 'Status'];
-            if (exportOptions.traceability) headers.push('Requirement');
-            if (exportOptions.expected) headers.push('Expected Result');
-
-            const rows = testCases.map(tc => {
-                const row = [
-                    `"${tc.id}"`,
-                    `"${(tc.title || '').replace(/"/g, '""')}"`,
-                    `"${tc.type}"`,
-                    `"${tc.priority}"`,
-                    `"${tc.severity}"`,
-                    `"${tc.status}"`
-                ];
-                if (exportOptions.traceability) row.push(`"${tc.reqId}"`);
-                if (exportOptions.expected) row.push(`"${(tc.expectedResult || '').replace(/"/g, '""')}"`);
-                return row.join(',');
-            });
-
-            content = [headers.join(','), ...rows].join('\n');
-            filename += exportFormat === 'excel' ? '.csv' : '.csv';
-            mime = 'text/csv';
+    // ─── Share Link Initialization & Management ───
+    useEffect(() => {
+        if (!showShareModal) return;
+        const targetSuiteId = resolvedSuiteId;
+        if (!targetSuiteId) {
+            setShareError('Cannot generate share link: missing test suite ID.');
+            return;
         }
 
-        const dataStr = `data:${mime};charset=utf-8,` + encodeURIComponent(content);
-        const anchor = document.createElement('a');
-        anchor.setAttribute('href', dataStr);
-        anchor.setAttribute('download', filename);
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        setShowExportModal(false);
+        let isCurrent = true;
+        const initShare = async () => {
+            setIsLoadingShare(true);
+            setShareError(null);
+            setCopyError(null);
+            try {
+                let res = await testSuiteService.getShareConfig(targetSuiteId).catch(() => null);
+                if (!res?.success || !res?.data?.shareToken) {
+                    res = await testSuiteService.saveShareConfig(targetSuiteId, {
+                        role: shareRole.toLowerCase(),
+                        isPublic: true,
+                        status: 'active'
+                    });
+                }
+
+                if (!isCurrent) return;
+
+                if (res?.success && res?.data) {
+                    const token = res.data.shareToken;
+                    setShareToken(token);
+                    if (res.data.role) {
+                        const capitalized = res.data.role.charAt(0).toUpperCase() + res.data.role.slice(1);
+                        setShareRole(capitalized);
+                    }
+                    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                    const generatedUrl = `${origin}/suites/${targetSuiteId}?token=${token}&role=${(res.data.role || shareRole).toLowerCase()}`;
+                    setShareUrl(generatedUrl);
+                } else {
+                    setShareError(res?.message || 'Unable to retrieve share link.');
+                }
+            } catch (err) {
+                console.error('Share configuration error:', err);
+                if (isCurrent) setShareError(err.message || 'Failed to initialize share link.');
+            } finally {
+                if (isCurrent) setIsLoadingShare(false);
+            }
+        };
+
+        initShare();
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [showShareModal, resolvedSuiteId]);
+
+    const handleRoleChange = async (newRole) => {
+        setShareRole(newRole);
+        if (!resolvedSuiteId) return;
+
+        try {
+            setIsLoadingShare(true);
+            setShareError(null);
+            const res = await testSuiteService.saveShareConfig(resolvedSuiteId, {
+                role: newRole.toLowerCase(),
+                isPublic: true,
+                status: 'active'
+            });
+            if (res?.success && res?.data) {
+                const token = res.data.shareToken || shareToken;
+                setShareToken(token);
+                const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                setShareUrl(`${origin}/suites/${resolvedSuiteId}?token=${token}&role=${newRole.toLowerCase()}`);
+            }
+        } catch (err) {
+            console.error('Failed to update share role:', err);
+            setShareError('Failed to update role on server');
+        } finally {
+            setIsLoadingShare(false);
+        }
+    };
+
+    const handleCopyShareLink = async () => {
+        if (!shareUrl) return;
+        setCopyError(null);
+
+        let copySuccess = false;
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(shareUrl);
+                copySuccess = true;
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                copySuccess = document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+        } catch (err) {
+            console.warn('Clipboard write error, falling back:', err);
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                copySuccess = document.execCommand('copy');
+                document.body.removeChild(textArea);
+            } catch (fbErr) {
+                console.error('Fallback clipboard failed:', fbErr);
+            }
+        }
+
+        if (copySuccess) {
+            setCopiedLink(true);
+            setTimeout(() => setCopiedLink(false), 2500);
+        } else {
+            setCopyError('Could not auto-copy. Please copy link manually.');
+        }
+    };
+
+    // ─── Export Handler ───
+    const handleExecuteExport = () => {
+        setIsExporting(true);
+        setExportError(null);
+
+        try {
+            const suiteTitle = result?.feature || result?.testSuiteName || 'Test Suite';
+            const suiteReq = testCases[0]?.reqId || 'REQ-001';
+            let content = '';
+            let filename = `TestSuite_${suiteTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+            let mime = 'application/json';
+
+            if (exportFormat === 'json') {
+                const exportData = {
+                    metadata: {
+                        suiteName: suiteTitle,
+                        requirementId: suiteReq,
+                        status: suiteStatus,
+                        totalTestCases: testCases.length,
+                        coverageConfidence: coverageConfidence,
+                        exportedAt: new Date().toISOString(),
+                        platform: 'Testnexa AI'
+                    },
+                    testCases: testCases.map(tc => {
+                        const item = {
+                            id: tc.id,
+                            title: tc.title,
+                            type: tc.type,
+                            priority: tc.priority,
+                            severity: tc.severity,
+                            status: tc.status
+                        };
+                        if (exportOptions.preconditions) item.preconditions = tc.preconditions;
+                        if (exportOptions.steps) item.steps = tc.steps;
+                        if (exportOptions.expected) item.expectedResult = tc.expectedResult;
+                        if (exportOptions.traceability) item.requirementId = tc.reqId || suiteReq;
+                        return item;
+                    })
+                };
+                content = JSON.stringify(exportData, null, 2);
+                filename += '.json';
+                mime = 'application/json';
+            } else {
+                // CSV & Excel (with UTF-8 BOM \uFEFF for proper Excel character encoding)
+                const headers = ['ID', 'Title', 'Type', 'Priority', 'Severity', 'Status'];
+                if (exportOptions.preconditions) headers.push('Preconditions');
+                if (exportOptions.steps) headers.push('Steps');
+                if (exportOptions.expected) headers.push('Expected Result');
+                if (exportOptions.traceability) headers.push('Requirement');
+
+                const rows = testCases.map(tc => {
+                    const row = [
+                        `"${(tc.id || '').replace(/"/g, '""')}"`,
+                        `"${(tc.title || '').replace(/"/g, '""')}"`,
+                        `"${(tc.type || '').replace(/"/g, '""')}"`,
+                        `"${(tc.priority || '').replace(/"/g, '""')}"`,
+                        `"${(tc.severity || '').replace(/"/g, '""')}"`,
+                        `"${(tc.status || '').replace(/"/g, '""')}"`
+                    ];
+                    if (exportOptions.preconditions) {
+                        const pre = Array.isArray(tc.preconditions) ? tc.preconditions.join('; ') : (tc.preconditions || '');
+                        row.push(`"${pre.replace(/"/g, '""')}"`);
+                    }
+                    if (exportOptions.steps) {
+                        const steps = Array.isArray(tc.steps)
+                            ? tc.steps.map((s, idx) => `${idx + 1}. ${typeof s === 'object' ? s.action || s.step : s}`).join(' | ')
+                            : (tc.steps || '');
+                        row.push(`"${steps.replace(/"/g, '""')}"`);
+                    }
+                    if (exportOptions.expected) {
+                        row.push(`"${(tc.expectedResult || '').replace(/"/g, '""')}"`);
+                    }
+                    if (exportOptions.traceability) {
+                        row.push(`"${(tc.reqId || suiteReq).replace(/"/g, '""')}"`);
+                    }
+                    return row.join(',');
+                });
+
+                content = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+                filename += '.csv';
+                mime = exportFormat === 'excel' ? 'application/vnd.ms-excel;charset=utf-8;' : 'text/csv;charset=utf-8;';
+            }
+
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            URL.revokeObjectURL(url);
+
+            setShowExportModal(false);
+        } catch (err) {
+            console.error('Export execution error:', err);
+            setExportError(err.message || 'Export failed. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     // ─── Mobile test case selection ───
@@ -1225,37 +1404,45 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
 
                 <div className="tn-app-header__actions">
                     <button
+                        type="button"
                         className="tn-app-btn tn-app-btn--secondary"
                         onClick={() => setShowShareModal(true)}
                         title="Share test suite"
+                        data-testid="share-suite-btn"
                     >
                         <Share2 size={14} />
                         <span>Share</span>
                     </button>
 
                     <button
+                        type="button"
                         className="tn-app-btn tn-app-btn--secondary"
                         onClick={() => setShowExportModal(true)}
                         title="Export suite to CSV, JSON, Excel"
+                        data-testid="export-suite-btn"
                     >
                         <Download size={14} />
                         <span>Export</span>
                     </button>
 
-                    {/* Approve Suite CTA */}
-                    {suiteStatus !== 'Approved' ? (
-                        <button
-                            className="tn-app-btn tn-app-btn--primary"
-                            onClick={() => setShowApproveModal(true)}
-                            title="Approve all test cases for execution"
-                        >
-                            <CheckCheck size={14} />
-                            <span>Approve Suite</span>
-                        </button>
-                    ) : (
-                        <span className="tn-app-approved-tag">
-                            <Check size={14} /> Ready for Execution
-                        </span>
+                    {/* Approve Suite CTA (Hidden if viewer) */}
+                    {effectiveRole !== 'viewer' && (
+                        suiteStatus !== 'Approved' ? (
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--primary"
+                                onClick={() => setShowApproveModal(true)}
+                                title="Approve all test cases for execution"
+                                data-testid="approve-suite-btn"
+                            >
+                                <CheckCheck size={14} />
+                                <span>Approve Suite</span>
+                            </button>
+                        ) : (
+                            <span className="tn-app-approved-tag">
+                                <Check size={14} /> Ready for Execution
+                            </span>
+                        )
                     )}
                 </div>
             </div>
@@ -1827,220 +2014,240 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                 </div>
             )}
 
-            {/* ─── 8. Single Test Regenerate Modal ─── */}
-            {showRegenModal && editingTc && (
-                <div className="tn-modal-backdrop">
-                    <div className="tn-modal tn-modal--sm animate-scale-in">
-                        <div className="tn-modal__header">
-                            <div>
-                                <span className="tn-tc-id">{editingTc.id}</span>
-                                <h3>Regenerate & Enhance Test</h3>
-                            </div>
-                            <button className="tn-btn-icon" onClick={() => setShowRegenModal(false)}><X size={18} /></button>
-                        </div>
+            {/* ─── 8. Single Test Regenerate Modal (Portal) ─── */}
+            <Modal
+                isOpen={showRegenModal && Boolean(editingTc)}
+                onClose={() => setShowRegenModal(false)}
+                title="Regenerate & Enhance Test"
+                icon={<RefreshCw size={18} className="text-teal-400" />}
+                size="sm"
+                id="regen-single-test-modal"
+                footer={
+                    <>
+                        <button type="button" className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowRegenModal(false)}>
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="tn-app-btn tn-app-btn--primary"
+                            onClick={handleExecuteSingleRegen}
+                            disabled={isRegeneratingSingle}
+                        >
+                            {isRegeneratingSingle ? <InlineTestSignal size={14} /> : <RefreshCw size={14} />}
+                            <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
+                        </button>
+                    </>
+                }
+            >
+                <p className="tn-modal-desc">Select how to optimize <strong>{editingTc?.id}</strong>:</p>
+                <div className="tn-radio-group">
+                    {[
+                        'Improve scenario clarity and add boundary asserts',
+                        'Strengthen security attack vectors & payload checks',
+                        'Add edge cases around token TTL and network failures',
+                        'Regenerate completely'
+                    ].map((opt) => (
+                        <label key={opt} className={`tn-radio-card ${regenGoal === opt ? 'is-selected' : ''}`}>
+                            <input
+                                type="radio"
+                                name="regenGoal"
+                                checked={regenGoal === opt}
+                                onChange={() => setRegenGoal(opt)}
+                            />
+                            <span>{opt}</span>
+                        </label>
+                    ))}
+                </div>
+            </Modal>
 
-                        <div className="tn-modal__body">
-                            <p className="tn-modal-desc">Select how to optimize <strong>{editingTc.id}</strong>:</p>
-                            <div className="tn-radio-group">
-                                {[
-                                    'Improve scenario clarity and add boundary asserts',
-                                    'Strengthen security attack vectors & payload checks',
-                                    'Add edge cases around token TTL and network failures',
-                                    'Regenerate completely'
-                                ].map((opt) => (
-                                    <label key={opt} className={`tn-radio-card ${regenGoal === opt ? 'is-selected' : ''}`}>
-                                        <input
-                                            type="radio"
-                                            name="regenGoal"
-                                            checked={regenGoal === opt}
-                                            onChange={() => setRegenGoal(opt)}
-                                        />
-                                        <span>{opt}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
+            {/* ─── 9. Approve Suite Modal (Portal) ─── */}
+            <Modal
+                isOpen={showApproveModal}
+                onClose={() => setShowApproveModal(false)}
+                title="Approve Test Suite"
+                icon={<CheckCheck size={20} className="text-emerald-400" />}
+                size="sm"
+                id="approve-suite-modal"
+                footer={
+                    <>
+                        <button type="button" className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowApproveModal(false)}>
+                            Cancel
+                        </button>
+                        <button type="button" className="tn-app-btn tn-app-btn--primary" onClick={handleApproveSuite}>
+                            <Check size={14} />
+                            <span>Approve Suite</span>
+                        </button>
+                    </>
+                }
+            >
+                <p className="tn-modal-desc">
+                    Approving this test suite will certify all <strong>{totalCount} test cases</strong> for production execution and CI/CD integration.
+                </p>
+                <div className="tn-approval-summary">
+                    <div><span>Total Tests:</span> <strong>{totalCount}</strong></div>
+                    <div><span>Requirement:</span> <strong>{testCases[0]?.reqId || 'REQ-001'}</strong></div>
+                    <div><span>Coverage:</span> <strong className="text-teal-400">{coverageConfidence}%</strong></div>
+                </div>
+            </Modal>
 
-                        <div className="tn-modal__footer">
-                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowRegenModal(false)}>
-                                Cancel
-                            </button>
+            {/* ─── 10. Export Modal (Portal) ─── */}
+            <Modal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                title="Export Test Suite"
+                icon={<Download size={18} className="text-teal-400" />}
+                size="sm"
+                id="export-suite-modal"
+                footer={
+                    <>
+                        <button type="button" className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowExportModal(false)}>
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="tn-app-btn tn-app-btn--primary"
+                            onClick={handleExecuteExport}
+                            disabled={isExporting}
+                            data-testid="download-export-btn"
+                        >
+                            {isExporting ? <InlineTestSignal size={14} /> : <Download size={14} />}
+                            <span>{isExporting ? 'Exporting...' : `Download ${exportFormat.toUpperCase()}`}</span>
+                        </button>
+                    </>
+                }
+            >
+                <div className="tn-form-group">
+                    <label>Export Format</label>
+                    <div className="tn-format-pills">
+                        {['json', 'csv', 'excel'].map(fmt => (
                             <button
-                                className="tn-app-btn tn-app-btn--primary"
-                                onClick={handleExecuteSingleRegen}
-                                disabled={isRegeneratingSingle}
+                                key={fmt}
+                                type="button"
+                                className={`tn-format-pill ${exportFormat === fmt ? 'is-active' : ''}`}
+                                onClick={() => setExportFormat(fmt)}
                             >
-                                {isRegeneratingSingle ? <InlineTestSignal size={14} /> : <RefreshCw size={14} />}
-                                <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
+                                {fmt.toUpperCase()}
                             </button>
-                        </div>
+                        ))}
                     </div>
                 </div>
-            )}
 
-            {/* ─── 9. Approve Suite Modal ─── */}
-            {showApproveModal && (
-                <div className="tn-modal-backdrop">
-                    <div className="tn-modal tn-modal--sm animate-scale-in">
-                        <div className="tn-modal__header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <CheckCheck size={20} className="text-emerald-400" />
-                                <h3>Approve Test Suite</h3>
-                            </div>
-                            <button className="tn-btn-icon" onClick={() => setShowApproveModal(false)}><X size={18} /></button>
-                        </div>
-
-                        <div className="tn-modal__body">
-                            <p className="tn-modal-desc">
-                                Approving this test suite will certify all <strong>{totalCount} test cases</strong> for production execution and CI/CD integration.
-                            </p>
-                            <div className="tn-approval-summary">
-                                <div><span>Total Tests:</span> <strong>{totalCount}</strong></div>
-                                <div><span>Requirement:</span> <strong>REQ-001</strong></div>
-                                <div><span>Coverage:</span> <strong className="text-teal-400">{coverageConfidence}%</strong></div>
-                            </div>
-                        </div>
-
-                        <div className="tn-modal__footer">
-                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowApproveModal(false)}>
-                                Cancel
-                            </button>
-                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleApproveSuite}>
-                                <Check size={14} />
-                                <span>Approve Suite</span>
-                            </button>
-                        </div>
+                <div className="tn-form-group">
+                    <label>Included Metadata Fields</label>
+                    <div className="tn-check-grid">
+                        <label className="tn-check-label">
+                            <input
+                                type="checkbox"
+                                checked={exportOptions.preconditions}
+                                onChange={(e) => setExportOptions({ ...exportOptions, preconditions: e.target.checked })}
+                            />
+                            <span>Preconditions & Test Setup</span>
+                        </label>
+                        <label className="tn-check-label">
+                            <input
+                                type="checkbox"
+                                checked={exportOptions.steps}
+                                onChange={(e) => setExportOptions({ ...exportOptions, steps: e.target.checked })}
+                            />
+                            <span>Test Steps (Action & Expected)</span>
+                        </label>
+                        <label className="tn-check-label">
+                            <input
+                                type="checkbox"
+                                checked={exportOptions.expected}
+                                onChange={(e) => setExportOptions({ ...exportOptions, expected: e.target.checked })}
+                            />
+                            <span>Expected Results</span>
+                        </label>
+                        <label className="tn-check-label">
+                            <input
+                                type="checkbox"
+                                checked={exportOptions.traceability}
+                                onChange={(e) => setExportOptions({ ...exportOptions, traceability: e.target.checked })}
+                            />
+                            <span>Requirement Traceability (REQ-001)</span>
+                        </label>
                     </div>
                 </div>
-            )}
+                {exportError && (
+                    <div style={{ fontSize: '0.8rem', color: '#FF7B72' }}>
+                        {exportError}
+                    </div>
+                )}
+            </Modal>
 
-            {/* ─── 10. Export Modal ─── */}
-            {showExportModal && (
-                <div className="tn-modal-backdrop">
-                    <div className="tn-modal tn-modal--sm animate-scale-in">
-                        <div className="tn-modal__header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Download size={18} className="text-teal-400" />
-                                <h3>Export Test Suite</h3>
-                            </div>
-                            <button className="tn-btn-icon" onClick={() => setShowExportModal(false)}><X size={18} /></button>
+            {/* ─── 11. Share Modal (Portal) ─── */}
+            <Modal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                title="Share Test Suite"
+                icon={<Share2 size={18} className="text-teal-400" />}
+                size="sm"
+                id="share-suite-modal"
+            >
+                <div className="tn-form-group">
+                    <label htmlFor="share-role-select">Access Role</label>
+                    <select
+                        id="share-role-select"
+                        value={shareRole}
+                        onChange={(e) => handleRoleChange(e.target.value)}
+                        disabled={isLoadingShare}
+                    >
+                        <option value="Viewer">Viewer (Read-only)</option>
+                        <option value="Reviewer">Reviewer (Approve / Comment)</option>
+                        <option value="Editor">Editor (Edit / Regenerate)</option>
+                    </select>
+                    <span style={{ fontSize: '0.78rem', color: '#8C9494' }}>
+                        {shareRole === 'Viewer' && 'Recipients have read-only access to view and export tests.'}
+                        {shareRole === 'Reviewer' && 'Recipients can review specifications and certify test cases.'}
+                        {shareRole === 'Editor' && 'Recipients can modify test scenarios and suite content.'}
+                    </span>
+                </div>
+
+                <div className="tn-form-group">
+                    <label htmlFor="share-link-input">Shareable Workspace Link</label>
+                    {isLoadingShare && !shareUrl ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', color: '#8BAF9A', fontSize: '0.85rem' }}>
+                            <InlineTestSignal size={14} />
+                            <span>Generating secure share link...</span>
                         </div>
-
-                        <div className="tn-modal__body">
-                            <div className="tn-form-group">
-                                <label>Export Format</label>
-                                <div className="tn-format-pills">
-                                    {['json', 'csv', 'excel', 'pdf'].map(fmt => (
-                                        <button
-                                            key={fmt}
-                                            className={`tn-format-pill ${exportFormat === fmt ? 'is-active' : ''}`}
-                                            onClick={() => setExportFormat(fmt)}
-                                        >
-                                            {fmt.toUpperCase()}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="tn-form-group">
-                                <label>Included Metadata Fields</label>
-                                <div className="tn-checkbox-list">
-                                    <label className="tn-check-label">
-                                        <input
-                                            type="checkbox"
-                                            checked={exportOptions.steps}
-                                            onChange={(e) => setExportOptions({ ...exportOptions, steps: e.target.checked })}
-                                        />
-                                        <span>Test Steps (Action & Expected)</span>
-                                    </label>
-                                    <label className="tn-check-label">
-                                        <input
-                                            type="checkbox"
-                                            checked={exportOptions.expected}
-                                            onChange={(e) => setExportOptions({ ...exportOptions, expected: e.target.checked })}
-                                        />
-                                        <span>Expected Results</span>
-                                    </label>
-                                    <label className="tn-check-label">
-                                        <input
-                                            type="checkbox"
-                                            checked={exportOptions.traceability}
-                                            onChange={(e) => setExportOptions({ ...exportOptions, traceability: e.target.checked })}
-                                        />
-                                        <span>Requirement Traceability (REQ-001)</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="tn-modal__footer">
-                            <button className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowExportModal(false)}>
-                                Cancel
-                            </button>
-                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleExecuteExport}>
-                                <Download size={14} />
-                                <span>Download {exportFormat.toUpperCase()}</span>
+                    ) : (
+                        <div className="tn-copy-input-wrap">
+                            <input
+                                id="share-link-input"
+                                type="text"
+                                readOnly
+                                value={shareUrl || 'Generating link...'}
+                                aria-label="Shareable link URL"
+                            />
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
+                                onClick={handleCopyShareLink}
+                                disabled={!shareUrl || isLoadingShare}
+                                title="Copy share link to clipboard"
+                                data-testid="copy-share-link-btn"
+                            >
+                                {copiedLink ? <Check size={13} /> : <Copy size={13} />}
+                                <span>{copiedLink ? 'Copied' : 'Copy'}</span>
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ─── 11. Share Modal ─── */}
-            {showShareModal && (
-                <div className="tn-modal-backdrop">
-                    <div className="tn-modal tn-modal--sm animate-scale-in">
-                        <div className="tn-modal__header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Share2 size={18} className="text-teal-400" />
-                                <h3>Share Test Suite</h3>
-                            </div>
-                            <button className="tn-btn-icon" onClick={() => setShowShareModal(false)}><X size={18} /></button>
+                    )}
+                    {shareError && (
+                        <div style={{ fontSize: '0.8rem', color: '#FF7B72', marginTop: '4px' }}>
+                            {shareError}
                         </div>
-
-                        <div className="tn-modal__body">
-                            <div className="tn-form-group">
-                                <label>Access Role</label>
-                                <select value={shareRole} onChange={(e) => setShareRole(e.target.value)}>
-                                    <option value="Viewer">Viewer (Read-only)</option>
-                                    <option value="Reviewer">Reviewer (Approve / Comment)</option>
-                                    <option value="Editor">Editor (Edit / Regenerate)</option>
-                                </select>
-                            </div>
-
-                            <div className="tn-form-group">
-                                <label>Shareable Workspace Link</label>
-                                {(() => {
-                                    const shareSlug = result?.id || (result?.feature ? result.feature.toLowerCase().replace(/\s+/g, '-') : 'password-reset');
-                                    const shareUrl = typeof window !== 'undefined'
-                                        ? `${window.location.origin}/app/test-suites/${shareSlug}?role=${shareRole.toLowerCase()}`
-                                        : `/app/test-suites/${shareSlug}?role=${shareRole.toLowerCase()}`;
-                                    return (
-                                        <div className="tn-copy-input-wrap">
-                                            <input
-                                                type="text"
-                                                readOnly
-                                                value={shareUrl}
-                                            />
-                                            <button
-                                                className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(shareUrl);
-                                                    setCopiedLink(true);
-                                                    setTimeout(() => setCopiedLink(false), 2000);
-                                                }}
-                                            >
-                                                {copiedLink ? <Check size={13} /> : <Copy size={13} />}
-                                                <span>{copiedLink ? 'Copied' : 'Copy'}</span>
-                                            </button>
-                                        </div>
-                                    );
-                                })()}
-                            </div>
+                    )}
+                    {copyError && (
+                        <div style={{ fontSize: '0.8rem', color: '#FF7B72', marginTop: '4px' }}>
+                            {copyError}
                         </div>
-                    </div>
+                    )}
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#6A7272' }}>
+                        Authorized recipients can open this test suite directly in another browser tab under the assigned role.
+                    </p>
                 </div>
-            )}
+            </Modal>
 
             {/* ─── 12. Refine & Regenerate Dock (Docked at bottom for live API) ─── */}
             {isLatest && onRefineRegenerate && (

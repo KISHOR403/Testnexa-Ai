@@ -204,3 +204,23 @@ CREATE TABLE IF NOT EXISTS public.workspace_audit_logs (
 CREATE INDEX IF NOT EXISTS idx_workspace_audit_logs_ws ON public.workspace_audit_logs(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_workspace_audit_logs_created ON public.workspace_audit_logs(created_at DESC);
 
+-- ------------------------------------------------------------------------------
+-- 9. SUITE SHARES TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.suite_shares (
+    id TEXT PRIMARY KEY DEFAULT ('sh_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    suite_id TEXT NOT NULL REFERENCES public.workspace_sessions(id) ON DELETE CASCADE,
+    owner_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    share_token TEXT UNIQUE NOT NULL,
+    role TEXT NOT NULL DEFAULT 'reviewer', -- 'viewer', 'reviewer', 'editor'
+    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'revoked'
+    is_public BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_suite_shares_suite_id ON public.suite_shares(suite_id);
+CREATE INDEX IF NOT EXISTS idx_suite_shares_token ON public.suite_shares(share_token);
+CREATE INDEX IF NOT EXISTS idx_suite_shares_owner_id ON public.suite_shares(owner_id);
+
+
