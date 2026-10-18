@@ -4171,13 +4171,503 @@ a:focus:not(:focus-visible) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tn-orb-float-1,
-  .tn-orb-float-2,
-  .tn-orb-float-3,
-  .tn-orb-float-4,
   .tn-hero-kicker::after,
-  .tn-antigravity-caret {
+  .tn-int-prompt-cursor {
     animation: none !important;
   }
 }
+
+/* ─── 8. Connected QA Process Stepper (Section B) ───────────────────────── */
+.tn-connected-process-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--tn-border);
+  border: 1px solid var(--tn-border);
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.tn-cprocess-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--tn-surface);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s ease, color 0.18s ease;
+  position: relative;
+}
+
+.tn-cprocess-step:hover {
+  background: var(--tn-surface-elevated);
+}
+
+.tn-cprocess-step.is-active {
+  background: var(--tn-surface-elevated);
+  box-shadow: inset 0 2px 0 var(--tn-accent);
+}
+
+.tn-cprocess-step.is-past {
+  background: rgba(16, 17, 18, 0.95);
+}
+
+.tn-cstep-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.tn-cstep-num {
+  font-family: var(--tn-mono, monospace);
+  font-size: 0.72rem;
+  color: var(--tn-text-dim);
+  font-weight: 600;
+}
+
+.tn-cprocess-step.is-active .tn-cstep-num {
+  color: var(--tn-accent);
+}
+
+.tn-cstep-active-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--tn-accent);
+  margin-left: auto;
+}
+
+.tn-cstep-check {
+  margin-left: auto;
+}
+
+.tn-cstep-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--tn-text);
+  line-height: 1.25;
+}
+
+.tn-cstep-sub {
+  font-size: 0.7rem;
+  color: var(--tn-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ─── 9. Workspace Step Banner ─────────────────────────────────────────── */
+.tn-ws-step-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 20px;
+  background: rgba(139, 175, 154, 0.04);
+  border-bottom: 1px solid var(--tn-border);
+}
+
+.tn-ws-banner-tag {
+  display: inline-block;
+  font-family: var(--tn-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--tn-accent);
+  margin-bottom: 3px;
+}
+
+.tn-ws-banner-text {
+  font-size: 0.85rem;
+  color: var(--tn-text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.tn-ws-step-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tn-ws-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--tn-text-secondary);
+  background: var(--tn-surface-elevated);
+  border: 1px solid var(--tn-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.tn-ws-nav-btn:hover:not(:disabled) {
+  color: var(--tn-text);
+  border-color: var(--tn-border-hover);
+  background: var(--tn-surface-hover);
+}
+
+.tn-ws-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tn-ws-nav-btn.is-next {
+  color: var(--tn-text);
+  background: rgba(139, 175, 154, 0.1);
+  border-color: rgba(139, 175, 154, 0.25);
+}
+
+.tn-ws-nav-btn.is-next:hover:not(:disabled) {
+  background: rgba(139, 175, 154, 0.16);
+  border-color: rgba(139, 175, 154, 0.4);
+}
+
+/* ─── 10. Hero Interactive Tab Views ─────────────────────────────────────── */
+.tn-cbody-pane--full {
+  flex: 1;
+  padding: 24px;
+  background: var(--tn-surface);
+}
+
+.tn-tab-full-content {
+  margin-top: 18px;
+}
+
+.tn-tab-ac-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.tn-ac-card {
+  padding: 16px;
+  background: var(--tn-surface-elevated);
+  border: 1px solid var(--tn-border);
+  border-radius: 6px;
+}
+
+.tn-ac-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.tn-ac-status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tn-ac-status.is-pass {
+  background: rgba(109, 174, 130, 0.12);
+  color: var(--tn-green);
+  border: 1px solid rgba(109, 174, 130, 0.25);
+}
+
+.tn-ac-status.is-review {
+  background: rgba(200, 153, 60, 0.12);
+  color: var(--tn-amber);
+  border: 1px solid rgba(200, 153, 60, 0.25);
+}
+
+.tn-ac-card-title {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--tn-text);
+  margin-bottom: 6px;
+}
+
+.tn-ac-card-desc {
+  font-size: 0.78rem;
+  color: var(--tn-text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.tn-decomp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.tn-decomp-header {
+  display: block;
+  font-family: var(--tn-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--tn-text-dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.tn-decomp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tn-decomp-list li {
+  font-size: 0.82rem;
+  color: var(--tn-text-secondary);
+  line-height: 1.45;
+}
+
+.tn-decomp-list--risks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--tn-surface-elevated);
+  border: 1px solid var(--tn-border);
+  border-radius: 4px;
+}
+
+.tn-decomp-list--risks li strong {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--tn-text);
+  margin-bottom: 2px;
+}
+
+.tn-decomp-list--risks li p {
+  font-size: 0.75rem;
+  color: var(--tn-text-dim);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.tn-risk-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.tn-risk-indicator.is-red {
+  background: var(--tn-red);
+}
+
+.tn-risk-indicator.is-amber {
+  background: var(--tn-amber);
+}
+
+.tn-scenarios-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.tn-scen-group-card {
+  padding: 18px;
+  background: var(--tn-surface-elevated);
+  border: 1px solid var(--tn-border);
+  border-radius: 6px;
+}
+
+.tn-sg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tn-sg-prio {
+  font-size: 0.68rem;
+  font-family: var(--tn-mono, monospace);
+  color: var(--tn-text-dim);
+}
+
+.tn-sg-title {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--tn-text);
+  margin-bottom: 6px;
+}
+
+.tn-sg-desc {
+  font-size: 0.78rem;
+  color: var(--tn-text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ─── 11. Test Case Inspection & Risk Callouts ──────────────────────────── */
+.tn-sw-status-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.tn-sw-status-mini.is-pass {
+  color: var(--tn-green);
+  background: rgba(109, 174, 130, 0.14);
+}
+
+.tn-sw-status-mini.is-review {
+  color: var(--tn-amber);
+  background: rgba(200, 153, 60, 0.14);
+}
+
+.tn-sw-risk-callout {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 18px;
+  background: rgba(16, 17, 18, 0.85);
+  border-bottom: 1px solid var(--tn-border);
+}
+
+.tn-sw-rc-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.tn-sw-rc-lbl {
+  font-family: var(--tn-mono, monospace);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--tn-text-dim);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.tn-sw-rc-val {
+  font-size: 0.82rem;
+  color: var(--tn-text-secondary);
+}
+
+.tn-sw-rc-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--tn-border);
+  flex-shrink: 0;
+}
+
+/* ─── 12. Integration Status Pills ─────────────────────────────────────── */
+.tn-fitem-status-pill {
+  font-family: var(--tn-mono, monospace);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.tn-fitem-status-pill.is-available {
+  color: var(--tn-accent);
+  background: rgba(139, 175, 154, 0.1);
+  border: 1px solid rgba(139, 175, 154, 0.22);
+}
+
+.tn-fitem-status-pill.is-sync {
+  color: var(--tn-amber);
+  background: rgba(200, 153, 60, 0.1);
+  border: 1px solid rgba(200, 153, 60, 0.22);
+}
+
+/* ─── 13. Responsive Enhancements for Workflow and Previews ─────────────── */
+@media (max-width: 1024px) {
+  .tn-connected-process-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .tn-tab-ac-grid,
+  .tn-scenarios-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tn-decomp-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .tn-connected-process-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .tn-ws-step-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tn-ws-step-banner-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .tn-sw-risk-callout {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .tn-sw-rc-col {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    width: 100%;
+  }
+
+  .tn-sw-rc-lbl {
+    font-size: 0.65rem;
+  }
+
+  .tn-sw-rc-val {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .tn-sw-rc-divider {
+    display: none;
+  }
+
+  .tn-sw-case-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .tn-sw-case-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tn-sw-tab {
+    flex-shrink: 0;
+  }
+}
+
 

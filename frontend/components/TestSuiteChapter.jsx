@@ -10,7 +10,10 @@ import {
     ArrowRight,
     AlertTriangle,
     Layers,
-    ExternalLink
+    Shield,
+    ShieldAlert,
+    ExternalLink,
+    Filter
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
@@ -22,7 +25,9 @@ const SUITE_TEST_CASES = [
         type: 'Functional',
         typeClass: 'is-func',
         priority: 'P0',
-        status: 'Pass',
+        status: 'Approved',
+        riskVector: 'Credential Lifecycle & SMTP Delivery',
+        missingScenarioMitigated: 'Validates that unverified emails cannot receive reset links',
         stepsCount: 3,
         preconditions: 'User account exists with verified email in database.',
         steps: [
@@ -46,7 +51,9 @@ const SUITE_TEST_CASES = [
         type: 'Negative',
         typeClass: 'is-neg',
         priority: 'P1',
-        status: 'Pass',
+        status: 'Approved',
+        riskVector: 'Malformed Input & Boundary Rejection',
+        missingScenarioMitigated: 'Prevents backend parsing exceptions and server 500 errors',
         stepsCount: 2,
         preconditions: 'Password recovery form loaded in browser viewport.',
         steps: [
@@ -74,7 +81,9 @@ const SUITE_TEST_CASES = [
         type: 'Negative',
         typeClass: 'is-neg',
         priority: 'P0',
-        status: 'Pass',
+        status: 'Approved',
+        riskVector: 'Token Lifecycle & Hijack Window',
+        missingScenarioMitigated: 'Omitted in raw requirement; synthesizes critical boundary check',
         stepsCount: 2,
         preconditions: 'Token was generated 16 minutes prior to redemption attempt (TTL 15m).',
         steps: [
@@ -97,7 +106,9 @@ const SUITE_TEST_CASES = [
         type: 'Security',
         typeClass: 'is-sec',
         priority: 'P0',
-        status: 'Review',
+        status: 'Needs Review',
+        riskVector: 'Auth Gateway Flooding & Account Enumeration',
+        missingScenarioMitigated: 'Protects notification infrastructure from spam flooding',
         stepsCount: 2,
         preconditions: 'API gateway rate limiter configured for authentication endpoints.',
         steps: [
@@ -118,9 +129,16 @@ export const TestSuiteChapter = () => {
     const [selectedTestId, setSelectedTestId] = useState('TC-001');
     const [viewMode, setViewMode] = useState('steps'); // 'steps' | 'gherkin'
     const [copiedGherkin, setCopiedGherkin] = useState(false);
-    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+    const [caseStatuses, setCaseStatuses] = useState({
+        'TC-001': 'Approved',
+        'TC-002': 'Approved',
+        'TC-003': 'Approved',
+        'TC-004': 'Needs Review'
+    });
+    const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
     const activeTest = SUITE_TEST_CASES.find((t) => t.id === selectedTestId) || SUITE_TEST_CASES[0];
+    const currentStatus = caseStatuses[activeTest.id] || activeTest.status;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(activeTest.gherkin);
@@ -128,36 +146,44 @@ export const TestSuiteChapter = () => {
         setTimeout(() => setCopiedGherkin(false), 2000);
     };
 
+    const toggleStatus = (id) => {
+        setCaseStatuses((prev) => ({
+            ...prev,
+            [id]: prev[id] === 'Approved' ? 'Needs Review' : 'Approved'
+        }));
+    };
+
     return (
         <section
-            id="test-suite"
+            id="review-risk"
             className="tn-section tn-suite-chapter-section"
             aria-labelledby="suite-chapter-heading"
         >
             <div className="tn-container">
-                {/* ─── Editorial Header (No Box) ─── */}
+                {/* ─── Editorial Header ─── */}
                 <div className="tn-suite-header-group">
                     <div className="tn-chapter-eyebrow">
                         <span className="tn-kicker-dot" />
-                        <span>EXECUTABLE SPECIFICATIONS</span>
+                        <span>REVIEW & RISK INSPECTION</span>
                     </div>
 
                     <h2 id="suite-chapter-heading" className="tn-suite-title">
-                        Deterministic test cases with code-level precision.
+                        Inspect test cases, isolate edge boundaries, and approve suites.
                     </h2>
 
                     <p className="tn-suite-subtitle">
-                        Generated test cases are not generic checklists. Every scenario includes atomic execution steps, explicit test data, and deterministic assertions formatted for modern automation.
+                        Test cases are not generic checklists. QA engineers inspect atomic execution steps, review unstated boundary risks, identify missing edge scenarios, and approve tests before they move into CI/CD automation.
                     </p>
                 </div>
 
-                {/* ─── Full-width Product Experience (Minimal Surrounding Chrome) ─── */}
+                {/* ─── Product Workbench: Test Case & Risk Inspection ─── */}
                 <div className="tn-suite-workbench">
                     {/* Top Case Selector Strip */}
                     <div className="tn-sw-selector-bar">
-                        <div className="tn-sw-case-tabs" role="tablist">
+                        <div className="tn-sw-case-tabs" role="tablist" aria-label="Generated Test Cases">
                             {SUITE_TEST_CASES.map((tc) => {
                                 const isSelected = tc.id === selectedTestId;
+                                const st = caseStatuses[tc.id] || tc.status;
                                 return (
                                     <button
                                         key={tc.id}
@@ -170,15 +196,20 @@ export const TestSuiteChapter = () => {
                                         <span className="tn-sw-tab-id">{tc.id}</span>
                                         <span className="tn-sw-tab-name">{tc.scenario}</span>
                                         <span className={`tn-sw-type-pill ${tc.typeClass}`}>{tc.type}</span>
+                                        <span className={`tn-sw-status-mini ${st === 'Approved' ? 'is-pass' : 'is-review'}`}>
+                                            {st === 'Approved' ? <Check size={10} /> : <AlertTriangle size={10} />}
+                                        </span>
                                     </button>
                                 );
                             })}
                         </div>
 
                         {/* Format Switcher */}
-                        <div className="tn-sw-format-toggle">
+                        <div className="tn-sw-format-toggle" role="tablist" aria-label="Specification View Toggle">
                             <button
                                 type="button"
+                                role="tab"
+                                aria-selected={viewMode === 'steps'}
                                 className={`tn-sw-toggle-btn ${viewMode === 'steps' ? 'is-active' : ''}`}
                                 onClick={() => setViewMode('steps')}
                             >
@@ -187,6 +218,8 @@ export const TestSuiteChapter = () => {
                             </button>
                             <button
                                 type="button"
+                                role="tab"
+                                aria-selected={viewMode === 'gherkin'}
                                 className={`tn-sw-toggle-btn ${viewMode === 'gherkin' ? 'is-active' : ''}`}
                                 onClick={() => setViewMode('gherkin')}
                             >
@@ -207,10 +240,28 @@ export const TestSuiteChapter = () => {
 
                             <div className="tn-sw-meta-right">
                                 <span className="tn-sw-priority-tag">{activeTest.priority} Priority</span>
-                                <span className={`tn-sw-status-tag ${activeTest.status === 'Pass' ? 'is-pass' : 'is-review'}`}>
-                                    {activeTest.status === 'Pass' ? <Check size={11} /> : <AlertTriangle size={11} />}
-                                    <span>{activeTest.status}</span>
-                                </span>
+                                <button
+                                    type="button"
+                                    className={`tn-sw-status-tag ${currentStatus === 'Approved' ? 'is-pass' : 'is-review'}`}
+                                    onClick={() => toggleStatus(activeTest.id)}
+                                    title="Click to toggle approval status"
+                                >
+                                    {currentStatus === 'Approved' ? <Check size={12} /> : <AlertTriangle size={12} />}
+                                    <span>{currentStatus}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Risk & Missing Scenario Callout */}
+                        <div className="tn-sw-risk-callout">
+                            <div className="tn-sw-rc-col">
+                                <span className="tn-sw-rc-lbl">RISK VECTOR ISOLATED:</span>
+                                <span className="tn-sw-rc-val">{activeTest.riskVector}</span>
+                            </div>
+                            <div className="tn-sw-rc-divider" />
+                            <div className="tn-sw-rc-col">
+                                <span className="tn-sw-rc-lbl">REQUIREMENT GAP RESOLVED:</span>
+                                <span className="tn-sw-rc-val text-accent">{activeTest.missingScenarioMitigated}</span>
                             </div>
                         </div>
 
@@ -272,8 +323,8 @@ export const TestSuiteChapter = () => {
                                 <div className="tn-sw-runner-chips">
                                     <span className="tn-runner-chip">Playwright Test (.spec.ts)</span>
                                     <span className="tn-runner-chip">Cypress (.cy.js)</span>
-                                    <span className="tn-runner-chip">Cucumber / Gherkin BDD</span>
-                                    <span className="tn-runner-chip">Postman / REST</span>
+                                    <span className="tn-runner-chip">Cucumber BDD (.feature)</span>
+                                    <span className="tn-runner-chip">JUnit XML Quality Gate</span>
                                 </div>
                             </div>
 

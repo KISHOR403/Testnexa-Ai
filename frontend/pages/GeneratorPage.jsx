@@ -1,5 +1,4 @@
 import React from 'react';
-import useScrollParallax from '../hooks/useScrollParallax';
 import Hero from '../components/Hero';
 import RequirementTransformation from '../components/RequirementTransformation';
 import EnterpriseWorkflowChapter from '../components/EnterpriseWorkflowChapter';
@@ -10,32 +9,30 @@ import FinalCTA from '../components/FinalCTA';
 import GlobalWorkflowIndicator from '../components/GlobalWorkflowIndicator';
 
 const GeneratorPage = () => {
-    useScrollParallax();
-
     return (
         <div className="home-page tn-marketing-root">
             {/* Subtle Vertical Workflow Indicator connecting chapters */}
             <GlobalWorkflowIndicator />
 
-            {/* Section A: Hero — Problem framing, core value proposition & emerging product canvas */}
+            {/* Hero: Problem framing, core value proposition & authentic product canvas */}
             <Hero />
 
-            {/* Section B: Requirement Intelligence — Asymmetric split layout with Annotation UI */}
+            {/* Section A: Requirement Intelligence — Natural language to verified acceptance logic */}
             <RequirementTransformation />
 
-            {/* Section C: Complete QA Workflow — Interactive Real Product Workspace */}
+            {/* Section B: Complete QA Workflow — Connected end-to-end engineering pipeline */}
             <EnterpriseWorkflowChapter />
 
-            {/* Section D: Executable Test Suites — Full-width developer experience with steps & BDD */}
+            {/* Section C: Review and Risk — Interactive test case inspection, edge cases & BDD */}
             <TestSuiteChapter />
 
-            {/* Section E: Traceability Architecture — Horizontal lineage flow from requirement to risk */}
+            {/* Section D: Bidirectional Traceability — Verifiable lineage from spec to risk mitigation */}
             <TraceabilityGraph />
 
-            {/* Section F: Developer Pipeline & Integrations — cURL terminal & runner ecosystem */}
+            {/* Section E: Developer Pipeline & Integrations — Native test runners, cURL & CI/CD quality gates */}
             <IntegrationsChapter />
 
-            {/* Section G: Production-Ready Final CTA — Editorial open canvas */}
+            {/* Final CTA: Editorial closing canvas */}
             <FinalCTA />
         </div>
     );

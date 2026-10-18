@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * AntigravityTypewriter
- * High-precision typewriter effect with iridescent glowing cursor
- * inspired by Google Antigravity's interactive headline typing.
+ * High-precision typewriter effect where text comes letter by letter (one by one)
+ * with a sleek glowing caret.
  */
 const PHRASES = [
+    'verified acceptance.',
     'release-ready tests.',
     'executable Playwright suites.',
-    'verified acceptance criteria.',
     'deterministic test graphs.'
 ];
 
 export const AntigravityTypewriter = ({ staticPrefix = 'From requirements to' }) => {
     const [phraseIndex, setPhraseIndex] = useState(0);
-    const [displayedText, setDisplayedText] = useState(PHRASES[0]);
+    const [displayedText, setDisplayedText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
-    const [typingSpeed, setTypingSpeed] = useState(70);
+    const [typingSpeed, setTypingSpeed] = useState(65);
 
     useEffect(() => {
         // Reduced motion check
@@ -30,11 +30,11 @@ export const AntigravityTypewriter = ({ staticPrefix = 'From requirements to' })
 
         let timer;
         if (!isDeleting) {
-            // Typing forward
+            // Typing forward (text comes one by one)
             if (displayedText.length < currentPhrase.length) {
                 timer = setTimeout(() => {
                     setDisplayedText(currentPhrase.slice(0, displayedText.length + 1));
-                    setTypingSpeed(45 + Math.random() * 35); // human-like variance
+                    setTypingSpeed(45 + Math.random() * 30);
                 }, typingSpeed);
             } else {
                 // Pause at end of phrase
@@ -48,13 +48,13 @@ export const AntigravityTypewriter = ({ staticPrefix = 'From requirements to' })
             if (displayedText.length > 0) {
                 timer = setTimeout(() => {
                     setDisplayedText(currentPhrase.slice(0, displayedText.length - 1));
-                    setTypingSpeed(25);
+                    setTypingSpeed(22);
                 }, typingSpeed);
             } else {
                 // Switch to next phrase
                 setIsDeleting(false);
                 setPhraseIndex((prev) => (prev + 1) % PHRASES.length);
-                setTypingSpeed(100);
+                setTypingSpeed(120);
             }
         }
 
@@ -62,7 +62,7 @@ export const AntigravityTypewriter = ({ staticPrefix = 'From requirements to' })
     }, [displayedText, isDeleting, phraseIndex, typingSpeed]);
 
     return (
-        <span className="tn-antigravity-heading-wrap" aria-label={`${staticPrefix} ${displayedText}`}>
+        <span className="tn-antigravity-heading-wrap" aria-label={`${staticPrefix} ${displayedText || PHRASES[phraseIndex]}`}>
             <span className="tn-heading-prefix">{staticPrefix}</span>{' '}
             <br className="tn-heading-break" />
             <span className="tn-typed-highlight">

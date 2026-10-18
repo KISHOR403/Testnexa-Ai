@@ -1,38 +1,54 @@
 import React, { useState } from 'react';
-import { Download, Terminal, Code, ArrowRight, Check, Copy, ExternalLink, GitPullRequest } from 'lucide-react';
+import { Download, Terminal, Code, ArrowRight, Check, Copy, ExternalLink, GitPullRequest, Layers, Sparkles } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
-const FORMAT_SPECS = [
+const EXPORT_CAPABILITIES = [
     {
-        key: 'json',
-        label: 'JSON Schema',
-        meta: 'Playwright & Cypress AST',
-        desc: 'Deterministic test models with atomic preconditions, action steps, and explicit assertion objects.'
+        key: 'playwright',
+        label: 'Playwright (.spec.ts)',
+        category: 'AVAILABLE NOW',
+        statusClass: 'is-available',
+        meta: 'TypeScript test suite',
+        desc: 'Atomic assertions, page object models, strict locators, and deterministic wait assertions ready to run with npx playwright test.'
+    },
+    {
+        key: 'cypress',
+        label: 'Cypress (.cy.js)',
+        category: 'AVAILABLE NOW',
+        statusClass: 'is-available',
+        meta: 'End-to-end spec',
+        desc: 'Browser-driven test scenarios formatted with cy.intercept(), custom commands, and chained assertion steps.'
     },
     {
         key: 'gherkin',
-        label: 'Cucumber BDD',
-        meta: '.feature spec syntax',
-        desc: 'Executable Given-When-Then human-readable scenarios formatted for automated BDD execution.'
+        label: 'Cucumber BDD (.feature)',
+        category: 'AVAILABLE NOW',
+        statusClass: 'is-available',
+        meta: 'Given-When-Then syntax',
+        desc: 'Executable human-readable feature files compatible with Cucumber.js, Behave, and SpecFlow automation frameworks.'
     },
     {
         key: 'junit',
-        label: 'JUnit XML / CI',
-        meta: 'GitHub Actions & GitLab',
-        desc: 'Standardized test result and assertion schemas ready for immediate CI/CD quality gate enforcement.'
+        label: 'JUnit XML / CI Schema',
+        category: 'AVAILABLE NOW',
+        statusClass: 'is-available',
+        meta: 'CI/CD quality gates',
+        desc: 'Standardized test reporting schemas ready for immediate test result parsing and PR build-blocking in GitHub Actions and GitLab.'
     },
     {
         key: 'jira',
-        label: 'Jira & Zephyr Sync',
-        meta: 'Bidirectional test case sync',
-        desc: 'Direct issue sync mapping requirements, acceptance criteria, and generated tests to sprint tickets.'
+        label: 'Jira Software & Zephyr',
+        category: 'EXPORT / WEBHOOK SYNC',
+        statusClass: 'is-sync',
+        meta: 'Issue & test case sync',
+        desc: 'Export structured test scenarios directly into Jira tickets and Zephyr Squad/Scale test cycles via REST webhook payloads.'
     }
 ];
 
 export const IntegrationsChapter = () => {
     const [tabMode, setTabMode] = useState('curl'); // 'curl' | 'response'
     const [copied, setCopied] = useState(false);
-    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+    const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
     const curlSnippet = `curl -X POST https://api.testnexa.ai/v1/suites/generate \\
   -H "Authorization: Bearer tn_live_sec_9841..." \\
@@ -50,14 +66,15 @@ export const IntegrationsChapter = () => {
     "suite_id": "suite_842a_prod",
     "requirement_id": "REQ-142",
     "cases_generated": 24,
-    "coverage_pct": 94.2,
+    "clause_coverage_pct": 87.5,
+    "runners": ["playwright", "cypress", "gherkin"],
     "test_cases": [
       {
         "id": "TC-001",
         "title": "Valid password reset submission",
         "type": "Functional",
         "assertions": 3,
-        "status": "Ready"
+        "status": "Approved"
       }
     ]
   }
@@ -71,16 +88,16 @@ export const IntegrationsChapter = () => {
 
     return (
         <section
-            id="developers"
+            id="integrations"
             className="tn-section tn-integrations-section"
             aria-labelledby="integrations-heading"
         >
             <div className="tn-container">
-                {/* ─── Editorial Header (Open Canvas) ─── */}
+                {/* ─── Editorial Header ─── */}
                 <div className="tn-int-header-group">
                     <div className="tn-chapter-eyebrow">
                         <span className="tn-kicker-dot" />
-                        <span>DEVELOPER PIPELINE & RUNNERS</span>
+                        <span>DEVELOPER RUNNERS & CI/CD</span>
                     </div>
 
                     <h2 id="integrations-heading" className="tn-int-title">
@@ -88,24 +105,26 @@ export const IntegrationsChapter = () => {
                     </h2>
 
                     <p className="tn-int-subtitle">
-                        Trigger generation via REST API on pull requests or export structured test suites into Playwright, Cypress, Jira, and GitHub Actions.
+                        Trigger test generation via REST API on pull requests or export structured test suites into Playwright, Cypress, Cucumber BDD, and GitHub Actions.
                     </p>
                 </div>
 
-                {/* ─── Two-Column Split Workspace (Minimal Chrome) ─── */}
+                {/* ─── Two-Column Split Workspace ─── */}
                 <div className="tn-int-workspace-grid">
-                    {/* Left: Format Ecosystem Specs */}
+                    {/* Left: Real Export Capabilities with clear availability labels */}
                     <div className="tn-int-formats-col">
                         <div className="tn-int-col-head">
-                            <span className="tn-int-col-tag">NATIVE SCHEMAS & PROTOCOLS</span>
+                            <span className="tn-int-col-tag">NATIVE EXPORTS & RUNNER TARGETS</span>
                         </div>
 
                         <div className="tn-format-rows-list">
-                            {FORMAT_SPECS.map((fmt) => (
+                            {EXPORT_CAPABILITIES.map((fmt) => (
                                 <div key={fmt.key} className="tn-format-item-row">
                                     <div className="tn-fitem-head">
                                         <span className="tn-fitem-name">{fmt.label}</span>
-                                        <span className="tn-fitem-meta">{fmt.meta}</span>
+                                        <span className={`tn-fitem-status-pill ${fmt.statusClass}`}>
+                                            {fmt.category}
+                                        </span>
                                     </div>
                                     <p className="tn-fitem-desc">{fmt.desc}</p>
                                 </div>
@@ -114,12 +133,8 @@ export const IntegrationsChapter = () => {
 
                         <div className="tn-int-docs-cta">
                             <a
-                                href={getTargetUrl('/app/workspace')}
+                                href="/api-reference"
                                 className="tn-inline-link"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    handleWorkspaceEntry('/app/workspace');
-                                }}
                             >
                                 <span>Read REST API documentation</span>
                                 <ArrowRight size={13} />
@@ -145,7 +160,7 @@ export const IntegrationsChapter = () => {
                                     <span className="tn-term-dot" />
                                 </div>
 
-                                <div className="tn-term-tabs" role="tablist">
+                                <div className="tn-term-tabs" role="tablist" aria-label="Terminal API Tabs">
                                     <button
                                         type="button"
                                         role="tab"
@@ -173,37 +188,37 @@ export const IntegrationsChapter = () => {
                                     className="tn-term-copy-btn"
                                     onClick={handleCopy}
                                     title="Copy code snippet"
+                                    aria-label="Copy code snippet"
                                 >
-                                    {copied ? <Check size={12} className="text-green" /> : <Copy size={12} />}
+                                    {copied ? <Check size={12} className="text-accent" /> : <Copy size={12} />}
                                     <span>{copied ? 'Copied' : 'Copy'}</span>
                                 </button>
                             </div>
 
-                            {/* Code Area with Animated Terminal Cursor */}
+                            {/* Code Area */}
                             <div className="tn-term-body">
                                 <pre className="tn-term-code">
                                     <code>{tabMode === 'curl' ? curlSnippet : responseSnippet}</code>
-                                    <span className="tn-int-prompt-cursor" aria-hidden="true" />
                                 </pre>
                             </div>
 
                             {/* Terminal Footer Info */}
                             <div className="tn-term-footer">
-                                <span className="tn-term-meta-tag">ENDPOINTS:</span>
+                                <span className="tn-term-meta-tag">SPECIFICATION:</span>
                                 <span className="tn-term-meta-text">POST /v1/suites/generate &bull; Rate limit: 120 req/min &bull; Latency: ~820ms</span>
                             </div>
                         </div>
 
-                        {/* Runner Ecosystem Logos / Chips */}
+                        {/* Runner Ecosystem Chips */}
                         <div className="tn-runner-ecosystem-bar">
                             <span className="tn-reco-label">COMPATIBLE RUNNERS:</span>
                             <div className="tn-reco-chips">
                                 <span className="tn-reco-chip">Playwright</span>
                                 <span className="tn-reco-chip">Cypress</span>
-                                <span className="tn-reco-chip">Jest / Vitest</span>
+                                <span className="tn-reco-chip">Cucumber</span>
+                                <span className="tn-reco-chip">JUnit XML</span>
                                 <span className="tn-reco-chip">GitHub Actions</span>
                                 <span className="tn-reco-chip">Jira Software</span>
-                                <span className="tn-reco-chip">TestRail</span>
                             </div>
                         </div>
                     </div>

@@ -29,7 +29,7 @@ export const Footer = () => {
                         <ul>
                             <li><Link to="/">Overview</Link></li>
                             <li><a href="/#workflow">Workflow</a></li>
-                            <li><a href="/#features">Features</a></li>
+                            <li><a href="/#review-risk">Features</a></li>
                             <li><Link to="/app/test-suites">Test Suites</Link></li>
                             <li><Link to="/app/history">History</Link></li>
                         </ul>

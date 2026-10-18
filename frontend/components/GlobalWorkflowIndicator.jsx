@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 const CHAPTER_STAGES = [
     { id: 'product-canvas', label: '01 Canvas' },
     { id: 'transformation', label: '02 Intelligence' },
-    { id: 'solutions', label: '03 Workflow' },
-    { id: 'test-suite', label: '04 Test Suites' },
-    { id: 'traceability', label: '05 Lineage' },
-    { id: 'developers', label: '06 Pipeline' }
+    { id: 'workflow', label: '03 Workflow' },
+    { id: 'review-risk', label: '04 Review & Risk' },
+    { id: 'traceability', label: '05 Traceability' },
+    { id: 'integrations', label: '06 Pipeline' }
 ];
 
 export const GlobalWorkflowIndicator = () => {

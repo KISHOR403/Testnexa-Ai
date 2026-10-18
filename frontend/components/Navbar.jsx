@@ -12,8 +12,8 @@ import TestNexaLogo from './TestNexaLogo';
 
 const MARKETING_LINKS = [
     { type: 'scroll', id: 'product-canvas', label: 'Product' },
-    { type: 'scroll', id: 'transformation', label: 'Workflow' },
-    { type: 'scroll', id: 'test-suite', label: 'Features' },
+    { type: 'scroll', id: 'workflow', label: 'Workflow' },
+    { type: 'scroll', id: 'review-risk', label: 'Features' },
     { type: 'route', path: '/help', label: 'Docs' },
     { type: 'route', path: '/api-reference', label: 'API' }
 ];
@@ -28,13 +28,14 @@ export const Navbar = ({ isMarketingLayout = true }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const navRef = useRef(null);
+    const mobileDrawerRef = useRef(null);
 
     // Smooth scroll helper for in-page anchors
     const handleScrollTo = useCallback((elementId) => {
         const doScroll = () => {
             const el = document.getElementById(elementId);
             if (el) {
-                const yOffset = -80;
+                const yOffset = -75;
                 const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
                 window.scrollTo({ top: y, behavior: 'smooth' });
             }
@@ -62,10 +63,20 @@ export const Navbar = ({ isMarketingLayout = true }) => {
         setIsMobileNavOpen(false);
     }, [location.pathname]);
 
-    // Lock body scroll when mobile nav drawer is open
+    // Lock body scroll and handle Escape key when mobile nav drawer is open
     useEffect(() => {
         if (isMobileNavOpen) {
             document.body.style.overflow = 'hidden';
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    setIsMobileNavOpen(false);
+                }
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            return () => {
+                document.body.style.overflow = '';
+                window.removeEventListener('keydown', handleKeyDown);
+            };
         } else {
             document.body.style.overflow = '';
         }
@@ -171,8 +182,12 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                 <div
                     className="tn-mobile-drawer-overlay"
                     onClick={() => setIsMobileNavOpen(false)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Navigation Menu"
                 >
                     <div
+                        ref={mobileDrawerRef}
                         className="tn-mobile-drawer"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -229,7 +244,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                                         onClick={() => setIsMobileNavOpen(false)}
                                     >
                                         <LogIn size={15} />
-                                        <span>Sign In</span>
+                                        <span>Sign in</span>
                                     </NavLink>
                                     <a
                                         href={getTargetUrl('/app/workspace')}
