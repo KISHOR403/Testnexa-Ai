@@ -147,10 +147,14 @@ exports.register = async (req, res) => {
         // Send welcome email to new user asynchronously
         sendWelcomeEmail(cleanName, cleanEmail).catch(e => logger.error('Welcome email error:', e?.message || e));
 
+        // Provision personal workspace
+        const workspace = await supabaseService.getUserPrimaryWorkspace(sbUser.id, cleanName, cleanEmail);
+
         return res.status(201).json({
             success: true,
             user: createdUser,
-            token
+            token,
+            workspace
         });
 
     } catch (error) {
@@ -192,6 +196,9 @@ exports.login = async (req, res) => {
         const session = await createAuthSession(user.id, req, isPersistent);
         const token = generateToken(user.id, session?.id || session?._id, isPersistent);
 
+        // Fetch or provision user's primary personal workspace
+        const workspace = await supabaseService.getUserPrimaryWorkspace(user.id, user.name || user.display_name, user.email);
+
         return res.json({
             success: true,
             user: {
@@ -206,7 +213,8 @@ exports.login = async (req, res) => {
                 totalTestsGenerated: user.total_tests_generated || 0,
                 createdAt: user.created_at
             },
-            token
+            token,
+            workspace
         });
 
     } catch (error) {
@@ -228,6 +236,12 @@ exports.getMe = async (req, res) => {
             else if (req.user.githubId) provider = 'github';
         }
 
+        const workspace = await supabaseService.getUserPrimaryWorkspace(
+            userId,
+            req.user.name || req.user.displayName,
+            req.user.email
+        );
+
         res.json({
             success: true,
             user: {
@@ -242,7 +256,8 @@ exports.getMe = async (req, res) => {
                 passwordChangedAt: req.user.passwordChangedAt,
                 totalTestsGenerated: req.user.totalTestsGenerated || 0,
                 createdAt: req.user.createdAt
-            }
+            },
+            workspace
         });
     } catch (error) {
         console.error('GetMe error:', error);

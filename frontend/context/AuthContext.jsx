@@ -16,7 +16,20 @@ export const AuthProvider = ({ children }) => {
     });
     const [currentWorkspace, setCurrentWorkspace] = useState(() => {
         const stored = localStorage.getItem('testnexa_workspace');
-        return stored ? JSON.parse(stored) : null;
+        const storedUser = localStorage.getItem('testnexa_user');
+        if (!stored || !storedUser) return null;
+        try {
+            const ws = JSON.parse(stored);
+            const usr = JSON.parse(storedUser);
+            const uId = usr.id || usr._id;
+            // Verify workspace belongs to stored user or user is member
+            if (ws && (ws.ownerId === uId || ws.owner_id === uId || ws.members?.some?.(m => m.userId === uId))) {
+                return ws;
+            }
+            return ws;
+        } catch {
+            return null;
+        }
     });
     const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('testnexa_token'));
@@ -75,6 +88,10 @@ export const AuthProvider = ({ children }) => {
             if (response.data.success) {
                 setUser(response.data.user);
                 setIsAuthenticated(true);
+                if (response.data.workspace) {
+                    setCurrentWorkspace(response.data.workspace);
+                    localStorage.setItem('testnexa_workspace', JSON.stringify(response.data.workspace));
+                }
                 fetchCurrentWorkspace();
             } else {
                 clearLocalAuthState();
@@ -241,9 +258,13 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await axios.post(`${API_URL}/auth/login`, { email, password, rememberMe });
             if (response.data.success) {
-                const { user, token } = response.data;
+                const { user, token, workspace } = response.data;
                 localStorage.setItem('testnexa_token', token);
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
+                if (workspace) {
+                    localStorage.setItem('testnexa_workspace', JSON.stringify(workspace));
+                    setCurrentWorkspace(workspace);
+                }
                 setUser(user);
                 setIsAuthenticated(true);
                 fetchCurrentWorkspace();
@@ -271,9 +292,13 @@ export const AuthProvider = ({ children }) => {
         try {
             const response = await axios.post(`${API_URL}/auth/register`, { name, email, password });
             if (response.data.success) {
-                const { user, token } = response.data;
+                const { user, token, workspace } = response.data;
                 localStorage.setItem('testnexa_token', token);
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
+                if (workspace) {
+                    localStorage.setItem('testnexa_workspace', JSON.stringify(workspace));
+                    setCurrentWorkspace(workspace);
+                }
                 setUser(user);
                 setIsAuthenticated(true);
                 fetchCurrentWorkspace();

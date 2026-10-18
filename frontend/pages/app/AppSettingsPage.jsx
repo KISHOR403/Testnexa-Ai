@@ -139,7 +139,7 @@ const AppSettingsPage = () => {
     const [isLoadingWorkspaceData, setIsLoadingWorkspaceData] = useState(false);
     const [environmentsLoading, setEnvironmentsLoading] = useState(false);
     const [workspaceFetchError, setWorkspaceFetchError] = useState(null);
-    const [editWorkspaceName, setEditWorkspaceName] = useState(currentWorkspace?.name || 'Enterprise QA Core');
+    const [editWorkspaceName, setEditWorkspaceName] = useState(currentWorkspace?.name || '');
     const [editDefaultEnvId, setEditDefaultEnvId] = useState(currentWorkspace?.defaultEnvironmentId || '');
     const [nameValidationError, setNameValidationError] = useState(null);
     const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
@@ -152,7 +152,7 @@ const AppSettingsPage = () => {
         if (currentWorkspace) {
             setPersistedWorkspace(currentWorkspace);
             setEditWorkspaceName(prev => {
-                if (!prev || prev === 'Enterprise QA Core' || prev === persistedWorkspace?.name) {
+                if (!prev || prev === persistedWorkspace?.name) {
                     return currentWorkspace.name;
                 }
                 return prev;
@@ -269,13 +269,25 @@ const AppSettingsPage = () => {
         }
     };
 
-    // Calculate dirty state
+    // Calculate dirty state and role permissions
+    const isOwnerOrAdmin = workspaceRole === 'owner' || workspaceRole === 'admin';
     const currentPersistedName = (persistedWorkspace?.name || currentWorkspace?.name || '').trim();
     const currentPersistedEnv = persistedWorkspace?.defaultEnvironmentId || currentWorkspace?.defaultEnvironmentId || '';
     const isNameDirty = editWorkspaceName.trim() !== currentPersistedName;
     const isEnvDirty = (editDefaultEnvId || '') !== (currentPersistedEnv || '');
     const isWorkspaceDirty = isNameDirty || isEnvDirty;
-    const canSaveWorkspace = isWorkspaceDirty && !nameValidationError && !isSavingWorkspace && !isLoadingWorkspaceData;
+    const canSaveWorkspace = isOwnerOrAdmin && isWorkspaceDirty && !nameValidationError && !isSavingWorkspace && !isLoadingWorkspaceData;
+
+    // Filter localhost/loopback in production deployments
+    const displayedEnvironments = workspaceEnvironments.filter(env => {
+        if (import.meta.env.PROD || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+            const url = (env.baseUrl || '').toLowerCase();
+            if (url.includes('localhost') || url.includes('127.0.0.1') || url.includes('0.0.0.0')) {
+                return false;
+            }
+        }
+        return true;
+    });
 
     // Reset unsaved changes
     const handleResetWorkspace = () => {
@@ -1387,11 +1399,18 @@ const AppSettingsPage = () => {
                                 </div>
                             )}
 
+                            {!isOwnerOrAdmin && (
+                                <div className="app-settings-feedback info" role="status" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                    <ShieldCheck size={16} style={{ flexShrink: 0, color: '#8BAF9A' }} />
+                                    <span>You are a <strong>{workspaceRole}</strong> in this workspace. Workspace settings and environments can only be modified by owners and administrators.</span>
+                                </div>
+                            )}
+
                             <div className="app-settings-info-list">
                                 {/* Workspace Name */}
                                 <div className="app-settings-info-row" style={{ alignItems: 'flex-start' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                                        <label htmlFor="wsName" className="app-settings-info-label" style={{ cursor: 'pointer' }}>
+                                        <label htmlFor="wsName" className="app-settings-info-label" style={{ cursor: isOwnerOrAdmin ? 'pointer' : 'default' }}>
                                             Workspace Name
                                         </label>
                                         <span style={{ fontSize: '0.74rem', color: '#777E7E' }}>
@@ -1408,9 +1427,12 @@ const AppSettingsPage = () => {
                                             value={editWorkspaceName}
                                             onChange={handleWorkspaceNameChange}
                                             placeholder="Enter workspace name"
-                                            disabled={isSavingWorkspace || isLoadingWorkspaceData}
+                                            disabled={!isOwnerOrAdmin || isSavingWorkspace || isLoadingWorkspaceData}
+                                            readOnly={!isOwnerOrAdmin}
                                             style={{
-                                                borderColor: nameValidationError ? '#F87171' : undefined
+                                                borderColor: nameValidationError ? '#F87171' : undefined,
+                                                opacity: !isOwnerOrAdmin ? 0.75 : 1,
+                                                cursor: !isOwnerOrAdmin ? 'not-allowed' : 'text'
                                             }}
                                         />
                                         {nameValidationError && (
@@ -1485,7 +1507,7 @@ const AppSettingsPage = () => {
                                 {/* Default Environment */}
                                 <div className="app-settings-info-row" style={{ alignItems: 'flex-start' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                                        <label htmlFor="wsDefaultEnv" className="app-settings-info-label" style={{ cursor: 'pointer' }}>
+                                        <label htmlFor="wsDefaultEnv" className="app-settings-info-label" style={{ cursor: isOwnerOrAdmin ? 'pointer' : 'default' }}>
                                             Default Environment
                                         </label>
                                         <span style={{ fontSize: '0.74rem', color: '#777E7E' }}>
@@ -1499,24 +1521,28 @@ const AppSettingsPage = () => {
                                             className="app-settings-input"
                                             value={editDefaultEnvId}
                                             onChange={handleEnvironmentChange}
-                                            disabled={environmentsLoading || isSavingWorkspace || workspaceEnvironments.length === 0}
+                                            disabled={!isOwnerOrAdmin || environmentsLoading || isSavingWorkspace || displayedEnvironments.length === 0}
+                                            style={{
+                                                opacity: !isOwnerOrAdmin ? 0.75 : 1,
+                                                cursor: !isOwnerOrAdmin ? 'not-allowed' : 'pointer'
+                                            }}
                                         >
                                             {environmentsLoading ? (
                                                 <option value="" disabled>Loading configured environments...</option>
-                                            ) : workspaceEnvironments.length === 0 ? (
+                                            ) : displayedEnvironments.length === 0 ? (
                                                 <option value="" disabled>No environments configured</option>
                                             ) : (
                                                 <>
                                                     <option value="">None (No default environment)</option>
-                                                    {workspaceEnvironments.map((env) => (
+                                                    {displayedEnvironments.map((env) => (
                                                         <option key={env.id} value={env.id}>
-                                                            {env.name} ({env.type}{env.baseUrl ? ` • ${env.baseUrl}` : ''})
+                                                             {env.name} ({env.type || 'Custom'}{env.baseUrl ? ` • ${env.baseUrl}` : ''})
                                                         </option>
                                                     ))}
                                                 </>
                                             )}
                                         </select>
-                                        {workspaceEnvironments.length === 0 && !environmentsLoading && (
+                                        {displayedEnvironments.length === 0 && !environmentsLoading && (
                                             <p style={{ fontSize: '0.74rem', color: '#777E7E', margin: '0.35rem 0 0', lineHeight: 1.4 }}>
                                                 An environment must be configured before it can be selected as default.
                                             </p>
@@ -1530,35 +1556,43 @@ const AppSettingsPage = () => {
 
                             {/* Form Actions */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
-                                {isWorkspaceDirty && (
-                                    <button
-                                        type="button"
-                                        id="btnCancelWorkspaceChanges"
-                                        className="app-settings-btn app-settings-btn--secondary"
-                                        onClick={handleResetWorkspace}
-                                        disabled={isSavingWorkspace}
-                                        title="Discard unsaved changes and restore persisted settings"
-                                    >
-                                        <RotateCcw size={14} />
-                                        <span>Reset</span>
-                                    </button>
+                                {!isOwnerOrAdmin ? (
+                                    <span style={{ fontSize: '0.76rem', color: '#777E7E' }}>
+                                        Read-only mode • Administrative privileges required to persist changes
+                                    </span>
+                                ) : (
+                                    <>
+                                        {isWorkspaceDirty && (
+                                            <button
+                                                type="button"
+                                                id="btnCancelWorkspaceChanges"
+                                                className="app-settings-btn app-settings-btn--secondary"
+                                                onClick={handleResetWorkspace}
+                                                disabled={isSavingWorkspace}
+                                                title="Discard unsaved changes and restore persisted settings"
+                                            >
+                                                <RotateCcw size={14} />
+                                                <span>Reset</span>
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            id="btnSaveWorkspaceChanges"
+                                            className="app-settings-btn app-settings-btn--primary"
+                                            onClick={handleSaveWorkspace}
+                                            disabled={!canSaveWorkspace}
+                                        >
+                                            {isSavingWorkspace ? (
+                                                <>
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                    <span>Saving Changes...</span>
+                                                </>
+                                            ) : (
+                                                <span>Save Changes</span>
+                                            )}
+                                        </button>
+                                    </>
                                 )}
-                                <button
-                                    type="button"
-                                    id="btnSaveWorkspaceChanges"
-                                    className="app-settings-btn app-settings-btn--primary"
-                                    onClick={handleSaveWorkspace}
-                                    disabled={!canSaveWorkspace}
-                                >
-                                    {isSavingWorkspace ? (
-                                        <>
-                                            <Loader2 size={14} className="animate-spin" />
-                                            <span>Saving Changes...</span>
-                                        </>
-                                    ) : (
-                                        <span>Save Changes</span>
-                                    )}
-                                </button>
                             </div>
                         </>
                     )}

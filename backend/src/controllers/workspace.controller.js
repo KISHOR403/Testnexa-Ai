@@ -1,6 +1,7 @@
 const supabaseService = require('../services/supabaseData.service');
 const logger = require('../utils/logger');
 const { parseClientIp } = require('../utils/deviceParser');
+const { validateEnvironmentUrl } = require('../utils/ssrfValidator');
 
 /**
  * Controller for Workspace Settings, Tenant Isolation, and Environments
@@ -354,8 +355,22 @@ const getWorkspaceEnvironments = async (req, res) => {
 
         const environments = await supabaseService.getWorkspaceEnvironments(effectiveWorkspaceId);
 
+        // Security: In production, filter out localhost/loopback environments
+        const isProduction = process.env.NODE_ENV === 'production';
+        const filtered = environments.filter(env => {
+            if (!isProduction) return true;
+            if (!env.baseUrl) return true;
+            try {
+                const u = new URL(env.baseUrl);
+                const host = u.hostname.toLowerCase();
+                return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1' && host !== '0.0.0.0';
+            } catch {
+                return false;
+            }
+        });
+
         // Security: Ensure no credentials, API keys, or secrets are returned
-        const sanitized = environments.map(env => ({
+        const sanitized = filtered.map(env => ({
             id: env.id,
             workspaceId: env.workspaceId,
             name: env.name,
@@ -380,9 +395,160 @@ const getWorkspaceEnvironments = async (req, res) => {
     }
 };
 
+/**
+ * POST /api/v1/workspaces/:workspaceId/environments
+ * Create a new environment for the workspace with SSRF validation
+ */
+const createWorkspaceEnvironment = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let effectiveWorkspaceId = req.params.workspaceId;
+        if (!effectiveWorkspaceId || effectiveWorkspaceId === 'current') {
+            const primary = await supabaseService.getUserPrimaryWorkspace(userId, req.user.name || '');
+            if (!primary) {
+                return res.status(404).json({
+                    success: false,
+                    code: 'WORKSPACE_NOT_FOUND',
+                    message: 'No active workspace found for user.'
+                });
+            }
+            effectiveWorkspaceId = primary.id;
+        }
+
+        // 1. Tenant Isolation: Verify membership
+        const membership = await supabaseService.getWorkspaceMembership(effectiveWorkspaceId, userId);
+        if (!membership || membership.status !== 'active') {
+            return res.status(403).json({
+                success: false,
+                code: 'FORBIDDEN',
+                message: 'You do not have permission to access this workspace.'
+            });
+        }
+
+        // 2. Authorization: Only owner and admin can configure environments
+        if (membership.role !== 'owner' && membership.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                code: 'PERMISSION_DENIED',
+                message: 'Only workspace owners and administrators can add environments.'
+            });
+        }
+
+        // 3. Validate name
+        const name = (req.body.name || '').trim();
+        if (!name || name.length < 2 || name.length > 60) {
+            return res.status(400).json({
+                success: false,
+                code: 'INVALID_NAME',
+                message: 'Environment name must be between 2 and 60 characters.'
+            });
+        }
+
+        // 4. Validate baseUrl with SSRF protection
+        const baseUrl = (req.body.baseUrl || '').trim();
+        if (baseUrl) {
+            const isDev = process.env.NODE_ENV !== 'production';
+            const check = validateEnvironmentUrl(baseUrl, isDev);
+            if (!check.valid) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'SSRF_BLOCKED',
+                    message: check.message
+                });
+            }
+        }
+
+        const env = await supabaseService.createWorkspaceEnvironment(effectiveWorkspaceId, {
+            name,
+            slug: req.body.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            baseUrl
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'Environment created successfully.',
+            data: {
+                id: env.id,
+                workspaceId: env.workspaceId,
+                name: env.name,
+                slug: env.slug,
+                baseUrl: env.baseUrl,
+                isActive: env.isActive,
+                createdAt: env.createdAt,
+                updatedAt: env.updatedAt
+            }
+        });
+    } catch (error) {
+        logger.error('Error creating workspace environment:', error);
+        return res.status(500).json({
+            success: false,
+            code: 'INTERNAL_ERROR',
+            message: 'Failed to create workspace environment.'
+        });
+    }
+};
+
+/**
+ * DELETE /api/v1/workspaces/:workspaceId/environments/:environmentId
+ * Delete an environment from a workspace
+ */
+const deleteWorkspaceEnvironment = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        let effectiveWorkspaceId = req.params.workspaceId;
+        const environmentId = req.params.environmentId;
+
+        if (!effectiveWorkspaceId || effectiveWorkspaceId === 'current') {
+            const primary = await supabaseService.getUserPrimaryWorkspace(userId, req.user.name || '');
+            if (!primary) {
+                return res.status(404).json({
+                    success: false,
+                    code: 'WORKSPACE_NOT_FOUND',
+                    message: 'No active workspace found for user.'
+                });
+            }
+            effectiveWorkspaceId = primary.id;
+        }
+
+        const membership = await supabaseService.getWorkspaceMembership(effectiveWorkspaceId, userId);
+        if (!membership || membership.status !== 'active') {
+            return res.status(403).json({
+                success: false,
+                code: 'FORBIDDEN',
+                message: 'You do not have permission to access this workspace.'
+            });
+        }
+
+        if (membership.role !== 'owner' && membership.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                code: 'PERMISSION_DENIED',
+                message: 'Only workspace owners and administrators can delete environments.'
+            });
+        }
+
+        await supabaseService.deleteWorkspaceEnvironment(effectiveWorkspaceId, environmentId);
+
+        return res.json({
+            success: true,
+            message: 'Environment deleted successfully.'
+        });
+    } catch (error) {
+        logger.error('Error deleting workspace environment:', error);
+        return res.status(500).json({
+            success: false,
+            code: 'INTERNAL_ERROR',
+            message: 'Failed to delete workspace environment.'
+        });
+    }
+};
+
 module.exports = {
     getCurrentWorkspaceSettings,
     getWorkspaceSettings,
     updateWorkspaceSettings,
-    getWorkspaceEnvironments
+    getWorkspaceEnvironments,
+    createWorkspaceEnvironment,
+    deleteWorkspaceEnvironment
 };
+

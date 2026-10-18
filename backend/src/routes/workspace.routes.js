@@ -4,7 +4,9 @@ const {
     getCurrentWorkspaceSettings,
     getWorkspaceSettings,
     updateWorkspaceSettings,
-    getWorkspaceEnvironments
+    getWorkspaceEnvironments,
+    createWorkspaceEnvironment,
+    deleteWorkspaceEnvironment
 } = require('../controllers/workspace.controller');
 
 const router = express.Router();
@@ -16,6 +18,8 @@ router.use(protect);
 router.get('/current', getCurrentWorkspaceSettings);
 router.get('/current/settings', getCurrentWorkspaceSettings);
 router.get('/current/environments', getWorkspaceEnvironments);
+router.post('/current/environments', createWorkspaceEnvironment);
+router.delete('/current/environments/:environmentId', deleteWorkspaceEnvironment);
 router.patch('/current/settings', updateWorkspaceSettings);
 router.put('/current/settings', updateWorkspaceSettings);
 router.patch('/current', updateWorkspaceSettings);
@@ -28,5 +32,8 @@ router.put('/:workspaceId/settings', updateWorkspaceSettings);
 
 // Workspace environments
 router.get('/:workspaceId/environments', getWorkspaceEnvironments);
+router.post('/:workspaceId/environments', createWorkspaceEnvironment);
+router.delete('/:workspaceId/environments/:environmentId', deleteWorkspaceEnvironment);
 
 module.exports = router;
+

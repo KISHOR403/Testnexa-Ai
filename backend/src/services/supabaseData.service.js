@@ -1,6 +1,9 @@
 const supabase = require('../config/supabase');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const { validateEnvironmentUrl } = require('../utils/ssrfValidator');
 
 /**
  * Supabase Data Service
@@ -16,6 +19,55 @@ class SupabaseDataService {
         this.inMemoryEnvironments = new Map();
         this.inMemoryAuditLogs = [];
         this.workspacesTableAvailable = null;
+        this.storeFilePath = path.resolve(__dirname, '../../data/workspaces_store.json');
+        this._loadDiskWorkspacesStore();
+    }
+
+    _loadDiskWorkspacesStore() {
+        try {
+            if (fs.existsSync(this.storeFilePath)) {
+                const raw = fs.readFileSync(this.storeFilePath, 'utf8');
+                const data = JSON.parse(raw);
+                if (data.workspaces && typeof data.workspaces === 'object') {
+                    for (const [k, v] of Object.entries(data.workspaces)) {
+                        this.inMemoryWorkspaces.set(k, v);
+                    }
+                }
+                if (data.members && typeof data.members === 'object') {
+                    for (const [k, v] of Object.entries(data.members)) {
+                        this.inMemoryWorkspaceMembers.set(k, v);
+                    }
+                }
+                if (data.environments && typeof data.environments === 'object') {
+                    for (const [k, v] of Object.entries(data.environments)) {
+                        this.inMemoryEnvironments.set(k, v);
+                    }
+                }
+                if (Array.isArray(data.auditLogs)) {
+                    this.inMemoryAuditLogs = data.auditLogs;
+                }
+            }
+        } catch (err) {
+            logger.warn('Failed to load disk workspace store:', err.message);
+        }
+    }
+
+    _saveDiskWorkspacesStore() {
+        try {
+            const dir = path.dirname(this.storeFilePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            const data = {
+                workspaces: Object.fromEntries(this.inMemoryWorkspaces),
+                members: Object.fromEntries(this.inMemoryWorkspaceMembers),
+                environments: Object.fromEntries(this.inMemoryEnvironments),
+                auditLogs: this.inMemoryAuditLogs.slice(-200)
+            };
+            fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
+        } catch (err) {
+            logger.warn('Failed to save disk workspace store:', err.message);
+        }
     }
 
     get isAvailable() {
@@ -1117,54 +1169,39 @@ class SupabaseDataService {
             }
         }
 
-        // Auto-provision primary workspace for the user
+        // Auto-provision personal primary workspace for the user
         const wsId = 'ws_' + crypto.randomBytes(8).toString('hex');
-        const envStagingId = 'env_' + crypto.randomBytes(6).toString('hex');
-        const envProdId = 'env_' + crypto.randomBytes(6).toString('hex');
-        const envLocalId = 'env_' + crypto.randomBytes(6).toString('hex');
         const now = new Date().toISOString();
-        const wsName = userName ? `${userName}'s Workspace` : 'Enterprise QA Core';
 
-        // Provision default environments
-        const defaultEnvs = [
-            {
-                id: envStagingId,
-                workspaceId: wsId,
-                name: 'Staging',
-                slug: 'staging',
-                baseUrl: 'https://staging.testnexa.ai',
-                isActive: true,
-                createdAt: now,
-                updatedAt: now
-            },
-            {
-                id: envProdId,
-                workspaceId: wsId,
-                name: 'Production',
-                slug: 'production',
-                baseUrl: 'https://app.testnexa.ai',
-                isActive: true,
-                createdAt: now,
-                updatedAt: now
-            },
-            {
-                id: envLocalId,
-                workspaceId: wsId,
-                name: 'Local Development',
-                slug: 'local',
-                baseUrl: 'http://localhost:5174',
-                isActive: true,
-                createdAt: now,
-                updatedAt: now
-            }
-        ];
+        // Derive personalized workspace name (never shared or hardcoded 'Enterprise QA Core')
+        let cleanName = (userName || '').trim();
+        if (!cleanName && typeof userEmail === 'string' && userEmail.trim()) {
+            cleanName = userEmail.split('@')[0];
+        }
+        if (!cleanName && this.isAvailable) {
+            try {
+                const { data: u } = await supabase
+                    .from('users')
+                    .select('name, display_name, email')
+                    .eq('id', userId)
+                    .maybeSingle();
+                if (u) {
+                    cleanName = (u.name || u.display_name || u.email?.split('@')[0] || '').trim();
+                }
+            } catch (e) {}
+        }
+        const wsName = cleanName ? `${cleanName}'s Workspace` : 'Personal Workspace';
+        const wsSlug = cleanName ? cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : 'primary';
 
+        // Multi-tenant policy:
+        // Do NOT invent or seed fake environments (staging, production, localhost).
+        // Environments must start empty until intentionally configured by workspace owner.
         const newWorkspace = {
             id: wsId,
             name: wsName,
-            slug: 'primary',
+            slug: wsSlug || 'primary',
             ownerId: userId,
-            defaultEnvironmentId: envStagingId,
+            defaultEnvironmentId: null,
             version: 1,
             createdAt: now,
             updatedAt: now,
@@ -1184,13 +1221,12 @@ class SupabaseDataService {
         // Try persisting to Supabase if table is available
         if (this.isAvailable && this.workspacesTableAvailable !== false) {
             try {
-                // Insert workspace
                 const { error: wsInsErr } = await supabase.from('workspaces').insert({
                     id: wsId,
                     name: wsName,
-                    slug: 'primary',
+                    slug: wsSlug || 'primary',
                     owner_id: userId,
-                    default_environment_id: envStagingId,
+                    default_environment_id: null,
                     version: 1,
                     created_at: now,
                     updated_at: now
@@ -1198,21 +1234,6 @@ class SupabaseDataService {
 
                 if (!wsInsErr) {
                     this.workspacesTableAvailable = true;
-                    // Insert environments
-                    await supabase.from('workspace_environments').insert(
-                        defaultEnvs.map(e => ({
-                            id: e.id,
-                            workspace_id: wsId,
-                            name: e.name,
-                            slug: e.slug,
-                            base_url: e.baseUrl,
-                            is_active: e.isActive,
-                            created_at: now,
-                            updated_at: now
-                        }))
-                    );
-
-                    // Insert member
                     await supabase.from('workspace_members').insert({
                         id: newMember.id,
                         workspace_id: wsId,
@@ -1223,6 +1244,11 @@ class SupabaseDataService {
                         updated_at: now
                     });
 
+                    this.inMemoryWorkspaces.set(wsId, newWorkspace);
+                    this.inMemoryWorkspaceMembers.set(`${wsId}_${userId}`, newMember);
+                    this.inMemoryEnvironments.set(wsId, []);
+                    this._saveDiskWorkspacesStore();
+
                     return newWorkspace;
                 }
             } catch (e) {
@@ -1230,10 +1256,11 @@ class SupabaseDataService {
             }
         }
 
-        // Store in memory
+        // Store in memory and persist to disk store
         this.inMemoryWorkspaces.set(wsId, newWorkspace);
         this.inMemoryWorkspaceMembers.set(`${wsId}_${userId}`, newMember);
-        this.inMemoryEnvironments.set(wsId, defaultEnvs);
+        this.inMemoryEnvironments.set(wsId, []);
+        this._saveDiskWorkspacesStore();
 
         return newWorkspace;
     }
@@ -1339,6 +1366,83 @@ class SupabaseDataService {
     }
 
     /**
+     * Create an environment for a workspace
+     */
+    async createWorkspaceEnvironment(workspaceId, envData = {}) {
+        if (!workspaceId) throw new Error('Workspace ID is required');
+        const envId = 'env_' + crypto.randomBytes(6).toString('hex');
+        const now = new Date().toISOString();
+
+        const newEnv = {
+            id: envId,
+            workspaceId,
+            name: (envData.name || 'Custom Environment').trim(),
+            slug: (envData.slug || envData.name || 'custom').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            baseUrl: envData.baseUrl || '',
+            isActive: true,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase.from('workspace_environments').insert({
+                    id: newEnv.id,
+                    workspace_id: workspaceId,
+                    name: newEnv.name,
+                    slug: newEnv.slug,
+                    base_url: newEnv.baseUrl,
+                    is_active: true,
+                    created_at: now,
+                    updated_at: now
+                }).select().single();
+
+                if (!error && data) {
+                    const formatted = this._formatEnvironment(data);
+                    const list = this.inMemoryEnvironments.get(workspaceId) || [];
+                    list.push(formatted);
+                    this.inMemoryEnvironments.set(workspaceId, list);
+                    this._saveDiskWorkspacesStore();
+                    return formatted;
+                }
+            } catch (err) {}
+        }
+
+        const list = this.inMemoryEnvironments.get(workspaceId) || [];
+        list.push(newEnv);
+        this.inMemoryEnvironments.set(workspaceId, list);
+        this._saveDiskWorkspacesStore();
+        return newEnv;
+    }
+
+    /**
+     * Delete an environment from a workspace
+     */
+    async deleteWorkspaceEnvironment(workspaceId, environmentId) {
+        if (!workspaceId || !environmentId) return false;
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                await supabase.from('workspace_environments').delete().eq('workspace_id', workspaceId).eq('id', environmentId);
+            } catch (err) {}
+        }
+
+        const list = this.inMemoryEnvironments.get(workspaceId) || [];
+        const filtered = list.filter(e => e.id !== environmentId);
+        this.inMemoryEnvironments.set(workspaceId, filtered);
+
+        // If defaultEnvironmentId was deleted, reset it on workspace
+        const ws = this.inMemoryWorkspaces.get(workspaceId);
+        if (ws && ws.defaultEnvironmentId === environmentId) {
+            ws.defaultEnvironmentId = null;
+            ws.version = (ws.version || 1) + 1;
+            ws.updatedAt = new Date().toISOString();
+        }
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    /**
      * Update workspace settings with optimistic concurrency & audit trail
      */
     async updateWorkspaceSettings(workspaceId, updates = {}, actorId = null, auditMeta = {}) {
@@ -1414,7 +1518,7 @@ class SupabaseDataService {
             } catch (err) {}
         }
 
-        // In-memory update
+        // In-memory update and disk persist
         const updatedObj = {
             ...current,
             name: newName,
@@ -1423,6 +1527,7 @@ class SupabaseDataService {
             updatedAt: now
         };
         this.inMemoryWorkspaces.set(workspaceId, updatedObj);
+        this._saveDiskWorkspacesStore();
 
         await this.recordWorkspaceAuditLog({
             workspaceId,
@@ -1454,14 +1559,7 @@ class SupabaseDataService {
             created_at: now
         };
 
-        if (this.isAvailable && this.workspacesTableAvailable !== false) {
-            try {
-                await supabase.from('workspace_audit_logs').insert(logEntry);
-                return;
-            } catch (err) {}
-        }
-
-        this.inMemoryAuditLogs.push({
+        const formattedLog = {
             id,
             workspaceId,
             actorId,
@@ -1470,7 +1568,15 @@ class SupabaseDataService {
             ipAddress,
             userAgent,
             createdAt: now
-        });
+        };
+
+        this.inMemoryAuditLogs.push(formattedLog);
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                await supabase.from('workspace_audit_logs').insert(logEntry);
+            } catch (err) {}
+        }
     }
 
     /**
