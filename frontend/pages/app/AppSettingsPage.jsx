@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import { InlineTestSignal } from '../../components/loading';
 import UpgradeModal from '../../components/UpgradeModal';
 import '../../styles/app/AppSettings.css';
 
@@ -558,10 +559,7 @@ const AppSettingsPage = () => {
                                             disabled={profileSaving}
                                         >
                                             {profileSaving ? (
-                                                <>
-                                                    <Loader2 size={14} className="animate-spin" />
-                                                    <span>Saving changes...</span>
-                                                </>
+                                                <InlineTestSignal size={14} label="Saving changes..." />
                                             ) : (
                                                 'Save Changes'
                                             )}
@@ -1527,10 +1525,7 @@ const AppSettingsPage = () => {
                                         onClick={handleDeleteAccount}
                                     >
                                         {isDeletingAccount ? (
-                                            <>
-                                                <Loader2 size={14} className="spin" />
-                                                <span>Deleting...</span>
-                                            </>
+                                            <InlineTestSignal size={14} label="Deleting..." color="#E06C75" />
                                         ) : (
                                             'Permanently Delete Account'
                                         )}

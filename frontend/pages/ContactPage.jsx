@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Mail, MapPin, Send, HelpCircle, CheckCircle,
-    AlertCircle, Loader2, ArrowRight, ChevronRight,
+    AlertCircle, ArrowRight, ChevronRight,
     ShieldCheck, RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
+import { InlineTestSignal } from '../components/loading';
 import '../styles/ContactPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -419,10 +420,7 @@ const ContactPage = () => {
                                         aria-busy={status.loading}
                                     >
                                         {status.loading ? (
-                                            <>
-                                                <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-                                                <span>Sending message...</span>
-                                            </>
+                                            <InlineTestSignal size={15} label="Sending message..." />
                                         ) : (
                                             <>
                                                 <span>Send message</span>

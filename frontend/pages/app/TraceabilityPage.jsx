@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { GitBranch, CheckCircle2, ChevronRight, Layers, FileText, ArrowRight, Loader2, Search } from 'lucide-react';
+import { GitBranch, CheckCircle2, ChevronRight, Layers, FileText, ArrowRight, Search } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useHistory } from '../../hooks/useHistory';
+import { DataLoadingState } from '../../components/loading';
 
 const TraceabilityPage = () => {
     const { history, isLoading } = useHistory();
@@ -82,10 +82,12 @@ const TraceabilityPage = () => {
             </div>
 
             {isLoading && traceRows.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
-                    <span>Loading traceability matrix...</span>
-                </div>
+                <DataLoadingState
+                    message="Mapping requirement traceability matrix..."
+                    telemetryTag="LINEAGE VERIFICATION"
+                    skeletonType="table"
+                    count={5}
+                />
             ) : traceRows.length === 0 ? (
                 /* Empty state */
                 <div className="ws-empty-state">

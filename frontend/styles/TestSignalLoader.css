@@ -1,0 +1,1063 @@
+/* ==========================================================================
+   TESTNEXA AI — "TEST SIGNAL" MODERN LOADING SYSTEM
+   A minimal motion language inspired by software testing, execution signals,
+   verification, and precision engineering.
+   ========================================================================== */
+
+:root {
+  --ts-bg: #080909;
+  --ts-surface: #101112;
+  --ts-surface-elevated: #161819;
+  --ts-surface-subtle: #131415;
+  --ts-border: #292D2D;
+  --ts-border-subtle: rgba(41, 45, 45, 0.6);
+  --ts-text-primary: #F2F3F3;
+  --ts-text-secondary: #A0A5A5;
+  --ts-text-muted: #777E7E;
+  --ts-accent: #8BAF9A;
+  --ts-accent-muted: rgba(139, 175, 154, 0.16);
+  --ts-accent-trace: rgba(139, 175, 154, 0.35);
+  --ts-accent-glow: rgba(139, 175, 154, 0.08);
+  --ts-danger: #E06C75;
+  --ts-danger-muted: rgba(224, 108, 117, 0.14);
+  --ts-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. CORE TEST SIGNAL MOTIF (Icon + Geometric Signal Trace)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.tn-signal-motif {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tn-signal-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Background static track */
+.tn-signal-track {
+  fill: none;
+  stroke: var(--ts-border);
+  stroke-width: 1.25px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Precision corner alignment crosshairs / tick marks */
+.tn-signal-ticks {
+  stroke: #363B3B;
+  stroke-width: 1px;
+}
+
+/* Active running signal line */
+.tn-signal-line {
+  fill: none;
+  stroke: var(--ts-accent);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48 180;
+  stroke-dashoffset: 0;
+  animation: tnSignalTravel 2.4s linear infinite;
+}
+
+/* Waveform pulse at bottom */
+.tn-signal-waveform-track {
+  fill: none;
+  stroke: #1f2222;
+  stroke-width: 1px;
+}
+
+.tn-signal-waveform-line {
+  fill: none;
+  stroke: var(--ts-accent);
+  stroke-width: 1.25px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 20 80;
+  stroke-dashoffset: 0;
+  animation: tnWaveformTravel 1.8s linear infinite;
+}
+
+.tn-signal-icon-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Micro pulse around the icon surface */
+.tn-signal-ambient-ring {
+  position: absolute;
+  inset: 6px;
+  border-radius: 8px;
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  z-index: 1;
+}
+
+/* Travel animation along the SVG path */
+@keyframes tnSignalTravel {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -228;
+  }
+}
+
+@keyframes tnWaveformTravel {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. INITIAL APPLICATION LOADING (Screen & Experience A)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.tn-initial-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: var(--ts-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  user-select: none;
+}
+
+.tn-initial-loader.is-fading-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tn-initial-loader__container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.tn-initial-loader__motif-box {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.tn-initial-loader__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 1.75rem;
+}
+
+.tn-initial-loader__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tn-initial-loader__name {
+  font-family: var(--ts-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ts-text-primary);
+}
+
+.tn-initial-loader__badge {
+  font-family: var(--ts-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ts-accent);
+  background: var(--ts-accent-muted);
+  border: 1px solid var(--ts-border);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.tn-initial-loader__message {
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--ts-text-secondary);
+  letter-spacing: -0.01em;
+  margin: 0;
+  min-height: 1.4rem;
+  transition: opacity 0.2s ease;
+}
+
+/* Precision execution signal telemetry line */
+.tn-initial-loader__telemetry {
+  width: 100%;
+  max-width: 260px;
+  margin-top: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tn-initial-loader__trace-track {
+  height: 2px;
+  width: 100%;
+  background: #191B1B;
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tn-initial-loader__trace-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 38%;
+  background: var(--ts-accent);
+  border-radius: 1px;
+  animation: tnTraceLineRun 1.7s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.tn-initial-loader__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--ts-mono);
+  font-size: 0.6875rem;
+  color: var(--ts-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.tn-initial-loader__status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tn-initial-loader__pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ts-accent);
+  animation: tnDotPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tnTraceLineRun {
+  0% {
+    left: -40%;
+    width: 25%;
+  }
+  50% {
+    width: 45%;
+  }
+  100% {
+    left: 100%;
+    width: 20%;
+  }
+}
+
+@keyframes tnDotPulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. ROUTE TRANSITION SUSPENSE FALLBACK (Layout Preserving)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.tn-route-loading-fallback {
+  position: relative;
+  width: 100%;
+  min-height: 48vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ts-text-secondary);
+}
+
+/* Ultra-thin top signal line */
+.tn-route-top-signal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #141616;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.tn-route-top-signal-bar {
+  height: 100%;
+  width: 32%;
+  background: var(--ts-accent);
+  animation: tnTraceLineRun 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.tn-route-quiet-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.tn-route-quiet-text {
+  font-family: var(--ts-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--ts-text-muted);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. COMPACT INLINE TEST SIGNAL (Buttons, Table Cells, Badges)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.tn-inline-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--ts-mono);
+  font-size: 0.75rem;
+  color: var(--ts-text-secondary);
+  vertical-align: middle;
+}
+
+.tn-inline-signal-icon {
+  width: 14px;
+  height: 14px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tn-inline-signal-icon svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tn-inline-signal-ring {
+  fill: none;
+  stroke: var(--ts-border);
+  stroke-width: 1.5px;
+}
+
+.tn-inline-signal-active {
+  fill: none;
+  stroke: var(--ts-accent);
+  stroke-width: 1.75px;
+  stroke-linecap: round;
+  stroke-dasharray: 12 36;
+  animation: tnInlineSignalRotate 1.2s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes tnInlineSignalRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. PAGE & DATA LOADING SKELETONS (Experience B)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.tn-data-loading-wrapper {
+  width: 100%;
+  position: relative;
+  animation: tnFadeIn 0.25s ease-out;
+}
+
+@keyframes tnFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tn-data-loading-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--ts-border-subtle);
+}
+
+.tn-data-loading-status {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  color: var(--ts-text-secondary);
+}
+
+.tn-data-loading-telemetry {
+  font-family: var(--ts-mono);
+  font-size: 0.6875rem;
+  color: var(--ts-text-muted);
+}
+
+/* Skeleton base block */
+.tn-skeleton-block {
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tn-skeleton-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.025) 50%,
+    transparent 100%
+  );
+  animation: tnSkeletonShimmer 2.2s ease-in-out infinite;
+}
+
+@keyframes tnSkeletonShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Skeleton items & layouts */
+.tn-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tn-skeleton-card {
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.tn-skeleton-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 175, 154, 0.03) 50%,
+    transparent 100%
+  );
+  animation: tnSkeletonShimmer 2.4s ease-in-out infinite;
+}
+
+.tn-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tn-skeleton-line {
+  height: 12px;
+  background: #17191A;
+  border-radius: 3px;
+}
+
+.tn-skeleton-line--title {
+  height: 16px;
+  width: 45%;
+  background: #1C1E20;
+}
+
+.tn-skeleton-line--sub {
+  height: 11px;
+  width: 70%;
+  background: #151718;
+}
+
+.tn-skeleton-line--badge {
+  height: 20px;
+  width: 68px;
+  border-radius: 4px;
+  background: #17191A;
+}
+
+.tn-skeleton-grid-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.tn-skeleton-metric-card {
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.tn-skeleton-metric-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.02) 50%,
+    transparent 100%
+  );
+  animation: tnSkeletonShimmer 2.2s ease-in-out infinite;
+}
+
+.tn-skeleton-table {
+  width: 100%;
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  background: var(--ts-surface);
+  overflow: hidden;
+}
+
+.tn-skeleton-table-header {
+  height: 42px;
+  background: #141617;
+  border-bottom: 1px solid var(--ts-border);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+}
+
+.tn-skeleton-table-row {
+  height: 52px;
+  border-bottom: 1px solid #1C1F20;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.tn-skeleton-table-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(139, 175, 154, 0.025) 50%,
+    transparent 100%
+  );
+  animation: tnSkeletonShimmer 2.5s ease-in-out infinite;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. AI TEST GENERATION WORKFLOW LOADER (Experience C)
+   ────────────────────────────────────────────────────────────────────────── */
+
+.tn-ai-gen-loader {
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-border);
+  border-radius: 10px;
+  padding: 2rem 2.25rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Subtle top status border */
+.tn-ai-gen-loader::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ts-accent-trace);
+}
+
+.tn-ai-gen-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.tn-ai-gen-header__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tn-ai-gen-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.tn-ai-gen-pill {
+  font-family: var(--ts-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ts-accent);
+  background: var(--ts-accent-muted);
+  border: 1px solid var(--ts-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tn-ai-gen-pill--active .tn-ai-gen-pill__pulse {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ts-accent);
+  animation: tnDotPulse 1.4s infinite;
+}
+
+.tn-ai-gen-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ts-text-primary);
+  letter-spacing: -0.015em;
+  margin: 0 0 0.35rem 0;
+}
+
+.tn-ai-gen-description {
+  font-size: 0.875rem;
+  color: var(--ts-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Active context specifications bar */
+.tn-ai-gen-specs {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--ts-surface-elevated);
+  border: 1px solid var(--ts-border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+
+.tn-ai-gen-spec-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.tn-ai-gen-spec-label {
+  font-family: var(--ts-mono);
+  color: var(--ts-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+}
+
+.tn-ai-gen-spec-val {
+  font-family: var(--ts-mono);
+  color: var(--ts-text-primary);
+  font-weight: 500;
+}
+
+.tn-ai-gen-spec-divider {
+  color: #2D3131;
+  font-size: 0.8rem;
+}
+
+/* Meaningful Generation Stages */
+.tn-ai-gen-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tn-ai-gen-stages-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--ts-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ts-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.tn-ai-gen-stage-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.tn-ai-gen-stage-item.is-active {
+  background: var(--ts-surface-elevated);
+  border-color: var(--ts-border);
+}
+
+.tn-ai-gen-stage-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ts-mono);
+  font-size: 0.6875rem;
+  border: 1px solid var(--ts-border);
+  color: var(--ts-text-muted);
+  flex-shrink: 0;
+}
+
+.tn-ai-gen-stage-item.is-completed .tn-ai-gen-stage-indicator {
+  border-color: var(--ts-accent);
+  background: var(--ts-accent-muted);
+  color: var(--ts-accent);
+}
+
+.tn-ai-gen-stage-item.is-active .tn-ai-gen-stage-indicator {
+  border-color: var(--ts-accent);
+  color: var(--ts-accent);
+  animation: tnStagePulse 1.8s infinite;
+}
+
+@keyframes tnStagePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 175, 154, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(139, 175, 154, 0);
+  }
+}
+
+.tn-ai-gen-stage-name {
+  font-size: 0.8125rem;
+  color: var(--ts-text-secondary);
+  flex: 1;
+  transition: color 0.2s ease;
+}
+
+.tn-ai-gen-stage-item.is-active .tn-ai-gen-stage-name {
+  color: var(--ts-text-primary);
+  font-weight: 500;
+}
+
+.tn-ai-gen-stage-item.is-completed .tn-ai-gen-stage-name {
+  color: #CCD0D0;
+}
+
+.tn-ai-gen-stage-status {
+  font-family: var(--ts-mono);
+  font-size: 0.6875rem;
+  color: var(--ts-text-muted);
+}
+
+.tn-ai-gen-stage-item.is-active .tn-ai-gen-stage-status {
+  color: var(--ts-accent);
+}
+
+/* Real-time telemetry sweep line */
+.tn-ai-gen-sweep {
+  height: 2px;
+  background: #1B1D1E;
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tn-ai-gen-sweep-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: var(--ts-accent);
+  border-radius: 1px;
+  animation: tnTraceLineRun 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Actions footer (Cancel, Safe abort) */
+.tn-ai-gen-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--ts-border);
+  padding-top: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tn-ai-gen-footer-meta {
+  font-size: 0.75rem;
+  color: var(--ts-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tn-ai-gen-btn-cancel {
+  font-family: var(--ts-mono);
+  font-size: 0.75rem;
+  color: var(--ts-text-muted);
+  background: transparent;
+  border: 1px solid var(--ts-border);
+  border-radius: 5px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tn-ai-gen-btn-cancel:hover {
+  color: var(--ts-danger);
+  border-color: var(--ts-danger);
+  background: var(--ts-danger-muted);
+}
+
+/* Failure & Retry State in AI Generation */
+.tn-ai-gen-error-card {
+  background: var(--ts-surface);
+  border: 1px solid var(--ts-danger);
+  border-radius: 10px;
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tn-ai-gen-error-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.tn-ai-gen-error-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--ts-danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tn-ai-gen-error-content {
+  flex: 1;
+}
+
+.tn-ai-gen-error-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ts-text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.tn-ai-gen-error-msg {
+  font-size: 0.875rem;
+  color: var(--ts-text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.tn-ai-gen-error-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.tn-ai-gen-btn-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--ts-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ts-bg);
+  background: var(--ts-accent);
+  border: 1px solid var(--ts-accent);
+  border-radius: 5px;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.tn-ai-gen-btn-retry:hover {
+  opacity: 0.9;
+}
+
+.tn-ai-gen-btn-dismiss {
+  font-family: var(--ts-mono);
+  font-size: 0.8125rem;
+  color: var(--ts-text-secondary);
+  background: transparent;
+  border: 1px solid var(--ts-border);
+  border-radius: 5px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+}
+
+.tn-ai-gen-btn-dismiss:hover {
+  color: var(--ts-text-primary);
+  background: #17191A;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. ACCESSIBILITY: REDUCED MOTION PREFERENCE
+   ────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .tn-signal-line,
+  .tn-signal-waveform-line,
+  .tn-initial-loader__trace-line,
+  .tn-route-top-signal-bar,
+  .tn-inline-signal-active,
+  .tn-ai-gen-sweep-bar {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .tn-initial-loader__pulse-dot,
+  .tn-ai-gen-stage-item.is-active .tn-ai-gen-stage-indicator,
+  .tn-ai-gen-pill--active .tn-ai-gen-pill__pulse {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .tn-skeleton-block::after,
+  .tn-skeleton-card::after,
+  .tn-skeleton-metric-card::after,
+  .tn-skeleton-table-row::after {
+    animation: none !important;
+    display: none !important;
+  }
+
+  .tn-initial-loader {
+    transition: opacity 0.05s linear !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   8. MOBILE RESPONSIVE TUNING
+   ────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .tn-initial-loader {
+    padding: 1rem;
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tn-initial-loader__motif-box {
+    margin-bottom: 1.5rem;
+  }
+
+  .tn-ai-gen-loader {
+    padding: 1.25rem 1rem;
+    gap: 1.25rem;
+  }
+
+  .tn-ai-gen-header {
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .tn-ai-gen-specs {
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .tn-ai-gen-spec-divider {
+    display: none;
+  }
+
+  .tn-ai-gen-spec-item {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .tn-ai-gen-stage-item {
+    padding: 0.45rem 0.5rem;
+  }
+
+  .tn-skeleton-grid-metrics {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Check, Circle } from 'lucide-react';
+import { Eye, EyeOff, Check, Circle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { InlineTestSignal } from '../components/loading';
 import { getSafeReturnUrl } from '../hooks/useWorkspaceEntry';
 
 const SignUpPage = () => {
@@ -346,10 +347,7 @@ const SignUpPage = () => {
           disabled={isLoading}
         >
           {isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              <span>Creating account...</span>
-            </>
+            <InlineTestSignal size={15} label="Creating account..." />
           ) : (
             'Create account'
           )}

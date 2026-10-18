@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
 import { apiService } from '../../services/apiService';
 import { sessionService } from '../../services/sessionService';
+import { InlineTestSignal, DataLoadingState, AiGenerationLoader } from '../../components/loading';
 import QaCopilotDrawer from '../../components/copilot/QaCopilotDrawer';
 import '../../styles/app/WorkspacePage.css';
 import '../../styles/app/WorkspacePage.session.css';
@@ -89,7 +90,27 @@ const WorkspacePage = () => {
 
     const textareaRef = useRef(null);
     const examplesMenuRef = useRef(null);
+    const abortControllerRef = useRef(null);
     const maxLength = 2000;
+
+    // Clean teardown on unmount
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
+        };
+    }, []);
+
+    const handleCancelGenerate = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setIsGenerating(false);
+        setError(null);
+    }, []);
 
     // Auto-save tracker
     const isInitialMount = useRef(true);
@@ -289,6 +310,7 @@ const WorkspacePage = () => {
 
         setIsGenerating(true);
         setError(null);
+        abortControllerRef.current = new AbortController();
 
         try {
             const resolvedTitle = requirementTitle.trim() ||
@@ -298,7 +320,8 @@ const WorkspacePage = () => {
             // 1. Execute backend test generation
             const result = await apiService.generateTestSuite(requirement, {
                 ...settings,
-                sessionId: currentSessionId
+                sessionId: currentSessionId,
+                signal: abortControllerRef.current.signal
             });
 
             // 2. Identify the exact persisted test suite ID
@@ -322,12 +345,18 @@ const WorkspacePage = () => {
                 }
             });
         } catch (err) {
+            if (err.name === 'AbortError' || err.message?.includes('aborted')) {
+                setIsGenerating(false);
+                return;
+            }
             console.error('Generation error:', err);
             const userSafeMsg = err.message?.includes('QUOTA_LIMIT')
                 ? 'AI service is temporarily busy. Please wait a moment and try again.'
                 : err.message || 'Test suite generation failed. Please check your requirement and try again.';
             setError(userSafeMsg);
             setIsGenerating(false);
+        } finally {
+            abortControllerRef.current = null;
         }
     };
 
@@ -383,7 +412,7 @@ const WorkspacePage = () => {
                 <div className="app-workspace-header__status">
                     {saveStatus === 'saving' ? (
                         <div className="app-workspace-saved-pill saving">
-                            <Loader2 size={12} className="animate-spin" />
+                            <InlineTestSignal size={12} />
                             <span>Saving...</span>
                         </div>
                     ) : (
@@ -461,38 +490,33 @@ const WorkspacePage = () => {
                 </div>
             )}
 
-            {/* ─── 3. TRUTHFUL GENERATING STATE ─── */}
+            {/* ─── 3. AI GENERATION & SPECIFICATION LOADING EXPERIENCE ─── */}
             {isGenerating ? (
-                <div className="app-workspace-generating-clean">
-                    <div className="app-workspace-generating-card">
-                        <Loader2 size={36} className="animate-spin" color="#8BAF9A" />
-                        <div className="app-workspace-generating-text">
-                            <h3>Synthesizing QA Test Suite</h3>
-                            <p>
-                                Analyzing requirement specification for <strong>{displayTitle}</strong>. Synthesizing functional paths, boundary assertions, and requirement traceability...
-                            </p>
-                        </div>
-                        <div className="app-workspace-generating-specs">
-                            <div className="app-workspace-generating-spec-item">
-                                <span className="spec-label">Target</span>
-                                <span className="spec-val">{settings.type.toUpperCase()}</span>
-                            </div>
-                            <div className="app-workspace-generating-spec-item">
-                                <span className="spec-label">Coverage Depth</span>
-                                <span className="spec-val">{settings.level}</span>
-                            </div>
-                            <div className="app-workspace-generating-spec-item">
-                                <span className="spec-label">Length</span>
-                                <span className="spec-val">{charCount} characters</span>
-                            </div>
-                        </div>
-                    </div>
+                <div style={{ margin: '1rem 0' }}>
+                    <AiGenerationLoader
+                        requirement={requirement}
+                        title={requirementTitle}
+                        settings={settings}
+                        onCancel={handleCancelGenerate}
+                    />
+                </div>
+            ) : error && !suiteData ? (
+                <div style={{ margin: '1rem 0' }}>
+                    <AiGenerationLoader
+                        requirement={requirement}
+                        title={requirementTitle}
+                        settings={settings}
+                        error={error}
+                        onRetry={handleGenerate}
+                        onCancel={() => setError(null)}
+                    />
                 </div>
             ) : isLoadingSession ? (
-                <div className="app-workspace-loading-state">
-                    <Loader2 size={24} className="animate-spin" color="#8BAF9A" />
-                    <span>Loading test suite specifications...</span>
-                </div>
+                <DataLoadingState
+                    message="Loading test suite specifications..."
+                    telemetryTag="SESSION SYNC"
+                    skeletonType="metrics-detail"
+                />
             ) : (
                 /* ─── 4. BALANCED TWO-COLUMN WORKBENCH (Desktop 2-col, Mobile Stacked) ─── */
                 <div className="app-workspace-2col-layout">

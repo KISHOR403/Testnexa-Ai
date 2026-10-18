@@ -9,7 +9,6 @@ import {
     AlertCircle,
     ArrowRight,
     Send,
-    Loader2,
     Plus,
     Check,
     ChevronDown,
@@ -19,6 +18,7 @@ import {
     ChevronLeft,
     GitBranch
 } from 'lucide-react';
+import { InlineTestSignal } from '../loading';
 import { copilotService } from '../../services/copilotService';
 import '../../styles/copilotDrawer.css';
 
@@ -391,8 +391,7 @@ const QaCopilotDrawer = ({
                     <div className="tn-copilot-content">
                         {isLoading && (
                             <div className="tn-copilot-loading">
-                                <Loader2 size={16} className="tn-copilot-loading__spinner" />
-                                <span>{loadingMessage}</span>
+                                <InlineTestSignal size={15} label={loadingMessage} />
                             </div>
                         )}
 

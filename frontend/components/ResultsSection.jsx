@@ -14,7 +14,6 @@ import {
     XCircle,
     Zap,
     Link as LinkIcon,
-    Loader2,
     Check,
     Layers,
     GitBranch,
@@ -49,6 +48,7 @@ import {
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 import QaCopilotDrawer from './copilot/QaCopilotDrawer';
+import { InlineTestSignal } from './loading';
 import '../styles/app/WorkspaceDesignSystem.css';
 
 // ─── Status Badge Component ───
@@ -1870,7 +1870,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true })
                                 onClick={handleExecuteSingleRegen}
                                 disabled={isRegeneratingSingle}
                             >
-                                {isRegeneratingSingle ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                {isRegeneratingSingle ? <InlineTestSignal size={14} /> : <RefreshCw size={14} />}
                                 <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
                             </button>
                         </div>

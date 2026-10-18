@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Clipboard, Loader2,
+    Clipboard,
     Layers, Zap, Trash2, Lightbulb, ChevronDown, Info,
     Globe, Smartphone, Server, Gauge, Target, Rocket
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TestNexaLogo from './TestNexaLogo';
+import { InlineTestSignal } from './loading';
 
 const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSettings }) => {
     const { isAuthenticated, guestGenerationsUsed, GUEST_LIMIT } = useAuth();
@@ -255,7 +256,7 @@ const InputPanel = ({ value, onChange, onGenerate, isGenerating, settings, setSe
                     >
                         <span className="ip-generate-bg" />
                         {isGenerating ? (
-                            <Loader2 className="animate-spin" size={18} />
+                            <InlineTestSignal size={16} />
                         ) : (
                             <Zap size={18} />
                         )}

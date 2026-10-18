@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { useHistory } from '../../hooks/useHistory';
+import { DataLoadingState } from '../../components/loading';
 import '../../styles/app/HistoryPage.css';
 
 const formatTimeAgo = (dateInput) => {
@@ -314,11 +315,12 @@ const HistoryPage = () => {
 
             {/* Content Area */}
             {isLoading ? (
-                <div className="tn-history-skeleton-list">
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="tn-history-skeleton-card" />
-                    ))}
-                </div>
+                <DataLoadingState
+                    message="Retrieving test suite history..."
+                    telemetryTag="SESSION ARCHIVE"
+                    skeletonType="cards"
+                    count={4}
+                />
             ) : error ? (
                 <div className="tn-history-error-card">
                     <AlertCircle size={24} color="#ef4444" />

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, CheckCircle2, Check, Circle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Check, Circle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { InlineTestSignal } from '../components/loading';
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -179,10 +180,7 @@ const ResetPasswordPage = () => {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Updating password...</span>
-                </>
+                <InlineTestSignal size={15} label="Updating password..." />
               ) : (
                 'Reset password'
               )}

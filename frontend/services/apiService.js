@@ -26,6 +26,7 @@ export const apiService = {
             const response = await fetch(`${API_BASE_URL}/generate`, {
                 method: 'POST',
                 headers,
+                signal: settings.signal || undefined,
                 credentials: 'include', // Backup if using cookies
                 body: JSON.stringify({
                     requirement: requirement,
@@ -160,8 +161,11 @@ export const apiService = {
             window.DEBUG_LAST_RESULT = finalResult;
             return finalResult;
         } catch (error) {
+            if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+                console.info('Test generation request was cleanly cancelled by user.');
+                throw error;
+            }
             console.error('CRITICAL API ERROR:', error);
-            // alert('BROWSER ERROR: ' + error.message); // REMOVED intrusive alert
             throw new Error(`Test generation failed: ${error.message}`);
         }
     },

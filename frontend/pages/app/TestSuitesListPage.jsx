@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     Layers, Plus, Search, Calendar, CheckCircle2,
-    Shield, ArrowRight, Trash2, Filter, Loader2, BookOpen
+    Shield, ArrowRight, Trash2, Filter, BookOpen
 } from 'lucide-react';
 import { useHistory } from '../../hooks/useHistory';
+import { DataLoadingState } from '../../components/loading';
 
 const TestSuitesListPage = () => {
     const { history, isLoading } = useHistory();
@@ -117,10 +118,12 @@ const TestSuitesListPage = () => {
             </div>
 
             {isLoading && userSuites.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
-                    <span>Loading test suites...</span>
-                </div>
+                <DataLoadingState
+                    message="Retrieving test suites..."
+                    telemetryTag="SUITES INDEX"
+                    skeletonType="cards"
+                    count={3}
+                />
             ) : userSuites.length === 0 ? (
                 /* Purposeful Empty State */
                 <div className="ws-empty-state">

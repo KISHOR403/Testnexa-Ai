@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { InlineTestSignal } from '../components/loading';
 import { getSafeReturnUrl } from '../hooks/useWorkspaceEntry';
 
 const LoginPage = () => {
@@ -240,10 +241,7 @@ const LoginPage = () => {
           disabled={isLoading}
         >
           {isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              <span>Signing in...</span>
-            </>
+            <InlineTestSignal size={15} label="Signing in..." />
           ) : (
             'Sign in'
           )}

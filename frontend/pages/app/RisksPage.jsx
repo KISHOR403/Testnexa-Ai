@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Shield, CheckCircle2, ShieldAlert, ArrowRight, Loader2, Filter } from 'lucide-react';
+import { AlertTriangle, Shield, CheckCircle2, ShieldAlert, ArrowRight, Filter } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useHistory } from '../../hooks/useHistory';
+import { DataLoadingState } from '../../components/loading';
 
 const RisksPage = () => {
     const { history, isLoading } = useHistory();
@@ -71,10 +72,12 @@ const RisksPage = () => {
             </div>
 
             {isLoading && riskItems.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
-                    <span>Loading risk analysis...</span>
-                </div>
+                <DataLoadingState
+                    message="Evaluating risk vectors & exceptions..."
+                    telemetryTag="RISK VECTOR ANALYSIS"
+                    skeletonType="table"
+                    count={4}
+                />
             ) : riskItems.length === 0 ? (
                 /* Empty state when user has no risk items */
                 <div className="ws-empty-state">

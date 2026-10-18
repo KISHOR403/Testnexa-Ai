@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import TestNexaLogo from './TestNexaLogo';
+import { AiGenerationLoader } from './loading';
 import '../styles/AiWorkspaceModal.css';
 
 const EXAMPLE_REQUIREMENTS = [
@@ -239,57 +240,12 @@ const AiWorkspaceModal = ({
 
                 {/* ─── Main Content ─── */}
                 {isGenerating ? (
-                    /* ─── IN-WORKSPACE AI PROCESSING STATE ─── */
-                    <div className="tn-workspace-processing-view">
-                        <div className="tn-workspace-processing-badge">
-                            <Layers size={13} />
-                            <span>Test Synthesis Engine Active</span>
-                        </div>
-
-                        <div>
-                            <h2 className="tn-workspace-processing-title">
-                                Analyzing requirement...
-                            </h2>
-                            <p className="tn-workspace-processing-sub">
-                                Synthesizing functional flows, boundary conditions, edge cases, and compliance rules.
-                            </p>
-                        </div>
-
-                        <div className="tn-workspace-progress-bar-wrap">
-                            <div
-                                className="tn-workspace-progress-bar-fill"
-                                style={{ width: `${progressPercent}%` }}
-                            />
-                        </div>
-
-                        <div className="tn-workspace-stepper-card">
-                            {GENERATION_STEPS.map((step, idx) => {
-                                const isCompleted = idx < activeStepIndex;
-                                const isActive = idx === activeStepIndex;
-                                return (
-                                    <div
-                                        key={idx}
-                                        className={`tn-workspace-step-row ${
-                                            isCompleted ? 'is-completed' : isActive ? 'is-active' : ''
-                                        }`}
-                                    >
-                                        <div className="tn-workspace-step-indicator">
-                                            {isCompleted ? (
-                                                <Check size={14} />
-                                            ) : isActive ? (
-                                                <Loader2 size={14} className="animate-spin" />
-                                            ) : (
-                                                <span>{idx + 1}</span>
-                                            )}
-                                        </div>
-                                        <span className="tn-workspace-step-label">{step.label}</span>
-                                        <span className="tn-workspace-step-status">
-                                            {isCompleted ? 'Done' : isActive ? 'Processing' : 'Queued'}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    <div style={{ padding: '1.75rem 2rem' }}>
+                        <AiGenerationLoader
+                            requirement={requirement}
+                            settings={settings}
+                            onCancel={onClose}
+                        />
                     </div>
                 ) : (
                     /* ─── NORMAL WORKSPACE INPUT STATE ─── */

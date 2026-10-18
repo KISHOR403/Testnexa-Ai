@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, ArrowLeft, MailCheck } from 'lucide-react';
+import { ArrowLeft, MailCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { InlineTestSignal } from '../components/loading';
 
 const ForgotPasswordPage = () => {
   const { forgotPassword } = useAuth();
@@ -85,10 +86,7 @@ const ForgotPasswordPage = () => {
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Sending reset link...</span>
-                </>
+                <InlineTestSignal size={15} label="Sending reset link..." />
               ) : (
                 'Send reset link'
               )}

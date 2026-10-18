@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 
 // Layouts & Guards
@@ -33,36 +33,8 @@ const RisksPage = lazy(() => import('./pages/app/RisksPage'));
 const TraceabilityPage = lazy(() => import('./pages/app/TraceabilityPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
-// Minimal, accessible loading fallback
-const PageLoadingFallback = () => (
-  <div
-    style={{
-      minHeight: '60vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#050505'
-    }}
-    role="status"
-    aria-label="Loading page"
-  >
-    <div
-      style={{
-        width: '32px',
-        height: '32px',
-        border: '2px solid rgba(79, 140, 255, 0.15)',
-        borderTopColor: '#4F8CFF',
-        borderRadius: '50%',
-        animation: 'tnSpin 0.7s linear infinite'
-      }}
-    />
-    <style>{`
-      @keyframes tnSpin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
-  </div>
-);
+import { useAuth } from './context/AuthContext';
+import { AppInitialLoader, RouteLoadingFallback } from './components/loading';
 
 // Suite share link redirect helper (handles shared workspace links)
 const SuiteShareRedirect = () => {
@@ -72,13 +44,32 @@ const SuiteShareRedirect = () => {
   return <Navigate to={targetPath} replace />;
 };
 
-function App() {
+function AppContent() {
+  const { isLoading } = useAuth();
+  const [hasBootstrapped, setHasBootstrapped] = useState(() => {
+    return sessionStorage.getItem('testnexa_app_initialized') === 'true';
+  });
+
+  const handleBootstrapComplete = () => {
+    sessionStorage.setItem('testnexa_app_initialized', 'true');
+    setHasBootstrapped(true);
+  };
+
   return (
-    <Router>
+    <>
+      {/* ─── A. INITIAL APPLICATION LOADING ─── */}
+      {!hasBootstrapped && (
+        <AppInitialLoader
+          isReady={!isLoading}
+          message="Preparing your workspace"
+          onComplete={handleBootstrapComplete}
+        />
+      )}
+
       {/* Dynamic SEO, Canonical & OpenGraph Controller */}
       <SeoManager />
 
-      <Suspense fallback={<PageLoadingFallback />}>
+      <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* ─── DEDICATED MINIMAL AUTH PAGES ─── */}
           <Route element={<AuthLayout />}>
@@ -137,6 +128,14 @@ function App() {
           </Route>
         </Routes>
       </Suspense>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

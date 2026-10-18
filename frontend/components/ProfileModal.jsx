@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     X, History, LogOut, User, Mail, Shield, Clock, Camera,
-    CreditCard, ShieldAlert, Check, Loader2, FileText, Globe, 
+    CreditCard, ShieldAlert, Check, FileText, Globe, 
     Download, Trash2, Award, AlertTriangle, Key, Smartphone
 } from 'lucide-react';
+import { InlineTestSignal } from './loading';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { useNavigate } from 'react-router-dom';
@@ -257,7 +258,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 <div className="profile-avatar-container" onClick={handleAvatarClick}>
                                     {isUploading ? (
                                         <div className="avatar-loading-spinner">
-                                            <Loader2 className="spinner-animate" size={24} />
+                                            <InlineTestSignal size={22} />
                                         </div>
                                     ) : localAvatar ? (
                                         <img src={localAvatar} alt="User profile avatar" width="80" height="80" className="profile-avatar-large-img" />
@@ -499,10 +500,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                         style={{ minWidth: '130px' }}
                                     >
                                         {isSavingSettings ? (
-                                            <>
-                                                <Loader2 className="spinner-animate" size={15} />
-                                                <span>Saving...</span>
-                                            </>
+                                            <InlineTestSignal size={14} label="Saving..." />
                                         ) : (
                                             <span>Save Settings</span>
                                         )}
@@ -649,10 +647,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                         <div className="form-actions-row">
                                             <button type="submit" className="profile-btn-new primary" disabled={passwordStatus === 'loading'}>
                                                 {passwordStatus === 'loading' ? (
-                                                    <>
-                                                        <Loader2 className="spinner-animate" size={14} />
-                                                        <span>Updating...</span>
-                                                    </>
+                                                    <InlineTestSignal size={14} label="Updating..." />
                                                 ) : (
                                                     <span>Update Password</span>
                                                 )}
@@ -748,10 +743,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                         </div>
                                         <button className="profile-btn-new secondary" onClick={handleDataExport} disabled={exportStatus === 'loading'}>
                                             {exportStatus === 'loading' ? (
-                                                <>
-                                                    <Loader2 className="spinner-animate" size={14} />
-                                                    <span>Exporting...</span>
-                                                </>
+                                                <InlineTestSignal size={14} label="Exporting..." />
                                             ) : exportStatus === 'success' ? (
                                                 <>
                                                     <Check size={14} />

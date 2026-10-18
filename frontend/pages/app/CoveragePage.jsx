@@ -1,7 +1,7 @@
-import React from 'react';
-import { ShieldCheck, Layers, CheckCircle2, AlertTriangle, ArrowRight, Loader2, Info } from 'lucide-react';
+import { ShieldCheck, Layers, CheckCircle2, AlertTriangle, ArrowRight, Info } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useHistory } from '../../hooks/useHistory';
+import { DataLoadingState } from '../../components/loading';
 
 const CoveragePage = () => {
     const { history, isLoading } = useHistory();
@@ -77,10 +77,11 @@ const CoveragePage = () => {
             </div>
 
             {isLoading && userSuites.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 1rem', gap: '0.75rem', color: '#A0A5A5' }}>
-                    <Loader2 size={24} className="animate-spin" style={{ color: '#8BAF9A' }} />
-                    <span>Loading coverage metrics...</span>
-                </div>
+                <DataLoadingState
+                    message="Evaluating test coverage metrics..."
+                    telemetryTag="COVERAGE MATRIX"
+                    skeletonType="metrics-detail"
+                />
             ) : userSuites.length === 0 ? (
                 /* Meaningful Empty State */
                 <div className="ws-empty-state">

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { Loader2, ArrowLeft, ShieldAlert, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, AlertCircle, RefreshCw, Layers } from 'lucide-react';
 import { useHistory } from '../../hooks/useHistory';
 import { sessionService, testSuiteService } from '../../services/sessionService';
+import { DataLoadingState } from '../../components/loading';
 import ResultsSection from '../../components/ResultsSection';
 
 // Helper to determine if a suite object contains actual test cases
@@ -192,29 +193,15 @@ const TestSuiteDetailPage = () => {
         setRetryTrigger(prev => prev + 1);
     }, []);
 
-    // ─── Loading State ───
+    // ─── Loading State (Layout Preserving) ───
     if (isLoading) {
         return (
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '60vh',
-                gap: '1.25rem',
-                color: '#A0A5A5',
-                textAlign: 'center',
-                padding: '2rem'
-            }}>
-                <Loader2 size={36} className="animate-spin" style={{ color: '#8BAF9A' }} />
-                <div>
-                    <div style={{ fontSize: '1rem', fontWeight: '600', color: '#F2F3F3', marginBottom: '0.35rem' }}>
-                        Loading Test Suite
-                    </div>
-                    <span style={{ fontSize: '0.85rem', color: '#777E7E' }}>
-                        Fetching test cases, coverage specifications, and verification rules...
-                    </span>
-                </div>
+            <div style={{ padding: '1rem 0' }}>
+                <DataLoadingState
+                    message="Retrieving test suite specifications..."
+                    telemetryTag="SUITE VERIFY"
+                    skeletonType="metrics-detail"
+                />
             </div>
         );
     }
