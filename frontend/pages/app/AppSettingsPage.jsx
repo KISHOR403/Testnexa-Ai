@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
     User, Sliders, CreditCard, ShieldCheck, Building,
     Users, Puzzle, Check, AlertCircle, Loader2, ArrowRight,
     Lock, Smartphone, Globe, Laptop, Key, Download, CheckCircle2,
-    Trash2, ExternalLink
+    Trash2, ExternalLink, Copy, RotateCcw, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
+import workspaceService from '../../services/workspaceService';
 import { InlineTestSignal } from '../../components/loading';
 import UpgradeModal from '../../components/UpgradeModal';
 import '../../styles/app/AppSettings.css';
@@ -57,7 +58,11 @@ const AppSettingsPage = () => {
         activeSessions = [],
         fetchSessions,
         revokeSession,
-        revokeOtherSessions
+        revokeOtherSessions,
+        currentWorkspace,
+        setCurrentWorkspace,
+        refreshWorkspace,
+        isLoadingWorkspace: isAuthLoadingWorkspace
     } = useAuth();
     const { settings, updateSetting } = useSettings();
 
@@ -127,8 +132,229 @@ const AppSettingsPage = () => {
 
     // Workspace & Preferences Feedback
     const [preferencesSaved, setPreferencesSaved] = useState(false);
-    const [workspaceName, setWorkspaceName] = useState('Enterprise QA Core');
-    const [workspaceSaved, setWorkspaceSaved] = useState(false);
+
+    // Production Workspace Settings State
+    const [persistedWorkspace, setPersistedWorkspace] = useState(currentWorkspace || null);
+    const [workspaceEnvironments, setWorkspaceEnvironments] = useState([]);
+    const [isLoadingWorkspaceData, setIsLoadingWorkspaceData] = useState(false);
+    const [environmentsLoading, setEnvironmentsLoading] = useState(false);
+    const [workspaceFetchError, setWorkspaceFetchError] = useState(null);
+    const [editWorkspaceName, setEditWorkspaceName] = useState(currentWorkspace?.name || 'Enterprise QA Core');
+    const [editDefaultEnvId, setEditDefaultEnvId] = useState(currentWorkspace?.defaultEnvironmentId || '');
+    const [nameValidationError, setNameValidationError] = useState(null);
+    const [isSavingWorkspace, setIsSavingWorkspace] = useState(false);
+    const [workspaceFeedback, setWorkspaceFeedback] = useState(null); // { type: 'success' | 'error' | 'conflict', message: string }
+    const [isCopiedWorkspaceId, setIsCopiedWorkspaceId] = useState(false);
+    const [workspaceRole, setWorkspaceRole] = useState('owner');
+
+    // Sync state when currentWorkspace from AuthContext changes
+    useEffect(() => {
+        if (currentWorkspace) {
+            setPersistedWorkspace(currentWorkspace);
+            setEditWorkspaceName(prev => {
+                if (!prev || prev === 'Enterprise QA Core' || prev === persistedWorkspace?.name) {
+                    return currentWorkspace.name;
+                }
+                return prev;
+            });
+            setEditDefaultEnvId(prev => {
+                if (prev === '' || prev === persistedWorkspace?.defaultEnvironmentId) {
+                    return currentWorkspace.defaultEnvironmentId || '';
+                }
+                return prev;
+            });
+        }
+    }, [currentWorkspace]);
+
+    // Fetch authoritative settings & environments from backend
+    const loadWorkspaceSettings = useCallback(async (force = false) => {
+        setIsLoadingWorkspaceData(true);
+        setEnvironmentsLoading(true);
+        setWorkspaceFetchError(null);
+        try {
+            const [wsRes, envRes] = await Promise.allSettled([
+                workspaceService.getCurrentWorkspace(),
+                workspaceService.getEnvironments()
+            ]);
+
+            if (wsRes.status === 'fulfilled' && (wsRes.value?.workspace || wsRes.value?.id)) {
+                const ws = wsRes.value.workspace || wsRes.value;
+                setPersistedWorkspace(ws);
+                setEditWorkspaceName(ws.name || '');
+                setEditDefaultEnvId(ws.defaultEnvironmentId || '');
+                if (ws.role || wsRes.value.membership?.role) {
+                    setWorkspaceRole(ws.role || wsRes.value.membership?.role);
+                }
+                setCurrentWorkspace(ws);
+            } else if (wsRes.status === 'rejected') {
+                const status = wsRes.reason?.status || wsRes.reason?.response?.status;
+                if (status === 401) {
+                    setWorkspaceFetchError('Sign in with your TestNexa AI account to synchronize settings with your cloud workspace.');
+                } else {
+                    const errMsg = wsRes.reason?.message || wsRes.reason?.response?.data?.message || 'Failed to load workspace settings.';
+                    setWorkspaceFetchError(errMsg);
+                }
+            }
+
+            if (envRes.status === 'fulfilled' && envRes.value?.environments) {
+                setWorkspaceEnvironments(envRes.value.environments);
+            } else if (envRes.status === 'rejected') {
+                console.warn('Failed to load environments:', envRes.reason);
+            }
+        } catch (err) {
+            console.error('Error fetching workspace settings:', err);
+            setWorkspaceFetchError(err.message || 'Network error fetching workspace settings.');
+        } finally {
+            setIsLoadingWorkspaceData(false);
+            setEnvironmentsLoading(false);
+        }
+    }, [setCurrentWorkspace]);
+
+    // Fetch workspace settings when switching to workspace tab
+    useEffect(() => {
+        if (activeTab === 'workspace') {
+            loadWorkspaceSettings();
+        }
+    }, [activeTab, loadWorkspaceSettings]);
+
+    // Validation logic for workspace name
+    const validateWorkspaceName = (name) => {
+        const trimmed = (name || '').trim();
+        if (!trimmed) {
+            return 'Workspace name is required.';
+        }
+        if (trimmed.length < 2) {
+            return 'Workspace name must be at least 2 characters.';
+        }
+        if (trimmed.length > 64) {
+            return 'Workspace name cannot exceed 64 characters.';
+        }
+        if (!/^[a-zA-Z0-9\s\-_.&'()]+$/.test(trimmed)) {
+            return 'Workspace name contains invalid characters. Use alphanumeric, spaces, hyphens, and periods.';
+        }
+        return null;
+    };
+
+    const handleWorkspaceNameChange = (e) => {
+        const val = e.target.value;
+        setEditWorkspaceName(val);
+        setNameValidationError(validateWorkspaceName(val));
+        if (workspaceFeedback) setWorkspaceFeedback(null);
+    };
+
+    const handleEnvironmentChange = (e) => {
+        setEditDefaultEnvId(e.target.value);
+        if (workspaceFeedback) setWorkspaceFeedback(null);
+    };
+
+    // Copy immutable Workspace ID
+    const handleCopyWorkspaceId = async () => {
+        const wsId = persistedWorkspace?.id || currentWorkspace?.id || '';
+        if (!wsId) return;
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(wsId);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = wsId;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            setIsCopiedWorkspaceId(true);
+            setTimeout(() => setIsCopiedWorkspaceId(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy workspace ID:', err);
+        }
+    };
+
+    // Calculate dirty state
+    const currentPersistedName = (persistedWorkspace?.name || currentWorkspace?.name || '').trim();
+    const currentPersistedEnv = persistedWorkspace?.defaultEnvironmentId || currentWorkspace?.defaultEnvironmentId || '';
+    const isNameDirty = editWorkspaceName.trim() !== currentPersistedName;
+    const isEnvDirty = (editDefaultEnvId || '') !== (currentPersistedEnv || '');
+    const isWorkspaceDirty = isNameDirty || isEnvDirty;
+    const canSaveWorkspace = isWorkspaceDirty && !nameValidationError && !isSavingWorkspace && !isLoadingWorkspaceData;
+
+    // Reset unsaved changes
+    const handleResetWorkspace = () => {
+        setEditWorkspaceName(currentPersistedName);
+        setEditDefaultEnvId(currentPersistedEnv);
+        setNameValidationError(null);
+        setWorkspaceFeedback(null);
+    };
+
+    // Save changes to backend
+    const handleSaveWorkspace = async (e) => {
+        if (e) e.preventDefault();
+        const validationErr = validateWorkspaceName(editWorkspaceName);
+        if (validationErr) {
+            setNameValidationError(validationErr);
+            return;
+        }
+        if (!isWorkspaceDirty || isSavingWorkspace) return;
+
+        setIsSavingWorkspace(true);
+        setWorkspaceFeedback(null);
+
+        try {
+            const payload = {
+                name: editWorkspaceName.trim(),
+                defaultEnvironmentId: editDefaultEnvId ? editDefaultEnvId : null,
+                version: persistedWorkspace?.version
+            };
+
+            const result = await workspaceService.updateSettings(payload);
+
+            if (result.success && result.workspace) {
+                setPersistedWorkspace(result.workspace);
+                setEditWorkspaceName(result.workspace.name);
+                setEditDefaultEnvId(result.workspace.defaultEnvironmentId || '');
+                setCurrentWorkspace(result.workspace);
+                setWorkspaceFeedback({
+                    type: 'success',
+                    message: 'Workspace settings saved successfully.'
+                });
+                setTimeout(() => {
+                    setWorkspaceFeedback(prev => prev?.type === 'success' ? null : prev);
+                }, 4000);
+            } else {
+                setWorkspaceFeedback({
+                    type: 'error',
+                    message: result.message || 'Failed to update workspace settings.'
+                });
+            }
+        } catch (err) {
+            console.error('Save workspace settings error:', err);
+            const status = err.response?.status;
+            const resData = err.response?.data;
+            if (status === 409) {
+                setWorkspaceFeedback({
+                    type: 'conflict',
+                    message: resData?.message || 'Conflict: Settings were updated by another administrator. Please reload to inspect recent changes.',
+                    currentWorkspace: resData?.currentWorkspace
+                });
+            } else if (status === 403) {
+                setWorkspaceFeedback({
+                    type: 'error',
+                    message: resData?.message || 'Permission denied. Only workspace owners and admins can update settings.'
+                });
+            } else if (resData?.errors && Array.isArray(resData.errors)) {
+                setWorkspaceFeedback({
+                    type: 'error',
+                    message: resData.errors.map(e => e.message).join(' ')
+                });
+            } else {
+                setWorkspaceFeedback({
+                    type: 'error',
+                    message: resData?.message || err.message || 'A network error occurred while saving workspace settings.'
+                });
+            }
+        } finally {
+            setIsSavingWorkspace(false);
+        }
+    };
 
     // Invite Modal
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -305,9 +531,13 @@ const AppSettingsPage = () => {
                     <span style={{ color: '#555A5A' }}>/</span>
                     <span className="app-settings-breadcrumb__current">{activeTabObj.label}</span>
                 </nav>
-                <h1 className="app-settings-header__title">Settings</h1>
+                <h1 className="app-settings-header__title">
+                    {activeTab === 'workspace' ? 'Workspace Settings' : 'Settings'}
+                </h1>
                 <p className="app-settings-header__desc">
-                    Manage your personal account, subscription, security, and workspace preferences.
+                    {activeTab === 'workspace'
+                        ? 'Manage workspace identity and default environment.'
+                        : 'Manage your personal account, subscription, security, and workspace preferences.'}
                 </p>
             </div>
 
@@ -1109,62 +1339,225 @@ const AppSettingsPage = () => {
                     {/* ══════════════ TAB 5: WORKSPACE SETTINGS ══════════════ */}
                     {activeTab === 'workspace' && (
                         <>
-                            <div className="app-settings-section-header">
-                                <div>
-                                    <h2 className="app-settings-section-title">Workspace Settings</h2>
-                                    <p className="app-settings-section-desc">
-                                        Configure team workspace identity and environment routing.
-                                    </p>
-                                </div>
-                                {workspaceSaved && (
-                                    <div className="app-settings-feedback success" style={{ padding: '0.35rem 0.75rem' }}>
-                                        <CheckCircle2 size={14} />
-                                        <span>Saved</span>
+                            {/* Feedback Banner */}
+                            {workspaceFeedback && (
+                                <div
+                                    className={`app-settings-feedback ${workspaceFeedback.type === 'conflict' ? 'error' : workspaceFeedback.type}`}
+                                    role="alert"
+                                    aria-live="polite"
+                                    style={{ marginBottom: '1.25rem' }}
+                                >
+                                    {workspaceFeedback.type === 'success' ? (
+                                        <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                                    ) : (
+                                        <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                                    )}
+                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <span>{workspaceFeedback.message}</span>
+                                        {workspaceFeedback.type === 'conflict' && (
+                                            <button
+                                                type="button"
+                                                className="app-settings-btn app-settings-btn--secondary"
+                                                style={{ padding: '0.25rem 0.65rem', minHeight: '28px', fontSize: '0.78rem' }}
+                                                onClick={() => loadWorkspaceSettings(true)}
+                                            >
+                                                <RefreshCw size={12} />
+                                                <span>Reload Latest Settings</span>
+                                            </button>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
+
+                            {workspaceFetchError && (
+                                <div className="app-settings-feedback error" role="alert" style={{ marginBottom: '1.25rem' }}>
+                                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <span>{workspaceFetchError}</span>
+                                        <button
+                                            type="button"
+                                            className="app-settings-btn app-settings-btn--secondary"
+                                            style={{ padding: '0.25rem 0.65rem', minHeight: '28px', fontSize: '0.78rem' }}
+                                            onClick={() => loadWorkspaceSettings(true)}
+                                        >
+                                            <RefreshCw size={12} />
+                                            <span>Retry</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="app-settings-info-list">
-                                <div className="app-settings-info-row">
-                                    <label htmlFor="wsName" className="app-settings-info-label">Workspace Name</label>
-                                    <div className="app-settings-info-edit">
+                                {/* Workspace Name */}
+                                <div className="app-settings-info-row" style={{ alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                        <label htmlFor="wsName" className="app-settings-info-label" style={{ cursor: 'pointer' }}>
+                                            Workspace Name
+                                        </label>
+                                        <span style={{ fontSize: '0.74rem', color: '#777E7E' }}>
+                                            Primary team or organization display name
+                                        </span>
+                                    </div>
+                                    <div className="app-settings-info-edit" style={{ maxWidth: '360px', width: '100%' }}>
                                         <input
                                             id="wsName"
+                                            name="workspaceName"
                                             type="text"
+                                            maxLength={64}
                                             className="app-settings-input"
-                                            value={workspaceName}
-                                            onChange={(e) => setWorkspaceName(e.target.value)}
+                                            value={editWorkspaceName}
+                                            onChange={handleWorkspaceNameChange}
+                                            placeholder="Enter workspace name"
+                                            disabled={isSavingWorkspace || isLoadingWorkspaceData}
+                                            style={{
+                                                borderColor: nameValidationError ? '#F87171' : undefined
+                                            }}
                                         />
+                                        {nameValidationError && (
+                                            <div
+                                                style={{
+                                                    color: '#F87171',
+                                                    fontSize: '0.76rem',
+                                                    marginTop: '0.35rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.35rem'
+                                                }}
+                                                role="alert"
+                                            >
+                                                <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                                                <span>{nameValidationError}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
+
+                                {/* Workspace ID */}
                                 <div className="app-settings-info-row">
-                                    <span className="app-settings-info-label">Workspace ID</span>
-                                    <span className="app-settings-info-value" style={{ fontFamily: 'monospace', color: '#8BAF9A' }}>
-                                        ws_8892fbc9_qa
-                                    </span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                        <span className="app-settings-info-label">Workspace ID</span>
+                                        <span style={{ fontSize: '0.74rem', color: '#777E7E' }}>
+                                            Immutable unique tenant identifier
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                        <span
+                                            id="wsIdDisplay"
+                                            className="app-settings-info-value"
+                                            style={{
+                                                fontFamily: 'monospace',
+                                                color: '#8BAF9A',
+                                                fontSize: '0.82rem',
+                                                background: '#161819',
+                                                padding: '0.35rem 0.65rem',
+                                                borderRadius: '5px',
+                                                border: '1px solid #292D2D',
+                                                userSelect: 'all'
+                                            }}
+                                        >
+                                            {persistedWorkspace?.id || currentWorkspace?.id || '—'}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            id="btnCopyWorkspaceId"
+                                            className="app-settings-btn app-settings-btn--secondary"
+                                            style={{ padding: '0.35rem 0.75rem', minHeight: '32px', fontSize: '0.78rem' }}
+                                            onClick={handleCopyWorkspaceId}
+                                            aria-label="Copy Workspace ID to clipboard"
+                                            title="Copy Workspace ID"
+                                            disabled={!persistedWorkspace?.id && !currentWorkspace?.id}
+                                        >
+                                            {isCopiedWorkspaceId ? (
+                                                <>
+                                                    <Check size={13} style={{ color: '#8BAF9A' }} />
+                                                    <span style={{ color: '#8BAF9A', fontWeight: 600 }}>Copied!</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy size={13} />
+                                                    <span>Copy</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="app-settings-info-row">
-                                    <span className="app-settings-info-label">Default Environment</span>
-                                    <div className="app-settings-info-edit">
-                                        <select className="app-settings-input" defaultValue="staging">
-                                            <option value="staging">Staging (staging.app.domain)</option>
-                                            <option value="production">Production (app.domain)</option>
-                                            <option value="local">Local Development (localhost)</option>
+
+                                {/* Default Environment */}
+                                <div className="app-settings-info-row" style={{ alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                        <label htmlFor="wsDefaultEnv" className="app-settings-info-label" style={{ cursor: 'pointer' }}>
+                                            Default Environment
+                                        </label>
+                                        <span style={{ fontSize: '0.74rem', color: '#777E7E' }}>
+                                            Target environment for new test suites
+                                        </span>
+                                    </div>
+                                    <div className="app-settings-info-edit" style={{ maxWidth: '360px', width: '100%' }}>
+                                        <select
+                                            id="wsDefaultEnv"
+                                            name="defaultEnvironmentId"
+                                            className="app-settings-input"
+                                            value={editDefaultEnvId}
+                                            onChange={handleEnvironmentChange}
+                                            disabled={environmentsLoading || isSavingWorkspace || workspaceEnvironments.length === 0}
+                                        >
+                                            {environmentsLoading ? (
+                                                <option value="" disabled>Loading configured environments...</option>
+                                            ) : workspaceEnvironments.length === 0 ? (
+                                                <option value="" disabled>No environments configured</option>
+                                            ) : (
+                                                <>
+                                                    <option value="">None (No default environment)</option>
+                                                    {workspaceEnvironments.map((env) => (
+                                                        <option key={env.id} value={env.id}>
+                                                            {env.name} ({env.type}{env.baseUrl ? ` • ${env.baseUrl}` : ''})
+                                                        </option>
+                                                    ))}
+                                                </>
+                                            )}
                                         </select>
+                                        {workspaceEnvironments.length === 0 && !environmentsLoading && (
+                                            <p style={{ fontSize: '0.74rem', color: '#777E7E', margin: '0.35rem 0 0', lineHeight: 1.4 }}>
+                                                An environment must be configured before it can be selected as default.
+                                            </p>
+                                        )}
+                                        <p style={{ fontSize: '0.72rem', color: '#555A5A', margin: '0.35rem 0 0', lineHeight: 1.35 }}>
+                                            Changing the default environment designates target URLs for generated suites. It does not execute tests or deploy code.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                            {/* Form Actions */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
+                                {isWorkspaceDirty && (
+                                    <button
+                                        type="button"
+                                        id="btnCancelWorkspaceChanges"
+                                        className="app-settings-btn app-settings-btn--secondary"
+                                        onClick={handleResetWorkspace}
+                                        disabled={isSavingWorkspace}
+                                        title="Discard unsaved changes and restore persisted settings"
+                                    >
+                                        <RotateCcw size={14} />
+                                        <span>Reset</span>
+                                    </button>
+                                )}
                                 <button
                                     type="button"
+                                    id="btnSaveWorkspaceChanges"
                                     className="app-settings-btn app-settings-btn--primary"
-                                    onClick={() => {
-                                        setWorkspaceSaved(true);
-                                        setTimeout(() => setWorkspaceSaved(false), 2000);
-                                    }}
+                                    onClick={handleSaveWorkspace}
+                                    disabled={!canSaveWorkspace}
                                 >
-                                    Save Changes
+                                    {isSavingWorkspace ? (
+                                        <>
+                                            <Loader2 size={14} className="animate-spin" />
+                                            <span>Saving Changes...</span>
+                                        </>
+                                    ) : (
+                                        <span>Save Changes</span>
+                                    )}
                                 </button>
                             </div>
                         </>
@@ -1177,7 +1570,7 @@ const AppSettingsPage = () => {
                                 <div>
                                     <h2 className="app-settings-section-title">Members</h2>
                                     <p className="app-settings-section-desc">
-                                        Manage team members, roles, and seat allocations. 2 of 5 seats used.
+                                        Manage team members, roles, and seat allocations for {currentWorkspace?.name || 'this workspace'}. 2 of 5 seats used.
                                     </p>
                                 </div>
                                 <button

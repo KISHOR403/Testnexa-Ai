@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { workspaceService } from '../services/workspaceService';
 
 const AuthContext = createContext(null);
 
@@ -13,6 +14,11 @@ export const AuthProvider = ({ children }) => {
         const storedUser = localStorage.getItem('testnexa_user');
         return storedUser ? JSON.parse(storedUser) : null;
     });
+    const [currentWorkspace, setCurrentWorkspace] = useState(() => {
+        const stored = localStorage.getItem('testnexa_workspace');
+        return stored ? JSON.parse(stored) : null;
+    });
+    const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('testnexa_token'));
     const [isLoading, setIsLoading] = useState(true);
     const [isSigningOut, setIsSigningOut] = useState(false);
@@ -29,9 +35,30 @@ export const AuthProvider = ({ children }) => {
     const clearLocalAuthState = useCallback(() => {
         localStorage.removeItem('testnexa_token');
         localStorage.removeItem('testnexa_user');
+        localStorage.removeItem('testnexa_workspace');
         setUser(null);
+        setCurrentWorkspace(null);
         setIsAuthenticated(false);
         setActiveSessions([]);
+    }, []);
+
+    const fetchCurrentWorkspace = useCallback(async () => {
+        const token = localStorage.getItem('testnexa_token');
+        if (!token) return null;
+        try {
+            setIsLoadingWorkspace(true);
+            const ws = await workspaceService.getCurrentWorkspace();
+            if (ws) {
+                setCurrentWorkspace(ws);
+                localStorage.setItem('testnexa_workspace', JSON.stringify(ws));
+            }
+            return ws;
+        } catch (err) {
+            console.warn('Failed to load active workspace:', err.message);
+            return null;
+        } finally {
+            setIsLoadingWorkspace(false);
+        }
     }, []);
 
     const checkAuth = useCallback(async () => {
@@ -48,6 +75,7 @@ export const AuthProvider = ({ children }) => {
             if (response.data.success) {
                 setUser(response.data.user);
                 setIsAuthenticated(true);
+                fetchCurrentWorkspace();
             } else {
                 clearLocalAuthState();
             }
@@ -57,7 +85,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [clearLocalAuthState]);
+    }, [clearLocalAuthState, fetchCurrentWorkspace]);
 
     // Centralized real logout function
     const logout = useCallback(async () => {
@@ -119,6 +147,14 @@ export const AuthProvider = ({ children }) => {
                         setIsAuthenticated(true);
                         if (event.data?.user) {
                             setUser(event.data.user);
+                        }
+                        fetchCurrentWorkspace();
+                    } else if (event.data?.type === 'WORKSPACE_UPDATED') {
+                        if (event.data?.workspace) {
+                            setCurrentWorkspace(event.data.workspace);
+                            localStorage.setItem('testnexa_workspace', JSON.stringify(event.data.workspace));
+                        } else {
+                            fetchCurrentWorkspace();
                         }
                     }
                 };
@@ -210,6 +246,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+                fetchCurrentWorkspace();
 
                 // Broadcast login to other tabs (e.g., Tab A landing page)
                 try {
@@ -239,6 +276,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('testnexa_user', JSON.stringify(user));
                 setUser(user);
                 setIsAuthenticated(true);
+                fetchCurrentWorkspace();
 
                 // Broadcast login to other tabs
                 try {
@@ -464,6 +502,10 @@ export const AuthProvider = ({ children }) => {
             changePassword,
             deleteAccount,
             checkAuth,
+            currentWorkspace,
+            setCurrentWorkspace,
+            isLoadingWorkspace,
+            refreshWorkspace: fetchCurrentWorkspace,
             pendingAction,
             setPendingAction,
             guestGenerationsUsed,

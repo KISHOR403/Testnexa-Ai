@@ -119,3 +119,88 @@ CREATE TABLE IF NOT EXISTS public.auth_sessions (
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON public.auth_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON public.auth_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_revoked ON public.auth_sessions(revoked_at);
+
+-- ------------------------------------------------------------------------------
+-- 5. WORKSPACES TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.workspaces (
+    id TEXT PRIMARY KEY DEFAULT ('ws_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    name TEXT NOT NULL,
+    slug TEXT,
+    owner_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
+    default_environment_id TEXT,
+    version INTEGER DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspaces_owner_id ON public.workspaces(owner_id);
+CREATE INDEX IF NOT EXISTS idx_workspaces_updated_at ON public.workspaces(updated_at DESC);
+
+-- ------------------------------------------------------------------------------
+-- 6. WORKSPACE MEMBERS TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.workspace_members (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    workspace_id TEXT NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'member', -- 'owner', 'admin', 'member', 'viewer'
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_workspace_member UNIQUE (workspace_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON public.workspace_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_ws_user ON public.workspace_members(workspace_id, user_id);
+
+-- ------------------------------------------------------------------------------
+-- 7. WORKSPACE ENVIRONMENTS TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.workspace_environments (
+    id TEXT PRIMARY KEY DEFAULT ('env_' || substr(md5(random()::text || clock_timestamp()::text), 1, 12)),
+    workspace_id TEXT NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    base_url TEXT DEFAULT '',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_workspace_env_slug UNIQUE (workspace_id, slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_environments_ws ON public.workspace_environments(workspace_id);
+
+-- Add foreign key constraint for default_environment_id if not present
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_workspaces_default_env'
+    ) THEN
+        ALTER TABLE public.workspaces
+        ADD CONSTRAINT fk_workspaces_default_env
+        FOREIGN KEY (default_environment_id)
+        REFERENCES public.workspace_environments(id)
+        ON DELETE SET NULL;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 8. WORKSPACE AUDIT LOGS TABLE
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.workspace_audit_logs (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    workspace_id TEXT NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    actor_id TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    changes JSONB DEFAULT '{}'::jsonb,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_audit_logs_ws ON public.workspace_audit_logs(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_audit_logs_created ON public.workspace_audit_logs(created_at DESC);
+

@@ -11,6 +11,11 @@ class SupabaseDataService {
     constructor() {
         this.inMemoryAuthSessions = new Map();
         this.authSessionsTableAvailable = null; // null = untested, true/false
+        this.inMemoryWorkspaces = new Map();
+        this.inMemoryWorkspaceMembers = new Map();
+        this.inMemoryEnvironments = new Map();
+        this.inMemoryAuditLogs = [];
+        this.workspacesTableAvailable = null;
     }
 
     get isAvailable() {
@@ -1014,6 +1019,493 @@ class SupabaseDataService {
             revokedAt: row.revoked_at,
             createdAt: row.created_at
         };
+    }
+
+    // ==========================================
+    // WORKSPACES & WORKSPACE SETTINGS
+    // ==========================================
+
+    _formatWorkspace(row) {
+        if (!row) return null;
+        return {
+            id: row.id,
+            name: row.name,
+            slug: row.slug || '',
+            ownerId: row.owner_id || row.ownerId,
+            defaultEnvironmentId: row.default_environment_id || row.defaultEnvironmentId || null,
+            version: typeof row.version === 'number' ? row.version : 1,
+            createdAt: row.created_at || row.createdAt,
+            updatedAt: row.updated_at || row.updatedAt
+        };
+    }
+
+    _formatWorkspaceMember(row) {
+        if (!row) return null;
+        return {
+            id: row.id,
+            workspaceId: row.workspace_id || row.workspaceId,
+            userId: row.user_id || row.userId,
+            role: row.role || 'member',
+            status: row.status || 'active',
+            createdAt: row.created_at || row.createdAt,
+            updatedAt: row.updated_at || row.updatedAt
+        };
+    }
+
+    _formatEnvironment(row) {
+        if (!row) return null;
+        return {
+            id: row.id,
+            workspaceId: row.workspace_id || row.workspaceId,
+            name: row.name,
+            slug: row.slug,
+            baseUrl: row.base_url || row.baseUrl || '',
+            isActive: row.is_active !== undefined ? Boolean(row.is_active) : (row.isActive !== undefined ? Boolean(row.isActive) : true),
+            createdAt: row.created_at || row.createdAt,
+            updatedAt: row.updated_at || row.updatedAt
+        };
+    }
+
+    /**
+     * Get or auto-provision the user's primary workspace
+     */
+    async getUserPrimaryWorkspace(userId, userName = '') {
+        if (!userId) return null;
+
+        // Try Supabase first if available
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                // Find active membership
+                const { data: memberRows, error: memberErr } = await supabase
+                    .from('workspace_members')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('status', 'active')
+                    .limit(1);
+
+                if (!memberErr && memberRows && memberRows.length > 0) {
+                    const member = this._formatWorkspaceMember(memberRows[0]);
+                    const { data: wsRow, error: wsErr } = await supabase
+                        .from('workspaces')
+                        .select('*')
+                        .eq('id', member.workspaceId)
+                        .maybeSingle();
+
+                    if (!wsErr && wsRow) {
+                        this.workspacesTableAvailable = true;
+                        const ws = this._formatWorkspace(wsRow);
+                        ws.role = member.role;
+                        return ws;
+                    }
+                }
+
+                if (memberErr && (memberErr.code === '42P01' || memberErr.message?.includes('workspace_members') || memberErr.code === 'PGRST205')) {
+                    this.workspacesTableAvailable = false;
+                }
+            } catch (err) {
+                this.workspacesTableAvailable = false;
+            }
+        }
+
+        // Check in-memory membership
+        for (const [key, mem] of this.inMemoryWorkspaceMembers.entries()) {
+            if (mem.userId === userId && mem.status === 'active') {
+                const ws = this.inMemoryWorkspaces.get(mem.workspaceId);
+                if (ws) {
+                    return { ...ws, role: mem.role };
+                }
+            }
+        }
+
+        // Auto-provision primary workspace for the user
+        const wsId = 'ws_' + crypto.randomBytes(8).toString('hex');
+        const envStagingId = 'env_' + crypto.randomBytes(6).toString('hex');
+        const envProdId = 'env_' + crypto.randomBytes(6).toString('hex');
+        const envLocalId = 'env_' + crypto.randomBytes(6).toString('hex');
+        const now = new Date().toISOString();
+        const wsName = userName ? `${userName}'s Workspace` : 'Enterprise QA Core';
+
+        // Provision default environments
+        const defaultEnvs = [
+            {
+                id: envStagingId,
+                workspaceId: wsId,
+                name: 'Staging',
+                slug: 'staging',
+                baseUrl: 'https://staging.testnexa.ai',
+                isActive: true,
+                createdAt: now,
+                updatedAt: now
+            },
+            {
+                id: envProdId,
+                workspaceId: wsId,
+                name: 'Production',
+                slug: 'production',
+                baseUrl: 'https://app.testnexa.ai',
+                isActive: true,
+                createdAt: now,
+                updatedAt: now
+            },
+            {
+                id: envLocalId,
+                workspaceId: wsId,
+                name: 'Local Development',
+                slug: 'local',
+                baseUrl: 'http://localhost:5174',
+                isActive: true,
+                createdAt: now,
+                updatedAt: now
+            }
+        ];
+
+        const newWorkspace = {
+            id: wsId,
+            name: wsName,
+            slug: 'primary',
+            ownerId: userId,
+            defaultEnvironmentId: envStagingId,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+            role: 'owner'
+        };
+
+        const newMember = {
+            id: crypto.randomUUID(),
+            workspaceId: wsId,
+            userId: userId,
+            role: 'owner',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now
+        };
+
+        // Try persisting to Supabase if table is available
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                // Insert workspace
+                const { error: wsInsErr } = await supabase.from('workspaces').insert({
+                    id: wsId,
+                    name: wsName,
+                    slug: 'primary',
+                    owner_id: userId,
+                    default_environment_id: envStagingId,
+                    version: 1,
+                    created_at: now,
+                    updated_at: now
+                });
+
+                if (!wsInsErr) {
+                    this.workspacesTableAvailable = true;
+                    // Insert environments
+                    await supabase.from('workspace_environments').insert(
+                        defaultEnvs.map(e => ({
+                            id: e.id,
+                            workspace_id: wsId,
+                            name: e.name,
+                            slug: e.slug,
+                            base_url: e.baseUrl,
+                            is_active: e.isActive,
+                            created_at: now,
+                            updated_at: now
+                        }))
+                    );
+
+                    // Insert member
+                    await supabase.from('workspace_members').insert({
+                        id: newMember.id,
+                        workspace_id: wsId,
+                        user_id: userId,
+                        role: 'owner',
+                        status: 'active',
+                        created_at: now,
+                        updated_at: now
+                    });
+
+                    return newWorkspace;
+                }
+            } catch (e) {
+                this.workspacesTableAvailable = false;
+            }
+        }
+
+        // Store in memory
+        this.inMemoryWorkspaces.set(wsId, newWorkspace);
+        this.inMemoryWorkspaceMembers.set(`${wsId}_${userId}`, newMember);
+        this.inMemoryEnvironments.set(wsId, defaultEnvs);
+
+        return newWorkspace;
+    }
+
+    /**
+     * Get a workspace by ID
+     */
+    async getWorkspace(workspaceId) {
+        if (!workspaceId) return null;
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('workspaces')
+                    .select('*')
+                    .eq('id', workspaceId)
+                    .maybeSingle();
+
+                if (!error && data) {
+                    return this._formatWorkspace(data);
+                }
+            } catch (err) {}
+        }
+
+        const ws = this.inMemoryWorkspaces.get(workspaceId);
+        return ws ? { ...ws } : null;
+    }
+
+    /**
+     * Get user membership in a specific workspace
+     */
+    async getWorkspaceMembership(workspaceId, userId) {
+        if (!workspaceId || !userId) return null;
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('workspace_members')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (!error && data) {
+                    return this._formatWorkspaceMember(data);
+                }
+            } catch (err) {}
+        }
+
+        const mem = this.inMemoryWorkspaceMembers.get(`${workspaceId}_${userId}`);
+        return mem ? { ...mem } : null;
+    }
+
+    /**
+     * List all active environments for a workspace
+     */
+    async getWorkspaceEnvironments(workspaceId) {
+        if (!workspaceId) return [];
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('workspace_environments')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: true });
+
+                if (!error && data && data.length > 0) {
+                    return data.map(r => this._formatEnvironment(r));
+                }
+            } catch (err) {}
+        }
+
+        const envs = this.inMemoryEnvironments.get(workspaceId) || [];
+        return envs.filter(e => e.isActive !== false);
+    }
+
+    /**
+     * Get an environment by ID for a workspace
+     */
+    async getWorkspaceEnvironmentById(workspaceId, environmentId) {
+        if (!workspaceId || !environmentId) return null;
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('workspace_environments')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .eq('id', environmentId)
+                    .maybeSingle();
+
+                if (!error && data) {
+                    return this._formatEnvironment(data);
+                }
+            } catch (err) {}
+        }
+
+        const envs = this.inMemoryEnvironments.get(workspaceId) || [];
+        const match = envs.find(e => e.id === environmentId);
+        return match ? { ...match } : null;
+    }
+
+    /**
+     * Update workspace settings with optimistic concurrency & audit trail
+     */
+    async updateWorkspaceSettings(workspaceId, updates = {}, actorId = null, auditMeta = {}) {
+        if (!workspaceId) throw new Error('Workspace ID is required');
+
+        const current = await this.getWorkspace(workspaceId);
+        if (!current) {
+            const err = new Error('Workspace not found');
+            err.code = 'WORKSPACE_NOT_FOUND';
+            throw err;
+        }
+
+        // Concurrency Check
+        if (updates.expectedVersion !== undefined && updates.expectedVersion !== null) {
+            if (Number(current.version) !== Number(updates.expectedVersion)) {
+                const err = new Error('This workspace was modified by another administrator. Please reload to review the latest changes.');
+                err.code = 'CONCURRENCY_CONFLICT';
+                err.currentSettings = current;
+                throw err;
+            }
+        }
+
+        // Validate default environment if specified
+        if (updates.defaultEnvironmentId !== undefined && updates.defaultEnvironmentId !== null) {
+            const env = await this.getWorkspaceEnvironmentById(workspaceId, updates.defaultEnvironmentId);
+            if (!env || !env.isActive) {
+                const err = new Error('Selected default environment does not belong to this workspace or is inactive.');
+                err.code = 'INVALID_ENVIRONMENT';
+                throw err;
+            }
+        }
+
+        const now = new Date().toISOString();
+        const nextVersion = (current.version || 1) + 1;
+        const newName = updates.name !== undefined ? updates.name.trim() : current.name;
+        const newDefaultEnv = updates.defaultEnvironmentId !== undefined ? updates.defaultEnvironmentId : current.defaultEnvironmentId;
+
+        // Track changes for audit log
+        const changes = {};
+        if (updates.name !== undefined && newName !== current.name) {
+            changes.name = { from: current.name, to: newName };
+        }
+        if (updates.defaultEnvironmentId !== undefined && newDefaultEnv !== current.defaultEnvironmentId) {
+            changes.defaultEnvironmentId = { from: current.defaultEnvironmentId, to: newDefaultEnv };
+        }
+
+        // Persist to Supabase if available
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('workspaces')
+                    .update({
+                        name: newName,
+                        default_environment_id: newDefaultEnv,
+                        version: nextVersion,
+                        updated_at: now
+                    })
+                    .eq('id', workspaceId)
+                    .select()
+                    .single();
+
+                if (!error && data) {
+                    await this.recordWorkspaceAuditLog({
+                        workspaceId,
+                        actorId,
+                        action: 'workspace.settings.update',
+                        changes,
+                        ipAddress: auditMeta.ipAddress,
+                        userAgent: auditMeta.userAgent
+                    });
+                    return this._formatWorkspace(data);
+                }
+            } catch (err) {}
+        }
+
+        // In-memory update
+        const updatedObj = {
+            ...current,
+            name: newName,
+            defaultEnvironmentId: newDefaultEnv,
+            version: nextVersion,
+            updatedAt: now
+        };
+        this.inMemoryWorkspaces.set(workspaceId, updatedObj);
+
+        await this.recordWorkspaceAuditLog({
+            workspaceId,
+            actorId,
+            action: 'workspace.settings.update',
+            changes,
+            ipAddress: auditMeta.ipAddress,
+            userAgent: auditMeta.userAgent
+        });
+
+        return updatedObj;
+    }
+
+    /**
+     * Record an audit log entry for workspace modifications
+     */
+    async recordWorkspaceAuditLog({ workspaceId, actorId, action, changes = {}, ipAddress = '', userAgent = '' }) {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+
+        const logEntry = {
+            id,
+            workspace_id: workspaceId,
+            actor_id: actorId || null,
+            action,
+            changes,
+            ip_address: ipAddress || '',
+            user_agent: userAgent || '',
+            created_at: now
+        };
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                await supabase.from('workspace_audit_logs').insert(logEntry);
+                return;
+            } catch (err) {}
+        }
+
+        this.inMemoryAuditLogs.push({
+            id,
+            workspaceId,
+            actorId,
+            action,
+            changes,
+            ipAddress,
+            userAgent,
+            createdAt: now
+        });
+    }
+
+    /**
+     * Add a member to a workspace (helper for testing and administration)
+     */
+    async addWorkspaceMember({ workspaceId, userId, role = 'member', status = 'active' }) {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const memberObj = {
+            id,
+            workspaceId,
+            userId,
+            role,
+            status,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        if (this.isAvailable && this.workspacesTableAvailable !== false) {
+            try {
+                await supabase.from('workspace_members').upsert({
+                    id,
+                    workspace_id: workspaceId,
+                    user_id: userId,
+                    role,
+                    status,
+                    created_at: now,
+                    updated_at: now
+                }, { onConflict: 'workspace_id,user_id' });
+                return memberObj;
+            } catch (err) {}
+        }
+
+        this.inMemoryWorkspaceMembers.set(`${workspaceId}_${userId}`, memberObj);
+        return memberObj;
     }
 }
 

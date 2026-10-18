@@ -27,7 +27,7 @@ const formatTimeAgo = (dateInput) => {
 };
 
 const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) => {
-    const { user, logout, isSigningOut } = useAuth();
+    const { user, logout, isSigningOut, currentWorkspace } = useAuth();
     const { history, recentSessions } = useHistory();
     const location = useLocation();
     const navigate = useNavigate();
@@ -317,8 +317,8 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             <div style={{ fontSize: '0.74rem', color: '#888888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
                                 {user?.email || 'user@testnexa.ai'}
                             </div>
-                            <div style={{ marginTop: '0.45rem', display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(139, 175, 154, 0.12)', color: '#8BAF9A', border: '1px solid rgba(139, 175, 154, 0.25)', letterSpacing: '0.04em' }}>
-                                PRO WORKSPACE
+                            <div style={{ marginTop: '0.45rem', display: 'inline-flex', alignItems: 'center', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(139, 175, 154, 0.12)', color: '#8BAF9A', border: '1px solid rgba(139, 175, 154, 0.25)', letterSpacing: '0.04em', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {currentWorkspace?.name ? currentWorkspace.name.toUpperCase() : 'PRO WORKSPACE'}
                             </div>
                         </div>
 
@@ -473,7 +473,9 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                 <span className="app-sidebar__user-name">
                                     {user?.name || user?.email?.split('@')[0] || 'Enterprise QA'}
                                 </span>
-                                <span className="app-sidebar__user-plan">Pro Workspace</span>
+                                <span className="app-sidebar__user-plan" title={currentWorkspace?.name || 'Pro Workspace'}>
+                                    {currentWorkspace?.name || 'Pro Workspace'}
+                                </span>
                             </div>
                             <ChevronUp
                                 size={14}
