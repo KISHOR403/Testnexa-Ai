@@ -216,6 +216,22 @@ exports.login = async (req, res) => {
             });
         }
 
+        let enrichedUser = user;
+        try {
+            const adminService = require('../services/admin.service');
+            enrichedUser = adminService._enrichUser(user);
+        } catch (e) {}
+
+        // Check if account is suspended
+        if (enrichedUser && enrichedUser.status === 'suspended') {
+            return res.status(403).json({
+                success: false,
+                code: 'ACCOUNT_SUSPENDED',
+                message: 'Your account has been suspended. Please contact support at support@testnexa.ai for assistance.',
+                reason: enrichedUser.suspensionReason || 'Account suspended by platform administration'
+            });
+        }
+
         // 2. Update user stats in Supabase
         const newLoginCount = (user.login_count || 0) + 1;
         await supabaseService.updateUser(user.id, {
@@ -235,10 +251,13 @@ exports.login = async (req, res) => {
             user: {
                 id: user.id,
                 _id: user.id,
-                name: user.name || user.display_name,
-                email: user.email,
-                avatar: user.avatar,
-                provider: user.provider || 'email',
+                name: enrichedUser.name,
+                email: enrichedUser.email,
+                avatar: enrichedUser.avatar,
+                provider: enrichedUser.provider,
+                role: enrichedUser.role,
+                status: enrichedUser.status,
+                mfaEnabled: enrichedUser.mfaEnabled,
                 lastLogin: now,
                 loginCount: newLoginCount,
                 totalTestsGenerated: user.total_tests_generated || 0,
@@ -282,6 +301,9 @@ exports.getMe = async (req, res) => {
                 email: req.user.email,
                 avatar: req.user.avatar,
                 provider,
+                role: req.user.role || 'user',
+                status: req.user.status || 'active',
+                mfaEnabled: Boolean(req.user.mfaEnabled),
                 lastLogin: req.user.lastLogin,
                 loginCount: req.user.loginCount,
                 passwordChangedAt: req.user.passwordChangedAt,

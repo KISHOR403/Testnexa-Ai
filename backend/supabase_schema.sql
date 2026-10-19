@@ -34,9 +34,17 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS reset_password_token TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS reset_password_expire TIMESTAMPTZ;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS total_tests_generated INTEGER DEFAULT 0;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS login_count INTEGER DEFAULT 0;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMPTZ;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS suspension_reason TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS mfa_secret TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_reset_token ON public.users(reset_password_token);
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);
 
 -- ------------------------------------------------------------------------------
 -- 2. WORKSPACE SESSIONS TABLE
@@ -222,5 +230,84 @@ CREATE TABLE IF NOT EXISTS public.suite_shares (
 CREATE INDEX IF NOT EXISTS idx_suite_shares_suite_id ON public.suite_shares(suite_id);
 CREATE INDEX IF NOT EXISTS idx_suite_shares_token ON public.suite_shares(share_token);
 CREATE INDEX IF NOT EXISTS idx_suite_shares_owner_id ON public.suite_shares(owner_id);
+
+-- ------------------------------------------------------------------------------
+-- 10. ADMIN AUDIT LOGS TABLE (Append-Only Security Audit Trail)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    actor_id TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    actor_email TEXT,
+    action TEXT NOT NULL,
+    target_resource TEXT NOT NULL,
+    outcome TEXT NOT NULL DEFAULT 'success',
+    reason TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_actor ON public.admin_audit_logs(actor_id);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_action ON public.admin_audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created ON public.admin_audit_logs(created_at DESC);
+
+-- ------------------------------------------------------------------------------
+-- 11. GENERATION LOGS TABLE (AI Pipeline Telemetry & Error Tracking)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.generation_logs (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    request_id TEXT NOT NULL,
+    user_id TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    workspace_id TEXT,
+    status TEXT NOT NULL, -- 'success', 'failed', 'running', 'quota_exceeded'
+    processing_duration_ms INTEGER DEFAULT 0,
+    app_type TEXT,
+    detail_level TEXT,
+    model TEXT,
+    error_category TEXT,
+    error_message TEXT,
+    retries INTEGER DEFAULT 0,
+    tests_generated INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_generation_logs_user_id ON public.generation_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_generation_logs_status ON public.generation_logs(status);
+CREATE INDEX IF NOT EXISTS idx_generation_logs_created_at ON public.generation_logs(created_at DESC);
+
+-- ------------------------------------------------------------------------------
+-- 12. PLATFORM SETTINGS TABLE (Configurable Feature Flags and Limits)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_by TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ------------------------------------------------------------------------------
+-- 13. SUPPORT TICKETS TABLE (Contact Inquiries and Platform Support)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.support_tickets (
+    id TEXT PRIMARY KEY DEFAULT ('TN-' || substr(md5(random()::text || clock_timestamp()::text), 1, 8)),
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    company TEXT,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new', -- 'new', 'in_progress', 'resolved', 'closed'
+    priority TEXT NOT NULL DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
+    assigned_to TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    internal_notes JSONB DEFAULT '[]'::jsonb,
+    ip_address TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_email ON public.support_tickets(email);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON public.support_tickets(created_at DESC);
+
 
 

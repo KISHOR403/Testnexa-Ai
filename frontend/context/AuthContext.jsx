@@ -287,6 +287,42 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const adminLogin = async (email, password, rememberMe = false) => {
+        try {
+            const response = await axios.post(`${API_URL}/admin/login`, { email, password, rememberMe });
+            if (response.data.success) {
+                const { user, token, workspace } = response.data;
+                localStorage.setItem('testnexa_token', token);
+                localStorage.setItem('testnexa_user', JSON.stringify(user));
+                if (workspace) {
+                    localStorage.setItem('testnexa_workspace', JSON.stringify(workspace));
+                    setCurrentWorkspace(workspace);
+                }
+                setUser(user);
+                setIsAuthenticated(true);
+                fetchCurrentWorkspace();
+
+                // Broadcast multi-tab login event
+                try {
+                    if (window.BroadcastChannel) {
+                        const bc = new BroadcastChannel('testnexa_auth');
+                        bc.postMessage({ type: 'LOGIN', user });
+                        bc.close();
+                    }
+                } catch (e) {}
+
+                return { success: true, user, token };
+            }
+            return response.data;
+        } catch (error) {
+            return {
+                success: false,
+                code: error.response?.data?.code || 'AUTH_ERROR',
+                message: error.response?.data?.message || 'Administrative login failed.'
+            };
+        }
+    };
+
     const register = async (name, email, password) => {
         try {
             const response = await axios.post(`${API_URL}/auth/register`, { name, email, password });
@@ -520,6 +556,7 @@ export const AuthProvider = ({ children }) => {
             isLoading,
             isSigningOut,
             login,
+            adminLogin,
             register,
             loginWithGoogle,
             loginWithGitHub,

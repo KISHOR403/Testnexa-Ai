@@ -101,6 +101,16 @@ app.use('/api/v1/test-suites', require('./routes/testSuite.routes'));
 app.use('/api/v1/copilot', require('./routes/copilot.routes'));
 app.use('/api/v1/workspaces', require('./routes/workspace.routes'));
 
+// Admin operational routes (active locally / in deployment, safely omitted in public git)
+try {
+    const adminRoutes = require('./routes/admin.routes');
+    app.use('/api/v1/admin', adminRoutes);
+} catch (e) {
+    if (e.code !== 'MODULE_NOT_FOUND') {
+        logger.error('Error mounting admin routes:', e);
+    }
+}
+
 
 
 const { callAI } = require('./services/ai.service');

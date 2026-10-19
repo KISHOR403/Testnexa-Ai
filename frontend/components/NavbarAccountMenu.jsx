@@ -236,6 +236,25 @@ const NavbarAccountMenu = ({ showHelpLink = true }) => {
                         </button>
                     </div>
 
+                    {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                        <>
+                            <div className="account-dropdown-divider" />
+                            <div className="account-dropdown-section">
+                                <div className="account-dropdown-section-label" style={{ color: '#8BAF9A' }}>Platform</div>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="account-dropdown-item"
+                                    onClick={() => handleNavigate('/admin')}
+                                    style={{ color: '#8BAF9A' }}
+                                >
+                                    <Shield size={16} className="account-dropdown-icon" style={{ color: '#8BAF9A' }} />
+                                    <span style={{ fontWeight: 600 }}>Admin Console</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
+
                     <div className="account-dropdown-divider" />
 
                     {/* Help & Docs */}

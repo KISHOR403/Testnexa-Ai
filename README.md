@@ -609,6 +609,7 @@ Testnexa-AI/
 - [x] **Coverage, Risk & Traceability Analytics Dashboards**
 - [x] **Multi-Runner Code Export** (Playwright, Cypress, Jest, Robot Framework, JSON, CSV, MD)
 - [x] **Active Device Session Management & Remote Revocation**
+- [x] **Platform Security & Role-Based Access Control**
 - [ ] **Bi-Directional Jira & Linear Integration** (Import issues, push back test cases as subtasks)
 - [ ] **Native GitHub Actions CI/CD Test Runner** (Execute generated Playwright suites against PR staging URLs)
 - [ ] **Enterprise SSO / SAML 2.0** (Okta, Azure AD, Google Workspace)

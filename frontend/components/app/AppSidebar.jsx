@@ -402,6 +402,25 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             <ArrowRight size={13} className="gpt-popup-arrow" />
                         </button>
 
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                            <button
+                                type="button"
+                                className="gpt-profile-popup-item"
+                                style={{ color: '#8BAF9A' }}
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    navigate('/admin');
+                                    if (onCloseMobile) onCloseMobile();
+                                }}
+                            >
+                                <div className="gpt-popup-icon-wrap" style={{ color: '#8BAF9A' }}>
+                                    <ShieldCheck size={15} />
+                                </div>
+                                <span style={{ fontWeight: 600 }}>Admin Console</span>
+                                <ArrowRight size={13} className="gpt-popup-arrow" />
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             className="gpt-profile-popup-item"

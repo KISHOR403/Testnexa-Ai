@@ -40,3 +40,25 @@ backend/data/
 /testnexa-*.png
 !public/branding/testnexa-logo.png
 !public/screenshots/*
+
+# ==========================================
+# Admin Console (Local Operations Only - Hidden from GitHub)
+# ==========================================
+admin_screenshots/
+backend/migrations/
+backend/scripts/
+backend/src/controllers/admin.controller.js
+backend/src/middleware/requireAdmin.js
+backend/src/routes/admin.routes.js
+backend/src/services/admin.service.js
+backend/tests/admin.test.js
+backend/tests/verify_live_api.js
+backend/tests/verify_live_stream.js
+scripts/verify_admin_ui.cjs
+scripts/verify_admin_ui.js
+frontend/components/AdminProtectedRoute.jsx
+frontend/layouts/AdminLayout.jsx
+frontend/pages/admin/
+frontend/services/adminService.js
+frontend/styles/admin/
+

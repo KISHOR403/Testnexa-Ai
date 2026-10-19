@@ -261,6 +261,19 @@ const generateTestCases = async (req, res) => {
                     }
                 } catch (uErr) {}
 
+                // Record generation telemetry event for admin pipeline monitoring
+                const adminService = require('../services/admin.service');
+                adminService.recordGenerationEvent({
+                    requestId: generationId,
+                    userId: targetUserId,
+                    workspaceId: req.body.workspaceId || null,
+                    status: 'success',
+                    durationMs: Date.now() - startTime,
+                    appType,
+                    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+                    testsGenerated: summaryData.total
+                });
+
             } catch (err) {
                 logger.error('Failed to save generation to Supabase:', err);
             }
@@ -287,6 +300,23 @@ const generateTestCases = async (req, res) => {
 
     } catch (error) {
         logger.error('Error in enhanced test generation', error);
+
+        // Record failed generation telemetry event
+        try {
+            const adminService = require('../services/admin.service');
+            adminService.recordGenerationEvent({
+                requestId: `gen_fail_${Date.now()}`,
+                userId: req.user ? (req.user._id || req.user.id) : 'anonymous',
+                workspaceId: req.body?.workspaceId || null,
+                status: 'failed',
+                durationMs: Date.now() - startTime,
+                appType: req.body?.appType || 'web',
+                model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+                errorCategory: error.code || error.name || 'AI_GENERATION_ERROR',
+                errorMessage: error.message || 'Generation pipeline failed'
+            });
+        } catch (telemetryErr) {}
+
         const errorResponse = formatErrorResponse(error);
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json(errorResponse);

@@ -33,6 +33,59 @@ const RisksPage = lazy(() => import('./pages/app/RisksPage'));
 const TraceabilityPage = lazy(() => import('./pages/app/TraceabilityPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
+// Dynamic discovery for Admin Console (active locally/privately; gracefully absent in public repo)
+const adminPages = import.meta.glob('./pages/admin/*.jsx');
+const adminLayouts = import.meta.glob('./layouts/AdminLayout.jsx');
+const adminGuards = import.meta.glob('./components/AdminProtectedRoute.jsx');
+
+const AdminProtectedRoute = adminGuards['./components/AdminProtectedRoute.jsx']
+  ? lazy(adminGuards['./components/AdminProtectedRoute.jsx'])
+  : ({ children }) => children;
+
+const AdminLayout = adminLayouts['./layouts/AdminLayout.jsx']
+  ? lazy(adminLayouts['./layouts/AdminLayout.jsx'])
+  : () => <Navigate to="/login" replace />;
+
+const AdminOverviewPage = adminPages['./pages/admin/AdminOverviewPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminOverviewPage.jsx'])
+  : () => <Navigate to="/login" replace />;
+
+const AdminUsersPage = adminPages['./pages/admin/AdminUsersPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminUsersPage.jsx'])
+  : () => null;
+
+const AdminWorkspacesPage = adminPages['./pages/admin/AdminWorkspacesPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminWorkspacesPage.jsx'])
+  : () => null;
+
+const AdminBillingPage = adminPages['./pages/admin/AdminBillingPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminBillingPage.jsx'])
+  : () => null;
+
+const AdminGenerationsPage = adminPages['./pages/admin/AdminGenerationsPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminGenerationsPage.jsx'])
+  : () => null;
+
+const AdminHealthPage = adminPages['./pages/admin/AdminHealthPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminHealthPage.jsx'])
+  : () => null;
+
+const AdminSupportPage = adminPages['./pages/admin/AdminSupportPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminSupportPage.jsx'])
+  : () => null;
+
+const AdminAuditLogsPage = adminPages['./pages/admin/AdminAuditLogsPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminAuditLogsPage.jsx'])
+  : () => null;
+
+const AdminConfigPage = adminPages['./pages/admin/AdminConfigPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminConfigPage.jsx'])
+  : () => null;
+
+const AdminLoginPage = adminPages['./pages/admin/AdminLoginPage.jsx']
+  ? lazy(adminPages['./pages/admin/AdminLoginPage.jsx'])
+  : () => <Navigate to="/login" replace />;
+
 import { useAuth } from './context/AuthContext';
 import { AppInitialLoader, RouteLoadingFallback } from './components/loading';
 
@@ -115,6 +168,22 @@ function AppContent() {
             <Route path="traceability" element={<TraceabilityPage />} />
             <Route path="settings" element={<AppSettingsPage />} />
             <Route path="billing" element={<Navigate to="/app/settings?tab=billing" replace />} />
+          </Route>
+
+          {/* ─── DEDICATED ADMINISTRATOR LOGIN ─── */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+
+          {/* ─── SECURE PLATFORM ADMIN CONSOLE ─── */}
+          <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="workspaces" element={<AdminWorkspacesPage />} />
+            <Route path="billing" element={<AdminBillingPage />} />
+            <Route path="generations" element={<AdminGenerationsPage />} />
+            <Route path="health" element={<AdminHealthPage />} />
+            <Route path="support" element={<AdminSupportPage />} />
+            <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+            <Route path="config" element={<AdminConfigPage />} />
           </Route>
 
           {/* ─── DIRECT REDIRECTS FOR CONVENIENCE & SHARE LINKS ─── */}

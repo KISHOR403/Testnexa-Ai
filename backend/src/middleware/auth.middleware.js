@@ -5,8 +5,13 @@ exports.protect = async (req, res, next) => {
     let token;
 
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    } else if (req.query && req.query.token) {
+        token = req.query.token;
+    }
+
+    if (token) {
         try {
-            token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
 
             // Guest user mode
@@ -42,22 +47,43 @@ exports.protect = async (req, res, next) => {
             if (supabaseService.isAvailable && decoded.id) {
                 const sbUser = await supabaseService.findUserById(decoded.id);
                 if (sbUser) {
+                    let enriched = sbUser;
+                    try {
+                        const adminService = require('../services/admin.service');
+                        enriched = adminService._enrichUser(sbUser);
+                    } catch (e) {}
+
                     user = {
                         _id: sbUser.id,
                         id: sbUser.id,
-                        name: sbUser.name,
-                        displayName: sbUser.display_name || sbUser.name,
-                        email: sbUser.email,
-                        avatar: sbUser.avatar,
-                        provider: sbUser.provider,
-                        totalTestsGenerated: sbUser.total_tests_generated || 0,
-                        createdAt: sbUser.created_at
+                        name: enriched.name || sbUser.name,
+                        displayName: enriched.displayName || sbUser.display_name || sbUser.name,
+                        email: enriched.email || sbUser.email,
+                        avatar: enriched.avatar || sbUser.avatar,
+                        provider: enriched.provider || sbUser.provider,
+                        role: enriched.role || sbUser.role || 'user',
+                        status: enriched.status || sbUser.status || 'active',
+                        suspendedAt: enriched.suspendedAt || sbUser.suspended_at || null,
+                        suspensionReason: enriched.suspensionReason || sbUser.suspension_reason || null,
+                        mfaEnabled: Boolean(enriched.mfaEnabled || sbUser.mfa_enabled),
+                        totalTestsGenerated: enriched.totalTestsGenerated || sbUser.total_tests_generated || 0,
+                        createdAt: enriched.createdAt || sbUser.created_at
                     };
                 }
             }
 
             if (!user) {
                 return res.status(401).json({ success: false, message: 'User account no longer exists' });
+            }
+
+            // Enforce account suspension
+            if (user.status === 'suspended') {
+                return res.status(403).json({
+                    success: false,
+                    code: 'ACCOUNT_SUSPENDED',
+                    message: 'Your account has been suspended. Please contact support at support@testnexa.ai for assistance.',
+                    reason: user.suspensionReason || 'Account suspended by platform administration'
+                });
             }
 
             req.user = user;
@@ -71,6 +97,56 @@ exports.protect = async (req, res, next) => {
     if (!token) {
         return res.status(401).json({ success: false, message: 'Not authorized, no token' });
     }
+};
+
+/**
+ * Enforce Admin Role Authorization
+ * Allows users with role 'admin' or 'super_admin'
+ */
+exports.requireAdmin = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required. Please sign in.'
+        });
+    }
+
+    const role = (req.user.role || '').toLowerCase();
+    if (role !== 'admin' && role !== 'super_admin') {
+        return res.status(403).json({
+            success: false,
+            code: 'FORBIDDEN',
+            message: 'Administrative privileges required. Access denied.'
+        });
+    }
+
+    next();
+};
+
+/**
+ * Enforce Super Admin Role Authorization
+ * Allows only users with role 'super_admin'
+ */
+exports.requireSuperAdmin = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({
+            success: false,
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required. Please sign in.'
+        });
+    }
+
+    const role = (req.user.role || '').toLowerCase();
+    if (role !== 'super_admin') {
+        return res.status(403).json({
+            success: false,
+            code: 'FORBIDDEN_SUPER_ADMIN',
+            message: 'Super Administrator privileges required. Access denied.'
+        });
+    }
+
+    next();
 };
 
 // Middleware that extracts user & session if token is valid, but doesn't block if missing or revoked
