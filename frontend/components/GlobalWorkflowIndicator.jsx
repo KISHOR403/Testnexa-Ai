@@ -18,8 +18,35 @@ export const GlobalWorkflowIndicator = () => {
             const scrollY = window.scrollY || window.pageYOffset;
             const heroHeight = window.innerHeight * 0.7;
 
-            // Only show after scrolling past top of hero
-            setIsVisible(scrollY > heroHeight);
+            // Check if user has reached the final CTA section or footer
+            const finalCtaEl = document.getElementById('final-cta');
+            const footerEl = document.querySelector('.tn-footer');
+            let isPastChapters = false;
+
+            if (window.location.hash === '#final-cta') {
+                isPastChapters = true;
+            }
+
+            if (finalCtaEl) {
+                const rect = finalCtaEl.getBoundingClientRect();
+                // If final CTA has entered the viewport at all, hide indicator
+                if (rect.top <= window.innerHeight) {
+                    isPastChapters = true;
+                }
+            }
+
+            if (footerEl) {
+                const fRect = footerEl.getBoundingClientRect();
+                if (fRect.top <= window.innerHeight) {
+                    isPastChapters = true;
+                }
+            }
+
+            // Also check if near bottom of page
+            const isNearBottom = (window.innerHeight + scrollY) >= (document.documentElement.scrollHeight - 300);
+
+            // Only show after scrolling past top of hero and while strictly within chapters 1-6
+            setIsVisible(scrollY > heroHeight && !isPastChapters && !isNearBottom);
 
             // Find current active section
             for (let i = CHAPTER_STAGES.length - 1; i >= 0; i--) {
@@ -35,9 +62,35 @@ export const GlobalWorkflowIndicator = () => {
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
-        handleScroll();
+        window.addEventListener('resize', handleScroll, { passive: true });
+        window.addEventListener('hashchange', handleScroll, { passive: true });
 
-        return () => window.removeEventListener('scroll', handleScroll);
+        // Initial check and periodic checks on mount to catch late anchor scroll jumps
+        handleScroll();
+        const pollInterval = setInterval(handleScroll, 100);
+        const stopPollTimer = setTimeout(() => clearInterval(pollInterval), 3000);
+
+        // Native IntersectionObserver for immediate reactive visibility change
+        let observer;
+        const finalCtaEl = document.getElementById('final-cta');
+        const footerEl = document.querySelector('.tn-footer');
+        if (typeof IntersectionObserver !== 'undefined') {
+            observer = new IntersectionObserver(() => {
+                handleScroll();
+            }, { threshold: [0, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0] });
+
+            if (finalCtaEl) observer.observe(finalCtaEl);
+            if (footerEl) observer.observe(footerEl);
+        }
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleScroll);
+            window.removeEventListener('hashchange', handleScroll);
+            clearInterval(pollInterval);
+            clearTimeout(stopPollTimer);
+            if (observer) observer.disconnect();
+        };
     }, []);
 
     const scrollTo = (id) => {
@@ -52,7 +105,10 @@ export const GlobalWorkflowIndicator = () => {
     if (!isVisible) return null;
 
     return (
-        <aside className="tn-global-workflow-indicator" aria-label="Page Chapter Navigator">
+        <aside 
+            className="tn-global-workflow-indicator is-visible" 
+            aria-label="Page Chapter Navigator"
+        >
             <div className="tn-gwi-track" />
             <div className="tn-gwi-steps">
                 {CHAPTER_STAGES.map((step) => {

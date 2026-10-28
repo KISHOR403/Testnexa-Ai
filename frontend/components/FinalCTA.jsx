@@ -6,26 +6,37 @@ export const FinalCTA = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
 
     return (
-        <section className="tn-section tn-final-cta-section" aria-labelledby="final-cta-heading">
+        <section 
+            id="final-cta" 
+            className="tn-final-cta-section" 
+            aria-labelledby="final-cta-heading"
+        >
             <div className="tn-container">
-                <div className="tn-final-cta-canvas">
-                    <div className="tn-chapter-eyebrow">
-                        <span className="tn-kicker-dot" />
-                        <span>GET STARTED</span>
+                <div className="tn-final-cta-flow">
+                    
+                    {/* Eyebrow with minimalist jade line marker */}
+                    <div className="tn-final-cta-eyebrow-row">
+                        <span className="tn-final-cta-accent-bar" aria-hidden="true" />
+                        <span className="tn-final-cta-eyebrow">READY WHEN YOU ARE</span>
                     </div>
 
+                    {/* Headline — Typographic Focal Point */}
                     <h2 id="final-cta-heading" className="tn-final-cta-title">
-                        Start with a requirement.<br />Leave with a test suite.
+                        Start with a requirement.{' '}
+                        <br className="tn-cta-br" />
+                        Leave with a <span className="tn-cta-accent-text">test suite.</span>
                     </h2>
 
+                    {/* Supporting Sentence */}
                     <p className="tn-final-cta-subtitle">
                         Turn unstructured requirements into reviewable, traceable QA work.
                     </p>
 
-                    <div className="tn-final-cta-actions">
+                    {/* Primary Action & Reassurance */}
+                    <div className="tn-final-cta-action-dock">
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            className={`tn-btn-primary tn-btn-primary--lg ${isOpening ? 'is-opening' : ''}`}
+                            className={`tn-final-cta-btn ${isOpening ? 'is-opening' : ''}`}
                             id="final-cta-btn"
                             onClick={(e) => {
                                 e.preventDefault();
@@ -33,11 +44,14 @@ export const FinalCTA = () => {
                             }}
                         >
                             <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
-                            <ArrowRight size={15} />
+                            <ArrowRight size={15} className="tn-final-cta-btn-arrow" aria-hidden="true" />
                         </a>
 
-                        <span className="tn-cta-note">No credit card required &bull; Free instant workspace</span>
+                        <p className="tn-final-cta-reassurance">
+                            Start free · No credit card required
+                        </p>
                     </div>
+
                 </div>
             </div>
         </section>

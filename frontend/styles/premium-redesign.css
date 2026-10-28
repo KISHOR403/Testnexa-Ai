@@ -3082,60 +3082,199 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SECTION G — Final CTA
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION G — Final CTA (Typography-Led Editorial Closing Moment)
    ═══════════════════════════════════════════════════════════════════════════ */
 .tn-final-cta-section {
-  border-top: 1px solid var(--tn-border);
-  text-align: center;
+  position: relative;
+  background-color: transparent;
+  padding: clamp(5.5rem, 8.5vw, 8rem) 0 clamp(4.5rem, 6.5vw, 6rem);
+  color: var(--tn-text, #F2F3F3);
 }
 
-.tn-final-cta-canvas {
-  max-width: 640px;
-  margin: 0 auto;
+.tn-final-cta-flow {
+  max-width: 820px;
+  animation: tnCtaReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes tnCtaReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Eyebrow with Minimalist Jade Line Marker ─── */
+.tn-final-cta-eyebrow-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.tn-final-cta-accent-bar {
+  width: 20px;
+  height: 1.5px;
+  background-color: var(--tn-accent, #8BAF9A);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.tn-final-cta-eyebrow {
+  font-family: var(--tn-font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tn-accent, #8BAF9A);
+}
+
+/* ─── Headline: Typographic Focal Point ─── */
+.tn-final-cta-title {
+  font-size: clamp(2.35rem, 4.8vw, 3.75rem);
+  font-weight: 550;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--tn-text, #F2F3F3);
+  margin: 0 0 1.35rem 0;
+  max-width: 24ch;
+}
+
+.tn-cta-accent-text {
+  color: var(--tn-accent, #8BAF9A);
+  transition: color 0.3s ease;
+}
+
+/* ─── Supporting Sentence ─── */
 .tn-final-cta-subtitle {
-  font-size: 1rem;
-  line-height: 1.65;
-  color: var(--tn-text-secondary);
-  margin-top: 1rem;
-  font-weight: 380;
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--tn-text-secondary, #A0A5A5);
+  font-weight: 400;
+  max-width: 52ch;
+  margin: 0 0 2.5rem 0;
 }
 
-.tn-final-cta-actions {
-  margin-top: 2rem;
+/* ─── Primary Action & Reassurance ─── */
+.tn-final-cta-action-dock {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
-.tn-cta-note {
-  font-size: 0.75rem;
-  color: var(--tn-text-dim);
-}
-
-.tn-final-cta-assurances {
-  display: flex;
+.tn-final-cta-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 2.5rem;
-  flex-wrap: wrap;
+  gap: 10px;
+  padding: 13px 28px;
+  font-size: 0.95rem;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  color: #080909;
+  background: var(--tn-accent, #8BAF9A);
+  border: 1px solid rgba(139, 175, 154, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--tn-font, inherit);
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.1s ease, opacity 0.16s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
 }
 
-.tn-assurance-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  color: var(--tn-text-secondary);
+.tn-final-cta-btn:hover {
+  background: var(--tn-accent-hover, #9DBFAD);
+  border-color: rgba(157, 191, 173, 0.6);
 }
 
-.tn-assurance-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--tn-border);
+.tn-final-cta-btn:active {
+  transform: scale(0.985);
+}
+
+.tn-final-cta-btn.is-opening {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.tn-final-cta-btn-arrow {
+  display: inline-block;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #080909;
+}
+
+.tn-final-cta-btn:hover .tn-final-cta-btn-arrow {
+  transform: translateX(3px);
+}
+
+.tn-final-cta-reassurance {
+  font-size: 0.8rem;
+  color: var(--tn-text-dim, #777E7E);
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 0;
+  padding-left: 2px;
+}
+
+/* ─── Responsive Adjustments ─── */
+@media (max-width: 640px) {
+  .tn-final-cta-section {
+    padding: 4rem 0 3.5rem;
+  }
+
+  .tn-cta-br {
+    display: none;
+  }
+
+  .tn-final-cta-title {
+    font-size: clamp(1.9rem, 8vw, 2.45rem);
+    line-height: 1.18;
+    margin-bottom: 1rem;
+  }
+
+  .tn-final-cta-subtitle {
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin-bottom: 2rem;
+  }
+
+  .tn-final-cta-action-dock {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .tn-final-cta-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 0.92rem;
+  }
+
+  .tn-final-cta-reassurance {
+    text-align: center;
+    width: 100%;
+  }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .tn-final-cta-flow {
+    animation: none !important;
+  }
+  .tn-final-cta-btn,
+  .tn-final-cta-btn-arrow,
+  .tn-cta-accent-text {
+    transition: none !important;
+  }
+  .tn-final-cta-btn:hover .tn-final-cta-btn-arrow {
+    transform: none !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -3150,6 +3289,19 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.tn-global-workflow-indicator.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tn-global-workflow-indicator.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 1360px) {
