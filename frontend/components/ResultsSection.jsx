@@ -44,12 +44,14 @@ import {
     HelpCircle,
     MoreHorizontal,
     ArrowLeft,
-    Copy as CopyIcon
+    Copy as CopyIcon,
+    Play
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 import QaCopilotDrawer from './copilot/QaCopilotDrawer';
 import { InlineTestSignal } from './loading';
 import Modal from './ui/Modal';
+import NewTestRunModal from './execution/NewTestRunModal';
 import { testSuiteService } from '../services/sessionService';
 import '../styles/app/WorkspaceDesignSystem.css';
 
@@ -257,19 +259,8 @@ const formatGherkin = (tc) => {
     return `${tag}\nScenario: ${tc.title || tc.testScenario}\n${pre}${steps}\n    Then ${tc.expectedResult || 'State verification passes'}`;
 };
 
-// ─── Main Results Section ───
-const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true, suiteId = null, accessRole = null }) => {
-    if (!result) {
-        return (
-            <div className="tn-app-workspace tn-empty-workspace">
-                <div className="tn-empty-content">
-                    <Layers size={36} className="text-teal-400" />
-                    <h3>No Test Suite Loaded</h3>
-                    <p>Enter a requirement specification above to generate a production-ready test suite.</p>
-                </div>
-            </div>
-        );
-    }
+// ─── Main Results Section Content ───
+const ResultsSectionContent = ({ result, onSave, onRefineRegenerate, isLatest = true, suiteId = null, accessRole = null }) => {
 
     const resolvedSuiteId = suiteId || result?.id || result?._id || result?.sessionId || result?.suiteId;
     const effectiveRole = accessRole || result?.accessRole || (result?.isShared ? 'reviewer' : 'owner');
@@ -309,6 +300,7 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true, s
     const [regenGoal, setRegenGoal] = useState('Improve scenario clarity and add boundary asserts');
     const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
+    const [showRunModal, setShowRunModal] = useState(false);
 
     // ─── Export Modal State ───
     const [showExportModal, setShowExportModal] = useState(false);
@@ -1405,6 +1397,18 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true, s
                 <div className="tn-app-header__actions">
                     <button
                         type="button"
+                        className="tn-app-btn tn-app-btn--primary"
+                        onClick={() => setShowRunModal(true)}
+                        title="Create and execute a test run (Manual, Playwright, or Mixed)"
+                        data-testid="execute-suite-btn"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                        <Play size={13} fill="currentColor" />
+                        <span>Execute Run</span>
+                    </button>
+
+                    <button
+                        type="button"
                         className="tn-app-btn tn-app-btn--secondary"
                         onClick={() => setShowShareModal(true)}
                         title="Share test suite"
@@ -2090,6 +2094,15 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true, s
                 </div>
             </Modal>
 
+            {/* ─── Unified Test Run Creation Modal ─── */}
+            {showRunModal && (
+                <NewTestRunModal
+                    isOpen={showRunModal}
+                    onClose={() => setShowRunModal(false)}
+                    initialSuite={result}
+                />
+            )}
+
             {/* ─── 10. Export Modal (Portal) ─── */}
             <Modal
                 isOpen={showExportModal}
@@ -2272,6 +2285,21 @@ const ResultsSection = ({ result, onSave, onRefineRegenerate, isLatest = true, s
             )}
         </div>
     );
+};
+
+const ResultsSection = (props) => {
+    if (!props.result) {
+        return (
+            <div className="tn-app-workspace tn-empty-workspace">
+                <div className="tn-empty-content">
+                    <Layers size={36} className="text-teal-400" />
+                    <h3>No Test Suite Loaded</h3>
+                    <p>Enter a requirement specification above to generate a production-ready test suite.</p>
+                </div>
+            </div>
+        );
+    }
+    return <ResultsSectionContent {...props} />;
 };
 
 export default ResultsSection;

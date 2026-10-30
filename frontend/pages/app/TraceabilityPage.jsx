@@ -1,57 +1,115 @@
-import { GitBranch, CheckCircle2, ChevronRight, Layers, FileText, ArrowRight, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+    GitBranch, CheckCircle2, ChevronRight, Layers, FileText, ArrowRight,
+    Search, Play, CheckCircle, XCircle, Clock
+} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useHistory } from '../../hooks/useHistory';
+import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
 
 const TraceabilityPage = () => {
-    const { history, isLoading } = useHistory();
+    const { history, isLoading: isHistoryLoading } = useHistory();
     const [search, setSearch] = useState('');
+    const [runs, setRuns] = useState([]);
+    const [isLoadingRuns, setIsLoadingRuns] = useState(true);
 
-    // Build real traceability matrix mapping specifications to test cases
-    const traceRows = [];
-
-    history
-        .filter(item => item.suite || item.totalCases > 0 || ['Generated', 'Approved', 'NeedsReview'].includes(item.status))
-        .forEach((item, idx) => {
-            const suite = item.suite;
-            const reqId = suite?.understanding?.requirementId ||
-                suite?.functional?.[0]?.reqId ||
-                `REQ-${String(idx + 1).padStart(3, '0')}`;
-
-            const allCases = [
-                ...(suite?.functional || []),
-                ...(suite?.negative || []),
-                ...(suite?.edge || []),
-                ...(suite?.nonFunctional || [])
-            ];
-
-            if (allCases.length === 0) {
-                // Uncovered / pending requirement
-                traceRows.push({
-                    reqId,
-                    title: item.title || item.feature || item.requirement?.slice(0, 45) || `Requirement #${idx + 1}`,
-                    suiteId: item.id || item.sessionId,
-                    suiteTitle: item.title || 'Untitled Suite',
-                    testCases: [],
-                    isCovered: false
-                });
-            } else {
-                traceRows.push({
-                    reqId,
-                    title: item.title || item.feature || item.requirement?.slice(0, 45) || `Requirement #${idx + 1}`,
-                    suiteId: item.id || item.sessionId,
-                    suiteTitle: item.title || 'Untitled Suite',
-                    testCases: allCases.map(tc => ({
-                        id: tc.id || 'TC',
-                        title: tc.title || tc.scenario || 'Verified test scenario',
-                        type: tc.type || 'Functional',
-                        priority: tc.priority || 'Medium',
-                        status: tc.status || 'Needs Review'
-                    })),
-                    isCovered: true
-                });
+    useEffect(() => {
+        let isMounted = true;
+        const fetchRuns = async () => {
+            try {
+                const res = await executionService.listRuns({ limit: 100 });
+                if (isMounted && res.success) {
+                    setRuns(res.data || []);
+                }
+            } catch (err) {
+                console.error('Failed to load runs for traceability matrix:', err);
+            } finally {
+                if (isMounted) setIsLoadingRuns(false);
             }
-        });
+        };
+        fetchRuns();
+        return () => { isMounted = false; };
+    }, []);
+
+    // Build real traceability matrix mapping specifications to test cases and execution outcomes
+    const traceRows = useMemo(() => {
+        const rows = [];
+
+        history
+            .filter(item => item.suite || item.totalCases > 0 || ['Generated', 'Approved', 'NeedsReview'].includes(item.status))
+            .forEach((item, idx) => {
+                const suite = item.suite;
+                const suiteId = item.id || item.sessionId;
+                const reqId = suite?.understanding?.requirementId ||
+                    suite?.functional?.[0]?.reqId ||
+                    `REQ-${String(idx + 1).padStart(3, '0')}`;
+
+                const allCases = [
+                    ...(suite?.functional || []),
+                    ...(suite?.negative || []),
+                    ...(suite?.edge || []),
+                    ...(suite?.nonFunctional || [])
+                ];
+
+                const suiteRuns = runs.filter(r => r.suite_id === suiteId);
+                const hasRuns = suiteRuns.length > 0;
+                const latestRun = suiteRuns[0] || null;
+
+                if (allCases.length === 0) {
+                    rows.push({
+                        reqId,
+                        title: item.title || item.feature || item.requirement?.slice(0, 45) || `Requirement #${idx + 1}`,
+                        suiteId,
+                        suiteTitle: item.title || 'Untitled Suite',
+                        testCases: [],
+                        isCovered: false,
+                        hasRuns: false,
+                        executionSummary: 'No Tests Linked'
+                    });
+                } else {
+                    let passedCount = 0;
+                    let failedCount = 0;
+                    if (latestRun) {
+                        passedCount = latestRun.passed_count || 0;
+                        failedCount = latestRun.failed_count || 0;
+                    }
+
+                    rows.push({
+                        reqId,
+                        title: item.title || item.feature || item.requirement?.slice(0, 45) || `Requirement #${idx + 1}`,
+                        suiteId,
+                        suiteTitle: item.title || 'Untitled Suite',
+                        testCases: allCases.map(tc => {
+                            let execState = 'not_run';
+                            if (latestRun) {
+                                if (latestRun.status === 'completed' && latestRun.failed_count === 0) {
+                                    execState = 'passed';
+                                } else if (latestRun.failed_count > 0) {
+                                    execState = 'failed';
+                                }
+                            }
+                            return {
+                                id: tc.id || 'TC',
+                                title: tc.title || tc.scenario || 'Verified test scenario',
+                                type: tc.type || 'Functional',
+                                priority: tc.priority || 'Medium',
+                                status: tc.status || 'Needs Review',
+                                execState
+                            };
+                        }),
+                        isCovered: true,
+                        hasRuns,
+                        latestRunId: latestRun?.id || null,
+                        executionSummary: hasRuns
+                            ? (failedCount > 0 ? `${failedCount} Failed` : `${passedCount} Passed`)
+                            : 'Not Executed'
+                    });
+                }
+            });
+
+        return rows;
+    }, [history, runs]);
 
     const filteredRows = traceRows.filter(r =>
         r.reqId.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,19 +120,26 @@ const TraceabilityPage = () => {
     const coveredReqs = traceRows.filter(r => r.isCovered).length;
     const uncoveredReqs = traceRows.filter(r => !r.isCovered).length;
     const totalMappedTests = traceRows.reduce((acc, r) => acc + r.testCases.length, 0);
+    const executedReqs = traceRows.filter(r => r.hasRuns).length;
+
+    const isLoading = isHistoryLoading || isLoadingRuns;
 
     return (
         <div className="ws-page-container">
             {/* Header */}
             <div className="ws-page-header">
                 <div className="ws-page-title-wrap">
-                    <h1>Requirement Traceability Matrix</h1>
+                    <h1>Requirement & Execution Traceability</h1>
                     <p>
                         Navigable bidirectional mapping linking specifications to executed test assertions
                     </p>
                 </div>
 
-                <div className="ws-header-actions">
+                <div className="ws-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                    <NavLink to="/app/runs" className="ws-btn-secondary">
+                        <Play size={14} />
+                        <span>Execution Runs</span>
+                    </NavLink>
                     <NavLink to="/app/workspace" className="ws-btn-primary">
                         <span>+ New Test Suite</span>
                     </NavLink>
@@ -128,8 +193,10 @@ const TraceabilityPage = () => {
                             <h2 className="ws-stat-card__val ws-stat-card__val--success">{coveredReqs}</h2>
                         </div>
                         <div className="ws-stat-card">
-                            <span className="ws-stat-card__label">UNCOVERED REQUIREMENTS</span>
-                            <h2 className="ws-stat-card__val" style={{ color: uncoveredReqs > 0 ? '#E5C07B' : '#777E7E' }}>{uncoveredReqs}</h2>
+                            <span className="ws-stat-card__label">EXECUTED REQUIREMENTS</span>
+                            <h2 className="ws-stat-card__val" style={{ color: executedReqs > 0 ? '#8BAF9A' : '#E5C07B' }}>
+                                {executedReqs} / {totalReqs}
+                            </h2>
                         </div>
                     </div>
 
@@ -147,7 +214,7 @@ const TraceabilityPage = () => {
                     {/* Compact Matrix Table */}
                     <div className="ws-card">
                         <div className="ws-card-header">
-                            <span>Bidirectional Traceability Matrix</span>
+                            <span>Bidirectional Traceability Matrix & Execution Status</span>
                             <span style={{ fontSize: '0.75rem', color: '#777E7E', fontWeight: 500 }}>
                                 {filteredRows.length} {filteredRows.length === 1 ? 'Requirement' : 'Requirements'}
                             </span>
@@ -158,7 +225,7 @@ const TraceabilityPage = () => {
                                 <div
                                     key={row.suiteId}
                                     style={{
-                                        padding: '1rem 1.25rem',
+                                        padding: '1.1rem 1.25rem',
                                         borderBottom: '1px solid #292D2D',
                                         display: 'flex',
                                         flexDirection: 'column',
@@ -191,16 +258,42 @@ const TraceabilityPage = () => {
                                                     Uncovered
                                                 </span>
                                             )}
+                                            {row.hasRuns && (
+                                                <span style={{
+                                                    fontSize: '0.7rem',
+                                                    padding: '1px 6px',
+                                                    borderRadius: '3px',
+                                                    background: row.executionSummary.includes('Failed') ? 'rgba(224, 108, 117, 0.12)' : 'rgba(139, 175, 154, 0.12)',
+                                                    border: `1px solid ${row.executionSummary.includes('Failed') ? 'rgba(224, 108, 117, 0.3)' : 'rgba(139, 175, 154, 0.3)'}`,
+                                                    color: row.executionSummary.includes('Failed') ? '#E06C75' : '#8BAF9A',
+                                                    fontWeight: 600
+                                                }}>
+                                                    {row.executionSummary}
+                                                </span>
+                                            )}
                                         </div>
 
-                                        <NavLink
-                                            to={`/app/test-suites/${row.suiteId}`}
-                                            className="ws-btn-secondary"
-                                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.76rem' }}
-                                        >
-                                            <span>Open Suite</span>
-                                            <ArrowRight size={13} />
-                                        </NavLink>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            {row.latestRunId && (
+                                                <NavLink
+                                                    to={`/app/runs/${row.latestRunId}`}
+                                                    className="ws-btn-secondary"
+                                                    style={{ padding: '0.35rem 0.65rem', fontSize: '0.76rem' }}
+                                                    title="View Latest Run"
+                                                >
+                                                    <Play size={12} />
+                                                    <span>Latest Run</span>
+                                                </NavLink>
+                                            )}
+                                            <NavLink
+                                                to={`/app/test-suites/${row.suiteId}`}
+                                                className="ws-btn-secondary"
+                                                style={{ padding: '0.35rem 0.65rem', fontSize: '0.76rem' }}
+                                            >
+                                                <span>Open Suite</span>
+                                                <ArrowRight size={13} />
+                                            </NavLink>
+                                        </div>
                                     </div>
 
                                     {/* Linked Test Cases Row / Matrix Chips */}

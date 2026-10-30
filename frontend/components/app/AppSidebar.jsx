@@ -3,7 +3,8 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
-    Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp
+    Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
+    PlayCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -138,6 +139,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     >
                         <Layers size={17} className="app-sidebar__item-icon" />
                         <span>Test Suites</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/app/runs"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/runs') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Test Runs"
+                    >
+                        <PlayCircle size={17} className="app-sidebar__item-icon" />
+                        <span>Test Runs</span>
                     </NavLink>
                 </div>
 

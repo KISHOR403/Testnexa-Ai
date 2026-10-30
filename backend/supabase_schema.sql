@@ -309,5 +309,149 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets(
 CREATE INDEX IF NOT EXISTS idx_support_tickets_email ON public.support_tickets(email);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_created ON public.support_tickets(created_at DESC);
 
+-- ------------------------------------------------------------------------------
+-- 14. TEST RUNS TABLE (Unified Manual, Automated & Mixed Test Runs)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.test_runs (
+    id TEXT PRIMARY KEY DEFAULT ('tr_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    workspace_id TEXT NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    suite_id TEXT REFERENCES public.workspace_sessions(id) ON DELETE SET NULL,
+    suite_version INTEGER DEFAULT 1,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    execution_type TEXT NOT NULL DEFAULT 'manual', -- 'manual', 'automated', 'mixed'
+    status TEXT NOT NULL DEFAULT 'pending',        -- 'pending', 'in_progress', 'completed', 'cancelled', 'failed'
+    environment_id TEXT REFERENCES public.workspace_environments(id) ON DELETE SET NULL,
+    target_environment JSONB DEFAULT '{}'::jsonb,  -- { name, baseUrl, slug }
+    created_by TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    assigned_to TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    summary JSONB DEFAULT '{
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "blocked": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "duration_ms": 0
+    }'::jsonb,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_runs_ws ON public.test_runs(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_test_runs_suite ON public.test_runs(suite_id);
+CREATE INDEX IF NOT EXISTS idx_test_runs_status ON public.test_runs(status);
+CREATE INDEX IF NOT EXISTS idx_test_runs_created_by ON public.test_runs(created_by);
+CREATE INDEX IF NOT EXISTS idx_test_runs_created_at ON public.test_runs(created_at DESC);
+
+-- ------------------------------------------------------------------------------
+-- 15. TEST RUN CASES TABLE (Immutable Case Snapshot inside a Run)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.test_run_cases (
+    id TEXT PRIMARY KEY DEFAULT ('trc_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    run_id TEXT NOT NULL REFERENCES public.test_runs(id) ON DELETE CASCADE,
+    test_case_id TEXT NOT NULL,                    -- e.g. 'TC_FUNC_001'
+    case_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb, -- Frozen copy of title, steps, expectedResult, etc.
+    execution_type TEXT NOT NULL DEFAULT 'manual', -- 'manual', 'automated'
+    assigned_to TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+    assigned_user JSONB DEFAULT '{}'::jsonb,       -- { id, name, email }
+    status TEXT NOT NULL DEFAULT 'not_run',        -- 'not_run', 'in_progress', 'passed', 'failed', 'blocked', 'skipped'
+    actual_result TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    current_attempt INTEGER DEFAULT 1,
+    duration_ms INTEGER DEFAULT 0,
+    executed_by TEXT,                              -- User ID or 'automation_worker'
+    executor_type TEXT DEFAULT 'manual',           -- 'manual', 'automated'
+    executed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_test_run_case UNIQUE (run_id, test_case_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_run_cases_run ON public.test_run_cases(run_id);
+CREATE INDEX IF NOT EXISTS idx_test_run_cases_status ON public.test_run_cases(status);
+CREATE INDEX IF NOT EXISTS idx_test_run_cases_assigned ON public.test_run_cases(assigned_to);
+
+-- ------------------------------------------------------------------------------
+-- 16. TEST EXECUTIONS TABLE (Immutable Attempt History per Case)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.test_executions (
+    id TEXT PRIMARY KEY DEFAULT ('te_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    run_id TEXT NOT NULL REFERENCES public.test_runs(id) ON DELETE CASCADE,
+    run_case_id TEXT NOT NULL REFERENCES public.test_run_cases(id) ON DELETE CASCADE,
+    test_case_id TEXT NOT NULL,
+    attempt_number INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL,                          -- 'passed', 'failed', 'blocked', 'skipped'
+    actual_result TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    error_message TEXT DEFAULT '',
+    stack_trace TEXT DEFAULT '',
+    duration_ms INTEGER DEFAULT 0,
+    executed_by TEXT,                              -- User ID or 'playwright_worker'
+    executor_type TEXT NOT NULL DEFAULT 'manual',  -- 'manual', 'automated'
+    executed_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_executions_case ON public.test_executions(run_case_id);
+CREATE INDEX IF NOT EXISTS idx_test_executions_run ON public.test_executions(run_id);
+CREATE INDEX IF NOT EXISTS idx_test_executions_attempt ON public.test_executions(run_case_id, attempt_number DESC);
+
+-- ------------------------------------------------------------------------------
+-- 17. EXECUTION ARTIFACTS TABLE (Screenshots, Logs, and Traces)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.execution_artifacts (
+    id TEXT PRIMARY KEY DEFAULT ('art_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    run_id TEXT NOT NULL REFERENCES public.test_runs(id) ON DELETE CASCADE,
+    run_case_id TEXT REFERENCES public.test_run_cases(id) ON DELETE CASCADE,
+    execution_id TEXT REFERENCES public.test_executions(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    artifact_type TEXT NOT NULL DEFAULT 'screenshot', -- 'screenshot', 'log', 'trace', 'dom'
+    mime_type TEXT NOT NULL DEFAULT 'image/png',
+    size_bytes BIGINT DEFAULT 0,
+    storage_path TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_execution_artifacts_run ON public.execution_artifacts(run_id);
+CREATE INDEX IF NOT EXISTS idx_execution_artifacts_case ON public.execution_artifacts(run_case_id);
+CREATE INDEX IF NOT EXISTS idx_execution_artifacts_exec ON public.execution_artifacts(execution_id);
+
+-- ------------------------------------------------------------------------------
+-- 18. AUTOMATION JOBS TABLE (Queue and Background Execution)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.automation_jobs (
+    id TEXT PRIMARY KEY DEFAULT ('job_' || substr(md5(random()::text || clock_timestamp()::text), 1, 16)),
+    run_id TEXT NOT NULL REFERENCES public.test_runs(id) ON DELETE CASCADE,
+    workspace_id TEXT NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+    adapter TEXT NOT NULL DEFAULT 'playwright',
+    framework TEXT NOT NULL DEFAULT 'playwright',
+    framework_version TEXT DEFAULT '1.40.0',
+    status TEXT NOT NULL DEFAULT 'queued',        -- 'queued', 'running', 'completed', 'failed', 'cancelled'
+    target_environment JSONB DEFAULT '{}'::jsonb,
+    total_cases INTEGER DEFAULT 0,
+    completed_cases INTEGER DEFAULT 0,
+    passed_cases INTEGER DEFAULT 0,
+    failed_cases INTEGER DEFAULT 0,
+    retries INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 2,
+    locked_by TEXT,
+    locked_at TIMESTAMPTZ,
+    error_message TEXT DEFAULT '',
+    queued_at TIMESTAMPTZ DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_automation_jobs_run ON public.automation_jobs(run_id);
+CREATE INDEX IF NOT EXISTS idx_automation_jobs_status ON public.automation_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_automation_jobs_ws ON public.automation_jobs(workspace_id);
+
+
 
 

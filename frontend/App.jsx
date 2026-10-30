@@ -31,6 +31,8 @@ const TestSuiteDetailPage = lazy(() => import('./pages/app/TestSuiteDetailPage')
 const CoveragePage = lazy(() => import('./pages/app/CoveragePage'));
 const RisksPage = lazy(() => import('./pages/app/RisksPage'));
 const TraceabilityPage = lazy(() => import('./pages/app/TraceabilityPage'));
+const TestRunsPage = lazy(() => import('./pages/app/TestRunsPage'));
+const RunExecutionPage = lazy(() => import('./pages/app/RunExecutionPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
 // Dynamic discovery for Admin Console (active locally/privately; gracefully absent in public repo)
@@ -94,6 +96,14 @@ const SuiteShareRedirect = () => {
   const { id } = useParams();
   const location = useLocation();
   const targetPath = id ? `/app/test-suites/${id}${location.search}` : '/app/test-suites';
+  return <Navigate to={targetPath} replace />;
+};
+
+// Run share / direct link redirect helper
+const RunShareRedirect = () => {
+  const { id } = useParams();
+  const location = useLocation();
+  const targetPath = id ? `/app/runs/${id}${location.search}` : '/app/runs';
   return <Navigate to={targetPath} replace />;
 };
 
@@ -163,6 +173,8 @@ function AppContent() {
             <Route path="history" element={<HistoryPage />} />
             <Route path="test-suites" element={<TestSuitesListPage />} />
             <Route path="test-suites/:id" element={<TestSuiteDetailPage />} />
+            <Route path="runs" element={<TestRunsPage />} />
+            <Route path="runs/:runId" element={<RunExecutionPage />} />
             <Route path="coverage" element={<CoveragePage />} />
             <Route path="risks" element={<RisksPage />} />
             <Route path="traceability" element={<TraceabilityPage />} />
@@ -189,6 +201,8 @@ function AppContent() {
           {/* ─── DIRECT REDIRECTS FOR CONVENIENCE & SHARE LINKS ─── */}
           <Route path="/suites/:id" element={<SuiteShareRedirect />} />
           <Route path="/suites" element={<Navigate to="/app/test-suites" replace />} />
+          <Route path="/runs/:id" element={<RunShareRedirect />} />
+          <Route path="/runs" element={<Navigate to="/app/runs" replace />} />
           <Route path="/workspace/new-test-suite" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/new-test-suite" element={<Navigate to="/app/workspace" replace />} />

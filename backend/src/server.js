@@ -100,6 +100,7 @@ app.use('/api/v1/sessions', require('./routes/session.routes'));
 app.use('/api/v1/test-suites', require('./routes/testSuite.routes'));
 app.use('/api/v1/copilot', require('./routes/copilot.routes'));
 app.use('/api/v1/workspaces', require('./routes/workspace.routes'));
+app.use('/api/v1/runs', require('./routes/execution.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)
 try {
