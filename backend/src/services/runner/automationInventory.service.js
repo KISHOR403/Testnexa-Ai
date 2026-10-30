@@ -10,8 +10,12 @@ class AutomationInventoryService {
     constructor() {
         this.baseDirs = [
             path.resolve(__dirname, '../../../../tests/e2e'),
+            path.resolve(__dirname, '../../../tests/e2e'),
+            path.resolve(__dirname, '../../e2e'),
             path.resolve(process.cwd(), 'tests/e2e'),
-            path.resolve(process.cwd(), 'e2e')
+            path.resolve(process.cwd(), '../tests/e2e'),
+            path.resolve(process.cwd(), 'e2e'),
+            path.resolve(process.cwd(), '../e2e')
         ];
     }
 

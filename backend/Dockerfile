@@ -16,8 +16,9 @@ COPY package.json package-lock.json ./
 # Install production dependencies only
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy application source
+# Copy application source and test inventory
 COPY src/ ./src/
+COPY e2e/ ./e2e/
 
 # Set ownership to non-root user
 RUN chown -R appuser:appgroup /app

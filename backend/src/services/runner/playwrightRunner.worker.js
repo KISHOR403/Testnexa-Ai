@@ -10,10 +10,24 @@
  */
 
 const vm = require('vm');
-const { chromium } = require('playwright');
 const { validateEnvironmentUrl } = require('../../utils/ssrfValidator');
 const logger = require('../../utils/logger');
 const automationInventory = require('./automationInventory.service');
+
+// Resilient Playwright Chromium loader (prevents module import crashes if framework binaries are absent)
+let playwrightChromium = null;
+const getChromium = () => {
+    if (!playwrightChromium) {
+        try {
+            const pw = require('playwright');
+            playwrightChromium = pw.chromium;
+        } catch (err) {
+            logger.warn(`Playwright module not available: ${err.message}`);
+            return null;
+        }
+    }
+    return playwrightChromium;
+};
 
 // Secret sanitization patterns to prevent leaking credentials in reports/traces
 const SECRET_PATTERNS = [
@@ -198,6 +212,17 @@ async function executePlaywrightJob({
     let browser = null;
 
     try {
+        const chromium = getChromium();
+        if (!chromium) {
+            return {
+                success: false,
+                errorCategory: 'FRAMEWORK_UNAVAILABLE',
+                errorMessage: 'Playwright framework is not available in this backend deployment environment.',
+                results: [],
+                durationMs: Date.now() - startTime
+            };
+        }
+
         // 2. Launch browser in isolated sandbox with restricted arguments
         browser = await chromium.launch({
             headless: true,
@@ -487,6 +512,17 @@ async function executeSinglePlaywrightTest({
     let screenshotBase64 = null;
 
     try {
+        const chromium = getChromium();
+        if (!chromium) {
+            return {
+                success: false,
+                status: 'failed',
+                errorMessage: 'Playwright framework is not available in this backend deployment environment.',
+                durationMs: Date.now() - startTime,
+                logs: ['[Runner] Playwright framework is not installed or available.']
+            };
+        }
+
         browser = await chromium.launch({
             headless: true,
             args: [
