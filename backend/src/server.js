@@ -1,4 +1,9 @@
 require('dotenv').config();
+
+// Ensure Playwright uses local node_modules browser directory on cloud hosts (Render / container runtimes)
+if (process.env.RENDER || (!process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.NODE_ENV === 'production')) {
+    process.env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH || '0';
+}
 const express = require('express');
 const cors = require('cors');
 const supabaseService = require('./services/supabaseData.service');

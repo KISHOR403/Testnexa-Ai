@@ -29,6 +29,39 @@ const getChromium = () => {
     return playwrightChromium;
 };
 
+// Check if Chromium binary exists; if missing in cloud runtime, attempt self-healing recovery
+const ensureChromiumBinary = () => {
+    const pwChromium = getChromium();
+    if (!pwChromium) return null;
+
+    try {
+        const execPath = pwChromium.executablePath();
+        const fs = require('fs');
+        if (fs.existsSync(execPath)) {
+            return pwChromium;
+        }
+
+        logger.warn(`Playwright browser executable not found at ${execPath}. Attempting runtime recovery...`);
+        const { execSync } = require('child_process');
+        execSync('npx playwright install chromium', {
+            stdio: 'pipe',
+            timeout: 90000,
+            env: {
+                ...process.env,
+                PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '0'
+            }
+        });
+
+        if (fs.existsSync(pwChromium.executablePath())) {
+            logger.info('Playwright Chromium successfully installed via runtime recovery.');
+        }
+    } catch (err) {
+        logger.warn('Playwright runtime recovery notice:', err.message);
+    }
+
+    return pwChromium;
+};
+
 // Secret sanitization patterns to prevent leaking credentials in reports/traces
 const SECRET_PATTERNS = [
     /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi,
@@ -212,7 +245,7 @@ async function executePlaywrightJob({
     let browser = null;
 
     try {
-        const chromium = getChromium();
+        const chromium = ensureChromiumBinary();
         if (!chromium) {
             return {
                 success: false,
@@ -512,7 +545,7 @@ async function executeSinglePlaywrightTest({
     let screenshotBase64 = null;
 
     try {
-        const chromium = getChromium();
+        const chromium = ensureChromiumBinary();
         if (!chromium) {
             return {
                 success: false,
@@ -608,6 +641,9 @@ async function executeSinglePlaywrightTest({
         const isTimeout = err.name === 'TimeoutError' || err.message?.includes('Timeout') || err.message?.includes('timed out');
         status = isTimeout ? 'timed_out' : 'failed';
         errorMessage = maskSecrets(err.message || 'Assertion failed');
+        if (err.message?.includes("Executable doesn't exist")) {
+            errorMessage += '\n\n💡 [Environment Guide] Headless Chromium binary was not found in the cloud runtime container.\nSet Environment Variable PLAYWRIGHT_BROWSERS_PATH=0 in your Render Dashboard (or run "npx playwright install chromium") to store browsers directly inside node_modules.';
+        }
         stackTrace = maskSecrets(err.stack || '');
         logs.push(`[DryRun Error] ${errorMessage}`);
 
