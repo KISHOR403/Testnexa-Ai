@@ -9,6 +9,7 @@
  */
 
 const crypto = require('crypto');
+const path = require('path');
 const supabaseService = require('../supabaseData.service');
 const { executePlaywrightJob } = require('./playwrightRunner.worker');
 const { saveArtifactBuffer } = require('../../utils/artifactStorage');
@@ -48,7 +49,11 @@ class JobQueueService {
             if (caseIds && Array.isArray(caseIds) && !caseIds.includes(c.id)) return false;
             const isAuto = c.executionType === 'automated' || run.executionType === 'automated';
             const mapping = c.caseSnapshot?.automationMapping;
-            const hasMapping = Boolean(mapping && mapping.mappingStatus === 'configured' && (mapping.scriptCode || mapping.code || mapping.spec));
+            const hasMapping = Boolean(
+                mapping &&
+                mapping.mappingStatus === 'configured' &&
+                (mapping.scriptCode || mapping.code || mapping.spec || (mapping.scriptSource === 'existing' && mapping.scriptRef))
+            );
             return isAuto && hasMapping;
         });
 
@@ -122,7 +127,103 @@ class JobQueueService {
             setImmediate(() => { this.processNextJob().catch(() => {}); });
         }
 
-        return locked;
+        const finishedJob = await supabaseService.getAutomationJob(job.id);
+        return finishedJob || locked;
+    }
+
+    /**
+     * Executes Playwright job in an isolated subprocess worker, with fallback to in-process execution.
+     * Guarantees that the main API server process is never directly running or compromised by browser automation.
+     */
+    async executeInWorkerSubprocess(payload) {
+        return new Promise((resolve) => {
+            let child = null;
+            let finished = false;
+            let stderrData = '';
+            let stdoutData = '';
+            const workerPath = path.resolve(__dirname, 'playwrightRunner.worker.js');
+
+            const timeoutTimer = setTimeout(() => {
+                if (!finished) {
+                    finished = true;
+                    if (child) child.kill('SIGKILL');
+                    logger.warn(`Subprocess worker timed out for job ${payload.jobId}, returning fallback.`);
+                    resolve({
+                        success: false,
+                        errorCategory: 'TIMEOUT_EXCEEDED',
+                        errorMessage: 'Subprocess worker exceeded maximum execution window.',
+                        results: [],
+                        durationMs: 90000
+                    });
+                }
+            }, payload.jobTimeoutMs ? payload.jobTimeoutMs + 10000 : 100000);
+
+            try {
+                const { fork } = require('child_process');
+                const workerEnv = { ...process.env };
+                if (process.env.RENDER && !workerEnv.PLAYWRIGHT_BROWSERS_PATH) {
+                    workerEnv.PLAYWRIGHT_BROWSERS_PATH = '0';
+                }
+
+                child = fork(workerPath, [], {
+                    env: workerEnv,
+                    stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+                });
+
+                if (child.stdout) child.stdout.on('data', chunk => { stdoutData += chunk.toString(); });
+                if (child.stderr) child.stderr.on('data', chunk => { stderrData += chunk.toString(); });
+
+                child.on('message', (msg) => {
+                    if (msg && (msg.type === 'JOB_REPORT' || msg.report)) {
+                        if (!finished) {
+                            finished = true;
+                            clearTimeout(timeoutTimer);
+                            try { child.kill(); } catch (kErr) {}
+                            resolve(msg.report || msg);
+                        }
+                    }
+                });
+
+                child.on('error', (err) => {
+                    logger.warn(`Subprocess spawn notice (${err.message}), falling back to direct worker invocation.`);
+                    if (!finished) {
+                        finished = true;
+                        clearTimeout(timeoutTimer);
+                        executePlaywrightJob(payload).then(resolve).catch(e => resolve({
+                            success: false,
+                            errorCategory: 'INFRASTRUCTURE_ERROR',
+                            errorMessage: e.message,
+                            results: []
+                        }));
+                    }
+                });
+
+                child.on('exit', (code) => {
+                    if (!finished) {
+                        finished = true;
+                        clearTimeout(timeoutTimer);
+                        console.error('SUBPROCESS EXIT CODE:', code, 'STDERR:', stderrData, 'STDOUT:', stdoutData);
+                        executePlaywrightJob(payload).then(resolve).catch(e => resolve({
+                            success: false,
+                            errorCategory: 'INFRASTRUCTURE_ERROR',
+                            errorMessage: `Worker process exited with code ${code}`,
+                            results: []
+                        }));
+                    }
+                });
+
+                child.send({ type: 'RUN_JOB', payload });
+            } catch (forkErr) {
+                clearTimeout(timeoutTimer);
+                logger.warn(`Failed to fork worker process (${forkErr.message}). Falling back to direct execution.`);
+                executePlaywrightJob(payload).then(resolve).catch(e => resolve({
+                    success: false,
+                    errorCategory: 'INFRASTRUCTURE_ERROR',
+                    errorMessage: e.message,
+                    results: []
+                }));
+            }
+        });
     }
 
     /**
@@ -137,7 +238,11 @@ class JobQueueService {
             if (job.caseIds && Array.isArray(job.caseIds) && !job.caseIds.includes(c.id)) return false;
             const isAuto = c.executionType === 'automated' || run.executionType === 'automated';
             const mapping = c.caseSnapshot?.automationMapping;
-            const hasMapping = Boolean(mapping && mapping.mappingStatus === 'configured' && (mapping.scriptCode || mapping.code || mapping.spec));
+            const hasMapping = Boolean(
+                mapping &&
+                mapping.mappingStatus === 'configured' &&
+                (mapping.scriptCode || mapping.code || mapping.spec || (mapping.scriptSource === 'existing' && mapping.scriptRef))
+            );
             return isAuto && hasMapping;
         });
 
@@ -150,7 +255,7 @@ class JobQueueService {
         }
 
         // Call isolated Playwright worker
-        const workerReport = await executePlaywrightJob({
+        const workerReport = await this.executeInWorkerSubprocess({
             jobId: job.id,
             runId: job.runId,
             workspaceId: job.workspaceId,

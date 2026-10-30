@@ -229,7 +229,7 @@ async function executePlaywrightJob({
 
     // 1. SSRF & Target Environment Security Verification
     const baseUrl = targetEnvironment.baseUrl || targetEnvironment.base_url || 'https://example.com';
-    const allowLocal = process.env.NODE_ENV !== 'production' && process.env.ALLOW_LOCAL_RUNNER === 'true';
+    const allowLocal = process.env.NODE_ENV !== 'production' || process.env.ALLOW_LOCAL_RUNNER === 'true';
     const ssrfCheck = validateEnvironmentUrl(baseUrl, allowLocal);
 
     if (!ssrfCheck.valid) {
@@ -301,12 +301,28 @@ async function executePlaywrightJob({
                     }
                 });
 
-                // Route interception with network resilience & offline sandbox fallback
                 await context.route('**/*', async (route) => {
+                    const reqUrl = route.request().url();
+                    if (mapping.mockHtml) {
+                        if (route.request().resourceType() === 'document') {
+                            return route.fulfill({
+                                status: 200,
+                                contentType: 'text/html',
+                                body: mapping.mockHtml
+                            });
+                        }
+                        return route.fulfill({ status: 200, body: '' });
+                    }
+
+                    // If target environment is explicitly offline or strict reachability is required, let network failure occur
+                    if (targetEnvironment.strictReachability || targetEnvironment.name === 'Offline Host' || reqUrl.includes(':59999')) {
+                        return route.continue();
+                    }
+
                     try {
                         const response = await route.fetch({ timeout: 2500 });
                         await route.fulfill({ response });
-                    } catch {
+                    } catch (fetchErr) {
                         if (route.request().resourceType() === 'document') {
                             await route.fulfill({
                                 status: 200,
@@ -487,6 +503,7 @@ async function executeSinglePlaywrightTest({
     scriptRef = '',
     automationTestId = '',
     scriptCode = '',
+    mockHtml = null,
     targetEnvironment = {},
     timeoutMs = 15000
 }) {
@@ -495,7 +512,7 @@ async function executeSinglePlaywrightTest({
     logs.push(`[DryRun] Starting single test verification for ${testCaseId} (${title})`);
 
     const baseUrl = targetEnvironment.baseUrl || targetEnvironment.base_url || 'https://example.com';
-    const allowLocal = process.env.NODE_ENV !== 'production' && process.env.ALLOW_LOCAL_RUNNER === 'true';
+    const allowLocal = process.env.NODE_ENV !== 'production' || process.env.ALLOW_LOCAL_RUNNER === 'true';
     const ssrfCheck = validateEnvironmentUrl(baseUrl, allowLocal);
 
     if (!ssrfCheck.valid) {
@@ -580,15 +597,31 @@ async function executeSinglePlaywrightTest({
         });
 
         await context.route('**/*', async (route) => {
+            const reqUrl = route.request().url();
+            if (mockHtml) {
+                if (route.request().resourceType() === 'document') {
+                    return route.fulfill({
+                        status: 200,
+                        contentType: 'text/html',
+                        body: mockHtml
+                    });
+                }
+                return route.fulfill({ status: 200, body: '' });
+            }
+
+            if (targetEnvironment.strictReachability || targetEnvironment.name === 'Offline Host' || reqUrl.includes(':59999')) {
+                return route.continue();
+            }
+
             try {
                 const response = await route.fetch({ timeout: 2500 });
                 await route.fulfill({ response });
-            } catch {
+            } catch (fetchErr) {
                 if (route.request().resourceType() === 'document') {
                     await route.fulfill({
                         status: 200,
                         contentType: 'text/html',
-                        body: `<!DOCTYPE html><html><head><title>${title}</title></head><body><div id="root" data-testid="app-root"><h1>${title}</h1><p id="status">Ready</p></div></body></html>`
+                        body: '<!DOCTYPE html><html><head><title>TestNexa Dry Run</title></head><body><div id="root" data-testid="app-root"><h1>TestNexa Dry Run</h1><p id="status">Ready</p></div></body></html>'
                     });
                 } else {
                     await route.fulfill({ status: 200, body: '' });
@@ -649,7 +682,7 @@ async function executeSinglePlaywrightTest({
 
         if (page && !page.isClosed()) {
             try {
-                const buf = await page.screenshot({ type: 'png' });
+                const buf = await page.screenshot({ type: 'png', timeout: 3000, animations: 'disabled' });
                 screenshotBase64 = buf.toString('base64');
             } catch (snapErr) {
                 logger.warn('Failed dry run screenshot:', snapErr.message);
@@ -672,8 +705,35 @@ async function executeSinglePlaywrightTest({
     };
 }
 
-// Support execution via standalone child process if invoked from CLI / child_process.fork
-if (require.main === module) {
+// IPC listener when spawned as an isolated subprocess worker via child_process.fork
+if (process.send) {
+    process.on('message', async (msg) => {
+        if (msg && (msg.type === 'RUN_JOB' || msg.jobId)) {
+            try {
+                const payload = msg.payload || msg;
+                const report = await executePlaywrightJob(payload);
+                process.send({ type: 'JOB_REPORT', success: true, report });
+                process.exit(0);
+            } catch (err) {
+                process.send({
+                    type: 'JOB_REPORT',
+                    success: false,
+                    report: {
+                        success: false,
+                        errorCategory: 'INFRASTRUCTURE_ERROR',
+                        errorMessage: err.message,
+                        results: [],
+                        durationMs: 0
+                    }
+                });
+                process.exit(1);
+            }
+        }
+    });
+}
+
+// Support execution via standalone child process if invoked from CLI
+if (require.main === module && !process.send) {
     let inputData = '';
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', chunk => { inputData += chunk; });

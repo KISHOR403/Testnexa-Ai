@@ -2249,6 +2249,7 @@ class SupabaseDataService {
             notes: row.notes || '',
             currentAttempt: row.current_attempt || row.currentAttempt || 1,
             durationMs: row.duration_ms || row.durationMs || 0,
+            lastDurationMs: row.duration_ms || row.durationMs || 0,
             executedBy: row.executed_by || row.executedBy || null,
             executorType: row.executor_type || row.executorType || 'manual',
             executedAt: row.executed_at || row.executedAt || null,
@@ -2271,6 +2272,7 @@ class SupabaseDataService {
             errorMessage: row.error_message || row.errorMessage || '',
             stackTrace: row.stack_trace || row.stackTrace || '',
             durationMs: row.duration_ms || row.durationMs || 0,
+            lastDurationMs: row.duration_ms || row.durationMs || 0,
             executedBy: row.executed_by || row.executedBy || null,
             executorType: row.executor_type || row.executorType || 'manual',
             executedAt: row.executed_at || row.executedAt || row.created_at || row.createdAt,
@@ -2486,14 +2488,20 @@ class SupabaseDataService {
             const caseId = String(c.id || `TC_${i + 1}`);
 
             const existingMapping = c.automationMapping || c.playwrightBinding || null;
-            const hasAutomation = Boolean(existingMapping && (existingMapping.scriptCode || existingMapping.code || existingMapping.spec || existingMapping.script));
+            const hasAutomation = Boolean(
+                existingMapping &&
+                (existingMapping.scriptCode || existingMapping.code || existingMapping.spec || existingMapping.script ||
+                 (existingMapping.scriptRef && (existingMapping.automationTestId || existingMapping.scriptSource === 'existing')))
+            );
 
             const automationMapping = {
                 framework: existingMapping?.framework || 'playwright',
                 automationTestId: existingMapping?.automationTestId || (hasAutomation ? caseId.toLowerCase().replace(/[^a-z0-9_]/g, '_') : ''),
+                scriptSource: existingMapping?.scriptSource || (existingMapping?.scriptRef ? 'existing' : 'custom'),
                 scriptRef: existingMapping?.scriptRef || (hasAutomation ? `tests/e2e/approved_${caseId.toLowerCase()}.spec.js` : ''),
                 scriptCode: existingMapping?.scriptCode || existingMapping?.code || existingMapping?.spec || existingMapping?.script || '',
-                mappingStatus: hasAutomation ? 'configured' : 'not_configured',
+                mockHtml: existingMapping?.mockHtml || null,
+                mappingStatus: (existingMapping?.mappingStatus === 'configured' || hasAutomation) ? 'configured' : 'not_configured',
                 lastConfiguredAt: hasAutomation ? now : null
             };
 
@@ -3300,6 +3308,10 @@ class SupabaseDataService {
     }
 
     async getAutomationJob(jobId) {
+        return this.getAutomationJobById(jobId);
+    }
+
+    async getAutomationJobById(jobId) {
         if (!jobId) return null;
 
         if (this.isAvailable && this.executionTablesAvailable !== false) {

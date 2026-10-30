@@ -559,4 +559,159 @@ test('Comprehensive Real Playwright Automated Execution Engine (12 Scenarios)', 
         const passCaseHistory = await supabaseService.getCaseExecutions(passCase.id);
         assert.equal(passCaseHistory.length, 1, 'Passed case must not have been rerun');
     });
+
+    // SCENARIO 13: End-to-End execution of 3 Cart & Checkout scenarios with real Chromium
+    await t.test('Scenario 13: End-to-End execution of 3 Cart & Checkout scenarios via inventory script resolution', async () => {
+        const checkoutRun = await supabaseService.createTestRun({
+            workspaceId: workspace.id,
+            name: 'Cart & Checkout Execution Suite',
+            executionType: 'automated',
+            createdBy: primaryUser.id,
+            customCases: [
+                {
+                    id: 'TC_FUNC_CHK_001',
+                    title: 'Successful Checkout',
+                    module: 'Checkout',
+                    automationMapping: {
+                        framework: 'playwright',
+                        mappingStatus: 'configured',
+                        scriptSource: 'existing',
+                        scriptRef: 'tests/e2e/checkout.spec.js#checkout-successful',
+                        automationTestId: 'checkout-successful',
+                        mockHtml: `<!DOCTYPE html><html><head><title>Checkout</title></head><body>
+                            <h1>Checkout</h1>
+                            <input name="fullName" data-testid="shipping-name" value="" />
+                            <input name="address" data-testid="shipping-address" value="" />
+                            <input name="city" data-testid="shipping-city" value="" />
+                            <input name="zip" data-testid="shipping-zip" value="" />
+                            <input type="radio" value="standard" data-testid="shipping-standard" />
+                            <input name="cardNumber" data-testid="card-number" value="" />
+                            <input name="expiry" data-testid="card-expiry" value="" />
+                            <input name="cvc" data-testid="card-cvc" value="" />
+                            <button type="submit" data-testid="submit-order" onclick="document.getElementById('confirmation').style.display='block'">Submit</button>
+                            <div id="confirmation" data-testid="order-confirmation" style="display:none">Order Confirmation #1029</div>
+                        </body></html>`
+                    }
+                },
+                {
+                    id: 'TC_FUNC_CHK_002',
+                    title: 'Checkout with No Coupon, Express Shipping',
+                    module: 'Checkout',
+                    automationMapping: {
+                        framework: 'playwright',
+                        mappingStatus: 'configured',
+                        scriptSource: 'existing',
+                        scriptRef: 'tests/e2e/checkout.spec.js#checkout-express-shipping-no-coupon',
+                        automationTestId: 'checkout-express-shipping-no-coupon',
+                        mockHtml: `<!DOCTYPE html><html><head><title>Checkout</title></head><body>
+                            <h1>Checkout</h1>
+                            <input name="coupon" data-testid="coupon-input" value="" />
+                            <input type="radio" value="express" data-testid="shipping-express" />
+                            <input name="cardNumber" data-testid="card-number" value="" />
+                            <input name="expiry" data-testid="card-expiry" value="" />
+                            <input name="cvc" data-testid="card-cvc" value="" />
+                            <button type="submit" data-testid="submit-order" onclick="document.getElementById('confirmation').style.display='block'">Complete</button>
+                            <div id="confirmation" data-testid="order-confirmation" style="display:none">Order Confirmation #1030</div>
+                        </body></html>`
+                    }
+                },
+                {
+                    id: 'TC_FUNC_CHK_003',
+                    title: 'Invalid Shipping Address Validation',
+                    module: 'Checkout',
+                    automationMapping: {
+                        framework: 'playwright',
+                        mappingStatus: 'configured',
+                        scriptSource: 'existing',
+                        scriptRef: 'tests/e2e/checkout.spec.js#checkout-invalid-shipping-address',
+                        automationTestId: 'checkout-invalid-shipping-address',
+                        mockHtml: `<!DOCTYPE html><html><head><title>Checkout</title></head><body>
+                            <h1>Checkout</h1>
+                            <input name="fullName" data-testid="shipping-name" value="" />
+                            <input name="address" data-testid="shipping-address" value="" />
+                            <input name="zip" data-testid="shipping-zip" value="" />
+                            <button type="submit" data-testid="submit-order" onclick="document.getElementById('err').style.display='block'">Submit</button>
+                            <div id="err" data-testid="address-error" style="display:none">Please enter a valid shipping address</div>
+                        </body></html>`
+                    }
+                }
+            ]
+        });
+
+        // Trigger automated execution via API
+        const req = createMockReq(primaryUser, { id: checkoutRun.id }, { adapter: 'playwright' });
+        const res = createMockRes();
+        await executionController.triggerAutomatedRun(req, res);
+
+        assert.equal(res.statusCode, 202);
+        assert.equal(res.data.success, true);
+        assert.equal(res.data.data.totalCases, 3, 'All 3 checkout scenarios should be queued');
+
+        // Process queue job in runner worker
+        const processed = await jobQueue.processNextJob();
+        assert.ok(processed);
+        assert.equal(processed.status, 'completed');
+
+        // Verify each test case execution result in database
+        const cases = await supabaseService.getRunCases(checkoutRun.id);
+        assert.equal(cases.length, 3);
+
+        for (const c of cases) {
+            assert.equal(c.status, 'passed', `Case ${c.testCaseId} must pass in real Playwright execution`);
+            assert.ok(c.lastDurationMs > 0, 'Must record execution duration');
+            assert.ok(c.actualResult.includes('All browser assertions passed successfully'));
+            const history = await supabaseService.getCaseExecutions(c.id);
+            assert.equal(history.length, 1);
+            assert.equal(history[0].status, 'passed');
+            assert.equal(history[0].executedBy, 'playwright_worker');
+        }
+    });
+
+    // SCENARIO 14: Target environment unavailability detection
+    await t.test('Scenario 14: Target staging application unavailability reports failure without fabricating success', async () => {
+        const deadHostRun = await supabaseService.createTestRun({
+            workspaceId: workspace.id,
+            name: 'Offline Staging Target Run',
+            executionType: 'automated',
+            targetEnvironment: {
+                name: 'Offline Host',
+                baseUrl: 'http://127.0.0.1:59999' // Non-existent offline local port
+            },
+            createdBy: primaryUser.id,
+            customCases: [
+                {
+                    id: 'TC_OFFLINE_001',
+                    title: 'Live Payment API Verification',
+                    automationMapping: {
+                        framework: 'playwright',
+                        mappingStatus: 'configured',
+                        scriptCode: 'async (page, expect) => { await page.goto("http://127.0.0.1:59999/checkout"); }'
+                    }
+                }
+            ]
+        });
+
+        const req = createMockReq(primaryUser, { id: deadHostRun.id }, {
+            adapter: 'playwright',
+            targetEnvironment: { baseUrl: 'http://127.0.0.1:59999' }
+        });
+        const res = createMockRes();
+        await executionController.triggerAutomatedRun(req, res);
+        assert.equal(res.statusCode, 202);
+
+        // Process job
+        const processed = await jobQueue.processNextJob();
+        assert.ok(processed);
+
+        // Verify that failure was accurately reported rather than pretending it passed
+        const cases = await supabaseService.getRunCases(deadHostRun.id);
+        assert.equal(cases[0].status, 'failed', 'Unreachable staging site must report failed status');
+        assert.ok(
+            cases[0].actualResult.includes('ECONNREFUSED') || 
+            cases[0].actualResult.includes('net::ERR_CONNECTION_REFUSED') ||
+            cases[0].actualResult.includes('failed') ||
+            cases[0].actualResult.includes('Playwright'),
+            'Must report real connection/network failure reason'
+        );
+    });
 });

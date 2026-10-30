@@ -57,6 +57,11 @@ const StatusBadge = ({ status }) => {
     const config = {
         passed: { label: 'Passed', bg: 'rgba(139, 175, 154, 0.15)', color: '#8BAF9A', border: 'rgba(139, 175, 154, 0.3)' },
         failed: { label: 'Failed', bg: 'rgba(224, 108, 117, 0.15)', color: '#E06C75', border: 'rgba(224, 108, 117, 0.3)' },
+        timed_out: { label: 'Timed Out', bg: 'rgba(209, 154, 102, 0.15)', color: '#D19A66', border: 'rgba(209, 154, 102, 0.3)' },
+        cancelled: { label: 'Cancelled', bg: 'rgba(160, 165, 165, 0.15)', color: '#A0A5A5', border: 'rgba(160, 165, 165, 0.3)' },
+        infrastructure_error: { label: 'Infra Error', bg: 'rgba(224, 108, 117, 0.2)', color: '#FF6B6B', border: 'rgba(224, 108, 117, 0.4)' },
+        queued: { label: 'Queued', bg: 'rgba(229, 192, 123, 0.15)', color: '#E5C07B', border: 'rgba(229, 192, 123, 0.3)' },
+        running: { label: 'Running', bg: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: 'rgba(56, 189, 248, 0.3)' },
         blocked: { label: 'Blocked', bg: 'rgba(229, 192, 123, 0.15)', color: '#E5C07B', border: 'rgba(229, 192, 123, 0.3)' },
         skipped: { label: 'Skipped', bg: 'rgba(198, 120, 221, 0.15)', color: '#C678DD', border: 'rgba(198, 120, 221, 0.3)' },
         in_progress: { label: 'In Progress', bg: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: 'rgba(56, 189, 248, 0.3)' },
@@ -337,7 +342,8 @@ const RunExecutionPage = () => {
     const automationReadyCount = useMemo(() => {
         return cases.filter(c => {
             const map = c.caseSnapshot?.automationMapping;
-            return map?.mappingStatus === 'configured' && Boolean(map?.scriptCode);
+            return map?.mappingStatus === 'configured' &&
+                (Boolean(map?.scriptCode) || (map?.scriptSource === 'existing' && Boolean(map?.scriptRef)));
         }).length;
     }, [cases]);
 
@@ -677,6 +683,8 @@ const RunExecutionPage = () => {
                                 padding: '0 1rem',
                                 background: activeJob?.status === 'running'
                                     ? '#38BDF8'
+                                    : activeJob?.status === 'queued'
+                                    ? '#E5C07B'
                                     : automationReadyCount === 0
                                     ? '#222526'
                                     : '#8BAF9A',
@@ -692,6 +700,11 @@ const RunExecutionPage = () => {
                                 <>
                                     <RefreshCw size={14} className="animate-spin" />
                                     <span>Playwright Running... ({activeJob.completedCases || 0}/{activeJob.totalCases || 0})</span>
+                                </>
+                            ) : activeJob?.status === 'queued' ? (
+                                <>
+                                    <Clock size={14} />
+                                    <span>Playwright Queued in Worker...</span>
                                 </>
                             ) : (
                                 <>
