@@ -32,6 +32,7 @@ const CoveragePage = lazy(() => import('./pages/app/CoveragePage'));
 const RisksPage = lazy(() => import('./pages/app/RisksPage'));
 const TraceabilityPage = lazy(() => import('./pages/app/TraceabilityPage'));
 const TestRunsPage = lazy(() => import('./pages/app/TestRunsPage'));
+const TestCasesPage = lazy(() => import('./pages/app/TestCasesPage'));
 const RunExecutionPage = lazy(() => import('./pages/app/RunExecutionPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
@@ -173,6 +174,7 @@ function AppContent() {
             <Route path="history" element={<HistoryPage />} />
             <Route path="test-suites" element={<TestSuitesListPage />} />
             <Route path="test-suites/:id" element={<TestSuiteDetailPage />} />
+            <Route path="test-cases" element={<TestCasesPage />} />
             <Route path="runs" element={<TestRunsPage />} />
             <Route path="runs/:runId" element={<RunExecutionPage />} />
             <Route path="coverage" element={<CoveragePage />} />

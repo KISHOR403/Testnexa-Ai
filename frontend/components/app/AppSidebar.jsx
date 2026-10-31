@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-    FileText, Layers, ShieldCheck, AlertTriangle, GitBranch,
+    FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
     PlayCircle
@@ -139,6 +139,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     >
                         <Layers size={17} className="app-sidebar__item-icon" />
                         <span>Test Suites</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/app/test-cases"
+                        className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Test Cases"
+                    >
+                        <ClipboardList size={17} className="app-sidebar__item-icon" />
+                        <span>Test Cases</span>
                     </NavLink>
 
                     <NavLink

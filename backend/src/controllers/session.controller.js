@@ -1,5 +1,41 @@
 const supabaseService = require('../services/supabaseData.service');
 const logger = require('../utils/logger');
+const { validateTestCaseMutation } = require('../utils/testCaseManagement.validation');
+
+const suiteCaseArrays = ['testCases', 'tests', 'functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist', 'api'];
+const unwrapSuiteData = (record) => {
+    const suite = record?.suiteData || record?.suite_data || record?.suite || record?.data || record || {};
+    return suite?.suiteData || suite?.suite_data || suite?.data || suite;
+};
+const validateSuiteCaseReferences = async ({ suiteData, suiteId, userId, currentSession }) => {
+    const data = unwrapSuiteData(suiteData);
+    const refs = Array.isArray(data.testCaseRefs) ? data.testCaseRefs : [];
+    const seen = new Set();
+    const currentData = currentSession || await supabaseService.getSession(suiteId, userId);
+    const currentSuiteData = unwrapSuiteData(currentData);
+    const oldRefs = new Set((Array.isArray(currentSuiteData?.testCaseRefs) ? currentSuiteData.testCaseRefs : []).map(ref => `${ref.sourceSuiteId}:${ref.testCaseId}`));
+    const ownIds = new Set(suiteCaseArrays.flatMap(key => Array.isArray(currentSuiteData?.[key]) ? currentSuiteData[key] : []).map(testCase => String(testCase?.id || testCase?.testCaseId || '')).filter(Boolean));
+    for (const ref of refs) {
+        const sourceSuiteId = String(ref?.sourceSuiteId || '');
+        const testCaseId = String(ref?.testCaseId || '');
+        const key = `${sourceSuiteId}:${testCaseId}`;
+        if (!sourceSuiteId || !testCaseId || sourceSuiteId === String(suiteId) || seen.has(key) || ownIds.has(testCaseId)) {
+            return { valid: false, status: 400, message: 'Test case mappings must be unique and reference another suite.' };
+        }
+        seen.add(key);
+        if (ownIds.has(testCaseId)) return { valid: false, status: 400, message: 'A test case can only be mapped once in a suite.' };
+        ownIds.add(testCaseId);
+        const sourceSession = await supabaseService.getSession(sourceSuiteId, userId);
+        if (!sourceSession || String(sourceSession.userId || sourceSession.user_id || '') !== String(userId)) {
+            if (oldRefs.has(key)) continue;
+            return { valid: false, status: 404, message: 'A mapped test case source suite was not found in your workspace.' };
+        }
+        const sourceData = unwrapSuiteData(sourceSession);
+        const matches = suiteCaseArrays.flatMap(arrayName => Array.isArray(sourceData?.[arrayName]) ? sourceData[arrayName] : []).filter(testCase => String(testCase?.id || testCase?.testCaseId || '') === testCaseId);
+        if (matches.length !== 1 && !oldRefs.has(key)) return { valid: false, status: 400, message: `Mapped test case ${testCaseId} must exist exactly once in its source suite.` };
+    }
+    return { valid: true };
+};
 
 /**
  * Auto-generate a title from the requirement text
@@ -148,6 +184,27 @@ const updateSession = async (req, res) => {
                 code: 'PERMISSION_DENIED',
                 message: 'Viewer role is read-only and does not have permission to modify this test suite'
             });
+        }
+
+        if (req.body.testCaseMutation) {
+            if (req.body.suiteData === undefined) {
+                return res.status(400).json({ success: false, code: 'INVALID_UPDATE', message: 'Suite data is required for a test case update.' });
+            }
+            const validation = validateTestCaseMutation({
+                previousSuiteData: session.suiteData || session.suite_data,
+                suiteData: req.body.suiteData,
+                mutation: req.body.testCaseMutation
+            });
+            if (!validation.valid) {
+                return res.status(validation.status).json({ success: false, code: validation.status === 409 ? 'TEST_CASE_CONFLICT' : 'INVALID_TEST_CASE', message: validation.message });
+            }
+        }
+
+        if (req.body.suiteData !== undefined) {
+            const mappingValidation = await validateSuiteCaseReferences({ suiteData: req.body.suiteData, suiteId: sessionId, userId, currentSession: session });
+            if (!mappingValidation.valid) {
+                return res.status(mappingValidation.status).json({ success: false, code: 'INVALID_SUITE_CASE_MAPPING', message: mappingValidation.message });
+            }
         }
 
         if (accessRole === 'reviewer') {

@@ -740,7 +740,7 @@ const RunComparisonView = ({ runId, onSwitchToCases }) => {
                                                                                 Failure Reason / Assertion Note
                                                                             </span>
                                                                             <div style={{ color: 'var(--rc-fail)', marginTop: '2px', fontFamily: 'var(--rc-mono-font)', fontSize: '0.78rem' }}>
-                                                                                {item.reason}
+                                                                                {typeof item.reason === 'object' ? JSON.stringify(item.reason) : item.reason}
                                                                             </div>
                                                                         </div>
                                                                     )}

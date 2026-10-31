@@ -134,7 +134,7 @@ class ExecutionReportService {
             detailedCases.push(caseItem);
 
             // Failure Investigation payload
-            if (st === 'failed' || st === 'blocked') {
+            if (['failed', 'blocked', 'timed_out', 'infrastructure_error'].includes(st)) {
                 const isAutomated = method === 'automated';
                 const failureArtifact = caseArtifacts.find(a => a.artifact_type === 'screenshot' || a.artifactType === 'screenshot') || caseArtifacts[0];
                 
@@ -147,18 +147,17 @@ class ExecutionReportService {
                     status: st,
                     durationMs: duration,
                     failedAt: caseItem.executedAt || c.updatedAt,
-                    expectedResult: c.caseSnapshot?.expectedResult || 'Expected system to verify assertion and proceed without error.',
+                    expectedResult: c.caseSnapshot?.expectedResult || '',
                     actualResult: caseItem.actualResult,
                     // Automated failure specifics
-                    errorMessage: latestAttempt?.errorMessage || latestAttempt?.error_message || c.notes || '',
+                    errorMessage: latestAttempt?.errorMessage || latestAttempt?.error_message || '',
                     stackTrace: latestAttempt?.stackTrace || latestAttempt?.stack_trace || '',
-                    failedStep: c.caseSnapshot?.steps?.[0]?.action || 'Browser execution assertion',
-                    browserInfo: isAutomated ? 'Headless Chromium 1234 (Playwright)' : 'Manual Browser / Device Verification',
-                    targetUrl: run.targetEnvironment?.baseUrl || 'Staging Environment',
+                    failedStep: '',
+                    browserInfo: '',
+                    targetUrl: run.targetEnvironment?.baseUrl || '',
                     screenshotArtifact: failureArtifact ? {
                         id: failureArtifact.id,
                         name: failureArtifact.name,
-                        storagePath: failureArtifact.storage_path || failureArtifact.storagePath,
                         mimeType: failureArtifact.mime_type || failureArtifact.mimeType || 'image/png',
                         sizeBytes: failureArtifact.size_bytes || failureArtifact.sizeBytes || 0,
                         url: `/api/v1/runs/${runId}/artifacts/${failureArtifact.id}/file`
@@ -171,6 +170,22 @@ class ExecutionReportService {
         }
 
         const totalCases = cases.length;
+        const diagnosticLogArtifacts = artifacts.filter(a => (a.artifact_type || a.artifactType) === 'log' || (a.mime_type || a.mimeType || '').startsWith('text/'));
+        let warningCount = diagnosticLogArtifacts.length > 0 ? 0 : null;
+        for (const artifact of diagnosticLogArtifacts) {
+            const file = getArtifactBuffer(artifact.storage_path || artifact.storagePath);
+            if (file?.data) warningCount += (file.data.toString('utf8').match(/\bwarn(?:ing)?\b/gi) || []).length;
+        }
+        const diagnosticSummary = {
+            failures: failureInvestigations.length,
+            errors: cases.filter(c => (c.status || '').toLowerCase() === 'infrastructure_error').length,
+            timeouts: cases.filter(c => (c.status || '').toLowerCase() === 'timed_out').length,
+            flaky: cases.filter(c => {
+                const outcomes = (caseExecutionMap.get(c.id) || []).map(attempt => (attempt.status || '').toLowerCase());
+                return outcomes.some(status => ['failed', 'timed_out', 'infrastructure_error'].includes(status)) && outcomes.includes('passed');
+            }).length,
+            warnings: warningCount
+        };
         const totalDurationMs = manualDurationMs + automatedDurationMs;
         const overallPassRate = totalCases > 0 ? Math.round((passed / totalCases) * 100) : 0;
         const manualPassRate = manualTotal > 0 ? Math.round((manualPassed / manualTotal) * 100) : 0;
@@ -224,8 +239,8 @@ class ExecutionReportService {
                 formattedDuration: this.formatDuration(totalDurationMs)
             },
             environment: {
-                name: run.targetEnvironment?.name || 'Default Environment',
-                baseUrl: run.targetEnvironment?.baseUrl || run.targetEnvironment?.base_url || 'N/A',
+                name: run.targetEnvironment?.name || '',
+                baseUrl: run.targetEnvironment?.baseUrl || run.targetEnvironment?.base_url || '',
                 environmentId: run.environmentId || run.environment_id || null
             },
             summary: {
@@ -262,6 +277,7 @@ class ExecutionReportService {
             },
             categoryBreakdown,
             coverage: coverageAnalysis,
+            diagnosticsSummary: diagnosticSummary,
             failureInvestigations,
             cases: detailedCases,
             artifactsSummary: {
@@ -278,74 +294,114 @@ class ExecutionReportService {
      */
     computeRunCoverage(cases, suite) {
         const sData = suite?.suiteData || suite?.suite_data || suite?.data || suite;
-        const rawReqs = sData?.understanding?.functional_requirements ||
-            sData?.requirements ||
-            sData?.traceability?.matrix ||
-            [];
+        const requirementSources = [sData?.understanding?.functional_requirements, sData?.requirements, sData?.traceability?.matrix];
+        const rawSource = requirementSources.find(source => Array.isArray(source) ? source.length > 0 : source && Object.keys(source).length > 0) || [];
+        const rawReqs = Array.isArray(rawSource) ? rawSource : Object.entries(rawSource).map(([id, value]) =>
+            typeof value === 'object' && value !== null ? { ...value, id: value.id || value.reqId || id } : { id, description: String(value || '') }
+        );
 
         const requirementMap = new Map();
+        const requirementById = new Map();
 
-        // 1. Seed identified requirements from suite specification
+        // Seed only requirements present in the suite specification. Internal keys are
+        // generated for records without IDs, but those keys are never exposed as IDs.
         if (Array.isArray(rawReqs) && rawReqs.length > 0) {
             rawReqs.forEach((r, idx) => {
-                const reqId = r.id || r.reqId || `REQ-${String(idx + 1).padStart(3, '0')}`;
-                const text = r.description || r.requirement || r.text || (typeof r === 'string' ? r : `Requirement ${idx + 1}`);
-                requirementMap.set(reqId, {
+                const reqId = typeof r === 'object' && r !== null ? (r.id || r.reqId || r.requirementId || null) : null;
+                const text = typeof r === 'string' ? r : (r && (r.description || r.requirement || r.text || r.title) || '');
+                const key = reqId ? `id:${reqId}` : `source:${idx}:${text}`;
+                const explicitRefs = typeof r === 'object' && r !== null ? (r.testCaseIds || r.linkedCases || r.testCases || []) : [];
+                requirementMap.set(key, {
+                    key,
                     id: reqId,
                     description: text,
-                    category: r.category || 'Functional',
+                    category: typeof r === 'object' && r !== null ? (r.category || null) : null,
+                    priority: typeof r === 'object' && r !== null ? (r.priority || r.importance || null) : null,
+                    explicitCaseRefs: (Array.isArray(explicitRefs) ? explicitRefs : []).map(ref => typeof ref === 'object' ? (ref.testCaseId || ref.id) : ref).filter(Boolean).map(String),
                     linkedCases: [],
-                    passedCases: [],
-                    failedCases: [],
-                    status: 'uncovered' // uncovered | passed | failed | partial
-                });
-            });
-        }
-
-        // 2. Map executed test cases to requirements
-        cases.forEach((c, idx) => {
-            const snap = c.caseSnapshot || {};
-            const reqRef = snap.requirementId || snap.requirementRef || snap.reqId || `REQ-${String((idx % Math.max(1, requirementMap.size || 3)) + 1).padStart(3, '0')}`;
-
-            if (!requirementMap.has(reqRef)) {
-                requirementMap.set(reqRef, {
-                    id: reqRef,
-                    description: snap.module ? `${snap.module} Feature Requirements` : `Requirement ${reqRef}`,
-                    category: snap.type || 'Functional',
-                    linkedCases: [],
+                    linkedTests: [],
                     passedCases: [],
                     failedCases: [],
                     status: 'uncovered'
                 });
+                if (reqId) requirementById.set(String(reqId), key);
+            });
+        }
+
+        // A case links only through a persisted requirement reference or an explicit
+        // test-case reference stored on the requirement itself.
+        cases.forEach(c => {
+            const snap = c.caseSnapshot || {};
+            const caseRefs = [c.id, c.testCaseId].filter(Boolean).map(String);
+            const reqRef = snap.requirementId || snap.requirementRef || snap.reqId || null;
+            const keys = new Set();
+            if (reqRef && requirementById.has(String(reqRef))) keys.add(requirementById.get(String(reqRef)));
+            if (reqRef && !requirementById.has(String(reqRef))) {
+                const key = `ref:${reqRef}`;
+                if (!requirementMap.has(key)) {
+                    requirementMap.set(key, {
+                        key, id: String(reqRef), description: snap.requirementText || snap.requirement || '',
+                        category: snap.requirementCategory || null, priority: snap.requirementPriority || null,
+                        explicitCaseRefs: [], linkedCases: [], linkedTests: [], passedCases: [], failedCases: [], status: 'uncovered'
+                    });
+                    requirementById.set(String(reqRef), key);
+                }
+                keys.add(requirementById.get(String(reqRef)));
             }
 
-            const req = requirementMap.get(reqRef);
-            req.linkedCases.push(c.testCaseId || c.id);
+            requirementMap.forEach((req, key) => {
+                if (req.explicitCaseRefs.some(ref => caseRefs.includes(ref))) keys.add(key);
+            });
 
-            const st = (c.status || '').toLowerCase();
-            if (st === 'passed') req.passedCases.push(c.testCaseId || c.id);
-            else if (st === 'failed' || st === 'blocked') req.failedCases.push(c.testCaseId || c.id);
+            keys.forEach(key => {
+                const req = requirementMap.get(key);
+                const testId = c.testCaseId || c.id;
+                const status = (c.status || 'not_run').toLowerCase();
+                if (req.linkedTests.some(test => test.runCaseId === c.id)) return;
+                req.linkedCases.push(testId);
+                req.linkedTests.push({
+                    runCaseId: c.id,
+                    testCaseId: testId,
+                    title: snap.title || c.title || '',
+                    category: snap.type || null,
+                    priority: snap.priority || null,
+                    executionType: c.executionType || null,
+                    status,
+                    durationMs: Number(c.durationMs || c.lastDurationMs || 0),
+                    executedAt: c.executedAt || null,
+                    actualResult: c.actualResult || ''
+                });
+                if (status === 'passed') req.passedCases.push(testId);
+                if (['failed', 'blocked', 'timed_out', 'infrastructure_error'].includes(status)) req.failedCases.push(testId);
+            });
         });
 
-        // 3. Classify requirement status based on test execution results
+        // Linkage and verification are separate: only all-linked-tests-passed verifies.
         let coveredRequirementsCount = 0;
         let verifiedRequirementsCount = 0;
         let failedRequirementsCount = 0;
+        let partiallyCoveredRequirementsCount = 0;
 
         requirementMap.forEach(req => {
+            const executedStatuses = req.linkedTests.map(test => test.status).filter(status =>
+                !['not_run', 'pending', 'queued', 'running', 'in_progress'].includes(status)
+            );
             if (req.linkedCases.length === 0) {
                 req.status = 'uncovered';
-            } else if (req.failedCases.length > 0) {
-                req.status = 'failed';
-                coveredRequirementsCount++;
-                failedRequirementsCount++;
-            } else if (req.passedCases.length === req.linkedCases.length && req.passedCases.length > 0) {
-                req.status = 'verified';
-                coveredRequirementsCount++;
-                verifiedRequirementsCount++;
             } else {
-                req.status = 'partial';
                 coveredRequirementsCount++;
+            }
+            if (req.linkedCases.length > 0 && req.failedCases.length > 0) {
+                req.status = 'failed';
+                failedRequirementsCount++;
+            } else if (req.linkedCases.length > 0 && req.passedCases.length === req.linkedCases.length) {
+                req.status = 'verified';
+                verifiedRequirementsCount++;
+            } else if (req.linkedCases.length > 0 && executedStatuses.length === 0) {
+                req.status = 'unverified';
+            } else if (req.linkedCases.length > 0) {
+                req.status = 'partial';
+                partiallyCoveredRequirementsCount++;
             }
         });
 
@@ -357,7 +413,8 @@ class ExecutionReportService {
             coveredRequirements: coveredRequirementsCount,
             verifiedRequirements: verifiedRequirementsCount,
             failedRequirements: failedRequirementsCount,
-            uncoveredRequirements: totalReqs - coveredRequirementsCount,
+            partiallyCoveredRequirements: partiallyCoveredRequirementsCount,
+            uncoveredRequirements: requirementsList.filter(req => req.status === 'uncovered').length,
             requirementCoveragePercentage: totalReqs > 0 ? Math.round((coveredRequirementsCount / totalReqs) * 100) : 0,
             requirementVerificationPercentage: totalReqs > 0 ? Math.round((verifiedRequirementsCount / totalReqs) * 100) : 0,
             requirements: requirementsList

@@ -2216,6 +2216,9 @@ class SupabaseDataService {
             status: row.status || 'pending',
             environmentId: row.environment_id || row.environmentId || null,
             targetEnvironment: row.target_environment || row.targetEnvironment || {},
+            datasetId: row.dataset_id || row.datasetId || null,
+            datasetVersion: row.dataset_version || row.datasetVersion || null,
+            datasetName: row.dataset_name || row.datasetName || null,
             createdBy: row.created_by || row.createdBy || null,
             assignedTo: row.assigned_to || row.assignedTo || null,
             summary: row.summary || {
@@ -2399,6 +2402,9 @@ class SupabaseDataService {
         const assignedTo = params.assignedTo || params.assigned_to || null;
         const selectedCaseIds = params.selectedCaseIds || params.selected_case_ids || [];
         const customCases = params.customCases || params.custom_cases || null;
+        const datasetId = params.datasetId || params.dataset_id || null;
+        const datasetVersion = params.datasetVersion || params.dataset_version || null;
+        const datasetName = params.datasetName || params.dataset_name || null;
 
         if (!workspaceId) throw new Error('workspaceId is required to create a TestRun');
         if (!name || !name.trim()) throw new Error('Run name is required');
@@ -2417,6 +2423,23 @@ class SupabaseDataService {
             if (!suite) throw new Error(`Test suite not found (${suiteId})`);
             const sData = suite.suiteData || suite.suite_data || suite.data || suite;
             rawCases = this._extractCasesFromSuiteData(sData);
+            const seenCaseIds = new Set(rawCases.map(testCase => String(testCase?.id || testCase?.testCaseId || '')).filter(Boolean));
+            const refs = Array.isArray(sData.testCaseRefs) ? sData.testCaseRefs : [];
+            const seenRefs = new Set();
+            for (const ref of refs) {
+                const sourceSuiteId = String(ref?.sourceSuiteId || '');
+                const testCaseId = String(ref?.testCaseId || '');
+                const refKey = `${sourceSuiteId}:${testCaseId}`;
+                if (!sourceSuiteId || !testCaseId || seenRefs.has(refKey) || seenCaseIds.has(testCaseId)) continue;
+                seenRefs.add(refKey);
+                const sourceSuite = await this.getSession(sourceSuiteId, createdBy);
+                if (!sourceSuite || String(sourceSuite.userId || sourceSuite.user_id || '') !== String(createdBy)) continue;
+                const sourceData = sourceSuite.suiteData || sourceSuite.suite_data || sourceSuite.data || sourceSuite;
+                const sourceCases = this._extractCasesFromSuiteData(sourceData).filter(testCase => String(testCase?.id || testCase?.testCaseId || '') === testCaseId);
+                if (sourceCases.length !== 1) continue;
+                rawCases.push({ ...sourceCases[0], id: testCaseId });
+                seenCaseIds.add(testCaseId);
+            }
             suiteVersion = suite.currentVersion || 1;
         }
 
@@ -2427,8 +2450,8 @@ class SupabaseDataService {
         // 2. Filter if specific test case IDs were requested
         let casesToRun = rawCases;
         if (Array.isArray(selectedCaseIds) && selectedCaseIds.length > 0) {
-            const set = new Set(selectedCaseIds);
-            casesToRun = rawCases.filter(c => set.has(c.id));
+            const set = new Set(selectedCaseIds.map(String));
+            casesToRun = rawCases.filter(c => set.has(String(c.id || c.testCaseId || '')));
             if (casesToRun.length === 0) {
                 casesToRun = rawCases;
             }
@@ -2472,6 +2495,9 @@ class SupabaseDataService {
             status: 'pending',
             environment_id: environmentId || null,
             target_environment: resolvedEnv,
+            dataset_id: datasetId,
+            dataset_version: datasetVersion,
+            dataset_name: datasetName,
             created_by: createdBy || null,
             assigned_to: assignedTo || null,
             summary: initialSummary,

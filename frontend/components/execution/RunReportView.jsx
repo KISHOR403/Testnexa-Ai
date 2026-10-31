@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-    CheckCircle2, XCircle, AlertTriangle, MinusCircle, Clock,
-    Download, Printer, FileText, Bot, User, RefreshCw,
-    ChevronDown, ChevronRight, ChevronUp, Check, AlertCircle, Eye,
-    Search, Shield, Layers, ExternalLink
+    AlertTriangle, Clock, Download, Printer, RefreshCw,
+    ChevronDown, ChevronUp, Check, AlertCircle, Copy,
+    Camera, Video, Network, Terminal, FileText
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../loading';
 import '../../styles/app/WorkspaceDesignSystem.css';
 import '../../styles/app/ExecutionReport.css';
+import '../../styles/app/ExecutionDiagnostics.css';
 
 const formatDuration = (ms) => {
     if (!ms || ms <= 0) return '0s';
@@ -35,6 +35,42 @@ const formatTimestamp = (iso) => {
     } catch {
         return String(iso);
     }
+};
+
+const formatDisplayValue = (val, fallback = '') => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'object') {
+        try {
+            return JSON.stringify(val);
+        } catch {
+            return String(val);
+        }
+    }
+    return String(val);
+};
+
+const formatUserLabel = (user) => {
+    if (!user) return 'QA Automation Engineer';
+    if (typeof user === 'string') return user;
+    if (typeof user === 'object') return user.name || user.email || user.username || user.id || 'QA Automation Engineer';
+    return String(user);
+};
+
+const diagnosticArtifactKind = (artifact) => {
+    const type = String(artifact.artifactType || '').toLowerCase();
+    const mime = String(artifact.mimeType || '').toLowerCase();
+    const name = String(artifact.name || '').toLowerCase();
+    if (type.includes('trace') || name.endsWith('.zip') && artifact.metadata?.trace) return 'trace';
+    if (type.includes('video') || mime.startsWith('video/')) return 'video';
+    if (type.includes('log') || mime.startsWith('text/')) return 'console';
+    if (type.includes('screenshot') || mime.startsWith('image/')) return 'screenshots';
+    return 'other';
+};
+
+const diagnosticSize = (value = 0) => {
+    const size = Number(value);
+    if (!size) return 'Size unavailable';
+    return size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const STANDARD_CATEGORIES = ['Functional', 'Negative', 'Edge', 'API', 'Non-Functional'];
@@ -90,21 +126,29 @@ const normalizeCategories = (rawCats) => {
     return result;
 };
 
-const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
+const RunReportView = ({ runId, onRerunTriggered }) => {
     const [report, setReport] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Interactive view state
-    const [expandedFailures, setExpandedFailures] = useState({});
     const [expandedCases, setExpandedCases] = useState({});
-    const [expandedStackTraces, setExpandedStackTraces] = useState({});
     const [caseSearch, setCaseSearch] = useState('');
     const [caseStatusFilter, setCaseStatusFilter] = useState('all');
     const [caseCategoryFilter, setCaseCategoryFilter] = useState('all');
-    const [previewImage, setPreviewImage] = useState(null);
     const [isRerunning, setIsRerunning] = useState(false);
     const [rerunStatus, setRerunStatus] = useState(null);
+    const [diagnosticArtifacts, setDiagnosticArtifacts] = useState([]);
+    const [isLoadingDiagnosticArtifacts, setIsLoadingDiagnosticArtifacts] = useState(true);
+    const [diagnosticArtifactError, setDiagnosticArtifactError] = useState('');
+    const [selectedFailureId, setSelectedFailureId] = useState('');
+    const [activeEvidenceTab, setActiveEvidenceTab] = useState('console');
+    const [selectedDiagnosticArtifact, setSelectedDiagnosticArtifact] = useState(null);
+    const [diagnosticBlobUrl, setDiagnosticBlobUrl] = useState('');
+    const [diagnosticText, setDiagnosticText] = useState('');
+    const [diagnosticPreviewError, setDiagnosticPreviewError] = useState('');
+    const [isLoadingDiagnosticPreview, setIsLoadingDiagnosticPreview] = useState(false);
+    const [diagnosticNotice, setDiagnosticNotice] = useState('');
 
     const loadReport = useCallback(async () => {
         setIsLoading(true);
@@ -127,16 +171,46 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
         loadReport();
     }, [loadReport]);
 
-    const toggleFailureExpand = (id) => {
-        setExpandedFailures(prev => ({ ...prev, [id]: !prev[id] }));
-    };
+    useEffect(() => {
+        let current = true;
+        setIsLoadingDiagnosticArtifacts(true);
+        executionService.listRunArtifacts(runId).then(result => {
+            if (current && result?.success) setDiagnosticArtifacts(result.data || []);
+            else if (current) setDiagnosticArtifactError(result?.message || 'Evidence could not be loaded.');
+        }).catch(err => { if (current) setDiagnosticArtifactError(err.message || 'Evidence could not be loaded.'); })
+            .finally(() => { if (current) setIsLoadingDiagnosticArtifacts(false); });
+        return () => { current = false; };
+    }, [runId]);
+
+    useEffect(() => {
+        if (!selectedDiagnosticArtifact) return undefined;
+        if (diagnosticArtifactKind(selectedDiagnosticArtifact) === 'trace') {
+            setIsLoadingDiagnosticPreview(false);
+            setDiagnosticBlobUrl('');
+            setDiagnosticText('');
+            setDiagnosticPreviewError('');
+            return undefined;
+        }
+        let current = true;
+        let objectUrl;
+        setIsLoadingDiagnosticPreview(true);
+        setDiagnosticPreviewError('');
+        setDiagnosticBlobUrl('');
+        setDiagnosticText('');
+        executionService.getArtifactFile(runId, selectedDiagnosticArtifact.id).then(async blob => {
+            objectUrl = URL.createObjectURL(blob);
+            const text = diagnosticArtifactKind(selectedDiagnosticArtifact) === 'console' ? await blob.text() : '';
+            if (current) {
+                setDiagnosticBlobUrl(objectUrl);
+                setDiagnosticText(text);
+            } else URL.revokeObjectURL(objectUrl);
+        }).catch(err => { if (current) setDiagnosticPreviewError(err.status === 404 ? 'This evidence file is missing or expired.' : err.message || 'This evidence file could not be loaded.'); })
+            .finally(() => { if (current) setIsLoadingDiagnosticPreview(false); });
+        return () => { current = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+    }, [runId, selectedDiagnosticArtifact]);
 
     const toggleCaseExpand = (id) => {
         setExpandedCases(prev => ({ ...prev, [id]: !prev[id] }));
-    };
-
-    const toggleStackTrace = (id) => {
-        setExpandedStackTraces(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
     const handleRerun = async (scope) => {
@@ -159,6 +233,52 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
         } finally {
             setIsRerunning(false);
         }
+    };
+
+    const handleRerunFailure = async (failure) => {
+        if (!failure?.runCaseId) return;
+        setIsRerunning(true);
+        setRerunStatus(null);
+        try {
+            const result = await executionService.rerun({ runId, scope: 'selected', caseIds: [failure.runCaseId] });
+            if (!result.success) throw new Error(result.message || 'Rerun could not be started.');
+            const count = result.data?.rerunCasesCount || result.data?.rerunCount || 0;
+            setRerunStatus(`Rerun queued for ${count} test case${count === 1 ? '' : 's'}.`);
+            onRerunTriggered?.(result.data);
+            window.setTimeout(loadReport, 1500);
+        } catch (err) {
+            setRerunStatus(err.message || 'Rerun could not be started.');
+        } finally {
+            setIsRerunning(false);
+        }
+    };
+
+    const downloadDiagnosticArtifact = async (artifact) => {
+        try {
+            const blob = await executionService.getArtifactFile(runId, artifact.id);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = artifact.name || 'execution-evidence';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            setDiagnosticNotice(err.status === 404 ? 'The evidence file is missing or expired.' : err.message || 'Evidence download failed.');
+            window.setTimeout(() => setDiagnosticNotice(''), 3000);
+        }
+    };
+
+    const copyDiagnosticText = async (text, message) => {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            setDiagnosticNotice(message);
+        } catch {
+            setDiagnosticNotice('Clipboard access is unavailable in this browser.');
+        }
+        window.setTimeout(() => setDiagnosticNotice(''), 2200);
     };
 
     const handleExport = async (format) => {
@@ -195,8 +315,16 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const method = report.methodBreakdown || {};
     const rawCats = report.categoryBreakdown || report.categories || [];
     const failures = report.failureInvestigations || report.failures || [];
+    const diagnosticSummary = report.diagnosticsSummary || {};
     const coverage = report.coverage || report.requirementCoverage || {};
     const allCases = report.cases || [];
+    const selectedFailure = failures.find(item => (item.runCaseId || item.testCaseId) === selectedFailureId) || failures[0] || null;
+    const selectedFailureCase = selectedFailure && allCases.find(item => item.id === selectedFailure.runCaseId || item.testCaseId === selectedFailure.testCaseId);
+    const selectedFailureArtifacts = selectedFailure
+        ? diagnosticArtifacts.filter(item => !item.runCaseId || item.runCaseId === selectedFailure.runCaseId)
+        : [];
+    const visibleDiagnosticArtifacts = selectedFailureArtifacts.filter(item => diagnosticArtifactKind(item) === activeEvidenceTab);
+    const warningCount = diagnosticSummary.warnings ?? null;
 
     // Safely extract method breakdowns
     const autoObj = (typeof method.automated === 'object' && method.automated !== null)
@@ -467,7 +595,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
 
                     <div className="er-spec-item">
                         <span className="er-spec-label">Triggered By</span>
-                        <span className="er-spec-value">{meta.assignedTo || meta.createdBy || 'QA Automation Engineer'}</span>
+                        <span className="er-spec-value">{formatUserLabel(meta.assignedTo || meta.createdBy)}</span>
                         <span className="er-spec-sub">Workspace ID: {String(meta.workspaceId || 'default').slice(-8)}</span>
                     </div>
                 </div>
@@ -636,14 +764,14 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                                             <div className="er-detail-block">
                                                                 <span className="er-detail-label">Expected Result</span>
                                                                 <div className="er-detail-text" style={{ color: 'var(--er-jade)' }}>
-                                                                    {c.expectedResult || c.caseSnapshot?.expectedResult || 'System should verify criteria and complete flow.'}
+                                                                    {formatDisplayValue(c.expectedResult || c.caseSnapshot?.expectedResult, 'System should verify criteria and complete flow.')}
                                                                 </div>
                                                             </div>
 
                                                             <div className="er-detail-block">
                                                                 <span className="er-detail-label">Actual Result & Observations</span>
                                                                 <div className="er-detail-text">
-                                                                    {c.actualResult || 'No deviations reported.'}
+                                                                    {formatDisplayValue(c.actualResult, 'No deviations reported.')}
                                                                 </div>
                                                             </div>
 
@@ -651,7 +779,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                                                 <div className="er-detail-block">
                                                                     <span className="er-detail-label">Execution Notes</span>
                                                                     <div className="er-detail-text" style={{ fontStyle: 'italic', color: 'var(--er-text-muted)' }}>
-                                                                        {c.notes}
+                                                                        {formatDisplayValue(c.notes)}
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -675,103 +803,125 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                 </div>
             </section>
 
-            {/* ─── 6. FAILURE INVESTIGATION ─── */}
-            <section className="er-section">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 className="er-section-title">Failure Investigation ({failures.length})</h3>
-                    {failures.length > 0 && (
-                        <span style={{ fontSize: '0.74rem', color: 'var(--er-fail)', fontFamily: 'var(--er-mono-font)' }}>
-                            {failures.length} Assertion Failure(s) Recorded
-                        </span>
-                    )}
+            {/* ─── 6. FAILURE DIAGNOSTICS ─── */}
+            <section className="er-section diagnostics-workspace">
+                <div className="diagnostics-heading">
+                    <div>
+                        <h3 className="er-section-title">Diagnostics</h3>
+                        <p>Recorded failures, attempts and execution evidence for this run.</p>
+                    </div>
+                </div>
+
+                <div className="diagnostics-overview" aria-label="Diagnostics summary">
+                    <span><i className="fail" />Failures <strong>{diagnosticSummary.failures ?? failures.length}</strong></span>
+                    <span><i className="error" />Errors <strong>{diagnosticSummary.errors ?? allCases.filter(item => item.status === 'infrastructure_error').length}</strong></span>
+                    <span><i className="timeout" />Timeouts <strong>{diagnosticSummary.timeouts ?? allCases.filter(item => item.status === 'timed_out').length}</strong></span>
+                    <span><i className="flaky" />Flaky tests <strong>{diagnosticSummary.flaky ?? allCases.filter(item => {
+                        const outcomes = (item.attempts || []).map(attempt => attempt.status);
+                        return outcomes.includes('passed') && outcomes.some(status => ['failed', 'timed_out', 'infrastructure_error'].includes(status));
+                    }).length}</strong></span>
+                    <span title={warningCount === null ? 'No warning count is available from stored execution logs' : ''}><i className="warning" />Warnings <strong>{warningCount === null ? '—' : warningCount}</strong></span>
                 </div>
 
                 {failures.length === 0 ? (
-                    <div className="er-empty-failures">
-                        <Check size={16} />
-                        <span>Zero execution failures recorded. All executed test assertions passed within specified parameters.</span>
-                    </div>
+                    <div className="diagnostics-empty">No failures to investigate.</div>
                 ) : (
-                    <div className="er-failures-list">
-                        {failures.map((f, idx) => {
-                            const fId = f.runCaseId || f.testCaseId || idx;
-                            const isTraceOpen = Boolean(expandedStackTraces[fId]);
-                            const screenshotUrl = f.screenshotArtifact?.url || f.screenshotUrl;
+                    <div className="diagnostics-layout">
+                        <nav className="diagnostics-failure-list" aria-label="Failed tests">
+                            <div className="diagnostics-list-label">Failures <span>{failures.length}</span></div>
+                            {failures.map((failure, index) => {
+                                const id = failure.runCaseId || failure.testCaseId || index;
+                                const status = failure.status || 'failed';
+                                return <button type="button" key={id} className={selectedFailure === failure ? 'active' : ''} onClick={() => { setSelectedFailureId(id); setSelectedDiagnosticArtifact(null); }}>
+                                    <span className={`diagnostics-status-dot ${status}`} />
+                                    <span className="diagnostics-failure-name"><strong>{failure.testCaseId}</strong><span>{failure.title}</span></span>
+                                    <span className="diagnostics-failure-time">{failure.failedAt ? formatTimestamp(failure.failedAt) : '—'}</span>
+                                </button>;
+                            })}
+                        </nav>
 
-                            return (
-                                <div key={fId} className="er-failure-card">
-                                    <div className="er-failure-header">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                            <span style={{ fontFamily: 'var(--er-mono-font)', color: 'var(--er-fail)', fontSize: '0.82rem', fontWeight: 600 }}>
-                                                {f.testCaseId}
-                                            </span>
-                                            <h4 className="er-failure-title">{f.title}</h4>
-                                        </div>
-                                        <span style={{ fontSize: '0.74rem', color: 'var(--er-text-dim)' }}>
-                                            Failed at: {formatTimestamp(f.failedAt)} • {f.durationMs ? formatDuration(f.durationMs) : '0s'}
-                                        </span>
-                                    </div>
-
-                                    {/* Error Message */}
-                                    {f.errorMessage && (
-                                        <div>
-                                            <span className="er-detail-label" style={{ marginBottom: '4px', display: 'block' }}>Error Message</span>
-                                            <div className="er-error-box">{f.errorMessage}</div>
-                                        </div>
-                                    )}
-
-                                    {/* Expected vs Actual */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                                        <div>
-                                            <span className="er-detail-label">Expected Result</span>
-                                            <div style={{ color: 'var(--er-jade)', fontSize: '0.82rem', marginTop: '2px' }}>
-                                                {f.expectedResult || 'Expected scenario to complete successfully.'}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span className="er-detail-label">Actual Observation</span>
-                                            <div style={{ color: 'var(--er-fail)', fontSize: '0.82rem', marginTop: '2px' }}>
-                                                {f.actualResult || f.errorMessage || 'Assertion mismatch occurred.'}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Stack Trace Collapsible */}
-                                    {f.stackTrace && (
-                                        <div>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleStackTrace(fId)}
-                                                className="er-btn"
-                                                style={{ fontSize: '0.74rem', padding: '0.3rem 0.6rem', marginBottom: '0.5rem' }}
-                                            >
-                                                {isTraceOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                                <span>{isTraceOpen ? 'Hide Stack Trace' : 'View Stack Trace'}</span>
-                                            </button>
-                                            {isTraceOpen && (
-                                                <pre className="er-stack-trace">{f.stackTrace}</pre>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Screenshot Artifact Preview */}
-                                    {screenshotUrl && (
-                                        <div>
-                                            <span className="er-detail-label" style={{ marginBottom: '4px', display: 'block' }}>Screenshot Artifact</span>
-                                            <img
-                                                src={screenshotUrl}
-                                                alt={`Failure artifact for ${f.testCaseId}`}
-                                                className="er-screenshot-thumb"
-                                                onClick={() => setPreviewImage(screenshotUrl)}
-                                                title="Click to expand full resolution image"
-                                            />
-                                        </div>
-                                    )}
+                        {selectedFailure && <div className="diagnostics-detail">
+                            <header className="diagnostics-case-heading">
+                                <div><span>{selectedFailure.testCaseId}</span><h4>{selectedFailure.title}</h4></div>
+                                <div className="diagnostics-case-actions">
+                                    {selectedFailure.errorMessage && <button type="button" className="er-btn" onClick={() => copyDiagnosticText(selectedFailure.errorMessage, 'Error copied')}><Copy size={13} />Copy error</button>}
+                                    {selectedFailure.runCaseId && <button type="button" className="er-btn" disabled={isRerunning} onClick={() => handleRerunFailure(selectedFailure)}><RefreshCw size={13} />{isRerunning ? 'Rerunning…' : 'Rerun failed test'}</button>}
                                 </div>
-                            );
-                        })}
+                            </header>
+
+                            {rerunStatus && <div className="diagnostics-notice" role="status">{rerunStatus}</div>}
+                            {selectedFailure.errorMessage && <div className="diagnostics-error-message"><div className="diagnostics-section-label">Error message</div><p>{formatDisplayValue(selectedFailure.errorMessage)}</p></div>}
+
+                            <div className="diagnostics-result-grid">
+                                <div><span className="diagnostics-section-label">Failed step</span><p>{formatDisplayValue(selectedFailure.failedStep, 'Step detail was not recorded.')}</p></div>
+                                <div><span className="diagnostics-section-label">Expected result</span><p>{formatDisplayValue(selectedFailure.expectedResult, 'Expected result was not recorded.')}</p></div>
+                                <div><span className="diagnostics-section-label">Actual result</span><p>{formatDisplayValue(selectedFailure.actualResult, 'Actual result was not recorded.')}</p></div>
+                            </div>
+
+                            <div className="diagnostics-context-line">
+                                <span>Environment <strong>{formatDisplayValue(env.name && env.name !== 'Default Environment' ? env.name : 'Not recorded')}</strong></span>
+                                <span>Target <strong>{formatDisplayValue(env.baseUrl && env.baseUrl !== 'N/A' ? env.baseUrl : 'Not recorded')}</strong></span>
+                                <span>Browser <strong>{formatDisplayValue(selectedFailure.browserInfo, 'Not recorded')}</strong></span>
+                                <span>Duration <strong>{selectedFailure.durationMs ? formatDuration(selectedFailure.durationMs) : 'Not recorded'}</strong></span>
+                            </div>
+
+                            <section className="diagnostics-subsection">
+                                <div className="diagnostics-subheading"><h5>Failure timeline</h5><span>Attempt and evidence events recorded by this run</span></div>
+                                <ol className="diagnostics-timeline">
+                                    {[...(selectedFailureCase?.attempts || []).map(attempt => ({
+                                        id: `attempt-${attempt.id || attempt.attemptNumber}`,
+                                        at: attempt.executedAt,
+                                        label: `Attempt ${attempt.attemptNumber || ''} recorded`.trim(),
+                                        detail: attempt.status || 'Status unavailable',
+                                        duration: attempt.durationMs
+                                    })), ...diagnosticArtifacts.filter(item => item.runCaseId === selectedFailure.runCaseId).map(item => ({
+                                        id: `artifact-${item.id}`, at: item.createdAt,
+                                        label: `${item.artifactType || 'Evidence'} captured`, detail: item.name
+                                    }))].filter(event => event.at).sort((a, b) => new Date(a.at) - new Date(b.at)).map(event => <li key={event.id}>
+                                        <span className="diagnostics-timeline-marker" />
+                                        <div><strong>{event.label}</strong><span>{event.detail}{event.duration ? ` · ${formatDuration(event.duration)}` : ''}</span></div>
+                                        <time>{formatTimestamp(event.at)}</time>
+                                    </li>)}
+                                </ol>
+                                <p className="diagnostics-timeline-note">Per-step browser initialization, actions and assertions are not available in the stored execution history.</p>
+                            </section>
+
+                            {selectedFailure.stackTrace && <section className="diagnostics-subsection">
+                                <div className="diagnostics-subheading"><h5>Stack trace</h5><button type="button" className="er-btn" onClick={() => copyDiagnosticText(selectedFailure.stackTrace, 'Stack trace copied')}><Copy size={13} />Copy trace</button></div>
+                                <pre className="diagnostics-stack-trace">{selectedFailure.stackTrace}</pre>
+                            </section>}
+
+                            <section className="diagnostics-subsection diagnostics-evidence">
+                                <div className="diagnostics-subheading"><h5>Technical evidence</h5></div>
+                                <nav className="diagnostics-evidence-tabs" aria-label="Technical evidence type">
+                                    {[
+                                        ['console', <Terminal size={13} />, 'Console logs'],
+                                        ['network', <Network size={13} />, 'Network requests'],
+                                        ['trace', <FileText size={13} />, 'Playwright trace'],
+                                        ['screenshots', <Camera size={13} />, 'Screenshots'],
+                                        ['video', <Video size={13} />, 'Video recordings']
+                                    ].map(([key, icon, label]) => <button type="button" key={key} className={activeEvidenceTab === key ? 'active' : ''} onClick={() => { setActiveEvidenceTab(key); setSelectedDiagnosticArtifact(null); }}>{icon}{label}</button>)}
+                                </nav>
+
+                                {activeEvidenceTab === 'network' ? <div className="diagnostics-evidence-empty">Network request capture is not available for this execution.</div> : isLoadingDiagnosticArtifacts ? <div className="diagnostics-evidence-empty">Loading execution evidence…</div> : diagnosticArtifactError ? <div className="diagnostics-evidence-empty diagnostics-evidence-error">{diagnosticArtifactError}</div> : visibleDiagnosticArtifacts.length === 0 ? <div className="diagnostics-evidence-empty">No {activeEvidenceTab === 'console' ? 'console logs' : activeEvidenceTab === 'trace' ? 'Playwright traces' : activeEvidenceTab === 'screenshots' ? 'screenshots' : 'video recordings'} were recorded for this test.</div> : (
+                                    <div className="diagnostics-evidence-content">
+                                        <div className="diagnostics-artifact-list">
+                                            {visibleDiagnosticArtifacts.map(artifact => <div key={artifact.id} className={`diagnostics-artifact-row ${selectedDiagnosticArtifact?.id === artifact.id ? 'active' : ''}`}>
+                                                <button type="button" onClick={() => setSelectedDiagnosticArtifact(artifact)}><span>{artifact.name}</span><small>{diagnosticSize(artifact.sizeBytes)} · {artifact.createdAt ? formatTimestamp(artifact.createdAt) : 'Timestamp unavailable'}</small></button>
+                                                <button type="button" className="diagnostics-icon-button" aria-label={`Download ${artifact.name}`} title="Download" onClick={() => downloadDiagnosticArtifact(artifact)}><Download size={14} /></button>
+                                            </div>)}
+                                        </div>
+                                        {selectedDiagnosticArtifact && <div className="diagnostics-artifact-preview">
+                                            {isLoadingDiagnosticPreview ? <span>Loading evidence…</span> : diagnosticPreviewError ? <span className="diagnostics-evidence-error">{diagnosticPreviewError}</span> : diagnosticArtifactKind(selectedDiagnosticArtifact) === 'trace' ? <span>Trace viewer is not integrated. Download this trace to inspect it with Playwright.</span> : diagnosticBlobUrl && diagnosticArtifactKind(selectedDiagnosticArtifact) === 'screenshots' ? <img src={diagnosticBlobUrl} alt={selectedDiagnosticArtifact.name} /> : diagnosticBlobUrl && diagnosticArtifactKind(selectedDiagnosticArtifact) === 'video' ? <video src={diagnosticBlobUrl} controls preload="metadata">Video playback is unavailable in this browser.</video> : diagnosticBlobUrl && diagnosticArtifactKind(selectedDiagnosticArtifact) === 'console' ? <pre>{diagnosticText}</pre> : <span>Preview is not supported for this file type.</span>}
+                                            {diagnosticArtifactKind(selectedDiagnosticArtifact) === 'console' && diagnosticBlobUrl && <button type="button" className="er-btn" onClick={() => copyDiagnosticText(diagnosticText, 'Log contents copied')}><Copy size={13} />Copy logs</button>}
+                                        </div>}
+                                    </div>
+                                )}
+                            </section>
+                        </div>}
                     </div>
                 )}
+                {diagnosticNotice && <div className="diagnostics-toast" role="status">{diagnosticNotice}</div>}
             </section>
 
             {/* ─── 7. REQUIREMENT COVERAGE ─── */}
@@ -904,31 +1054,6 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                 </div>
             </section>
 
-            {/* Screenshot Modal Lightbox */}
-            {previewImage && (
-                <div
-                    onClick={() => setPreviewImage(null)}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.88)',
-                        zIndex: 9999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '2rem'
-                    }}
-                >
-                    <img
-                        src={previewImage}
-                        alt="Zoomed failure artifact"
-                        style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: '6px', border: '1px solid var(--er-border)' }}
-                    />
-                </div>
-            )}
         </div>
     );
 };

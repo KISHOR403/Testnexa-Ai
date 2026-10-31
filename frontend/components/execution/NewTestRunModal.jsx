@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Play, X, Layers, CheckSquare, Square, Shield,
@@ -10,12 +10,11 @@ import { workspaceService } from '../../services/workspaceService';
 import Modal from '../ui/Modal';
 import '../../styles/app/WorkspaceDesignSystem.css';
 
-const NewTestRunModal = ({ isOpen, onClose, initialSuite = null }) => {
+const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds = [] }) => {
     const navigate = useNavigate();
 
     const [suites, setSuites] = useState([]);
     const [selectedSuiteId, setSelectedSuiteId] = useState(initialSuite?.id || '');
-    const [selectedSuite, setSelectedSuite] = useState(initialSuite || null);
     const [availableCases, setAvailableCases] = useState([]);
     const [selectedCaseIds, setSelectedCaseIds] = useState(new Set());
 
@@ -27,7 +26,6 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null }) => {
     const [members, setMembers] = useState([]);
     const [selectedAssignee, setSelectedAssignee] = useState('');
 
-    const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
@@ -37,7 +35,6 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null }) => {
 
         let isCurrent = true;
         const loadPrerequisites = async () => {
-            setIsLoading(true);
             setError(null);
             try {
                 const [suiteRes, envRes, memberRes] = await Promise.allSettled([
@@ -69,8 +66,6 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null }) => {
                 }
             } catch (err) {
                 console.error('Failed to load run prerequisites:', err);
-            } finally {
-                if (isCurrent) setIsLoading(false);
             }
         };
 
@@ -93,7 +88,6 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null }) => {
 
                 const res = await sessionService.get(selectedSuiteId);
                 if (isCurrent && res?.success && res?.data) {
-                    setSelectedSuite(res.data);
                     processSuiteCases(res.data);
                 }
             } catch (err) {
@@ -128,7 +122,9 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null }) => {
         }));
 
         setAvailableCases(normalized);
-        setSelectedCaseIds(new Set(normalized.map(c => c.id)));
+        const requestedIds = new Set((initialCaseIds || []).map(String));
+        const requestedSelection = normalized.filter(testCase => requestedIds.has(testCase.id)).map(testCase => testCase.id);
+        setSelectedCaseIds(new Set(requestedSelection.length ? requestedSelection : normalized.map(c => c.id)));
 
         // Default run name
         const title = suiteObj.title || suiteObj.feature || 'Test Suite';

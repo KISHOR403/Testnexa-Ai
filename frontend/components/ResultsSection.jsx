@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
     Copy,
     Save,
@@ -260,7 +260,7 @@ const formatGherkin = (tc) => {
 };
 
 // ─── Main Results Section Content ───
-const ResultsSectionContent = ({ result, onSave, onRefineRegenerate, isLatest = true, suiteId = null, accessRole = null }) => {
+const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, suiteId = null, accessRole = null, initialTestCaseId = null, initialExecute = false }) => {
 
     const resolvedSuiteId = suiteId || result?.id || result?._id || result?.sessionId || result?.suiteId;
     const effectiveRole = accessRole || result?.accessRole || (result?.isShared ? 'reviewer' : 'owner');
@@ -282,6 +282,28 @@ const ResultsSectionContent = ({ result, onSave, onRefineRegenerate, isLatest = 
 
     // ─── Mobile detail drill-down ───
     const [mobileShowDetail, setMobileShowDetail] = useState(false);
+    const initialExecuteHandled = useRef(false);
+
+    useEffect(() => {
+        if (!initialTestCaseId) return;
+        const testCase = testCases.find(item => String(item.id) === String(initialTestCaseId));
+        if (!testCase) return;
+        setSelectedTcId(testCase.id);
+        setActiveTab('tests');
+        setIsDetailOpen(true);
+        setMobileShowDetail(true);
+    }, [initialTestCaseId, testCases]);
+
+    useEffect(() => {
+        if (!initialExecute || !initialTestCaseId || initialExecuteHandled.current) return;
+        const testCase = testCases.find(item => String(item.id) === String(initialTestCaseId));
+        if (!testCase) return;
+        initialExecuteHandled.current = true;
+        setSelectedTcId(testCase.id);
+        setActiveTab('tests');
+        setIsDetailOpen(true);
+        setShowRunModal(true);
+    }, [initialExecute, initialTestCaseId, testCases]);
 
     // ─── Inline editing in detail panel ───
     const [isInlineEditing, setIsInlineEditing] = useState(false);
@@ -565,8 +587,6 @@ const ResultsSectionContent = ({ result, onSave, onRefineRegenerate, isLatest = 
             (tc.severity || '').toLowerCase() === 'critical'
         ) || null;
     }, [testCases]);
-
-    const hasInsights = uncoveredCount > 0 || securityWarningTc !== null;
 
     // Selected Test Case Index for prev / next navigation
     const selectedTcIndex = useMemo(() => {
@@ -2100,6 +2120,7 @@ const ResultsSectionContent = ({ result, onSave, onRefineRegenerate, isLatest = 
                     isOpen={showRunModal}
                     onClose={() => setShowRunModal(false)}
                     initialSuite={result}
+                    initialCaseIds={initialExecute && initialTestCaseId ? [initialTestCaseId] : []}
                 />
             )}
 

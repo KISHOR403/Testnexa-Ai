@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useParams, useNavigate, useLocation, NavLink } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, useLocation, NavLink } from 'react-router-dom';
 import {
     ArrowLeft, Play, RefreshCw, CheckCircle2, XCircle,
     AlertTriangle, MinusCircle, Clock, Shield, User, Bot,
-    Terminal, FileText, Camera, Upload, Trash2, ExternalLink,
-    ChevronRight, ChevronDown, Check, AlertCircle, StopCircle, Eye,
+    Terminal, FileText, Camera, Upload, Trash2,
+    ChevronRight, ChevronDown, Check, AlertCircle, StopCircle, Eye, Download, Copy,
     Wand2, RotateCcw, Edit3, Code, Layers, GitCompare, Search
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
@@ -14,6 +14,7 @@ import RunReportView from '../../components/execution/RunReportView';
 import RunComparisonView from '../../components/execution/RunComparisonView';
 import '../../styles/app/WorkspaceDesignSystem.css';
 import '../../styles/app/RunWorkspace.css';
+import '../../styles/app/ArtifactEvidence.css';
 
 const SCRIPT_TEMPLATES = {
     smoke: `async (page, expect) => {
@@ -118,16 +119,66 @@ const CaseMethodBadge = ({ c }) => {
     return <span className="qa-method-pill unmapped">Unmapped</span>;
 };
 
+const getEvidenceKind = (artifact) => {
+    const type = String(artifact.artifactType || '').toLowerCase();
+    const mime = String(artifact.mimeType || '').toLowerCase();
+    const name = String(artifact.name || '').toLowerCase();
+    if (type.includes('trace') || name.endsWith('.zip') && (artifact.metadata?.framework === 'playwright' || artifact.metadata?.trace)) return 'trace';
+    if (type.includes('video') || mime.startsWith('video/') || /\.(webm|mp4|mov)$/.test(name)) return 'video';
+    if (type.includes('log') || mime.startsWith('text/') || /\.(log|txt|json)$/.test(name)) return 'log';
+    if (type.includes('manual') || type.includes('attachment')) return 'manual';
+    if (type.includes('screenshot') || mime.startsWith('image/')) return 'screenshot';
+    return 'manual';
+};
+
+const formatBytes = (bytes = 0) => {
+    const size = Number(bytes);
+    if (!size) return 'Size unavailable';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const safeFormatValue = (val, fallback = '') => {
+    if (val === null || val === undefined) return fallback;
+    if (Array.isArray(val)) {
+        return val.map(v => typeof v === 'object' ? (v.description || v.text || v.step || v.action || JSON.stringify(v)) : String(v)).join(', ');
+    }
+    if (typeof val === 'object') {
+        return val.description || val.text || val.name || JSON.stringify(val);
+    }
+    return String(val);
+};
+
+const EvidenceThumbnail = ({ runId, artifact, onSelect }) => {
+    const [src, setSrc] = useState('');
+    useEffect(() => {
+        let current = true;
+        let objectUrl;
+        executionService.getArtifactFile(runId, artifact.id).then(blob => {
+            objectUrl = URL.createObjectURL(blob);
+            if (current) setSrc(objectUrl);
+            else URL.revokeObjectURL(objectUrl);
+        }).catch(() => {});
+        return () => { current = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+    }, [runId, artifact.id]);
+    return src ? (
+        <button type="button" className="evidence-thumb" onClick={onSelect} aria-label={`Preview ${artifact.name}`}>
+            {getEvidenceKind(artifact) === 'video' ? <video src={src} muted preload="metadata" /> : <img src={src} alt="" loading="lazy" />}
+        </button>
+    ) : <button type="button" className="evidence-thumb evidence-thumb-pending" onClick={onSelect} aria-label={`Load preview for ${artifact.name}`}><span>Preview</span></button>;
+};
+
 const RunExecutionPage = () => {
     const { runId } = useParams();
-    const navigate = useNavigate();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const initialTab = searchParams.get('tab') || 'cases';
+    const initialCaseId = searchParams.get('caseId');
 
     const [run, setRun] = useState(null);
     const [cases, setCases] = useState([]);
-    const [activeCaseId, setActiveCaseId] = useState(null);
+    const [activeCaseId, setActiveCaseId] = useState(initialCaseId);
     const [activeCaseDetails, setActiveCaseDetails] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -151,7 +202,22 @@ const RunExecutionPage = () => {
     const [isTriggeringAuto, setIsTriggeringAuto] = useState(false);
     const [activeTab, setActiveTab] = useState(initialTab); // 'cases' | 'report' | 'compare' | 'artifacts'
     const [artifacts, setArtifacts] = useState([]);
+    const [isArtifactsLoading, setIsArtifactsLoading] = useState(true);
+    const [artifactsError, setArtifactsError] = useState('');
+    const [evidenceSuiteName, setEvidenceSuiteName] = useState('');
     const [previewArtifact, setPreviewArtifact] = useState(null);
+    const [previewBlobUrl, setPreviewBlobUrl] = useState('');
+    const [previewText, setPreviewText] = useState('');
+    const [previewError, setPreviewError] = useState('');
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+    const [evidenceKind, setEvidenceKind] = useState('all');
+    const [evidenceSearch, setEvidenceSearch] = useState('');
+    const [evidenceCase, setEvidenceCase] = useState('all');
+    const [evidenceStatus, setEvidenceStatus] = useState('all');
+    const [evidenceFrom, setEvidenceFrom] = useState('');
+    const [evidenceTo, setEvidenceTo] = useState('');
+    const [evidenceMime, setEvidenceMime] = useState('all');
+    const [copyMessage, setCopyMessage] = useState('');
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
     // Playwright Mapping & Configuration state
@@ -207,14 +273,17 @@ const RunExecutionPage = () => {
                 setActiveJob(jobRes.data);
             }
 
-            // Load artifacts
-            const artRes = await executionService.uploadArtifact ? (
-                fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/runs/${runId}/artifacts`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('testnexa_token')}` }
-                }).then(r => r.json()).catch(() => null)
-            ) : null;
-            if (artRes?.success) {
-                setArtifacts(artRes.data || []);
+            // Artifacts are loaded only through the authenticated, workspace-checked execution service.
+            setIsArtifactsLoading(true);
+            setArtifactsError('');
+            try {
+                const artRes = await executionService.listRunArtifacts(runId);
+                if (artRes?.success) setArtifacts(artRes.data || []);
+                else setArtifactsError(artRes?.message || 'Evidence could not be loaded.');
+            } catch (artifactError) {
+                setArtifactsError(artifactError.message || 'Evidence could not be loaded.');
+            } finally {
+                setIsArtifactsLoading(false);
             }
         } catch (err) {
             console.error('Failed to load run details:', err);
@@ -226,6 +295,39 @@ const RunExecutionPage = () => {
     useEffect(() => {
         loadRunData();
     }, [loadRunData]);
+
+    useEffect(() => {
+        if (activeTab !== 'artifacts' || !runId) return undefined;
+        let current = true;
+        executionService.getRunReport(runId).then(result => {
+            if (current && result?.success) setEvidenceSuiteName(result.data?.identifiers?.suiteName || 'Independent Test Suite');
+        }).catch(() => { if (current) setEvidenceSuiteName(''); });
+        return () => { current = false; };
+    }, [activeTab, runId]);
+
+    useEffect(() => {
+        if (!previewArtifact) return undefined;
+        let isCurrent = true;
+        let objectUrl;
+        setIsPreviewLoading(true);
+        setPreviewError('');
+        setPreviewText('');
+        setPreviewBlobUrl('');
+        executionService.getArtifactFile(runId, previewArtifact.id).then(async blob => {
+            const kind = getEvidenceKind(previewArtifact);
+            if (kind === 'trace') return;
+            objectUrl = URL.createObjectURL(blob);
+            let text = '';
+            if (kind === 'log') text = await blob.text();
+            if (isCurrent) {
+                setPreviewBlobUrl(objectUrl);
+                setPreviewText(text);
+            } else URL.revokeObjectURL(objectUrl);
+        }).catch(error => {
+            if (isCurrent) setPreviewError(error.status === 404 ? 'This artifact is missing or has expired.' : error.message || 'This artifact could not be loaded.');
+        }).finally(() => { if (isCurrent) setIsPreviewLoading(false); });
+        return () => { isCurrent = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+    }, [runId, previewArtifact]);
 
     const handleSelectCase = (newCaseId) => {
         if (!newCaseId || newCaseId === activeCaseId) {
@@ -399,6 +501,46 @@ const RunExecutionPage = () => {
         }
     };
 
+    const downloadEvidence = async (artifact) => {
+        try {
+            const blob = await executionService.getArtifactFile(runId, artifact.id);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = artifact.name || 'test-evidence';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            setPreviewError(error.status === 404 ? 'This artifact is missing or has expired.' : error.message || 'Download failed.');
+            setPreviewArtifact(artifact);
+        }
+    };
+
+    const copyEvidenceReference = async (artifact) => {
+        const reference = `run:${runId}/artifact:${artifact.id}`;
+        try {
+            await navigator.clipboard.writeText(reference);
+            setCopyMessage('Artifact reference copied');
+            window.setTimeout(() => setCopyMessage(''), 1800);
+        } catch {
+            setCopyMessage('Clipboard access is unavailable in this browser');
+            window.setTimeout(() => setCopyMessage(''), 2400);
+        }
+    };
+
+    const copyLogContent = async () => {
+        try {
+            await navigator.clipboard.writeText(previewText);
+            setCopyMessage('Log contents copied');
+            window.setTimeout(() => setCopyMessage(''), 1800);
+        } catch {
+            setCopyMessage('Clipboard access is unavailable in this browser');
+            window.setTimeout(() => setCopyMessage(''), 2400);
+        }
+    };
+
     const filteredCases = useMemo(() => {
         return cases.filter(c => {
             const title = c.caseSnapshot?.title || '';
@@ -410,6 +552,23 @@ const RunExecutionPage = () => {
             return matchesSearch && matchesStatus && matchesMethod;
         });
     }, [cases, search, statusFilter, methodFilter]);
+
+    const evidenceById = useMemo(() => new Map(cases.map(item => [item.id, item])), [cases]);
+    const filteredArtifacts = useMemo(() => artifacts.filter(artifact => {
+        const kind = getEvidenceKind(artifact);
+        const linkedCase = evidenceById.get(artifact.runCaseId);
+        const query = evidenceSearch.trim().toLowerCase();
+        const created = artifact.createdAt ? new Date(artifact.createdAt) : null;
+        const mime = String(artifact.mimeType || '').toLowerCase();
+        const mimeGroup = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : mime.startsWith('text/') || mime.includes('json') ? 'text' : mime ? 'application' : 'other';
+        return (evidenceKind === 'all' || kind === evidenceKind) &&
+            (!query || `${artifact.name} ${linkedCase?.testCaseId || ''} ${linkedCase?.caseSnapshot?.title || ''}`.toLowerCase().includes(query)) &&
+            (evidenceCase === 'all' || artifact.runCaseId === evidenceCase) &&
+            (evidenceStatus === 'all' || linkedCase?.status === evidenceStatus) &&
+            (!evidenceFrom || created && created >= new Date(`${evidenceFrom}T00:00:00`)) &&
+            (!evidenceTo || created && created <= new Date(`${evidenceTo}T23:59:59.999`)) &&
+            (evidenceMime === 'all' || mimeGroup === evidenceMime);
+    }), [artifacts, evidenceById, evidenceKind, evidenceSearch, evidenceCase, evidenceStatus, evidenceFrom, evidenceTo, evidenceMime]);
 
     // Group filtered cases by Category (Functional, Negative, Edge, API, etc.)
     const groupedCases = useMemo(() => {
@@ -477,14 +636,6 @@ const RunExecutionPage = () => {
     }
 
     const sum = run.summary || {};
-    const totalCases = Number(sum.total ?? cases.length);
-    const passedCount = Number(sum.passed || 0);
-    const failedCount = Number(sum.failed || 0);
-    const blockedCount = Number(sum.blocked || 0);
-    const skippedCount = Number(sum.skipped || 0);
-    const notRunCount = Number(sum.not_run ?? Math.max(0, totalCases - passedCount - failedCount - blockedCount - skippedCount));
-    const completedCount = cases.filter(item => !['not_run', 'pending', 'queued', 'running', 'in_progress'].includes((item.status || '').toLowerCase())).length;
-    const progressPercent = totalCases > 0 ? Math.min(100, Math.round((completedCount / totalCases) * 100)) : 0;
     const activeCase = activeCaseDetails || cases.find(c => c.id === activeCaseId);
     const snapshot = activeCase?.caseSnapshot || {};
     const hasAutomation = Boolean(snapshot.automationMapping);
@@ -1029,74 +1180,58 @@ return (
                 />
             ) : activeTab === 'artifacts' ? (
                 /* TAB: ARTIFACTS & LOGS */
-                <div style={{
-                    padding: '1.25rem',
-                    background: 'var(--qa-surface)',
-                    border: '1px solid var(--qa-border)',
-                    borderRadius: '8px'
-                }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--qa-text)', marginTop: 0, marginBottom: '1rem' }}>
-                        Execution Artifacts, Screenshots & Evidence
-                    </h3>
-                    {artifacts.length === 0 ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--qa-text-dim)', fontSize: '0.88rem' }}>
-                            No artifacts recorded yet. Run Playwright automation or upload screenshot evidence during manual testing.
+                <section className="evidence-browser">
+                    <div className="evidence-heading">
+                        <div>
+                            <div className="evidence-breadcrumb"><NavLink to="/app/runs">Execution</NavLink><span>/</span><span>Artifacts &amp; Evidence</span></div>
+                            <h2>{evidenceSuiteName || run.suiteName || run.suite?.name || run.suite?.title || 'Test suite'} <span className="evidence-run-number">Run {run.runNumber || run.run_number || String(run.id).slice(0, 8)}</span></h2>
+                            <div className="evidence-run-meta"><StatusBadge status={run.status} /><span>{run.targetEnvironment?.name || 'Environment not specified'}</span><span>{artifacts.length} {artifacts.length === 1 ? 'artifact' : 'artifacts'}</span></div>
                         </div>
+                        {previewArtifact && <button type="button" className="evidence-download evidence-heading-download" onClick={() => downloadEvidence(previewArtifact)}><Download size={14} /> Download selected</button>}
+                    </div>
+
+                    <nav className="evidence-kind-tabs" aria-label="Evidence type">
+                        {[['all', 'All'], ['screenshot', 'Screenshots'], ['video', 'Videos'], ['log', 'Execution logs'], ['trace', 'Playwright traces'], ['manual', 'Manual attachments']].map(([value, label]) => (
+                            <button type="button" key={value} className={evidenceKind === value ? 'active' : ''} onClick={() => setEvidenceKind(value)}>{label}<span>{value === 'all' ? artifacts.length : artifacts.filter(a => getEvidenceKind(a) === value).length}</span></button>
+                        ))}
+                    </nav>
+
+                    <div className="evidence-filter-row">
+                        <label className="evidence-search"><Search size={15} /><input value={evidenceSearch} onChange={event => setEvidenceSearch(event.target.value)} placeholder="Search files or test cases" aria-label="Search evidence" /></label>
+                        <select value={evidenceCase} onChange={event => setEvidenceCase(event.target.value)} aria-label="Filter by test case"><option value="all">All test cases</option>{cases.map(item => <option key={item.id} value={item.id}>{item.testCaseId} · {item.caseSnapshot?.title || 'Untitled test'}</option>)}</select>
+                        <select value={evidenceStatus} onChange={event => setEvidenceStatus(event.target.value)} aria-label="Filter by execution status"><option value="all">All statuses</option>{[...new Set(cases.map(item => item.status).filter(Boolean))].map(status => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select>
+                        <label className="evidence-date-filter">From<input type="date" value={evidenceFrom} onChange={event => setEvidenceFrom(event.target.value)} aria-label="From date" /></label>
+                        <label className="evidence-date-filter">To<input type="date" value={evidenceTo} onChange={event => setEvidenceTo(event.target.value)} aria-label="To date" /></label>
+                        <select value={evidenceMime} onChange={event => setEvidenceMime(event.target.value)} aria-label="Filter by file type"><option value="all">All file types</option><option value="image">Images</option><option value="video">Video</option><option value="text">Text / JSON</option><option value="application">Application files</option><option value="other">Unknown type</option></select>
+                    </div>
+
+                    {isArtifactsLoading ? <div className="evidence-state"><span className="evidence-state-title">Loading evidence</span><span>Retrieving artifact records for this run…</span></div> : artifactsError ? (
+                        <div className="evidence-state evidence-state-error"><span className="evidence-state-title">Evidence could not be loaded</span><span>{artifactsError}</span><button type="button" onClick={loadRunData}>Try again</button></div>
+                    ) : artifacts.length === 0 ? (
+                        <div className="evidence-state"><span className="evidence-state-title">No evidence for this run</span><span>Evidence appears here when a manual or automated execution records an artifact.</span></div>
+                    ) : filteredArtifacts.length === 0 ? (
+                        <div className="evidence-state"><span className="evidence-state-title">No matching evidence</span><span>Adjust or clear the search and filters to see more files.</span><button type="button" onClick={() => { setEvidenceSearch(''); setEvidenceKind('all'); setEvidenceCase('all'); setEvidenceStatus('all'); setEvidenceFrom(''); setEvidenceTo(''); setEvidenceMime('all'); }}>Clear filters</button></div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {artifacts.map(art => (
-                                <div
-                                    key={art.id}
-                                    style={{
-                                        background: 'var(--qa-surface-elevated)',
-                                        border: '1px solid var(--qa-border)',
-                                        borderRadius: '6px',
-                                        padding: '0.85rem',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '0.5rem'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <span style={{
-                                            fontSize: '0.72rem',
-                                            textTransform: 'uppercase',
-                                            padding: '2px 6px',
-                                            borderRadius: '4px',
-                                            background: art.artifactType === 'screenshot' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(139, 175, 154, 0.15)',
-                                            color: art.artifactType === 'screenshot' ? '#38BDF8' : '#8BAF9A',
-                                            fontWeight: 600
-                                        }}>
-                                            {art.artifactType}
-                                        </span>
-                                        <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-muted)' }}>
-                                            {(art.sizeBytes / 1024).toFixed(1)} KB
-                                        </span>
-                                    </div>
-                                    <div style={{
-                                        fontSize: '0.84rem',
-                                        fontWeight: 500,
-                                        color: 'var(--qa-text)',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                    }}>
-                                        {art.name}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setPreviewArtifact(art)}
-                                        className="ws-btn-secondary"
-                                        style={{ height: '30px', fontSize: '0.76rem', justifyContent: 'center', marginTop: '0.25rem' }}
-                                    >
-                                        <Eye size={13} />
-                                        <span>Inspect Artifact</span>
+                        <div className="evidence-list" role="list">
+                            {filteredArtifacts.map(artifact => {
+                                const kind = getEvidenceKind(artifact);
+                                const linkedCase = evidenceById.get(artifact.runCaseId);
+                                const isSelected = previewArtifact?.id === artifact.id;
+                                return <article className={`evidence-row ${isSelected ? 'selected' : ''}`} key={artifact.id} role="listitem">
+                                    {kind === 'screenshot' || kind === 'video' ? <EvidenceThumbnail runId={runId} artifact={artifact} onSelect={() => setPreviewArtifact(artifact)} /> : <button type="button" className="evidence-file-mark" onClick={() => setPreviewArtifact(artifact)} aria-label={`Inspect ${artifact.name}`}>{kind === 'trace' ? 'TRACE' : kind === 'log' ? 'LOG' : 'FILE'}</button>}
+                                    <button type="button" className="evidence-row-main" onClick={() => setPreviewArtifact(artifact)}>
+                                        <span className="evidence-filename">{artifact.name}</span>
+                                            <span className="evidence-case-name">{linkedCase ? `${linkedCase.testCaseId} · ${linkedCase.caseSnapshot?.title || 'Untitled test'}` : 'Run-level artifact'}</span>
+                                        <span className="evidence-row-meta"><span>{kind === 'trace' ? 'Playwright trace' : kind === 'manual' ? 'Manual attachment' : kind === 'log' ? 'Execution log' : kind}</span><span>{formatBytes(artifact.sizeBytes)}</span><span>{artifact.createdAt ? new Date(artifact.createdAt).toLocaleString() : 'Timestamp unavailable'}</span>{artifact.metadata?.uploader && <span>Uploaded by {artifact.metadata.uploader}</span>}</span>
                                     </button>
-                                </div>
-                            ))}
+                                    {linkedCase ? <StatusBadge status={linkedCase.status} /> : <span className="evidence-no-status">No linked test</span>}
+                                    <button type="button" className="evidence-icon-action" onClick={() => downloadEvidence(artifact)} aria-label={`Download ${artifact.name}`} title="Download"><Download size={15} /></button>
+                                </article>;
+                            })}
                         </div>
                     )}
-                </div>
+                    {copyMessage && <div className="evidence-toast" role="status">{copyMessage}</div>}
+                </section>
             ) : (
                 /* ─── 4. MAIN WORKSPACE: TWO-PANEL MASTER-DETAIL LAYOUT ─── */
                 <div className="qa-master-detail-grid">
@@ -1357,12 +1492,12 @@ return (
                                     <div className="qa-preconditions-grid">
                                         <div className="qa-meta-box">
                                             <label>Preconditions & Context</label>
-                                            <p>{snapshot.preconditions || 'None specified'}</p>
+                                            <p>{safeFormatValue(snapshot.preconditions, 'None specified')}</p>
                                         </div>
                                         <div className="qa-meta-box">
                                             <label>Target Expected Result</label>
                                             <p style={{ color: 'var(--qa-jade)' }}>
-                                                {snapshot.expectedResult || 'Expected scenario outcome meets acceptance criteria.'}
+                                                {safeFormatValue(snapshot.expectedResult, 'Expected scenario outcome meets acceptance criteria.')}
                                             </p>
                                         </div>
                                     </div>
@@ -1382,9 +1517,9 @@ return (
                                                 <div key={idx} className="qa-step-item">
                                                     <span className="qa-step-num">{idx + 1}</span>
                                                     <div className="qa-step-body">
-                                                        <div>{typeof st === 'object' ? (st.action || st.step) : st}</div>
-                                                        {st.expected && (
-                                                            <span className="qa-step-expected">↳ Expected: {st.expected}</span>
+                                                        <div>{safeFormatValue(typeof st === 'object' ? (st.action || st.step || st.description || st.text) : st)}</div>
+                                                        {st && typeof st === 'object' && st.expected && (
+                                                            <span className="qa-step-expected">↳ Expected: {safeFormatValue(st.expected)}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1576,34 +1711,29 @@ return (
                 <Modal
                     isOpen={Boolean(previewArtifact)}
                     onClose={() => setPreviewArtifact(null)}
-                    title={`Artifact: ${previewArtifact.name}`}
+                    title={previewArtifact.name}
                     size="lg"
+                    id="evidence-preview-dialog"
                 >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {previewArtifact.artifactType === 'screenshot' ? (
-                            <img
-                                src={executionService.getArtifactUrl(runId, previewArtifact.id)}
-                                alt={previewArtifact.name}
-                                style={{ maxWidth: '100%', maxHeight: '500px', borderRadius: '6px', objectFit: 'contain' }}
-                            />
-                        ) : (
-                            <iframe
-                                src={executionService.getArtifactUrl(runId, previewArtifact.id)}
-                                title={previewArtifact.name}
-                                style={{ width: '100%', height: '350px', background: '#080909', border: '1px solid #292D2D', color: '#F2F3F3' }}
-                            />
-                        )}
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                            <a
-                                href={executionService.getArtifactUrl(runId, previewArtifact.id)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="ws-btn-secondary"
-                                style={{ height: '32px', fontSize: '0.78rem' }}
-                            >
-                                <ExternalLink size={13} />
-                                <span>Open Raw in New Tab</span>
-                            </a>
+                    <div className="evidence-inspector">
+                        <div className="evidence-preview-stage">
+                            {isPreviewLoading ? <div className="evidence-state">Loading artifact preview…</div> : previewError ? <div className="evidence-state evidence-state-error"><span className="evidence-state-title">Preview unavailable</span><span>{previewError}</span></div> : getEvidenceKind(previewArtifact) === 'trace' ? (
+                                <div className="evidence-state"><span className="evidence-state-title">Trace viewer unavailable</span><span>This stored Playwright trace can be downloaded and opened with a compatible Playwright trace viewer.</span></div>
+                            ) : previewBlobUrl && String(previewArtifact.mimeType || '').startsWith('image/') ? <img className="evidence-large-preview" src={previewBlobUrl} alt={previewArtifact.name} /> : previewBlobUrl && String(previewArtifact.mimeType || '').startsWith('video/') ? <video className="evidence-large-preview" src={previewBlobUrl} controls preload="metadata">Video playback is not supported by this browser.</video> : previewBlobUrl && getEvidenceKind(previewArtifact) === 'log' ? <pre className="evidence-log-preview">{previewText}</pre> : previewBlobUrl && previewArtifact.mimeType === 'application/pdf' ? <iframe className="evidence-pdf-preview" src={previewBlobUrl} title={`Preview ${previewArtifact.name}`} /> : previewBlobUrl ? <div className="evidence-state"><span className="evidence-state-title">Preview not supported</span><span>This file type can still be downloaded for inspection.</span></div> : null}
+                        </div>
+                        <dl className="evidence-inspector-meta">
+                            <div><dt>File type</dt><dd>{previewArtifact.mimeType || previewArtifact.artifactType || 'Unknown'}</dd></div>
+                            <div><dt>File size</dt><dd>{formatBytes(previewArtifact.sizeBytes)}</dd></div>
+                            <div><dt>Test case</dt><dd>{evidenceById.get(previewArtifact.runCaseId)?.testCaseId || 'Run-level artifact'}</dd></div>
+                            <div><dt>Run ID</dt><dd>{runId}</dd></div>
+                            <div><dt>Execution timestamp</dt><dd>{evidenceById.get(previewArtifact.runCaseId)?.executedAt ? new Date(evidenceById.get(previewArtifact.runCaseId).executedAt).toLocaleString() : previewArtifact.createdAt ? new Date(previewArtifact.createdAt).toLocaleString() : 'Timestamp unavailable'}</dd></div>
+                            <div><dt>Execution status</dt><dd>{evidenceById.get(previewArtifact.runCaseId)?.status || 'Not linked'}</dd></div>
+                            <div><dt>Uploaded by</dt><dd>{previewArtifact.metadata?.uploader || 'Uploader not recorded'}</dd></div>
+                        </dl>
+                        <div className="evidence-inspector-actions">
+                            {getEvidenceKind(previewArtifact) === 'log' && <button type="button" className="evidence-secondary-action" onClick={copyLogContent}><Copy size={14} /> Copy log contents</button>}
+                            <button type="button" className="evidence-secondary-action" onClick={() => copyEvidenceReference(previewArtifact)}><Copy size={14} /> Copy file reference</button>
+                            <button type="button" className="evidence-download" onClick={() => downloadEvidence(previewArtifact)}><Download size={14} /> Download</button>
                         </div>
                     </div>
                 </Modal>

@@ -199,6 +199,35 @@ export const executionService = {
         return `${API_BASE_URL}/runs/${runId}/artifacts/${artifactId}/file`;
     },
 
+    /** List persisted artifacts for a run through the authenticated execution API. */
+    listRunArtifacts: async (runId, caseId = null) => {
+        const params = new URLSearchParams();
+        if (caseId) params.set('caseId', caseId);
+        const query = params.toString();
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/artifacts${query ? `?${query}` : ''}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /** Fetch private artifact bytes without exposing storage paths or signed URLs. */
+    getArtifactFile: async (runId, artifactId) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/artifacts/${artifactId}/file`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const error = new Error(errorData.message || `Artifact could not be loaded (${response.status})`);
+            error.status = response.status;
+            throw error;
+        }
+        return response.blob();
+    },
+
     /**
      * Trigger automated test execution job
      */
