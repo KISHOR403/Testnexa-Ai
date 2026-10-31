@@ -1,0 +1,125 @@
+.run-workspace {
+  --run-bg: #101312;
+  --run-panel: #121614;
+  --run-line: #29332e;
+  --run-text: #e7ece9;
+  --run-muted: #8b9690;
+  --run-jade: #8eae9b;
+  color: var(--run-text);
+  padding-bottom: 2rem;
+}
+
+.run-workspace > div:first-child {
+  border-color: var(--run-line) !important;
+}
+
+.run-id-label {
+  color: #87958d;
+  font: 500 .75rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 2px 0;
+}
+
+.run-meta-divider { margin: 0 .4rem; color: #58635d; }
+
+.run-overflow { position: relative; }
+.run-overflow summary {
+  list-style: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--run-line);
+  border-radius: 5px;
+  color: #c2cbc5;
+  cursor: pointer;
+  letter-spacing: 2px;
+}
+.run-overflow summary::-webkit-details-marker { display: none; }
+.run-overflow-menu {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: 40px;
+  min-width: 210px;
+  padding: 5px;
+  background: #151a17;
+  border: 1px solid #35413a;
+  border-radius: 6px;
+  box-shadow: 0 12px 28px #0008;
+}
+.run-overflow-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  text-align: left;
+  color: #d6ddd8;
+  cursor: pointer;
+}
+.run-overflow-menu button:hover { background: #202823; }
+
+.run-activity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2.5rem;
+  margin: -2px 0 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--run-line);
+}
+.run-activity > div { display: grid; gap: 3px; min-width: 150px; max-width: 100%; }
+.activity-label { color: #758179; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; }
+.run-activity strong { color: #cdd5cf; font-size: .8rem; font-weight: 550; overflow-wrap: anywhere; }
+.activity-muted { color: var(--run-muted); font-weight: 400; }
+.run-inline-error { color: #d8a09c; font-size: .78rem; overflow-wrap: anywhere; }
+
+.run-progress-line { width: 100%; display: grid; gap: 6px; }
+.run-progress-meta { display: flex; justify-content: space-between; gap: 1rem; color: #8b9690; font-size: .72rem; }
+.run-progress-meta strong { color: #b8c4bc; font-weight: 550; }
+.run-progress-track { height: 4px; overflow: hidden; background: #252d28; border-radius: 4px; }
+.run-progress-track span { display: block; height: 100%; background: #8eae9b; transition: width .2s ease; }
+
+.run-tab {
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #9ca69f;
+  font-size: .78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.run-tab.active { color: var(--run-jade); border-color: #43574a; background: #171d19; }
+.run-report[data-report-view="diagnostics"] > :not([data-report-section="header"]):not([data-report-section="diagnostics"]),
+.run-report[data-report-view="coverage"] > :not([data-report-section="header"]):not([data-report-section="coverage"]) { display: none !important; }
+.run-report[data-report-view="report"] > [data-report-section="summary"],
+.run-report[data-report-view="report"] > [data-report-section="activity"] { display: none !important; }
+
+.run-workspace input:focus, .run-workspace select:focus, .run-workspace textarea:focus,
+.run-workspace button:focus-visible, .run-workspace a:focus-visible, .run-workspace summary:focus-visible {
+  outline: 2px solid #8eae9b !important;
+  outline-offset: 2px;
+}
+
+.run-workspace [style*="gridTemplateColumns: 'minmax(0px, 1fr)'"] { min-width: 0; }
+.run-workspace [style*="height: auto"] { min-width: 0; }
+.case-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 15px;
+  color: #849088;
+  font-size: .7rem;
+}
+.run-workspace h1, .run-workspace h2, .run-workspace h3,
+.run-workspace p, .run-workspace pre, .run-workspace code { overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .run-workspace { padding-left: 12px; padding-right: 12px; }
+  .run-activity { gap: 12px 22px; }
+  .run-progress-meta { font-size: .68rem; }
+  .run-overflow-menu { position: fixed; top: auto; right: 12px; }
+  .run-workspace [style*="display: flex"] { max-width: 100%; }
+}

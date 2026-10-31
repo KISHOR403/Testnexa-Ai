@@ -35,11 +35,12 @@ const formatTimestamp = (iso) => {
     }
 };
 
-const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
+const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases, viewMode = 'report' }) => {
     const [report, setReport] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [expandedFailures, setExpandedFailures] = useState({});
+    const [expandedRequirements, setExpandedRequirements] = useState({});
     const [previewImage, setPreviewImage] = useState(null);
     const [isRerunning, setIsRerunning] = useState(false);
     const [rerunStatus, setRerunStatus] = useState(null);
@@ -172,9 +173,9 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const uncoveredReqsCount = coverage.uncoveredRequirements ?? 0;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
+        <div className="run-report" data-report-view={viewMode} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
             {/* ─── 1. Report Header & Quick Actions ─── */}
-            <div style={{
+            <div data-report-section="header" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
@@ -283,7 +284,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
             )}
 
             {/* ─── 2. Executive KPI Cards Grid ─── */}
-            <div style={{
+            <div data-report-section="summary" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
                 gap: '12px'
@@ -332,7 +333,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
             </div>
 
             {/* ─── 3. Execution Method Breakdown ─── */}
-            <div style={{
+            <div data-report-section="activity" style={{
                 background: '#161819',
                 border: '1px solid #292D2D',
                 borderRadius: '8px',
@@ -386,7 +387,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
             </div>
 
             {/* ─── 4. Failure Investigation Drawer / Section ─── */}
-            <div style={{
+            <div data-report-section="diagnostics" style={{
                 background: '#161819',
                 border: '1px solid #292D2D',
                 borderRadius: '8px',
@@ -611,7 +612,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
             </div>
 
             {/* ─── 5. Test Category Breakdown Table ─── */}
-            <div style={{
+            <div data-report-section="categories" style={{
                 background: '#161819',
                 border: '1px solid #292D2D',
                 borderRadius: '8px',
@@ -627,6 +628,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             <tr style={{ borderBottom: '1px solid #292D2D', textAlign: 'left', color: '#A0A5A5' }}>
                                 <th style={{ padding: '8px' }}>Category</th>
                                 <th style={{ padding: '8px' }}>Total</th>
+                                <th style={{ padding: '8px' }}>Executed</th>
                                 <th style={{ padding: '8px' }}>Passed</th>
                                 <th style={{ padding: '8px' }}>Failed</th>
                                 <th style={{ padding: '8px' }}>Pass Rate</th>
@@ -639,6 +641,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                 const cTotal = Number(catItem.total) || 0;
                                 const cPassed = Number(catItem.passed) || 0;
                                 const cFailed = Number(catItem.failed) || 0;
+                                const cExecuted = cPassed + cFailed + (Number(catItem.blocked) || 0) + (Number(catItem.skipped) || 0);
                                 const pRate = catItem.passRate ?? (cTotal > 0 ? Math.round((cPassed / cTotal) * 100) : 0);
 
                                 return (
@@ -647,6 +650,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                             {catName}
                                         </td>
                                         <td style={{ padding: '10px 8px', color: '#A0A5A5' }}>{cTotal}</td>
+                                        <td style={{ padding: '10px 8px', color: '#A0A5A5' }}>{cExecuted}</td>
                                         <td style={{ padding: '10px 8px', color: '#8BAF9A' }}>{cPassed}</td>
                                         <td style={{ padding: '10px 8px', color: cFailed > 0 ? '#E06C75' : '#A0A5A5' }}>{cFailed}</td>
                                         <td style={{ padding: '10px 8px', fontWeight: 600, color: pRate >= 80 ? '#8BAF9A' : '#E06C75' }}>
@@ -671,7 +675,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
             </div>
 
             {/* ─── 6. Requirement Traceability Coverage ─── */}
-            <div style={{
+            <div data-report-section="coverage" style={{
                 background: '#161819',
                 border: '1px solid #292D2D',
                 borderRadius: '8px',
@@ -691,36 +695,23 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                     </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">TOTAL REQUIREMENTS</span>
-                        <span className="ws-stat-value">{coverage.totalRequirements || 0}</span>
-                        <span className="ws-stat-sub">From parent specification</span>
-                    </div>
-
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">VERIFIED (ALL PASSED)</span>
-                        <span className="ws-stat-value" style={{ color: isPending ? '#A0A5A5' : '#8BAF9A' }}>
-                            {isPending ? 0 : (coverage.verifiedRequirements || 0)}
-                        </span>
-                        <span className="ws-stat-sub">All linked test cases passed</span>
-                    </div>
-
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">FAILING REQUIREMENTS</span>
-                        <span className="ws-stat-value" style={{ color: failedReqsCount > 0 ? '#E06C75' : '#8BAF9A' }}>
-                            {failedReqsCount}
-                        </span>
-                        <span className="ws-stat-sub">Requires engineering remediation</span>
-                    </div>
-
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">UNCOVERED</span>
-                        <span className="ws-stat-value" style={{ color: uncoveredReqsCount > 0 ? '#E5C07B' : '#A0A5A5' }}>
-                            {uncoveredReqsCount}
-                        </span>
-                        <span className="ws-stat-sub">No linked test cases</span>
-                    </div>
+                <div style={{ borderTop: '1px solid #292D2D' }}>
+                    {(coverage.requirements || []).length === 0 ? (
+                        <p style={{ padding: '1rem 0', margin: 0, color: '#A0A5A5', fontSize: '.84rem' }}>No requirement links are available for this run.</p>
+                    ) : coverage.requirements.map(req => {
+                        const isExpanded = Boolean(expandedRequirements[req.id]);
+                        const linked = req.linkedCases || [];
+                        const label = req.status === 'verified' ? 'Verified' : req.status === 'failed' ? 'Failing' : req.status === 'partial' ? 'Partial' : 'Uncovered';
+                        return (
+                            <div key={req.id} style={{ borderBottom: '1px solid #292D2D' }}>
+                                <button type="button" onClick={() => setExpandedRequirements(prev => ({ ...prev, [req.id]: !prev[req.id] }))} aria-expanded={isExpanded} style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '12px 4px', textAlign: 'left', color: '#E7ECE9', background: 'transparent', border: 0, cursor: 'pointer' }}>
+                                    <span style={{ minWidth: 0, display: 'grid', gap: 4 }}><span style={{ color: '#9DA9A1', font: '.72rem ui-monospace, monospace' }}>{req.id} · {req.category}</span><span style={{ overflowWrap: 'anywhere', fontSize: '.84rem' }}>{req.description}</span></span>
+                                    <span style={{ flexShrink: 0, textAlign: 'right', color: req.status === 'failed' ? '#D8938F' : req.status === 'verified' ? '#8EAE9B' : '#B6A57D', fontSize: '.76rem' }}>{linked.length} linked · {label}</span>
+                                </button>
+                                {isExpanded && <div style={{ padding: '0 4px 12px', color: '#9CA69F', fontSize: '.78rem' }}><span>Linked tests: </span>{linked.length ? linked.map((id, index) => <React.Fragment key={id}>{index > 0 ? ', ' : ''}<button type="button" onClick={onSwitchToCases} style={{ color: '#9EBDAB', background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>{id}</button></React.Fragment>) : 'None'}<div style={{ marginTop: 5 }}>Passed: {(req.passedCases || []).join(', ') || 'None'} · Failed: {(req.failedCases || []).join(', ') || 'None'}</div></div>}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 

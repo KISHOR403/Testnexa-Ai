@@ -13,6 +13,7 @@ import Modal from '../../components/ui/Modal';
 import RunReportView from '../../components/execution/RunReportView';
 import RunComparisonView from '../../components/execution/RunComparisonView';
 import '../../styles/app/WorkspaceDesignSystem.css';
+import '../../styles/app/RunWorkspace.css';
 
 const SCRIPT_TEMPLATES = {
     smoke: `async (page, expect) => {
@@ -107,6 +108,7 @@ const RunExecutionPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [methodFilter, setMethodFilter] = useState('all');
 
     // Execution input form state
     const [formStatus, setFormStatus] = useState('passed');
@@ -343,9 +345,10 @@ const RunExecutionPage = () => {
             const matchesSearch = title.toLowerCase().includes(search.toLowerCase()) ||
                 tcId.toLowerCase().includes(search.toLowerCase());
             const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
-            return matchesSearch && matchesStatus;
+            const matchesMethod = methodFilter === 'all' || c.executionType === methodFilter;
+            return matchesSearch && matchesStatus && matchesMethod;
         });
-    }, [cases, search, statusFilter]);
+    }, [cases, search, statusFilter, methodFilter]);
 
     const { readyCount, invalidCount, unmappedCount } = useMemo(() => {
         let ready = 0;
@@ -394,6 +397,14 @@ const RunExecutionPage = () => {
     }
 
     const sum = run.summary || {};
+    const totalCases = Number(sum.total ?? cases.length);
+    const passedCount = Number(sum.passed || 0);
+    const failedCount = Number(sum.failed || 0);
+    const blockedCount = Number(sum.blocked || 0);
+    const skippedCount = Number(sum.skipped || 0);
+    const notRunCount = Number(sum.not_run ?? Math.max(0, totalCases - passedCount - failedCount - blockedCount - skippedCount));
+    const completedCount = cases.filter(item => !['not_run', 'pending', 'queued', 'running', 'in_progress'].includes((item.status || '').toLowerCase())).length;
+    const progressPercent = totalCases > 0 ? Math.min(100, Math.round((completedCount / totalCases) * 100)) : 0;
     const activeCase = activeCaseDetails || cases.find(c => c.id === activeCaseId);
     const snapshot = activeCase?.caseSnapshot || {};
     const hasAutomation = Boolean(snapshot.automationMapping);
@@ -618,7 +629,7 @@ const RunExecutionPage = () => {
     };
 
     return (
-        <div className="ws-page-container" style={{ maxWidth: '100%' }}>
+        <div className="ws-page-container run-workspace" style={{ maxWidth: '100%' }}>
             {/* Run Top Banner Header */}
             <div style={{
                 display: 'flex',
@@ -654,6 +665,7 @@ const RunExecutionPage = () => {
                                 {run.name}
                             </h1>
                             <StatusBadge status={run.status} />
+                            <span className="run-id-label" title={`Run ID: ${run.id}`}>{run.id}</span>
                             <span style={{
                                 padding: '2px 8px',
                                 borderRadius: '4px',
@@ -666,14 +678,14 @@ const RunExecutionPage = () => {
                             </span>
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#777E7E', marginTop: '2px' }}>
-                            Target: <span style={{ color: '#A0A5A5' }}>{run.targetEnvironment?.name || 'Default Staging'}</span> • {cases.length} Total Test Cases
+                        Environment <span style={{ color: '#A0A5A5' }}>{run.targetEnvironment?.name || 'Default Staging'}</span> <span className="run-meta-divider">·</span> {cases.length} test cases
                         </div>
                     </div>
                 </div>
 
                 {/* Header Action Controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    {/* Automation Readiness Pill Ledger */}
+                    {/* Execution readiness remains separate from recorded outcomes. */}
                     {(run.executionType === 'automated' || run.executionType === 'mixed') && (
                         <div style={{
                             display: 'flex',
@@ -693,35 +705,13 @@ const RunExecutionPage = () => {
                         </div>
                     )}
 
-                    {/* Auto-Configure Scripts button */}
-                    {(run.executionType === 'automated' || run.executionType === 'mixed') && unconfiguredCount > 0 && readyCount > 0 && (
-                        <button
-                            type="button"
-                            onClick={handleAutoConfigureApproved}
-                            disabled={isAutoConfiguring || (activeJob && activeJob.status === 'running')}
-                            className="ws-btn-secondary"
-                            style={{
-                                height: '34px',
-                                padding: '0 0.85rem',
-                                color: '#38BDF8',
-                                borderColor: 'rgba(56, 189, 248, 0.3)',
-                                fontSize: '0.82rem',
-                                gap: '6px'
-                            }}
-                            title="Auto-bind approved Playwright scripts to remaining unmapped test cases"
-                        >
-                            <Wand2 size={14} className={isAutoConfiguring ? 'animate-spin' : ''} />
-                            <span>{isAutoConfiguring ? 'Configuring...' : `Auto-Map Remaining (${unconfiguredCount})`}</span>
-                        </button>
-                    )}
-
                     {/* Automated Run CTA */}
-                    {(run.executionType === 'automated' || run.executionType === 'mixed') && (
+                    {(run.executionType === 'automated' || run.executionType === 'mixed') ? (
                         readyCount === 0 && (!activeJob || (activeJob.status !== 'queued' && activeJob.status !== 'running')) ? (
                             <button
                                 type="button"
-                                onClick={handleAutoConfigureApproved}
-                                disabled={isAutoConfiguring}
+                                onClick={() => setActiveTab('cases')}
+                                disabled
                                 className="ws-btn-primary"
                                 style={{
                                     height: '34px',
@@ -733,10 +723,10 @@ const RunExecutionPage = () => {
                                     fontSize: '0.82rem',
                                     gap: '6px'
                                 }}
-                                title="No test cases have configured Playwright scripts. Click to auto-bind approved suite scripts."
+                                title="Configure at least one approved Playwright mapping before starting this run."
                             >
-                                <Wand2 size={14} className={isAutoConfiguring ? 'animate-spin' : ''} />
-                                <span>{isAutoConfiguring ? 'Mapping Approved Scripts...' : `Auto-Map Approved Scripts (${cases.length})`}</span>
+                                <Play size={14} />
+                                <span>Run Tests</span>
                             </button>
                         ) : (
                             <button
@@ -773,52 +763,28 @@ const RunExecutionPage = () => {
                                 ) : (
                                     <>
                                         <Play size={14} fill="#080909" />
-                                        <span>Trigger Playwright Suite ({automationReadyCount} Ready)</span>
+                                        <span>Run Tests</span>
                                     </>
                                 )}
                             </button>
                         )
-                    )}
-
-                    {/* Rerun Failed Cases */}
-                    {sum.failed > 0 && (!activeJob || (activeJob.status !== 'queued' && activeJob.status !== 'running')) && (
-                        <button
-                            type="button"
-                            onClick={handleRerunFailed}
-                            disabled={isRerunningFailed}
-                            className="ws-btn-secondary"
-                            style={{
-                                height: '34px',
-                                padding: '0 0.85rem',
-                                color: '#E06C75',
-                                borderColor: 'rgba(224, 108, 117, 0.4)',
-                                fontSize: '0.82rem',
-                                gap: '6px'
-                            }}
-                            title="Rerun only failed test cases with Playwright"
-                        >
-                            <RotateCcw size={14} className={isRerunningFailed ? 'animate-spin' : ''} />
-                            <span>{isRerunningFailed ? 'Rerunning...' : `Rerun Failed (${sum.failed})`}</span>
+                    ) : (
+                        <button type="button" onClick={() => { setActiveTab('cases'); if (cases[0]) setActiveCaseId(cases[0].id); }} className="ws-btn-primary" style={{ height: '34px', padding: '0 1rem', background: '#8eae9b', color: '#101512', border: 'none', fontWeight: 650 }}>
+                            <Play size={14} /> <span>Run Tests</span>
                         </button>
                     )}
 
-                    {/* Toggle Live Runner Logs */}
-                    <button
-                        type="button"
-                        onClick={() => setIsTerminalOpen(!isTerminalOpen)}
-                        className="ws-btn-secondary"
-                        style={{
-                            height: '34px',
-                            padding: '0 0.75rem',
-                            color: isTerminalOpen ? '#38BDF8' : '#A0A5A5',
-                            borderColor: isTerminalOpen ? 'rgba(56, 189, 248, 0.4)' : '#292D2D'
-                        }}
-                        title="Toggle Playwright Runner Console"
-                    >
-                        <Terminal size={14} />
-                    </button>
-
-                    {run.status !== 'completed' && run.status !== 'cancelled' && (
+                    {/* Less frequently used actions */}
+                    <details className="run-overflow">
+                        <summary aria-label="More run actions">•••</summary>
+                        <div className="run-overflow-menu">
+                            <button type="button" onClick={() => setIsTerminalOpen(!isTerminalOpen)}><Terminal size={14} /> Runner console</button>
+                            {sum.failed > 0 && <button type="button" onClick={handleRerunFailed} disabled={isRerunningFailed}><RotateCcw size={14} /> Rerun failed ({sum.failed})</button>}
+                            {(run.executionType === 'automated' || run.executionType === 'mixed') && unconfiguredCount > 0 && <button type="button" onClick={handleAutoConfigureApproved} disabled={isAutoConfiguring}><Wand2 size={14} /> Configure unmapped cases</button>}
+                            <button type="button" onClick={loadRunData}><RefreshCw size={14} /> Refresh run</button>
+                        </div>
+                    </details>
+                    {(run.status === 'in_progress' || activeJob?.status === 'running' || activeJob?.status === 'queued') && (
                         <button
                             type="button"
                             onClick={() => setIsCancelModalOpen(true)}
@@ -830,17 +796,15 @@ const RunExecutionPage = () => {
                         </button>
                     )}
 
-                    <button
-                        type="button"
-                        onClick={loadRunData}
-                        className="ws-btn-secondary"
-                        style={{ height: '34px', padding: '0 0.75rem' }}
-                        title="Refresh"
-                    >
-                        <RefreshCw size={14} />
-                    </button>
                 </div>
             </div>
+
+            <section className="run-activity" aria-label="Execution activity">
+                <div><span className="activity-label">Execution method</span><strong>{run.executionType === 'automated' ? 'Playwright automation' : run.executionType === 'mixed' ? 'Automated + manual' : 'Manual verification'}</strong></div>
+                {(run.executionType === 'automated' || run.executionType === 'mixed') && <div><span className="activity-label">Automation readiness</span><strong>{readyCount} ready <span className="activity-muted">· {unmappedCount} unmapped · {invalidCount} invalid</span></strong></div>}
+                <div><span className="activity-label">Latest activity</span><strong>{activeJob?.status ? `Automation ${activeJob.status}` : run.updatedAt ? new Date(run.updatedAt).toLocaleString() : 'No execution activity recorded'}</strong></div>
+                {activeJob?.status === 'failed' && <span className="run-inline-error">{activeJob.errorMessage || 'Automation job failed. Open diagnostics for execution details.'}</span>}
+            </section>
 
             {/* Run Progress Ribbon */}
             <div style={{
@@ -874,8 +838,12 @@ const RunExecutionPage = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
                         <Clock size={15} style={{ color: '#777E7E' }} />
-                        <span style={{ color: '#A0A5A5', fontWeight: 600 }}>{sum.not_run || 0} Not Run</span>
+                        <span style={{ color: '#A0A5A5', fontWeight: 600 }}>{notRunCount} Not Run</span>
                     </div>
+                </div>
+                <div className="run-progress-line" aria-label={`${completedCount} of ${totalCases} test cases executed`}>
+                    <div className="run-progress-meta"><span>Execution progress</span><strong>{completedCount} / {totalCases} · {progressPercent}%</strong></div>
+                    <div className="run-progress-track"><span style={{ width: `${progressPercent}%` }} /></div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -913,7 +881,7 @@ const RunExecutionPage = () => {
                         }}
                     >
                         <FileText size={12} />
-                        Executive Report
+                        Reports
                     </button>
                     <button
                         type="button"
@@ -933,7 +901,7 @@ const RunExecutionPage = () => {
                         }}
                     >
                         <GitCompare size={12} />
-                        Run Comparison
+                        Comparison
                     </button>
                     <button
                         type="button"
@@ -949,8 +917,10 @@ const RunExecutionPage = () => {
                             cursor: 'pointer'
                         }}
                     >
-                        Artifacts & Logs ({artifacts.length})
+                        Artifacts ({artifacts.length})
                     </button>
+                    <button type="button" onClick={() => setActiveTab('diagnostics')} className={`run-tab ${activeTab === 'diagnostics' ? 'active' : ''}`}>Diagnostics</button>
+                    <button type="button" onClick={() => setActiveTab('coverage')} className={`run-tab ${activeTab === 'coverage' ? 'active' : ''}`}>Requirement Coverage</button>
                 </div>
             </div>
 
@@ -1037,11 +1007,18 @@ const RunExecutionPage = () => {
                         </div>
                     )}
                 </div>
+            ) : activeTab === 'diagnostics' || activeTab === 'coverage' ? (
+                <RunReportView
+                    runId={runId}
+                    onRerunTriggered={() => loadRunData()}
+                    onSwitchToCases={() => setActiveTab('cases')}
+                    viewMode={activeTab}
+                />
             ) : (
                 /* TAB: TEST CASES EXECUTION WORKSPACE */
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(300px, 360px) 1fr',
+                    gridTemplateColumns: 'minmax(0, 1fr)',
                     gap: '1rem',
                     alignItems: 'start'
                 }}>
@@ -1053,8 +1030,8 @@ const RunExecutionPage = () => {
                         overflow: 'hidden',
                         display: 'flex',
                         flexDirection: 'column',
-                        height: 'calc(100vh - 250px)',
-                        minHeight: '520px'
+                        height: 'auto',
+                        minHeight: '0'
                     }}>
                         {/* Search and Filter */}
                         <div style={{ padding: '0.75rem', borderBottom: '1px solid #292D2D', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1097,6 +1074,16 @@ const RunExecutionPage = () => {
                                 <option value="skipped">Skipped ({sum.skipped || 0})</option>
                                 <option value="not_run">Not Run ({sum.not_run || 0})</option>
                             </select>
+                            <select
+                                value={methodFilter}
+                                onChange={(e) => setMethodFilter(e.target.value)}
+                                aria-label="Filter by execution method"
+                                style={{ width: '100%', padding: '0.45rem 0.65rem', background: '#161819', border: '1px solid #292D2D', borderRadius: '6px', color: '#F2F3F3', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
+                            >
+                                <option value="all">All execution methods</option>
+                                <option value="manual">Manual</option>
+                                <option value="automated">Playwright</option>
+                            </select>
                         </div>
 
                         {/* List Items */}
@@ -1108,6 +1095,15 @@ const RunExecutionPage = () => {
                                     <div
                                         key={c.id}
                                         onClick={() => setActiveCaseId(c.id)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                setActiveCaseId(c.id);
+                                            }
+                                        }}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-pressed={isSelected}
                                         style={{
                                             padding: '0.65rem 0.75rem',
                                             borderRadius: '6px',
@@ -1149,11 +1145,15 @@ const RunExecutionPage = () => {
                                             fontSize: '0.84rem',
                                             fontWeight: 500,
                                             color: '#F2F3F3',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis'
+                                            overflowWrap: 'anywhere'
                                         }}>
                                             {c.caseSnapshot?.title || 'Untitled Test Case'}
+                                        </div>
+                                        <div className="case-row-meta">
+                                            <span>{c.caseSnapshot?.module || c.caseSnapshot?.type || 'General'}</span>
+                                            <span>Priority {c.caseSnapshot?.priority || '—'}</span>
+                                            <span>{c.executionType === 'automated' ? 'Playwright' : 'Manual'}</span>
+                                            <span>{c.durationMs ? `${(c.durationMs / 1000).toFixed(1)}s` : '—'}</span>
                                         </div>
                                     </div>
                                 );
