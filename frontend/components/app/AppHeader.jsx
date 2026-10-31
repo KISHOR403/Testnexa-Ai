@@ -40,6 +40,12 @@ const AppHeader = ({ onToggleMobile }) => {
         if (path.includes('/app/traceability')) {
             return { section: 'Analysis', current: 'Requirement Traceability', link: '/app/traceability' };
         }
+        if (path.includes('/app/runs/')) {
+            return { section: 'Execution', current: 'Test Run Workspace', link: '/app/runs' };
+        }
+        if (path.includes('/app/runs')) {
+            return { section: 'Execution', current: 'Unified Test Runs', link: '/app/runs' };
+        }
         if (path.includes('/app/settings')) {
             const searchParams = new URLSearchParams(location.search);
             const tab = searchParams.get('tab') || 'profile';

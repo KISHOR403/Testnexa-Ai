@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useParams, useNavigate, NavLink } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import {
     ArrowLeft, Play, RefreshCw, CheckCircle2, XCircle,
     AlertTriangle, MinusCircle, Clock, Shield, User, Bot,
     Terminal, FileText, Camera, Upload, Trash2, ExternalLink,
     ChevronRight, ChevronDown, Check, AlertCircle, StopCircle, Eye,
-    Wand2, RotateCcw, Edit3, Code, Layers
+    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
 import Modal from '../../components/ui/Modal';
+import RunReportView from '../../components/execution/RunReportView';
+import RunComparisonView from '../../components/execution/RunComparisonView';
 import '../../styles/app/WorkspaceDesignSystem.css';
 
 const SCRIPT_TEMPLATES = {
@@ -91,6 +93,9 @@ const StatusBadge = ({ status }) => {
 const RunExecutionPage = () => {
     const { runId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const initialTab = searchParams.get('tab') || 'cases';
 
     const [run, setRun] = useState(null);
     const [cases, setCases] = useState([]);
@@ -112,7 +117,7 @@ const RunExecutionPage = () => {
     // Active Automation Job Polling state
     const [activeJob, setActiveJob] = useState(null);
     const [isTriggeringAuto, setIsTriggeringAuto] = useState(false);
-    const [activeTab, setActiveTab] = useState('cases'); // 'cases' | 'artifacts'
+    const [activeTab, setActiveTab] = useState(initialTab); // 'cases' | 'report' | 'compare' | 'artifacts'
     const [artifacts, setArtifacts] = useState([]);
     const [previewArtifact, setPreviewArtifact] = useState(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -813,7 +818,7 @@ const RunExecutionPage = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button
                         type="button"
                         onClick={() => setActiveTab('cases')}
@@ -829,6 +834,46 @@ const RunExecutionPage = () => {
                         }}
                     >
                         Test Cases ({cases.length})
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('report')}
+                        style={{
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            background: activeTab === 'report' ? '#161819' : 'transparent',
+                            border: `1px solid ${activeTab === 'report' ? '#8BAF9A' : 'transparent'}`,
+                            color: activeTab === 'report' ? '#8BAF9A' : '#A0A5A5',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                    >
+                        <FileText size={12} />
+                        Executive Report
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('compare')}
+                        style={{
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            background: activeTab === 'compare' ? '#161819' : 'transparent',
+                            border: `1px solid ${activeTab === 'compare' ? '#8BAF9A' : 'transparent'}`,
+                            color: activeTab === 'compare' ? '#8BAF9A' : '#A0A5A5',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                    >
+                        <GitCompare size={12} />
+                        Run Comparison
                     </button>
                     <button
                         type="button"
@@ -849,8 +894,21 @@ const RunExecutionPage = () => {
                 </div>
             </div>
 
-            {/* TAB: ARTIFACTS & LOGS */}
-            {activeTab === 'artifacts' ? (
+            {/* TAB: EXECUTIVE REPORT */}
+            {activeTab === 'report' ? (
+                <RunReportView
+                    runId={runId}
+                    onRerunTriggered={() => loadRunData()}
+                    onSwitchToCases={() => setActiveTab('cases')}
+                />
+            ) : activeTab === 'compare' ? (
+                /* TAB: RUN COMPARISON */
+                <RunComparisonView
+                    runId={runId}
+                    currentRun={run}
+                />
+            ) : activeTab === 'artifacts' ? (
+                /* TAB: ARTIFACTS & LOGS */
                 <div style={{
                     padding: '1.25rem',
                     background: '#101112',

@@ -7,7 +7,8 @@
     "scripts": {
         "start": "node src/server.js",
         "dev": "node --watch-path=src src/server.js",
-        "test": "node --test tests/playwright-configuration-modal.test.js tests/real-playwright-execution.test.js tests/test-run-creation.test.js tests/manual-execution.test.js",
+        "build": "node -e \"try { require('child_process').execSync('npx playwright install chromium', { stdio: 'inherit', env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: '0' } }); } catch (e) {}\"",
+        "test": "node --test tests/playwright-configuration-modal.test.js tests/real-playwright-execution.test.js tests/test-run-creation.test.js tests/manual-execution.test.js tests/execution-intelligence-reporting.test.js",
         "postinstall": "node -e \"try { require('child_process').execSync('npx playwright install chromium', { stdio: 'inherit', env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: '0' } }); } catch (e) {}\""
     },
     "keywords": [

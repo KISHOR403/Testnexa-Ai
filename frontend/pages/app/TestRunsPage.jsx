@@ -3,7 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
     Play, Search, Plus, Filter, RefreshCw, CheckCircle2,
     XCircle, AlertTriangle, MinusCircle, Clock, ArrowRight,
-    User, Bot, Terminal, Shield, Calendar, Layers, StopCircle
+    User, Bot, Terminal, Shield, Calendar, Layers, StopCircle,
+    FileText, GitCompare
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
@@ -442,19 +443,46 @@ const TestRunsPage = () => {
                                         <StatusPill status={run.status} />
                                     </div>
 
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#A0A5A5', fontSize: '0.82rem' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#A0A5A5', fontSize: '0.82rem' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px' }}>
                                             <Calendar size={13} />
                                             {new Date(run.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                         </span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/app/runs/${run.id}?tab=report`);
+                                            }}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '26px', padding: '0 8px', fontSize: '0.72rem' }}
+                                            title="View Executive Report"
+                                        >
+                                            <FileText size={11} />
+                                            <span>Report</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/app/runs/${run.id}?tab=compare`);
+                                            }}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '26px', padding: '0 8px', fontSize: '0.72rem' }}
+                                            title="Compare with previous run"
+                                        >
+                                            <GitCompare size={11} />
+                                            <span>Compare</span>
+                                        </button>
                                         <div style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
                                             gap: '4px',
                                             color: '#8BAF9A',
-                                            fontWeight: 500
+                                            fontWeight: 500,
+                                            marginLeft: '4px'
                                         }}>
-                                            <span>Open Workspace</span>
+                                            <span>Open</span>
                                             <ArrowRight size={14} />
                                         </div>
                                     </div>

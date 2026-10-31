@@ -7,6 +7,7 @@ const automationInventory = require('../services/runner/automationInventory.serv
 const scriptValidator = require('../services/runner/scriptValidator.service');
 const templateGenerator = require('../services/runner/templateGenerator.service');
 const { executeSinglePlaywrightTest } = require('../services/runner/playwrightRunner.worker');
+const executionReport = require('../services/runner/executionReport.service');
 
 /**
  * Resolves the target workspace ID for the request
@@ -968,6 +969,166 @@ exports.rerunFailed = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error rerunning failed cases:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: GET unified execution report
+ * GET /api/v1/runs/:id/report
+ */
+exports.getRunReport = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const report = await executionReport.generateRunReport(id, run.workspaceId);
+        res.json({
+            success: true,
+            data: report
+        });
+    } catch (err) {
+        logger.error('Error generating execution report:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: GET compare two execution runs
+ * GET /api/v1/runs/:id/compare/:baselineRunId
+ */
+exports.compareRuns = async (req, res) => {
+    try {
+        const { id, baselineRunId } = req.params;
+        const [targetRun, baselineRun] = await Promise.all([
+            supabaseService.getTestRunById(id),
+            supabaseService.getTestRunById(baselineRunId)
+        ]);
+
+        if (!targetRun) {
+            return res.status(404).json({ success: false, message: `Target run ${id} not found` });
+        }
+        if (!baselineRun) {
+            return res.status(404).json({ success: false, message: `Baseline run ${baselineRunId} not found` });
+        }
+
+        // Verify workspace access for both runs
+        const isAllowedTarget = await verifyAccess(req, res, targetRun.workspaceId);
+        if (!isAllowedTarget) return;
+
+        const isAllowedBaseline = await verifyAccess(req, res, baselineRun.workspaceId);
+        if (!isAllowedBaseline) return;
+
+        if (targetRun.workspaceId !== baselineRun.workspaceId) {
+            return res.status(403).json({
+                success: false,
+                code: 'FORBIDDEN',
+                message: 'Cross-workspace run comparison is strictly prohibited'
+            });
+        }
+
+        const comparison = await executionReport.compareRuns(id, baselineRunId, targetRun.workspaceId);
+        res.json({
+            success: true,
+            data: comparison
+        });
+    } catch (err) {
+        logger.error('Error comparing execution runs:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: POST rerun with scope ('failed' | 'selected' | 'all')
+ * POST /api/v1/runs/:id/rerun
+ */
+exports.rerun = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user._id || req.user.id;
+        const { scope = 'failed', caseIds = [] } = req.body;
+
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const result = await executionReport.executeRerun({
+            runId: id,
+            workspaceId: run.workspaceId,
+            userId,
+            scope,
+            caseIds
+        });
+
+        res.status(202).json({
+            success: true,
+            data: result,
+            message: result.message
+        });
+    } catch (err) {
+        logger.error('Error executing rerun:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: GET requirement & execution coverage
+ * GET /api/v1/runs/:id/coverage
+ */
+exports.getRunCoverage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const report = await executionReport.generateRunReport(id, run.workspaceId);
+        res.json({
+            success: true,
+            data: report.coverage
+        });
+    } catch (err) {
+        logger.error('Error fetching run coverage:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: Export execution report (JSON, CSV, PDF-HTML)
+ * GET /api/v1/runs/:id/export/:format
+ */
+exports.exportReport = async (req, res) => {
+    try {
+        const { id, format = 'json' } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const exported = await executionReport.exportReport(id, run.workspaceId, format.toLowerCase());
+
+        res.setHeader('Content-Type', exported.contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);
+        res.send(exported.content);
+    } catch (err) {
+        logger.error('Error exporting report:', err);
         res.status(400).json({ success: false, message: err.message });
     }
 };

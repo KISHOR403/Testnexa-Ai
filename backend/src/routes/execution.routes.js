@@ -24,6 +24,13 @@ router.post('/:id/auto-configure-mappings', executionController.autoConfigureMap
 router.post('/:id/rerun-failed', executionController.rerunFailed);
 router.get('/:id/job', executionController.getRunJob);
 
+// Phase 2: Unified Execution Intelligence, Comparison, Coverage & Exports
+router.get('/:id/report', executionController.getRunReport);
+router.get('/:id/compare/:baselineRunId', executionController.compareRuns);
+router.post('/:id/rerun', executionController.rerun);
+router.get('/:id/coverage', executionController.getRunCoverage);
+router.get('/:id/export/:format', executionController.exportReport);
+
 // Test Run Cases
 router.get('/:id/cases', executionController.listRunCases);
 router.get('/:id/cases/:caseId', executionController.getRunCase);

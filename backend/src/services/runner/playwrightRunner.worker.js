@@ -9,6 +9,13 @@
  * - Safe vm sandboxing (no child_process, no process.exit, no raw filesystem writes)
  */
 
+// Ensure Playwright uses local node_modules browser directory on cloud hosts
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
+    process.env.PLAYWRIGHT_BROWSERS_PATH = '0';
+}
+
+const path = require('path');
+const fs = require('fs');
 const vm = require('vm');
 const { validateEnvironmentUrl } = require('../../utils/ssrfValidator');
 const logger = require('../../utils/logger');
@@ -16,6 +23,8 @@ const automationInventory = require('./automationInventory.service');
 
 // Resilient Playwright Chromium loader (prevents module import crashes if framework binaries are absent)
 let playwrightChromium = null;
+let resolvedChromiumPath = null;
+
 const getChromium = () => {
     if (!playwrightChromium) {
         try {
@@ -29,19 +38,84 @@ const getChromium = () => {
     return playwrightChromium;
 };
 
+// Search disk for an existing browser binary across project and host paths
+const findExecutableOnDisk = () => {
+    if (resolvedChromiumPath && fs.existsSync(resolvedChromiumPath)) {
+        return resolvedChromiumPath;
+    }
+
+    const candidateRoots = [
+        path.resolve(process.cwd(), 'node_modules/playwright-core/.local-browsers'),
+        path.resolve(__dirname, '../../../node_modules/playwright-core/.local-browsers'),
+        path.resolve(__dirname, '../../../../node_modules/playwright-core/.local-browsers'),
+        '/opt/render/.cache/ms-playwright',
+        path.join(process.env.HOME || '', '.cache/ms-playwright'),
+        path.join(process.env.USERPROFILE || '', 'AppData/Local/ms-playwright')
+    ];
+
+    for (const root of candidateRoots) {
+        if (!fs.existsSync(root)) continue;
+        try {
+            const findFiles = (dir, depth = 0) => {
+                if (depth > 3) return null;
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const e of entries) {
+                    const full = path.join(dir, e.name);
+                    if (e.isDirectory()) {
+                        const found = findFiles(full, depth + 1);
+                        if (found) return found;
+                    } else if (
+                        e.name === 'chrome' ||
+                        e.name === 'chrome.exe' ||
+                        e.name === 'chrome-headless-shell' ||
+                        e.name === 'chrome-headless-shell.exe' ||
+                        e.name === 'chromium'
+                    ) {
+                        return full;
+                    }
+                }
+                return null;
+            };
+            const found = findFiles(root);
+            if (found) {
+                resolvedChromiumPath = found;
+                return found;
+            }
+        } catch (e) {}
+    }
+
+    // Check standard Linux distribution paths
+    const systemPaths = ['/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome-stable'];
+    for (const sys of systemPaths) {
+        if (fs.existsSync(sys)) {
+            resolvedChromiumPath = sys;
+            return sys;
+        }
+    }
+
+    return null;
+};
+
 // Check if Chromium binary exists; if missing in cloud runtime, attempt self-healing recovery
 const ensureChromiumBinary = () => {
     const pwChromium = getChromium();
     if (!pwChromium) return null;
 
     try {
-        const execPath = pwChromium.executablePath();
-        const fs = require('fs');
-        if (fs.existsSync(execPath)) {
+        let execPath = null;
+        try { execPath = pwChromium.executablePath(); } catch (e) {}
+        if (execPath && fs.existsSync(execPath)) {
+            resolvedChromiumPath = execPath;
             return pwChromium;
         }
 
-        logger.warn(`Playwright browser executable not found at ${execPath}. Attempting runtime recovery...`);
+        const onDisk = findExecutableOnDisk();
+        if (onDisk) {
+            resolvedChromiumPath = onDisk;
+            return pwChromium;
+        }
+
+        logger.warn(`Playwright browser executable not found. Attempting runtime recovery...`);
         const { execSync } = require('child_process');
         execSync('npx playwright install chromium', {
             stdio: 'pipe',
@@ -52,8 +126,10 @@ const ensureChromiumBinary = () => {
             }
         });
 
-        if (fs.existsSync(pwChromium.executablePath())) {
-            logger.info('Playwright Chromium successfully installed via runtime recovery.');
+        const recoveredDisk = findExecutableOnDisk();
+        if (recoveredDisk) {
+            resolvedChromiumPath = recoveredDisk;
+            logger.info(`Playwright Chromium successfully resolved at ${recoveredDisk}`);
         }
     } catch (err) {
         logger.warn('Playwright runtime recovery notice:', err.message);
@@ -267,7 +343,8 @@ async function executePlaywrightJob({
                 '--no-first-run',
                 '--no-zygote'
             ],
-            timeout: 20000
+            timeout: 20000,
+            ...(resolvedChromiumPath ? { executablePath: resolvedChromiumPath } : {})
         });
 
         // 3. Execute each mapped test case
@@ -583,7 +660,8 @@ async function executeSinglePlaywrightTest({
                 '--no-first-run',
                 '--no-zygote'
             ],
-            timeout: 20000
+            timeout: 20000,
+            ...(resolvedChromiumPath ? { executablePath: resolvedChromiumPath } : {})
         });
 
         context = await browser.newContext({

@@ -322,5 +322,93 @@ export const executionService = {
             credentials: 'include'
         });
         return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get unified execution report (manual + automated metrics, method breakdown, duration, failure diagnostics)
+     */
+    getRunReport: async (runId, workspaceId = null) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/report${query}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Compare target run against baseline run (identifying regressions, fixes, shifts, duration delta)
+     */
+    compareRuns: async (runId, baselineRunId, workspaceId = null) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/compare/${baselineRunId}${query}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Flexible execution rerun (scope: 'failed' | 'selected' | 'all') with append-only attempt history
+     */
+    rerun: async ({ runId, scope = 'failed', caseIds = [], workspaceId = null }) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/rerun${query}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ scope, caseIds })
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get requirement coverage metrics linked to actual test execution outcomes
+     */
+    getRunCoverage: async (runId, workspaceId = null) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/coverage${query}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Export execution report in json, csv, or pdf/html format
+     */
+    exportReport: async (runId, format = 'json', workspaceId = null) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const url = `${API_BASE_URL}/runs/${runId}/export/${format}${query}`;
+
+        if (format === 'pdf' || format === 'html') {
+            // Open print-ready report in a clean popup window
+            window.open(url, '_blank');
+            return { success: true };
+        }
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+
+        if (format === 'csv') {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `test_run_${runId}_results.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            return { success: true };
+        }
+
+        return handleResponse(response);
     }
 };
