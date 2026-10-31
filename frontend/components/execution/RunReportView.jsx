@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     CheckCircle2, XCircle, AlertTriangle, MinusCircle, Clock,
@@ -38,6 +38,57 @@ const formatTimestamp = (iso) => {
 };
 
 const STANDARD_CATEGORIES = ['Functional', 'Negative', 'Edge', 'API', 'Non-Functional'];
+
+const normalizeCategories = (rawCats) => {
+    const rawMap = new Map();
+    const list = Array.isArray(rawCats)
+        ? rawCats
+        : Object.entries(rawCats || {}).map(([k, v]) => ({ category: k, ...v }));
+
+    list.forEach(item => {
+        const name = item.category || item.name || 'General';
+        rawMap.set(name.toLowerCase(), {
+            name,
+            total: Number(item.total) || 0,
+            passed: Number(item.passed) || 0,
+            failed: Number(item.failed) || 0,
+            blocked: Number(item.blocked) || 0,
+            skipped: Number(item.skipped) || 0,
+            passRate: item.passRate ?? 0
+        });
+    });
+
+    // Ensure Functional, Negative, Edge, API, Non-Functional are present
+    const result = [];
+    const seen = new Set();
+
+    STANDARD_CATEGORIES.forEach(std => {
+        const key = std.toLowerCase();
+        seen.add(key);
+        if (rawMap.has(key)) {
+            result.push(rawMap.get(key));
+        } else {
+            result.push({
+                name: std,
+                total: 0,
+                passed: 0,
+                failed: 0,
+                blocked: 0,
+                skipped: 0,
+                passRate: 0
+            });
+        }
+    });
+
+    // Add any remaining custom categories
+    rawMap.forEach((v, k) => {
+        if (!seen.has(k)) {
+            result.push(v);
+        }
+    });
+
+    return result;
+};
 
 const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const [report, setReport] = useState(null);
@@ -203,56 +254,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     });
 
     // Normalized Categories List ensuring all 5 standard categories exist
-    const categoriesList = useMemo(() => {
-        const rawMap = new Map();
-        const list = Array.isArray(rawCats)
-            ? rawCats
-            : Object.entries(rawCats).map(([k, v]) => ({ category: k, ...v }));
-
-        list.forEach(item => {
-            const name = item.category || item.name || 'General';
-            rawMap.set(name.toLowerCase(), {
-                name,
-                total: Number(item.total) || 0,
-                passed: Number(item.passed) || 0,
-                failed: Number(item.failed) || 0,
-                blocked: Number(item.blocked) || 0,
-                skipped: Number(item.skipped) || 0,
-                passRate: item.passRate ?? 0
-            });
-        });
-
-        // Ensure Functional, Negative, Edge, API, Non-Functional are present
-        const result = [];
-        const seen = new Set();
-
-        STANDARD_CATEGORIES.forEach(std => {
-            const key = std.toLowerCase();
-            seen.add(key);
-            if (rawMap.has(key)) {
-                result.push(rawMap.get(key));
-            } else {
-                result.push({
-                    name: std,
-                    total: 0,
-                    passed: 0,
-                    failed: 0,
-                    blocked: 0,
-                    skipped: 0,
-                    passRate: 0
-                });
-            }
-        });
-
-        // Add any remaining custom categories
-        rawMap.forEach((v, k) => {
-            if (!seen.has(k)) {
-                result.push(v);
-            }
-        });
-
-        return result;
-    }, [rawCats]);
+    const categoriesList = normalizeCategories(rawCats);
 
     return (
         <div className="er-document">
