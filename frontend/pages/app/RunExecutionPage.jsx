@@ -94,6 +94,30 @@ const StatusBadge = ({ status }) => {
     );
 };
 
+const PriorityBadge = ({ priority }) => {
+    const p = (priority || 'medium').toLowerCase();
+    const className = ['critical', 'high', 'medium', 'low'].includes(p) ? p : 'medium';
+    return (
+        <span className={`qa-priority-pill ${className}`}>
+            {priority || 'Medium'}
+        </span>
+    );
+};
+
+const CaseMethodBadge = ({ c }) => {
+    const isAuto = c.executionType === 'automated';
+    if (!isAuto) {
+        return <span className="qa-method-pill manual">Manual</span>;
+    }
+    const map = c.caseSnapshot?.automationMapping;
+    const isReady = map && (map.mappingStatus === 'configured' || map.mappingStatus === 'enabled') &&
+        (Boolean(map.scriptCode) || (map.scriptSource === 'existing' && Boolean(map.scriptRef)));
+    if (isReady) {
+        return <span className="qa-method-pill playwright">Playwright</span>;
+    }
+    return <span className="qa-method-pill unmapped">Unmapped</span>;
+};
+
 const RunExecutionPage = () => {
     const { runId } = useParams();
     const navigate = useNavigate();
@@ -109,6 +133,9 @@ const RunExecutionPage = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [methodFilter, setMethodFilter] = useState('all');
+    const [collapsedCategories, setCollapsedCategories] = useState({});
+    const [caseDrafts, setCaseDrafts] = useState({});
+    const [isMobileDetailOpen, setIsMobileDetailOpen] = useState(false);
 
     // Execution input form state
     const [formStatus, setFormStatus] = useState('passed');
@@ -200,6 +227,27 @@ const RunExecutionPage = () => {
         loadRunData();
     }, [loadRunData]);
 
+    const handleSelectCase = (newCaseId) => {
+        if (!newCaseId || newCaseId === activeCaseId) {
+            setIsMobileDetailOpen(true);
+            return;
+        }
+        if (activeCaseId) {
+            setCaseDrafts(prev => ({
+                ...prev,
+                [activeCaseId]: {
+                    formStatus,
+                    actualResult,
+                    notes,
+                    screenshotData,
+                    screenshotName
+                }
+            }));
+        }
+        setActiveCaseId(newCaseId);
+        setIsMobileDetailOpen(true);
+    };
+
     // Fetch active case details and attempt history when activeCaseId changes
     useEffect(() => {
         if (!runId || !activeCaseId) return;
@@ -210,12 +258,20 @@ const RunExecutionPage = () => {
                 const res = await executionService.getRunCase(runId, activeCaseId);
                 if (isCurrent && res.success && res.data) {
                     setActiveCaseDetails(res.data);
-                    // Pre-populate actual result & notes if previously executed
-                    setActualResult(res.data.actualResult || '');
-                    setNotes(res.data.notes || '');
-                    setFormStatus(res.data.status !== 'not_run' ? res.data.status : 'passed');
-                    setScreenshotData(null);
-                    setScreenshotName('');
+                    const draft = caseDrafts[activeCaseId];
+                    if (draft) {
+                        setFormStatus(draft.formStatus || (res.data.status !== 'not_run' ? res.data.status : 'passed'));
+                        setActualResult(draft.actualResult ?? res.data.actualResult ?? '');
+                        setNotes(draft.notes ?? res.data.notes ?? '');
+                        setScreenshotData(draft.screenshotData || null);
+                        setScreenshotName(draft.screenshotName || '');
+                    } else {
+                        setActualResult(res.data.actualResult || '');
+                        setNotes(res.data.notes || '');
+                        setFormStatus(res.data.status !== 'not_run' ? res.data.status : 'passed');
+                        setScreenshotData(null);
+                        setScreenshotName('');
+                    }
                     setSaveMessage(null);
                 }
             } catch (err) {
@@ -291,6 +347,11 @@ const RunExecutionPage = () => {
             const res = await executionService.recordExecution(runId, activeCaseId, payload);
             if (res.success) {
                 setSaveMessage('Execution attempt recorded successfully.');
+                setCaseDrafts(prev => {
+                    const next = { ...prev };
+                    delete next[activeCaseId];
+                    return next;
+                });
                 // Refresh active case details and run summary
                 const updatedCaseRes = await executionService.getRunCase(runId, activeCaseId);
                 if (updatedCaseRes.success) {
@@ -349,6 +410,25 @@ const RunExecutionPage = () => {
             return matchesSearch && matchesStatus && matchesMethod;
         });
     }, [cases, search, statusFilter, methodFilter]);
+
+    // Group filtered cases by Category (Functional, Negative, Edge, API, etc.)
+    const groupedCases = useMemo(() => {
+        const groups = {};
+        for (const c of filteredCases) {
+            const raw = c.caseSnapshot?.type || c.caseSnapshot?.category || c.type || 'Functional';
+            const cat = raw.charAt(0).toUpperCase() + raw.slice(1);
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(c);
+        }
+        return groups;
+    }, [filteredCases]);
+
+    const toggleCategoryCollapse = (cat) => {
+        setCollapsedCategories(prev => ({
+            ...prev,
+            [cat]: !prev[cat]
+        }));
+    };
 
     const { readyCount, invalidCount, unmappedCount } = useMemo(() => {
         let ready = 0;
@@ -628,90 +708,110 @@ const RunExecutionPage = () => {
         }
     };
 
-    return (
-        <div className="ws-page-container run-workspace" style={{ maxWidth: '100%' }}>
-            {/* Run Top Banner Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                paddingBottom: '1rem',
-                borderBottom: '1px solid #292D2D',
-                marginBottom: '1rem'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                    <NavLink
-                        to="/app/runs"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '6px',
-                            background: '#161819',
-                            border: '1px solid #292D2D',
-                            color: '#F2F3F3'
-                        }}
-                        title="Back to All Runs"
-                    >
-                        <ArrowLeft size={16} />
-                    </NavLink>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#F2F3F3', margin: 0 }}>
-                                {run.name}
-                            </h1>
-                            <StatusBadge status={run.status} />
-                            <span className="run-id-label" title={`Run ID: ${run.id}`}>{run.id}</span>
-                            <span style={{
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                background: '#161819',
-                                border: '1px solid #292D2D',
-                                fontSize: '0.74rem',
-                                color: '#A0A5A5'
-                            }}>
-                                {run.executionType.toUpperCase()}
-                            </span>
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#777E7E', marginTop: '2px' }}>
-                        Environment <span style={{ color: '#A0A5A5' }}>{run.targetEnvironment?.name || 'Default Staging'}</span> <span className="run-meta-divider">·</span> {cases.length} test cases
-                        </div>
+return (
+        <div className="qa-workspace">
+            {/* ─── 1. TOP HEADER & BREADCRUMBS ─── */}
+            <div className="qa-top-header">
+                <div>
+                    <div className="qa-breadcrumb-nav">
+                        <NavLink to="/app/runs">Execution</NavLink>
+                        <span className="qa-breadcrumb-sep">/</span>
+                        <span>Test Run Workspace</span>
+                    </div>
+
+                    <div className="qa-title-cluster">
+                        <NavLink
+                            to="/app/runs"
+                            className="ws-btn-secondary"
+                            style={{ width: '32px', height: '32px', padding: 0, justifyContent: 'center' }}
+                            title="Back to All Test Runs"
+                        >
+                            <ArrowLeft size={16} />
+                        </NavLink>
+                        <h1 className="qa-run-title">{run.name}</h1>
+                        <span className="qa-run-id-pill">Run #{String(run.id).slice(-8)}</span>
+                        <StatusBadge status={run.status} />
+                        <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: run.executionType === 'automated' ? 'rgba(56, 189, 248, 0.15)' : run.executionType === 'mixed' ? 'rgba(139, 175, 154, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                            color: run.executionType === 'automated' ? '#38BDF8' : run.executionType === 'mixed' ? '#8BAF9A' : '#A0A5A5',
+                            border: '1px solid var(--qa-border)',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase'
+                        }}>
+                            {run.executionType === 'automated' ? 'Automated (Playwright)' : run.executionType === 'mixed' ? 'Hybrid Execution' : 'Manual Execution'}
+                        </span>
+                    </div>
+
+                    <div className="qa-header-meta-row">
+                        <span className="qa-header-meta-item">
+                            Environment: <strong>{run.targetEnvironment?.name || 'Default Staging'}</strong>
+                            {run.targetEnvironment?.baseUrl && <span style={{ color: 'var(--qa-text-dim)', marginLeft: '4px' }}>({run.targetEnvironment.baseUrl})</span>}
+                        </span>
+                        <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
+                        <span className="qa-header-meta-item">
+                            Suite: <strong>{run.suiteTitle || run.suiteName || 'Test Suite'}</strong> (v{run.suiteVersion || 1})
+                        </span>
+                        <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
+                        <span className="qa-header-meta-item">
+                            Total: <strong>{cases.length} cases</strong>
+                        </span>
                     </div>
                 </div>
 
                 {/* Header Action Controls */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    {/* Execution readiness remains separate from recorded outcomes. */}
+                <div className="qa-header-actions">
+                    {/* Automation Readiness Pill Ledger */}
                     {(run.executionType === 'automated' || run.executionType === 'mixed') && (
                         <div style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
                             padding: '4px 10px',
-                            background: '#161819',
-                            border: '1px solid #292D2D',
+                            background: 'var(--qa-surface-elevated)',
+                            border: '1px solid var(--qa-border)',
                             borderRadius: '6px',
                             fontSize: '0.74rem'
                         }}>
                             <span style={{ color: readyCount > 0 ? '#8BAF9A' : '#777E7E', fontWeight: 600 }}>{readyCount} Ready</span>
-                            <span style={{ color: '#444A4A' }}>•</span>
+                            <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
                             <span style={{ color: invalidCount > 0 ? '#E06C75' : '#777E7E' }}>{invalidCount} Invalid</span>
-                            <span style={{ color: '#444A4A' }}>•</span>
+                            <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
                             <span style={{ color: unmappedCount > 0 ? '#E5C07B' : '#777E7E' }}>{unmappedCount} Unmapped</span>
                         </div>
                     )}
 
+                    {/* Auto-Configure Scripts button */}
+                    {(run.executionType === 'automated' || run.executionType === 'mixed') && unconfiguredCount > 0 && readyCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={handleAutoConfigureApproved}
+                            disabled={isAutoConfiguring || (activeJob && activeJob.status === 'running')}
+                            className="ws-btn-secondary"
+                            style={{
+                                height: '34px',
+                                padding: '0 0.85rem',
+                                color: '#38BDF8',
+                                borderColor: 'rgba(56, 189, 248, 0.3)',
+                                fontSize: '0.82rem',
+                                gap: '6px'
+                            }}
+                            title="Auto-bind approved Playwright scripts to remaining unmapped test cases"
+                        >
+                            <Wand2 size={14} className={isAutoConfiguring ? 'animate-spin' : ''} />
+                            <span>{isAutoConfiguring ? 'Configuring...' : `Auto-Map Remaining (${unconfiguredCount})`}</span>
+                        </button>
+                    )}
+
                     {/* Automated Run CTA */}
-                    {(run.executionType === 'automated' || run.executionType === 'mixed') ? (
+                    {(run.executionType === 'automated' || run.executionType === 'mixed') && (
                         readyCount === 0 && (!activeJob || (activeJob.status !== 'queued' && activeJob.status !== 'running')) ? (
                             <button
                                 type="button"
-                                onClick={() => setActiveTab('cases')}
-                                disabled
+                                onClick={handleAutoConfigureApproved}
+                                disabled={isAutoConfiguring}
                                 className="ws-btn-primary"
                                 style={{
                                     height: '34px',
@@ -723,10 +823,10 @@ const RunExecutionPage = () => {
                                     fontSize: '0.82rem',
                                     gap: '6px'
                                 }}
-                                title="Configure at least one approved Playwright mapping before starting this run."
+                                title="No test cases have configured Playwright scripts. Click to auto-bind approved suite scripts."
                             >
-                                <Play size={14} />
-                                <span>Run Tests</span>
+                                <Wand2 size={14} className={isAutoConfiguring ? 'animate-spin' : ''} />
+                                <span>{isAutoConfiguring ? 'Mapping Approved Scripts...' : `Auto-Map Approved Scripts (${cases.length})`}</span>
                             </button>
                         ) : (
                             <button
@@ -763,28 +863,52 @@ const RunExecutionPage = () => {
                                 ) : (
                                     <>
                                         <Play size={14} fill="#080909" />
-                                        <span>Run Tests</span>
+                                        <span>Run Test Suite ({automationReadyCount} Ready)</span>
                                     </>
                                 )}
                             </button>
                         )
-                    ) : (
-                        <button type="button" onClick={() => { setActiveTab('cases'); if (cases[0]) setActiveCaseId(cases[0].id); }} className="ws-btn-primary" style={{ height: '34px', padding: '0 1rem', background: '#8eae9b', color: '#101512', border: 'none', fontWeight: 650 }}>
-                            <Play size={14} /> <span>Run Tests</span>
+                    )}
+
+                    {/* Rerun Failed Cases */}
+                    {sum.failed > 0 && (!activeJob || (activeJob.status !== 'queued' && activeJob.status !== 'running')) && (
+                        <button
+                            type="button"
+                            onClick={handleRerunFailed}
+                            disabled={isRerunningFailed}
+                            className="ws-btn-secondary"
+                            style={{
+                                height: '34px',
+                                padding: '0 0.85rem',
+                                color: '#E06C75',
+                                borderColor: 'rgba(224, 108, 117, 0.4)',
+                                fontSize: '0.82rem',
+                                gap: '6px'
+                            }}
+                            title="Rerun only failed test cases with Playwright"
+                        >
+                            <RotateCcw size={14} className={isRerunningFailed ? 'animate-spin' : ''} />
+                            <span>{isRerunningFailed ? 'Rerunning...' : `Rerun Failed (${sum.failed})`}</span>
                         </button>
                     )}
 
-                    {/* Less frequently used actions */}
-                    <details className="run-overflow">
-                        <summary aria-label="More run actions">•••</summary>
-                        <div className="run-overflow-menu">
-                            <button type="button" onClick={() => setIsTerminalOpen(!isTerminalOpen)}><Terminal size={14} /> Runner console</button>
-                            {sum.failed > 0 && <button type="button" onClick={handleRerunFailed} disabled={isRerunningFailed}><RotateCcw size={14} /> Rerun failed ({sum.failed})</button>}
-                            {(run.executionType === 'automated' || run.executionType === 'mixed') && unconfiguredCount > 0 && <button type="button" onClick={handleAutoConfigureApproved} disabled={isAutoConfiguring}><Wand2 size={14} /> Configure unmapped cases</button>}
-                            <button type="button" onClick={loadRunData}><RefreshCw size={14} /> Refresh run</button>
-                        </div>
-                    </details>
-                    {(run.status === 'in_progress' || activeJob?.status === 'running' || activeJob?.status === 'queued') && (
+                    {/* Toggle Live Runner Logs */}
+                    <button
+                        type="button"
+                        onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+                        className="ws-btn-secondary"
+                        style={{
+                            height: '34px',
+                            padding: '0 0.75rem',
+                            color: isTerminalOpen ? '#38BDF8' : 'var(--qa-text-muted)',
+                            borderColor: isTerminalOpen ? 'rgba(56, 189, 248, 0.4)' : 'var(--qa-border)'
+                        }}
+                        title="Toggle Playwright Worker Console"
+                    >
+                        <Terminal size={14} />
+                    </button>
+
+                    {run.status !== 'completed' && run.status !== 'cancelled' && (
                         <button
                             type="button"
                             onClick={() => setIsCancelModalOpen(true)}
@@ -796,132 +920,98 @@ const RunExecutionPage = () => {
                         </button>
                     )}
 
+                    <button
+                        type="button"
+                        onClick={loadRunData}
+                        className="ws-btn-secondary"
+                        style={{ height: '34px', padding: '0 0.75rem' }}
+                        title="Refresh execution state"
+                    >
+                        <RefreshCw size={14} />
+                    </button>
                 </div>
             </div>
 
-            <section className="run-activity" aria-label="Execution activity">
-                <div><span className="activity-label">Execution method</span><strong>{run.executionType === 'automated' ? 'Playwright automation' : run.executionType === 'mixed' ? 'Automated + manual' : 'Manual verification'}</strong></div>
-                {(run.executionType === 'automated' || run.executionType === 'mixed') && <div><span className="activity-label">Automation readiness</span><strong>{readyCount} ready <span className="activity-muted">· {unmappedCount} unmapped · {invalidCount} invalid</span></strong></div>}
-                <div><span className="activity-label">Latest activity</span><strong>{activeJob?.status ? `Automation ${activeJob.status}` : run.updatedAt ? new Date(run.updatedAt).toLocaleString() : 'No execution activity recorded'}</strong></div>
-                {activeJob?.status === 'failed' && <span className="run-inline-error">{activeJob.errorMessage || 'Automation job failed. Open diagnostics for execution details.'}</span>}
-            </section>
-
-            {/* Run Progress Ribbon */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                padding: '0.75rem 1rem',
-                background: '#101112',
-                border: '1px solid #292D2D',
-                borderRadius: '8px',
-                marginBottom: '1rem'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
-                        <CheckCircle2 size={15} style={{ color: '#8BAF9A' }} />
-                        <span style={{ color: '#8BAF9A', fontWeight: 600 }}>{sum.passed || 0} Passed</span>
+            {/* ─── 2. COMPACT HORIZONTAL EXECUTION OVERVIEW ─── */}
+            <div className="qa-overview-ribbon">
+                <div className="qa-metric-strip">
+                    <div className="qa-metric-chip total">
+                        <Layers size={14} />
+                        <span>{sum.total || cases.length} Total</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
-                        <XCircle size={15} style={{ color: '#E06C75' }} />
-                        <span style={{ color: '#E06C75', fontWeight: 600 }}>{sum.failed || 0} Failed</span>
+                    <div className="qa-metric-chip passed">
+                        <CheckCircle2 size={14} />
+                        <span>{sum.passed || 0} Passed</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
-                        <AlertTriangle size={15} style={{ color: '#E5C07B' }} />
-                        <span style={{ color: '#E5C07B', fontWeight: 600 }}>{sum.blocked || 0} Blocked</span>
+                    <div className="qa-metric-chip failed">
+                        <XCircle size={14} />
+                        <span>{sum.failed || 0} Failed</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
-                        <MinusCircle size={15} style={{ color: '#C678DD' }} />
-                        <span style={{ color: '#C678DD', fontWeight: 600 }}>{sum.skipped || 0} Skipped</span>
+                    <div className="qa-metric-chip blocked">
+                        <AlertTriangle size={14} />
+                        <span>{sum.blocked || 0} Blocked</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}>
-                        <Clock size={15} style={{ color: '#777E7E' }} />
-                        <span style={{ color: '#A0A5A5', fontWeight: 600 }}>{notRunCount} Not Run</span>
+                    <div className="qa-metric-chip skipped">
+                        <MinusCircle size={14} />
+                        <span>{sum.skipped || 0} Skipped</span>
                     </div>
-                </div>
-                <div className="run-progress-line" aria-label={`${completedCount} of ${totalCases} test cases executed`}>
-                    <div className="run-progress-meta"><span>Execution progress</span><strong>{completedCount} / {totalCases} · {progressPercent}%</strong></div>
-                    <div className="run-progress-track"><span style={{ width: `${progressPercent}%` }} /></div>
+                    <div className="qa-metric-chip not-run">
+                        <Clock size={14} />
+                        <span>{sum.not_run || 0} Not Run</span>
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('cases')}
-                        style={{
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            background: activeTab === 'cases' ? '#161819' : 'transparent',
-                            border: `1px solid ${activeTab === 'cases' ? '#8BAF9A' : 'transparent'}`,
-                            color: activeTab === 'cases' ? '#8BAF9A' : '#A0A5A5',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Test Cases ({cases.length})
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('report')}
-                        style={{
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            background: activeTab === 'report' ? '#161819' : 'transparent',
-                            border: `1px solid ${activeTab === 'report' ? '#8BAF9A' : 'transparent'}`,
-                            color: activeTab === 'report' ? '#8BAF9A' : '#A0A5A5',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                    >
-                        <FileText size={12} />
-                        Reports
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('compare')}
-                        style={{
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            background: activeTab === 'compare' ? '#161819' : 'transparent',
-                            border: `1px solid ${activeTab === 'compare' ? '#8BAF9A' : 'transparent'}`,
-                            color: activeTab === 'compare' ? '#8BAF9A' : '#A0A5A5',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                    >
-                        <GitCompare size={12} />
-                        Comparison
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setActiveTab('artifacts')}
-                        style={{
-                            padding: '4px 10px',
-                            borderRadius: '4px',
-                            background: activeTab === 'artifacts' ? '#161819' : 'transparent',
-                            border: `1px solid ${activeTab === 'artifacts' ? '#8BAF9A' : 'transparent'}`,
-                            color: activeTab === 'artifacts' ? '#8BAF9A' : '#A0A5A5',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Artifacts ({artifacts.length})
-                    </button>
-                    <button type="button" onClick={() => setActiveTab('diagnostics')} className={`run-tab ${activeTab === 'diagnostics' ? 'active' : ''}`}>Diagnostics</button>
-                    <button type="button" onClick={() => setActiveTab('coverage')} className={`run-tab ${activeTab === 'coverage' ? 'active' : ''}`}>Requirement Coverage</button>
+                <div className="qa-progress-container">
+                    <div className="qa-progress-bar-track">
+                        {cases.length > 0 && (
+                            <>
+                                <div style={{ width: `${((sum.passed || 0) / cases.length) * 100}%` }} className="qa-progress-fill-passed" title={`Passed: ${sum.passed || 0}`} />
+                                <div style={{ width: `${((sum.failed || 0) / cases.length) * 100}%` }} className="qa-progress-fill-failed" title={`Failed: ${sum.failed || 0}`} />
+                                <div style={{ width: `${((sum.blocked || 0) / cases.length) * 100}%` }} className="qa-progress-fill-blocked" title={`Blocked: ${sum.blocked || 0}`} />
+                                <div style={{ width: `${((sum.skipped || 0) / cases.length) * 100}%` }} className="qa-progress-fill-skipped" title={`Skipped: ${sum.skipped || 0}`} />
+                            </>
+                        )}
+                    </div>
+                    <span className="qa-progress-percent">
+                        {cases.length > 0 ? Math.round(((cases.length - (sum.not_run || 0)) / cases.length) * 100) : 0}%
+                    </span>
                 </div>
+            </div>
+
+            {/* ─── 3. WORKSPACE VIEW TABS ─── */}
+            <div className="qa-tab-strip">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('cases')}
+                    className={`qa-tab-btn ${activeTab === 'cases' ? 'active' : ''}`}
+                >
+                    <Layers size={14} />
+                    <span>Execution Workspace ({cases.length})</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('report')}
+                    className={`qa-tab-btn ${activeTab === 'report' ? 'active' : ''}`}
+                >
+                    <FileText size={14} />
+                    <span>Executive Report</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('compare')}
+                    className={`qa-tab-btn ${activeTab === 'compare' ? 'active' : ''}`}
+                >
+                    <GitCompare size={14} />
+                    <span>Run Comparison</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('artifacts')}
+                    className={`qa-tab-btn ${activeTab === 'artifacts' ? 'active' : ''}`}
+                >
+                    <Camera size={14} />
+                    <span>Artifacts & Evidence ({artifacts.length})</span>
+                </button>
             </div>
 
             {/* TAB: EXECUTIVE REPORT */}
@@ -941,15 +1031,15 @@ const RunExecutionPage = () => {
                 /* TAB: ARTIFACTS & LOGS */
                 <div style={{
                     padding: '1.25rem',
-                    background: '#101112',
-                    border: '1px solid #292D2D',
+                    background: 'var(--qa-surface)',
+                    border: '1px solid var(--qa-border)',
                     borderRadius: '8px'
                 }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#F2F3F3', marginTop: 0, marginBottom: '1rem' }}>
-                        Execution Artifacts, Screenshots & Logs
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--qa-text)', marginTop: 0, marginBottom: '1rem' }}>
+                        Execution Artifacts, Screenshots & Evidence
                     </h3>
                     {artifacts.length === 0 ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: '#777E7E', fontSize: '0.88rem' }}>
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--qa-text-dim)', fontSize: '0.88rem' }}>
                             No artifacts recorded yet. Run Playwright automation or upload screenshot evidence during manual testing.
                         </div>
                     ) : (
@@ -958,10 +1048,10 @@ const RunExecutionPage = () => {
                                 <div
                                     key={art.id}
                                     style={{
-                                        padding: '0.85rem',
-                                        background: '#161819',
-                                        border: '1px solid #292D2D',
+                                        background: 'var(--qa-surface-elevated)',
+                                        border: '1px solid var(--qa-border)',
                                         borderRadius: '6px',
+                                        padding: '0.85rem',
                                         display: 'flex',
                                         flexDirection: 'column',
                                         gap: '0.5rem'
@@ -979,14 +1069,14 @@ const RunExecutionPage = () => {
                                         }}>
                                             {art.artifactType}
                                         </span>
-                                        <span style={{ fontSize: '0.72rem', color: '#777E7E' }}>
+                                        <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-muted)' }}>
                                             {(art.sizeBytes / 1024).toFixed(1)} KB
                                         </span>
                                     </div>
                                     <div style={{
                                         fontSize: '0.84rem',
                                         fontWeight: 500,
-                                        color: '#F2F3F3',
+                                        color: 'var(--qa-text)',
                                         whiteSpace: 'nowrap',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis'
@@ -1007,637 +1097,477 @@ const RunExecutionPage = () => {
                         </div>
                     )}
                 </div>
-            ) : activeTab === 'diagnostics' || activeTab === 'coverage' ? (
-                <RunReportView
-                    runId={runId}
-                    onRerunTriggered={() => loadRunData()}
-                    onSwitchToCases={() => setActiveTab('cases')}
-                    viewMode={activeTab}
-                />
             ) : (
-                /* TAB: TEST CASES EXECUTION WORKSPACE */
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr)',
-                    gap: '1rem',
-                    alignItems: 'start'
-                }}>
-                    {/* Left Column: Test Cases List */}
-                    <div style={{
-                        background: '#101112',
-                        border: '1px solid #292D2D',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        height: 'auto',
-                        minHeight: '0'
-                    }}>
-                        {/* Search and Filter */}
-                        <div style={{ padding: '0.75rem', borderBottom: '1px solid #292D2D', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search test cases..."
-                                style={{
-                                    width: '100%',
-                                    padding: '0.5rem 0.75rem',
-                                    background: '#161819',
-                                    border: '1px solid #292D2D',
-                                    borderRadius: '6px',
-                                    color: '#F2F3F3',
-                                    fontSize: '0.82rem',
-                                    outline: 'none',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.45rem 0.65rem',
-                                    background: '#161819',
-                                    border: '1px solid #292D2D',
-                                    borderRadius: '6px',
-                                    color: '#F2F3F3',
-                                    fontSize: '0.78rem',
-                                    outline: 'none',
-                                    boxSizing: 'border-box'
-                                }}
-                            >
-                                <option value="all">All Outcomes ({cases.length})</option>
-                                <option value="passed">Passed ({sum.passed || 0})</option>
-                                <option value="failed">Failed ({sum.failed || 0})</option>
-                                <option value="blocked">Blocked ({sum.blocked || 0})</option>
-                                <option value="skipped">Skipped ({sum.skipped || 0})</option>
-                                <option value="not_run">Not Run ({sum.not_run || 0})</option>
-                            </select>
-                            <select
-                                value={methodFilter}
-                                onChange={(e) => setMethodFilter(e.target.value)}
-                                aria-label="Filter by execution method"
-                                style={{ width: '100%', padding: '0.45rem 0.65rem', background: '#161819', border: '1px solid #292D2D', borderRadius: '6px', color: '#F2F3F3', fontSize: '0.78rem', outline: 'none', boxSizing: 'border-box' }}
-                            >
-                                <option value="all">All execution methods</option>
-                                <option value="manual">Manual</option>
-                                <option value="automated">Playwright</option>
-                            </select>
+                /* ─── 4. MAIN WORKSPACE: TWO-PANEL MASTER-DETAIL LAYOUT ─── */
+                <div className="qa-master-detail-grid">
+                    {/* LEFT PANEL: Master Case Navigator (32% width) */}
+                    <div className={`qa-master-panel ${isMobileDetailOpen ? 'mobile-hidden' : ''}`}>
+                        {/* Search and Filters */}
+                        <div className="qa-master-panel-header">
+                            <div className="qa-search-box">
+                                <Search size={14} />
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search test cases by title or ID..."
+                                    className="qa-search-input"
+                                />
+                            </div>
+
+                            <div className="qa-filter-controls">
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="qa-select-input"
+                                >
+                                    <option value="all">All Outcomes ({cases.length})</option>
+                                    <option value="passed">Passed ({sum.passed || 0})</option>
+                                    <option value="failed">Failed ({sum.failed || 0})</option>
+                                    <option value="blocked">Blocked ({sum.blocked || 0})</option>
+                                    <option value="skipped">Skipped ({sum.skipped || 0})</option>
+                                    <option value="not_run">Not Run ({sum.not_run || 0})</option>
+                                </select>
+
+                                <select
+                                    value={methodFilter}
+                                    onChange={(e) => setMethodFilter(e.target.value)}
+                                    className="qa-select-input"
+                                >
+                                    <option value="all">All Methods</option>
+                                    <option value="manual">Manual Only</option>
+                                    <option value="automated">Playwright</option>
+                                </select>
+                            </div>
                         </div>
 
-                        {/* List Items */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '0.4rem' }}>
-                            {filteredCases.map(c => {
-                                const isSelected = c.id === activeCaseId;
-                                const isAuto = c.executionType === 'automated';
-                                return (
-                                    <div
-                                        key={c.id}
-                                        onClick={() => setActiveCaseId(c.id)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                setActiveCaseId(c.id);
-                                            }
-                                        }}
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-pressed={isSelected}
-                                        style={{
-                                            padding: '0.65rem 0.75rem',
-                                            borderRadius: '6px',
-                                            background: isSelected ? '#161819' : 'transparent',
-                                            border: `1px solid ${isSelected ? '#8BAF9A' : 'transparent'}`,
-                                            cursor: 'pointer',
-                                            marginBottom: '0.25rem',
-                                            transition: 'all 0.1s ease',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '0.3rem'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8BAF9A', fontFamily: 'monospace' }}>
-                                                {c.testCaseId}
-                                            </span>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                {isAuto ? (
-                                                    (c.caseSnapshot?.automationMapping?.mappingStatus === 'configured' &&
-                                                     (c.caseSnapshot?.automationMapping?.scriptCode || (c.caseSnapshot?.automationMapping?.scriptSource === 'existing' && c.caseSnapshot?.automationMapping?.scriptRef))) ? (
-                                                        <span style={{ fontSize: '0.68rem', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 5px', borderRadius: '3px' }}>
-                                                            Playwright
-                                                        </span>
-                                                    ) : (
-                                                        <span style={{ fontSize: '0.68rem', color: '#E5C07B', background: 'rgba(229, 192, 123, 0.1)', padding: '1px 5px', borderRadius: '3px' }}>
-                                                            Unmapped
-                                                        </span>
-                                                    )
-                                                ) : (
-                                                    <span style={{ fontSize: '0.68rem', color: '#A0A5A5', background: 'rgba(255, 255, 255, 0.05)', padding: '1px 5px', borderRadius: '3px' }}>
-                                                        Manual
-                                                    </span>
-                                                )}
-                                                <StatusBadge status={c.status} />
+                        {/* Grouped Category Accordions */}
+                        <div className="qa-case-list-scroll">
+                            {Object.keys(groupedCases).length === 0 ? (
+                                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--qa-text-muted)', fontSize: '0.84rem' }}>
+                                    No test cases match the applied search and outcome filters.
+                                </div>
+                            ) : (
+                                Object.entries(groupedCases).map(([catName, catCases]) => {
+                                    const isCollapsed = Boolean(collapsedCategories[catName]);
+                                    return (
+                                        <div key={catName} className="qa-category-group">
+                                            <div
+                                                onClick={() => toggleCategoryCollapse(catName)}
+                                                className="qa-category-header"
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                                                    <span>{catName}</span>
+                                                </div>
+                                                <span className="qa-category-count-badge">{catCases.length}</span>
                                             </div>
+
+                                            {!isCollapsed && (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                                    {catCases.map(c => {
+                                                        const isSelected = c.id === activeCaseId;
+                                                        return (
+                                                            <div
+                                                                key={c.id}
+                                                                onClick={() => handleSelectCase(c.id)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                                        e.preventDefault();
+                                                                        handleSelectCase(c.id);
+                                                                    }
+                                                                }}
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                aria-pressed={isSelected}
+                                                                className={`qa-case-card ${isSelected ? 'active' : ''}`}
+                                                            >
+                                                                <div className="qa-case-card-top">
+                                                                    <span className="qa-case-id-text">
+                                                                        {c.testCaseId}
+                                                                    </span>
+                                                                    <div className="qa-case-badges">
+                                                                        <PriorityBadge priority={c.caseSnapshot?.priority} />
+                                                                        <CaseMethodBadge c={c} />
+                                                                        <StatusBadge status={c.status} />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="qa-case-title-text">
+                                                                    {c.caseSnapshot?.title || 'Untitled Test Case'}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{
-                                            fontSize: '0.84rem',
-                                            fontWeight: 500,
-                                            color: '#F2F3F3',
-                                            overflowWrap: 'anywhere'
-                                        }}>
-                                            {c.caseSnapshot?.title || 'Untitled Test Case'}
-                                        </div>
-                                        <div className="case-row-meta">
-                                            <span>{c.caseSnapshot?.module || c.caseSnapshot?.type || 'General'}</span>
-                                            <span>Priority {c.caseSnapshot?.priority || '—'}</span>
-                                            <span>{c.executionType === 'automated' ? 'Playwright' : 'Manual'}</span>
-                                            <span>{c.durationMs ? `${(c.durationMs / 1000).toFixed(1)}s` : '—'}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
 
-                    {/* Right Column: Execution Form & Case Snapshot Viewer */}
-                    {activeCase ? (
-                        <div style={{
-                            background: '#101112',
-                            border: '1px solid #292D2D',
-                            borderRadius: '8px',
-                            padding: '1.25rem',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '1.25rem'
-                        }}>
-                            {/* Case Header */}
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                                    <span style={{
-                                        fontSize: '0.76rem',
-                                        fontWeight: 700,
-                                        color: '#8BAF9A',
-                                        fontFamily: 'monospace',
-                                        padding: '2px 6px',
-                                        background: 'rgba(139, 175, 154, 0.1)',
-                                        borderRadius: '4px'
-                                    }}>
-                                        {activeCase.testCaseId}
-                                    </span>
-                                    <span style={{ fontSize: '0.75rem', color: '#A0A5A5', textTransform: 'uppercase' }}>
-                                        {snapshot.module} • {snapshot.type} • Priority: {snapshot.priority}
-                                    </span>
-                                </div>
-                                <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#F2F3F3', margin: 0 }}>
-                                    {snapshot.title}
-                                </h2>
-                            </div>
-
-                            {/* Structured Playwright Automation Mapping Card */}
-                            {(() => {
-                                const isCaseAutoReady = hasAutomation &&
-                                    (snapshot.automationMapping?.mappingStatus === 'configured' || snapshot.automationMapping?.mappingStatus === 'enabled') &&
-                                    (Boolean(snapshot.automationMapping?.scriptCode) || (snapshot.automationMapping?.scriptSource === 'existing' && Boolean(snapshot.automationMapping?.scriptRef)));
-
-                                return (
-                                    <div style={{
-                                        background: '#121415',
-                                        border: '1px solid #292D2D',
-                                        borderLeft: isCaseAutoReady ? '3px solid #8BAF9A' : '3px solid #E5C07B',
-                                        borderRadius: '8px',
-                                        padding: '0.9rem',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '0.75rem'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <Bot size={17} style={{ color: isCaseAutoReady ? '#8BAF9A' : '#E5C07B' }} />
-                                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#F2F3F3' }}>
-                                                    Playwright Automation Mapping
-                                                </span>
-                                            </div>
-                                            <div>
-                                                {isCaseAutoReady ? (
-                                                    <span style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '4px',
-                                                        fontSize: '0.72rem',
-                                                        fontWeight: 600,
-                                                        textTransform: 'uppercase',
-                                                        background: 'rgba(139, 175, 154, 0.15)',
-                                                        color: '#8BAF9A',
-                                                        border: '1px solid rgba(139, 175, 154, 0.3)'
-                                                    }}>
-                                                        <Check size={12} /> Configured
-                                                    </span>
-                                                ) : (
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '4px',
-                                                padding: '2px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.72rem',
-                                                fontWeight: 600,
-                                                textTransform: 'uppercase',
-                                                background: 'rgba(229, 192, 123, 0.15)',
-                                                color: '#E5C07B',
-                                                border: '1px solid rgba(229, 192, 123, 0.3)'
-                                            }}>
-                                                <AlertTriangle size={12} /> Not Configured
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Metadata Details Grid */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                                    gap: '0.65rem',
-                                    background: '#0D0E0F',
-                                    border: '1px solid #202223',
-                                    borderRadius: '6px',
-                                    padding: '0.65rem 0.85rem'
-                                }}>
-                                    <div>
-                                        <div style={{ fontSize: '0.68rem', color: '#777E7E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Test Case ID</div>
-                                        <div style={{ fontSize: '0.82rem', color: '#F2F3F3', fontWeight: 600, marginTop: '2px' }}>{activeCase.testCaseId}</div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.68rem', color: '#777E7E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Framework</div>
-                                        <div style={{ fontSize: '0.82rem', color: '#38BDF8', fontWeight: 600, marginTop: '2px' }}>
-                                            {snapshot.automationMapping?.framework || 'Playwright (Chromium)'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.68rem', color: '#777E7E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Automation Test ID</div>
-                                        <div style={{ fontSize: '0.82rem', color: '#F2F3F3', fontFamily: 'monospace', marginTop: '2px' }}>
-                                            {snapshot.automationMapping?.automationTestId || 'None'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.68rem', color: '#777E7E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Script Reference</div>
-                                        <div style={{ fontSize: '0.82rem', color: '#A0A5A5', fontFamily: 'monospace', marginTop: '2px', wordBreak: 'break-all' }}>
-                                            {snapshot.automationMapping?.scriptRef || 'Not assigned'}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Script State / Actions */}
-                                {!isCaseAutoReady ? (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        flexWrap: 'wrap',
-                                        gap: '0.75rem',
-                                        padding: '0.65rem 0.85rem',
-                                        background: 'rgba(229, 192, 123, 0.06)',
-                                        border: '1px dashed rgba(229, 192, 123, 0.3)',
-                                        borderRadius: '6px'
-                                    }}>
-                                        <div style={{ fontSize: '0.8rem', color: '#E5C07B', maxWidth: '440px', lineHeight: '1.4' }}>
-                                            <strong>Automation not configured for this test case.</strong>
-                                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#A0A5A5', marginTop: '2px' }}>
-                                                AI-generated manual steps cannot execute in Playwright without an explicit automation script.
-                                            </span>
-                                        </div>
+                    {/* RIGHT PANEL: Selected Case Detail Only (68% width) */}
+                    <div className={`qa-detail-panel ${!isMobileDetailOpen ? 'mobile-hidden' : ''}`}>
+                        {activeCase ? (
+                            <div className="qa-detail-content">
+                                {/* Mobile Back Button */}
+                                {isMobileDetailOpen && (
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-0.5rem' }}>
                                         <button
                                             type="button"
-                                            onClick={() => handleOpenMappingModal(activeCase)}
-                                            className="ws-btn-primary"
-                                            style={{ height: '32px', fontSize: '0.78rem', padding: '0 0.85rem', gap: '6px' }}
+                                            onClick={() => setIsMobileDetailOpen(false)}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '30px', fontSize: '0.78rem', gap: '6px' }}
                                         >
-                                            <Code size={13} />
-                                            <span>Configure Playwright Script</span>
+                                            <ArrowLeft size={13} />
+                                            <span>Back to Test Cases</span>
                                         </button>
                                     </div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.76rem', color: '#8BAF9A' }}>
-                                                ✓ Playwright script active • Ready for automated execution
-                                            </span>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowScriptPreview(!showScriptPreview)}
-                                                    className="ws-btn-secondary"
-                                                    style={{ height: '28px', fontSize: '0.74rem', padding: '0 0.65rem' }}
-                                                >
-                                                    {showScriptPreview ? 'Hide Script' : 'View Script'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenMappingModal(activeCase)}
-                                                    className="ws-btn-secondary"
-                                                    style={{ height: '28px', fontSize: '0.74rem', padding: '0 0.65rem', gap: '4px' }}
-                                                >
-                                                    <Edit3 size={12} />
-                                                    <span>Edit Script</span>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {showScriptPreview && (
-                                            <div style={{
-                                                marginTop: '0.25rem',
-                                                padding: '0.75rem',
-                                                background: '#08090A',
-                                                border: '1px solid #202223',
-                                                borderRadius: '6px',
-                                                fontFamily: 'monospace',
-                                                fontSize: '0.78rem',
-                                                color: '#8BAF9A',
-                                                whiteSpace: 'pre-wrap',
-                                                maxHeight: '220px',
-                                                overflowY: 'auto',
-                                                lineHeight: '1.45'
-                                            }}>
-                                                {snapshot.automationMapping?.scriptCode}
-                                            </div>
-                                        )}
-                                    </div>
                                 )}
-                            </div>
-                        );
-                    })()}
 
-                            {/* Preconditions & Expected Result */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div style={{ padding: '0.75rem', background: '#161819', borderRadius: '6px', border: '1px solid #292D2D' }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#A0A5A5', textTransform: 'uppercase' }}>
-                                        Preconditions
-                                    </span>
-                                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#F2F3F3', lineHeight: '1.4' }}>
-                                        {snapshot.preconditions || 'None specified'}
-                                    </p>
-                                </div>
-
-                                <div style={{ padding: '0.75rem', background: '#161819', borderRadius: '6px', border: '1px solid #292D2D' }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#A0A5A5', textTransform: 'uppercase' }}>
-                                        Expected Result
-                                    </span>
-                                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#8BAF9A', lineHeight: '1.4' }}>
-                                        {snapshot.expectedResult || 'Expected behavior matches standard functional specification.'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Step-by-Step Instructions */}
-                            {Array.isArray(snapshot.steps) && snapshot.steps.length > 0 && (
-                                <div style={{ padding: '0.75rem', background: '#161819', borderRadius: '6px', border: '1px solid #292D2D' }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#A0A5A5', textTransform: 'uppercase' }}>
-                                        Test Steps
-                                    </span>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
-                                        {snapshot.steps.map((st, idx) => (
-                                            <div key={idx} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.85rem', color: '#F2F3F3' }}>
-                                                <span style={{ color: '#8BAF9A', fontWeight: 600 }}>{idx + 1}.</span>
-                                                <span>{typeof st === 'object' ? (st.action || st.step) : st}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* MANUAL EXECUTION FORM */}
-                            <div style={{
-                                padding: '1rem',
-                                background: '#161819',
-                                border: '1px solid #292D2D',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '1rem'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 600, color: '#F2F3F3' }}>
-                                        Record Execution Outcome
-                                    </h4>
-                                    {activeCase.status !== 'not_run' && (
-                                        <span style={{ fontSize: '0.75rem', color: '#A0A5A5' }}>
-                                            Current: <strong style={{ color: '#8BAF9A' }}>{activeCase.status.toUpperCase()}</strong> (Attempt {activeCase.currentAttempt || 1})
+                                {/* ─── 1. Identity & Priority Header ─── */}
+                                <div className="qa-section-block">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                                            <span className="qa-case-id-text" style={{ fontSize: '0.86rem' }}>
+                                                {activeCase.testCaseId}
+                                            </span>
+                                            <span style={{ fontSize: '0.78rem', color: 'var(--qa-text-muted)' }}>
+                                                {snapshot.module || 'General'} • {snapshot.type || 'Functional'}
+                                            </span>
+                                            <PriorityBadge priority={snapshot.priority} />
+                                            <CaseMethodBadge c={activeCase} />
+                                            <StatusBadge status={activeCase.status} />
+                                        </div>
+                                        <span style={{ fontSize: '0.74rem', color: 'var(--qa-text-muted)' }}>
+                                            Current: <strong>Attempt #{activeCase.currentAttempt || 1}</strong>
                                         </span>
-                                    )}
+                                    </div>
+                                    <h2 className="qa-case-detail-title">{snapshot.title}</h2>
                                 </div>
 
-                                {/* Outcome Selector Buttons */}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#A0A5A5', marginBottom: '0.35rem' }}>
-                                        Status *
-                                    </label>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        {[
-                                            { id: 'passed', label: 'Passed', color: '#8BAF9A' },
-                                            { id: 'failed', label: 'Failed', color: '#E06C75' },
-                                            { id: 'blocked', label: 'Blocked', color: '#E5C07B' },
-                                            { id: 'skipped', label: 'Skipped', color: '#C678DD' }
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.id}
-                                                type="button"
-                                                onClick={() => setFormStatus(opt.id)}
-                                                style={{
-                                                    flex: 1,
-                                                    minWidth: '80px',
-                                                    height: '34px',
-                                                    borderRadius: '6px',
-                                                    background: formStatus === opt.id ? opt.color : '#101112',
-                                                    color: formStatus === opt.id ? '#080909' : '#F2F3F3',
-                                                    border: `1px solid ${formStatus === opt.id ? opt.color : '#292D2D'}`,
+                                {/* ─── 2. Automation Readiness & Mapping Info ─── */}
+                                {(() => {
+                                    const map = snapshot.automationMapping;
+                                    const isAutoReady = hasAutomation &&
+                                        (map?.mappingStatus === 'configured' || map?.mappingStatus === 'enabled') &&
+                                        (Boolean(map?.scriptCode) || (map?.scriptSource === 'existing' && Boolean(map?.scriptRef)));
+
+                                    return (
+                                        <div className="qa-section-block">
+                                            <div className="qa-section-header">
+                                                <h3 className="qa-section-title">
+                                                    <Bot size={15} style={{ color: isAutoReady ? 'var(--qa-jade)' : 'var(--qa-warn)' }} />
+                                                    <span>Playwright Automation Readiness</span>
+                                                </h3>
+                                                <span style={{
+                                                    fontSize: '0.72rem',
                                                     fontWeight: 600,
-                                                    fontSize: '0.82rem',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                                    padding: '2px 8px',
+                                                    borderRadius: '4px',
+                                                    textTransform: 'uppercase',
+                                                    background: isAutoReady ? 'var(--qa-jade-dim)' : 'var(--qa-warn-dim)',
+                                                    color: isAutoReady ? 'var(--qa-jade)' : 'var(--qa-warn)',
+                                                    border: `1px solid ${isAutoReady ? 'var(--qa-jade-border)' : 'rgba(229, 192, 123, 0.3)'}`
+                                                }}>
+                                                    {isAutoReady ? 'Ready for Execution' : 'Unmapped / Draft'}
+                                                </span>
+                                            </div>
 
-                                {/* Actual Results Textarea */}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#A0A5A5', marginBottom: '0.35rem' }}>
-                                        Actual Results & Observations
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        value={actualResult}
-                                        onChange={(e) => setActualResult(e.target.value)}
-                                        placeholder="Describe observed UI outcome, network responses, error banners, or pass confirmation..."
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.65rem',
-                                            background: '#101112',
-                                            border: '1px solid #292D2D',
-                                            borderRadius: '6px',
-                                            color: '#F2F3F3',
-                                            fontSize: '0.85rem',
-                                            boxSizing: 'border-box',
-                                            outline: 'none',
-                                            resize: 'vertical'
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Execution Notes */}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#A0A5A5', marginBottom: '0.35rem' }}>
-                                        Execution Notes & Environment Context
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        placeholder="e.g., Tested on Chrome 124 desktop resolution, staging environment build #81"
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.6rem',
-                                            background: '#101112',
-                                            border: '1px solid #292D2D',
-                                            borderRadius: '6px',
-                                            color: '#F2F3F3',
-                                            fontSize: '0.85rem',
-                                            boxSizing: 'border-box',
-                                            outline: 'none'
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Screenshot Evidence Upload */}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#A0A5A5', marginBottom: '0.35rem' }}>
-                                        Screenshot / Supporting Evidence
-                                    </label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <label style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            height: '32px',
-                                            padding: '0 12px',
-                                            background: '#101112',
-                                            border: '1px solid #292D2D',
-                                            borderRadius: '6px',
-                                            color: '#F2F3F3',
-                                            fontSize: '0.78rem',
-                                            cursor: 'pointer'
-                                        }}>
-                                            <Camera size={14} />
-                                            <span>Attach Screenshot</span>
-                                            <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-                                        </label>
-
-                                        {screenshotName && (
-                                            <span style={{ fontSize: '0.8rem', color: '#8BAF9A' }}>
-                                                ✓ {screenshotName} attached
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {screenshotData && (
-                                        <div style={{ marginTop: '0.5rem' }}>
-                                            <img
-                                                src={screenshotData}
-                                                alt="Preview"
-                                                style={{ maxWidth: '240px', maxHeight: '140px', borderRadius: '4px', border: '1px solid #292D2D' }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {saveMessage && (
-                                    <div style={{ color: '#8BAF9A', fontSize: '0.84rem' }}>
-                                        ✓ {saveMessage}
-                                    </div>
-                                )}
-
-                                {/* Action Buttons */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
-                                    <button
-                                        type="button"
-                                        onClick={handleSaveExecution}
-                                        disabled={isSaving}
-                                        className="ws-btn-primary"
-                                        style={{ height: '36px', padding: '0 1.25rem' }}
-                                    >
-                                        {isSaving ? 'Recording...' : activeCase.status !== 'not_run' ? 'Retest / Log New Attempt' : 'Save Execution'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* HISTORICAL ATTEMPTS LIST (Preserved Immutable Records) */}
-                            {attempts.length > 0 && (
-                                <div style={{
-                                    padding: '1rem',
-                                    background: '#161819',
-                                    border: '1px solid #292D2D',
-                                    borderRadius: '8px'
-                                }}>
-                                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', fontWeight: 600, color: '#F2F3F3' }}>
-                                        Attempt History ({attempts.length})
-                                    </h4>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                        {attempts.map(att => (
-                                            <div
-                                                key={att.id}
-                                                style={{
-                                                    padding: '0.75rem',
-                                                    background: '#101112',
-                                                    border: '1px solid #292D2D',
-                                                    borderRadius: '6px',
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    gap: '0.35rem'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#F2F3F3' }}>
-                                                            Attempt #{att.attemptNumber}
-                                                        </span>
-                                                        <StatusBadge status={att.status} />
-                                                        <span style={{ fontSize: '0.72rem', color: '#777E7E' }}>
-                                                            ({att.executorType || 'manual'})
+                                            <div className={`qa-automation-card ${isAutoReady ? 'ready' : 'unmapped'}`}>
+                                                <div className="qa-auto-grid">
+                                                    <div className="qa-auto-meta-item">
+                                                        <label>Framework</label>
+                                                        <span>{map?.framework || 'Playwright (Chromium)'}</span>
+                                                    </div>
+                                                    <div className="qa-auto-meta-item">
+                                                        <label>Automation Test ID</label>
+                                                        <span style={{ fontFamily: 'ui-monospace, monospace' }}>{map?.automationTestId || 'None bound'}</span>
+                                                    </div>
+                                                    <div className="qa-auto-meta-item">
+                                                        <label>Script Reference</label>
+                                                        <span style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--qa-text-muted)' }}>
+                                                            {map?.scriptRef || 'Inline custom script'}
                                                         </span>
                                                     </div>
-                                                    <span style={{ fontSize: '0.72rem', color: '#777E7E' }}>
-                                                        {new Date(att.executedAt || att.createdAt).toLocaleTimeString()} • {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
-                                                    </span>
+                                                    <div className="qa-auto-meta-item">
+                                                        <label>Timeout</label>
+                                                        <span>{map?.executionTimeout || 15000}ms</span>
+                                                    </div>
                                                 </div>
 
-                                                {att.actualResult && (
-                                                    <div style={{ fontSize: '0.82rem', color: '#A0A5A5', lineHeight: '1.4' }}>
-                                                        {att.actualResult}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.25rem' }}>
+                                                    <div style={{ fontSize: '0.8rem', color: isAutoReady ? 'var(--qa-jade)' : 'var(--qa-warn)' }}>
+                                                        {isAutoReady
+                                                            ? '✓ Verified Playwright test bound to this scenario.'
+                                                            : 'Automation mapping is missing or incomplete.'}
                                                     </div>
-                                                )}
 
-                                                {att.notes && (
-                                                    <div style={{ fontSize: '0.76rem', color: '#777E7E', fontStyle: 'italic' }}>
-                                                        Note: {att.notes}
+                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        {isAutoReady && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowScriptPreview(!showScriptPreview)}
+                                                                className="ws-btn-secondary"
+                                                                style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.75rem' }}
+                                                            >
+                                                                <Code size={13} />
+                                                                <span>{showScriptPreview ? 'Hide Script' : 'View Script'}</span>
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenMappingModal(activeCase)}
+                                                            className={isAutoReady ? 'ws-btn-secondary' : 'ws-btn-primary'}
+                                                            style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.85rem', gap: '5px' }}
+                                                        >
+                                                            <Edit3 size={13} />
+                                                            <span>{isAutoReady ? 'Configure Script' : 'Configure Automation'}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Script Code Preview */}
+                                                {showScriptPreview && map?.scriptCode && (
+                                                    <pre style={{
+                                                        margin: '0.5rem 0 0',
+                                                        padding: '0.85rem',
+                                                        background: 'var(--qa-bg)',
+                                                        border: '1px solid var(--qa-border)',
+                                                        borderRadius: '6px',
+                                                        color: 'var(--qa-jade)',
+                                                        fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                                                        fontSize: '0.78rem',
+                                                        maxHeight: '200px',
+                                                        overflowY: 'auto',
+                                                        lineHeight: '1.45',
+                                                        whiteSpace: 'pre-wrap'
+                                                    }}>
+                                                        {map.scriptCode}
+                                                    </pre>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* ─── 3. Preconditions & Target Assertion ─── */}
+                                <div className="qa-section-block">
+                                    <div className="qa-preconditions-grid">
+                                        <div className="qa-meta-box">
+                                            <label>Preconditions & Context</label>
+                                            <p>{snapshot.preconditions || 'None specified'}</p>
+                                        </div>
+                                        <div className="qa-meta-box">
+                                            <label>Target Expected Result</label>
+                                            <p style={{ color: 'var(--qa-jade)' }}>
+                                                {snapshot.expectedResult || 'Expected scenario outcome meets acceptance criteria.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ─── 4. Test Steps ─── */}
+                                {Array.isArray(snapshot.steps) && snapshot.steps.length > 0 && (
+                                    <div className="qa-section-block">
+                                        <h3 className="qa-section-title">
+                                            <span>Test Execution Steps</span>
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
+                                                ({snapshot.steps.length} steps)
+                                            </span>
+                                        </h3>
+                                        <div className="qa-steps-list">
+                                            {snapshot.steps.map((st, idx) => (
+                                                <div key={idx} className="qa-step-item">
+                                                    <span className="qa-step-num">{idx + 1}</span>
+                                                    <div className="qa-step-body">
+                                                        <div>{typeof st === 'object' ? (st.action || st.step) : st}</div>
+                                                        {st.expected && (
+                                                            <span className="qa-step-expected">↳ Expected: {st.expected}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ─── 5. Manual & Retest Execution Station ─── */}
+                                <div className="qa-section-block">
+                                    <h3 className="qa-section-title">
+                                        <span>Record Execution Outcome</span>
+                                        <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
+                                            (Attempt #{activeCase.currentAttempt || 1})
+                                        </span>
+                                    </h3>
+
+                                    <div className="qa-execution-station">
+                                        {/* Status Selector */}
+                                        <div className="qa-field-group">
+                                            <span className="qa-field-label">Verification Outcome *</span>
+                                            <div className="qa-outcome-btn-group">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormStatus('passed')}
+                                                    className={`qa-outcome-btn pass ${formStatus === 'passed' ? 'selected' : ''}`}
+                                                >
+                                                    <CheckCircle2 size={15} />
+                                                    <span>Passed</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormStatus('failed')}
+                                                    className={`qa-outcome-btn fail ${formStatus === 'failed' ? 'selected' : ''}`}
+                                                >
+                                                    <XCircle size={15} />
+                                                    <span>Failed</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormStatus('blocked')}
+                                                    className={`qa-outcome-btn blocked ${formStatus === 'blocked' ? 'selected' : ''}`}
+                                                >
+                                                    <AlertTriangle size={15} />
+                                                    <span>Blocked</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormStatus('skipped')}
+                                                    className={`qa-outcome-btn skipped ${formStatus === 'skipped' ? 'selected' : ''}`}
+                                                >
+                                                    <MinusCircle size={15} />
+                                                    <span>Skipped</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Actual Result & Observations */}
+                                        <div className="qa-field-group">
+                                            <label className="qa-field-label">Actual Result & Tester Observations</label>
+                                            <textarea
+                                                rows={3}
+                                                value={actualResult}
+                                                onChange={(e) => setActualResult(e.target.value)}
+                                                placeholder="Describe observed UI outcome, network status, assertion confirmation, or error messages..."
+                                                className="qa-textarea"
+                                            />
+                                        </div>
+
+                                        {/* Execution Notes */}
+                                        <div className="qa-field-group">
+                                            <label className="qa-field-label">Execution Notes & Context</label>
+                                            <input
+                                                type="text"
+                                                value={notes}
+                                                onChange={(e) => setNotes(e.target.value)}
+                                                placeholder="e.g., Verified on Chrome 124, 1920x1080 resolution, staging build #91"
+                                                className="qa-text-input"
+                                            />
+                                        </div>
+
+                                        {/* Evidence Attachment */}
+                                        <div className="qa-field-group">
+                                            <label className="qa-field-label">Supporting Evidence / Failure Screenshot</label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                                <label className="ws-btn-secondary" style={{ height: '32px', cursor: 'pointer', gap: '6px' }}>
+                                                    <Camera size={14} />
+                                                    <span>Attach Screenshot</span>
+                                                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                                                </label>
+
+                                                {screenshotName && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--qa-jade)' }}>
+                                                        <span>✓ {screenshotName} attached</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setScreenshotData(null); setScreenshotName(''); }}
+                                                            style={{ background: 'none', border: 'none', color: 'var(--qa-fail)', cursor: 'pointer', padding: 0 }}
+                                                            title="Remove screenshot"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
-                                        ))}
+
+                                            {screenshotData && (
+                                                <div style={{ marginTop: '0.5rem' }}>
+                                                    <img
+                                                        src={screenshotData}
+                                                        alt="Evidence preview"
+                                                        style={{ maxWidth: '260px', maxHeight: '140px', borderRadius: '4px', border: '1px solid var(--qa-border)' }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {saveMessage && (
+                                            <div style={{ color: 'var(--qa-jade)', fontSize: '0.84rem', fontWeight: 600 }}>
+                                                ✓ {saveMessage}
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveExecution}
+                                                disabled={isSaving}
+                                                className="ws-btn-primary"
+                                                style={{ height: '36px', padding: '0 1.5rem', fontWeight: 600 }}
+                                            >
+                                                {isSaving ? 'Recording Execution...' : activeCase.status !== 'not_run' ? 'Log Retest Attempt' : 'Save Execution'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div style={{ padding: '3rem', textAlign: 'center', color: '#777E7E' }}>
-                            Select a test case from the left list to execute or inspect.
-                        </div>
-                    )}
+
+                                {/* ─── 6. Historical Execution Attempts Timeline ─── */}
+                                {attempts.length > 0 && (
+                                    <div className="qa-section-block">
+                                        <h3 className="qa-section-title">
+                                            <span>Historical Execution Attempts</span>
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
+                                                ({attempts.length} attempts recorded)
+                                            </span>
+                                        </h3>
+                                        <div className="qa-attempts-timeline">
+                                            {attempts.map(att => (
+                                                <div key={att.id} className="qa-attempt-entry">
+                                                    <div className="qa-attempt-header">
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                            <strong>Attempt #{att.attemptNumber}</strong>
+                                                            <StatusBadge status={att.status} />
+                                                            <span style={{ color: 'var(--qa-text-dim)' }}>
+                                                                ({att.executorType || 'manual'})
+                                                            </span>
+                                                        </div>
+                                                        <span style={{ color: 'var(--qa-text-dim)' }}>
+                                                            {new Date(att.executedAt || att.createdAt).toLocaleTimeString()} • {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    {att.actualResult && (
+                                                        <div style={{ fontSize: '0.82rem', color: 'var(--qa-text)', lineHeight: '1.4' }}>
+                                                            {att.actualResult}
+                                                        </div>
+                                                    )}
+                                                    {att.notes && (
+                                                        <div style={{ fontSize: '0.76rem', color: 'var(--qa-text-muted)', fontStyle: 'italic' }}>
+                                                            Note: {att.notes}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--qa-text-dim)' }}>
+                                Select a test case from the master navigation panel to view its details or record execution outcomes.
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
