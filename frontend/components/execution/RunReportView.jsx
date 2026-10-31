@@ -150,7 +150,24 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const startedAt = timestamps.startedAt || meta.startedAt;
     const completedAt = timestamps.completedAt || meta.completedAt;
 
-    const coveragePct = coverage.requirementVerificationPercentage ?? coverage.requirementCoveragePercentage ?? coverage.coveragePercentage ?? 100;
+    const runStatus = (meta.status || 'pending').toLowerCase();
+    const executedCount = (m.total || 0) - (m.notRun || m.not_run || 0);
+    const isPending = runStatus === 'pending' || (executedCount === 0 && (m.passed || 0) === 0 && (m.failed || 0) === 0);
+    const isRunning = ['running', 'in_progress', 'queued'].includes(runStatus);
+    const hasStarted = Boolean(startedAt);
+
+    const totalDurationFormatted = (isPending || !hasStarted) ? '—' : formatDuration(totalDurationMs);
+    const durationSub = isPending
+        ? 'Execution pending'
+        : isRunning
+        ? 'Running in worker...'
+        : runStatus === 'partially_completed'
+        ? `${executedCount} of ${m.total || 0} executed`
+        : avgDurationMs > 0
+        ? `Avg ${formatDuration(avgDurationMs)} / test`
+        : 'Completed';
+
+    const coveragePct = isPending ? 0 : (coverage.requirementVerificationPercentage ?? 0);
     const failedReqsCount = coverage.failedRequirements ?? coverage.failingRequirements ?? 0;
     const uncoveredReqsCount = coverage.uncoveredRequirements ?? 0;
 
@@ -277,12 +294,14 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                     <span className="ws-stat-sub">100% of planned suite</span>
                 </div>
 
-                <div className="ws-stat-card" style={{ borderColor: (m.passRate || 0) >= 80 ? 'rgba(139, 175, 154, 0.3)' : 'rgba(224, 108, 117, 0.3)' }}>
+                <div className="ws-stat-card" style={{ borderColor: isPending ? 'rgba(255, 255, 255, 0.08)' : (m.passRate || 0) >= 80 ? 'rgba(139, 175, 154, 0.3)' : 'rgba(224, 108, 117, 0.3)' }}>
                     <span className="ws-stat-label">PASS RATE</span>
-                    <span className="ws-stat-value" style={{ color: (m.passRate || 0) >= 80 ? '#8BAF9A' : '#E06C75' }}>
-                        {m.passRate || 0}%
+                    <span className="ws-stat-value" style={{ color: isPending ? '#A0A5A5' : (m.passRate || 0) >= 80 ? '#8BAF9A' : '#E06C75' }}>
+                        {isPending ? '—' : `${m.passRate || 0}%`}
                     </span>
-                    <span className="ws-stat-sub">{m.passed || 0} passed / {m.total || 0} total</span>
+                    <span className="ws-stat-sub">
+                        {isPending ? 'No tests executed' : `${m.passed || 0} passed / ${m.total || 0} total`}
+                    </span>
                 </div>
 
                 <div className="ws-stat-card">
@@ -290,13 +309,13 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                     <span className="ws-stat-value" style={{ color: (m.failed || 0) > 0 ? '#E06C75' : '#8BAF9A' }}>
                         {m.failed || 0}
                     </span>
-                    <span className="ws-stat-sub">{m.blocked > 0 ? `${m.blocked} blocked` : '0 blocked'}</span>
+                    <span className="ws-stat-sub">{m.blocked > 0 ? `${m.blocked} blocked` : isPending ? `${m.notRun || m.not_run || 0} pending` : '0 blocked'}</span>
                 </div>
 
                 <div className="ws-stat-card">
                     <span className="ws-stat-label">EXECUTION DURATION</span>
-                    <span className="ws-stat-value">{formatDuration(totalDurationMs)}</span>
-                    <span className="ws-stat-sub">{avgDurationMs ? `Avg ${formatDuration(avgDurationMs)} / test` : 'Completed'}</span>
+                    <span className="ws-stat-value">{totalDurationFormatted}</span>
+                    <span className="ws-stat-sub">{durationSub}</span>
                 </div>
 
                 <div className="ws-stat-card">
@@ -305,7 +324,9 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                         {meta.executionType || 'Mixed'}
                     </span>
                     <span className="ws-stat-sub">
-                        {autoCount} Playwright · {manualCount} Manual
+                        {isPending
+                            ? `${m.total || 0} planned (${autoCount} automated, ${manualCount} manual)`
+                            : `${autoCount} Playwright · ${manualCount} Manual`}
                     </span>
                 </div>
             </div>
@@ -392,18 +413,49 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                     </span>
                 </div>
 
-                {failures.length === 0 ? (
+                {isPending ? (
                     <div style={{
-                        padding: '2rem',
+                        padding: '2.5rem 1.5rem',
+                        textAlign: 'center',
+                        background: '#121415',
+                        borderRadius: '6px',
+                        border: '1px dashed #292D2D'
+                    }}>
+                        <Clock size={30} color="#777E7E" style={{ margin: '0 auto 8px' }} />
+                        <h3 style={{ margin: 0, color: '#F2F3F3', fontSize: '1rem', fontWeight: 600 }}>Execution Has Not Started Yet</h3>
+                        <p style={{ margin: '6px auto 0', color: '#A0A5A5', fontSize: '0.85rem', maxWidth: '440px' }}>
+                            All {m.total || 0} test cases in this run are pending. Trigger the Playwright automated suite or record manual test outcomes to inspect execution diagnostics.
+                        </p>
+                    </div>
+                ) : isRunning ? (
+                    <div style={{
+                        padding: '2.5rem 1.5rem',
+                        textAlign: 'center',
+                        background: 'rgba(56, 189, 248, 0.05)',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(56, 189, 248, 0.25)'
+                    }}>
+                        <RefreshCw size={28} color="#38BDF8" className="animate-spin" style={{ margin: '0 auto 8px' }} />
+                        <h3 style={{ margin: 0, color: '#38BDF8', fontSize: '1rem', fontWeight: 600 }}>Test Execution In Progress</h3>
+                        <p style={{ margin: '6px auto 0', color: '#A0A5A5', fontSize: '0.85rem', maxWidth: '440px' }}>
+                            The Playwright runner worker is currently executing test cases. Diagnostics and artifacts will populate dynamically.
+                        </p>
+                    </div>
+                ) : failures.length === 0 ? (
+                    <div style={{
+                        padding: '2.5rem 1.5rem',
                         textAlign: 'center',
                         background: 'rgba(139, 175, 154, 0.05)',
                         borderRadius: '6px',
                         border: '1px dashed rgba(139, 175, 154, 0.25)'
                     }}>
                         <CheckCircle2 size={32} color="#8BAF9A" style={{ margin: '0 auto 8px' }} />
-                        <h3 style={{ margin: 0, color: '#8BAF9A', fontSize: '1rem' }}>Zero Execution Failures</h3>
-                        <p style={{ margin: '4px 0 0', color: '#A0A5A5', fontSize: '0.85rem' }}>
-                            All executed test cases met expectations without assertion errors or timeouts.
+                        <h3 style={{ margin: 0, color: '#8BAF9A', fontSize: '1rem', fontWeight: 600 }}>
+                            Zero Execution Failures Across {executedCount} Executed Tests
+                        </h3>
+                        <p style={{ margin: '6px auto 0', color: '#A0A5A5', fontSize: '0.85rem', maxWidth: '440px' }}>
+                            All {executedCount} executed test cases met expectations without assertion errors or timeouts.
+                            {((m.total || 0) > executedCount) && ` Note: ${(m.total || 0) - executedCount} test cases remain unexecuted.`}
                         </p>
                     </div>
                 ) : (
@@ -634,8 +686,8 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             Traceability linking execution outcomes back to source functional requirements.
                         </p>
                     </div>
-                    <span style={{ fontSize: '0.85rem', color: '#8BAF9A', fontWeight: 600 }}>
-                        {coveragePct}% Verified
+                    <span style={{ fontSize: '0.85rem', color: isPending ? '#A0A5A5' : '#8BAF9A', fontWeight: 600 }}>
+                        {isPending ? '0% Verified (Execution Pending)' : `${coveragePct}% Verified`}
                     </span>
                 </div>
 
@@ -648,7 +700,9 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
 
                     <div className="ws-stat-card">
                         <span className="ws-stat-label">VERIFIED (ALL PASSED)</span>
-                        <span className="ws-stat-value" style={{ color: '#8BAF9A' }}>{coverage.verifiedRequirements || 0}</span>
+                        <span className="ws-stat-value" style={{ color: isPending ? '#A0A5A5' : '#8BAF9A' }}>
+                            {isPending ? 0 : (coverage.verifiedRequirements || 0)}
+                        </span>
                         <span className="ws-stat-sub">All linked test cases passed</span>
                     </div>
 

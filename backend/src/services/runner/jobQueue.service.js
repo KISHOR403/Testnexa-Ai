@@ -76,6 +76,11 @@ class JobQueueService {
             caseIds: caseIds || null
         });
 
+        // Transition test run status to queued
+        await supabaseService.updateTestRun(runId, workspaceId, {
+            status: 'queued'
+        });
+
         // Audit log
         await supabaseService.recordWorkspaceAuditLog({
             workspaceId,
@@ -246,11 +251,11 @@ class JobQueueService {
             return isAuto && hasMapping;
         });
 
-        // Transition run status to in_progress
-        if (run.status === 'pending') {
+        // Transition run status to running
+        if (run.status === 'pending' || run.status === 'queued') {
             await supabaseService.updateTestRun(job.runId, job.workspaceId, {
-                status: 'in_progress',
-                started_at: new Date().toISOString()
+                status: 'running',
+                started_at: run.startedAt || run.started_at || new Date().toISOString()
             });
         }
 
@@ -284,6 +289,10 @@ class JobQueueService {
             await supabaseService.updateAutomationJob(job.id, {
                 status: 'failed',
                 error_message: workerReport.errorMessage,
+                completed_at: now
+            });
+            await supabaseService.updateTestRun(job.runId, job.workspaceId, {
+                status: 'failed',
                 completed_at: now
             });
             return;
@@ -377,6 +386,23 @@ class JobQueueService {
             completed_cases: completed,
             passed_cases: passed,
             failed_cases: failed,
+            completed_at: completedAt
+        });
+
+        // Synchronize parent Test Run terminal state
+        const allRunCases = await supabaseService.getRunCases(job.runId);
+        const failedCasesCount = allRunCases.filter(c => ['failed', 'timed_out', 'infrastructure_error'].includes(c.status)).length;
+        const notRunCasesCount = allRunCases.filter(c => !c.status || c.status === 'not_run' || c.status === 'queued' || c.status === 'running').length;
+
+        let finalRunStatus = 'completed';
+        if (notRunCasesCount > 0) {
+            finalRunStatus = 'partially_completed';
+        } else if (failedCasesCount > 0) {
+            finalRunStatus = 'failed';
+        }
+
+        await supabaseService.updateTestRun(job.runId, job.workspaceId, {
+            status: finalRunStatus,
             completed_at: completedAt
         });
     }

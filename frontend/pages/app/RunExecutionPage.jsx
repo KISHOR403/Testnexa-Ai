@@ -64,9 +64,12 @@ const StatusBadge = ({ status }) => {
         infrastructure_error: { label: 'Infra Error', bg: 'rgba(224, 108, 117, 0.2)', color: '#FF6B6B', border: 'rgba(224, 108, 117, 0.4)' },
         queued: { label: 'Queued', bg: 'rgba(229, 192, 123, 0.15)', color: '#E5C07B', border: 'rgba(229, 192, 123, 0.3)' },
         running: { label: 'Running', bg: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: 'rgba(56, 189, 248, 0.3)' },
+        completed: { label: 'Completed', bg: 'rgba(139, 175, 154, 0.15)', color: '#8BAF9A', border: 'rgba(139, 175, 154, 0.3)' },
+        partially_completed: { label: 'Partially Completed', bg: 'rgba(229, 192, 123, 0.15)', color: '#E5C07B', border: 'rgba(229, 192, 123, 0.3)' },
         blocked: { label: 'Blocked', bg: 'rgba(229, 192, 123, 0.15)', color: '#E5C07B', border: 'rgba(229, 192, 123, 0.3)' },
         skipped: { label: 'Skipped', bg: 'rgba(198, 120, 221, 0.15)', color: '#C678DD', border: 'rgba(198, 120, 221, 0.3)' },
         in_progress: { label: 'In Progress', bg: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: 'rgba(56, 189, 248, 0.3)' },
+        pending: { label: 'Pending', bg: 'rgba(255, 255, 255, 0.05)', color: '#A0A5A5', border: '#292D2D' },
         not_run: { label: 'Not Run', bg: 'rgba(255, 255, 255, 0.05)', color: '#A0A5A5', border: '#292D2D' }
     }[s] || { label: status, bg: '#161819', color: '#F2F3F3', border: '#292D2D' };
 
@@ -344,17 +347,34 @@ const RunExecutionPage = () => {
         });
     }, [cases, search, statusFilter]);
 
-    const automationReadyCount = useMemo(() => {
-        return cases.filter(c => {
+    const { readyCount, invalidCount, unmappedCount } = useMemo(() => {
+        let ready = 0;
+        let invalid = 0;
+        let unmapped = 0;
+
+        for (const c of cases) {
             const map = c.caseSnapshot?.automationMapping;
-            return map?.mappingStatus === 'configured' &&
-                (Boolean(map?.scriptCode) || (map?.scriptSource === 'existing' && Boolean(map?.scriptRef)));
-        }).length;
+            const isConfigured = map && (map.mappingStatus === 'configured' || map.mappingStatus === 'enabled');
+            if (!isConfigured) {
+                unmapped++;
+            } else {
+                const hasCode = Boolean(map.scriptCode && map.scriptCode.trim());
+                const hasRef = Boolean(map.scriptSource === 'existing' && map.scriptRef && map.scriptRef.trim());
+                const hasId = Boolean(map.automationTestId && map.automationTestId.trim());
+
+                if ((hasCode || hasRef) && hasId) {
+                    ready++;
+                } else {
+                    invalid++;
+                }
+            }
+        }
+
+        return { readyCount: ready, invalidCount: invalid, unmappedCount: unmapped };
     }, [cases]);
 
-    const unconfiguredCount = useMemo(() => {
-        return cases.length - automationReadyCount;
-    }, [cases, automationReadyCount]);
+    const automationReadyCount = readyCount;
+    const unconfiguredCount = unmappedCount;
 
     if (isLoading) {
         return <DataLoadingState message="Loading test execution workspace..." />;
@@ -653,8 +673,28 @@ const RunExecutionPage = () => {
 
                 {/* Header Action Controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {/* Automation Readiness Pill Ledger */}
+                    {(run.executionType === 'automated' || run.executionType === 'mixed') && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '4px 10px',
+                            background: '#161819',
+                            border: '1px solid #292D2D',
+                            borderRadius: '6px',
+                            fontSize: '0.74rem'
+                        }}>
+                            <span style={{ color: readyCount > 0 ? '#8BAF9A' : '#777E7E', fontWeight: 600 }}>{readyCount} Ready</span>
+                            <span style={{ color: '#444A4A' }}>•</span>
+                            <span style={{ color: invalidCount > 0 ? '#E06C75' : '#777E7E' }}>{invalidCount} Invalid</span>
+                            <span style={{ color: '#444A4A' }}>•</span>
+                            <span style={{ color: unmappedCount > 0 ? '#E5C07B' : '#777E7E' }}>{unmappedCount} Unmapped</span>
+                        </div>
+                    )}
+
                     {/* Auto-Configure Scripts button */}
-                    {(run.executionType === 'automated' || run.executionType === 'mixed') && unconfiguredCount > 0 && (
+                    {(run.executionType === 'automated' || run.executionType === 'mixed') && unconfiguredCount > 0 && readyCount > 0 && (
                         <button
                             type="button"
                             onClick={handleAutoConfigureApproved}
@@ -668,56 +708,76 @@ const RunExecutionPage = () => {
                                 fontSize: '0.82rem',
                                 gap: '6px'
                             }}
-                            title="Auto-bind approved Playwright scripts to unmapped test cases"
+                            title="Auto-bind approved Playwright scripts to remaining unmapped test cases"
                         >
                             <Wand2 size={14} className={isAutoConfiguring ? 'animate-spin' : ''} />
-                            <span>{isAutoConfiguring ? 'Configuring...' : `Auto-Map Scripts (${unconfiguredCount})`}</span>
+                            <span>{isAutoConfiguring ? 'Configuring...' : `Auto-Map Remaining (${unconfiguredCount})`}</span>
                         </button>
                     )}
 
                     {/* Automated Run CTA */}
                     {(run.executionType === 'automated' || run.executionType === 'mixed') && (
-                        <button
-                            type="button"
-                            onClick={handleTriggerAutomated}
-                            disabled={isTriggeringAuto || automationReadyCount === 0 || (activeJob && (activeJob.status === 'queued' || activeJob.status === 'running'))}
-                            className="ws-btn-primary"
-                            title={automationReadyCount === 0 ? "No test cases have configured Playwright scripts. Use 'Auto-Map Scripts' or configure individual cases." : "Trigger Playwright execution suite"}
-                            style={{
-                                height: '34px',
-                                padding: '0 1rem',
-                                background: activeJob?.status === 'running'
-                                    ? '#38BDF8'
-                                    : activeJob?.status === 'queued'
-                                    ? '#E5C07B'
-                                    : automationReadyCount === 0
-                                    ? '#222526'
-                                    : '#8BAF9A',
-                                border: 'none',
-                                color: automationReadyCount === 0 ? '#777E7E' : '#080909',
-                                fontWeight: 600,
-                                fontSize: '0.82rem',
-                                gap: '6px',
-                                cursor: automationReadyCount === 0 ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            {activeJob?.status === 'running' ? (
-                                <>
-                                    <RefreshCw size={14} className="animate-spin" />
-                                    <span>Playwright Running... ({activeJob.completedCases || 0}/{activeJob.totalCases || 0})</span>
-                                </>
-                            ) : activeJob?.status === 'queued' ? (
-                                <>
-                                    <Clock size={14} />
-                                    <span>Playwright Queued in Worker...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Play size={14} fill={automationReadyCount === 0 ? '#777E7E' : '#080909'} />
-                                    <span>Trigger Playwright Suite ({automationReadyCount} Ready)</span>
-                                </>
-                            )}
-                        </button>
+                        readyCount === 0 && (!activeJob || (activeJob.status !== 'queued' && activeJob.status !== 'running')) ? (
+                            <button
+                                type="button"
+                                onClick={handleAutoConfigureApproved}
+                                disabled={isAutoConfiguring}
+                                className="ws-btn-primary"
+                                style={{
+                                    height: '34px',
+                                    padding: '0 1rem',
+                                    background: '#38BDF8',
+                                    border: 'none',
+                                    color: '#080909',
+                                    fontWeight: 600,
+                                    fontSize: '0.82rem',
+                                    gap: '6px'
+                                }}
+                                title="No test cases have configured Playwright scripts. Click to auto-bind approved suite scripts."
+                            >
+                                <Wand2 size={14} className={isAutoConfiguring ? 'animate-spin' : ''} />
+                                <span>{isAutoConfiguring ? 'Mapping Approved Scripts...' : `Auto-Map Approved Scripts (${cases.length})`}</span>
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={handleTriggerAutomated}
+                                disabled={isTriggeringAuto || automationReadyCount === 0 || (activeJob && (activeJob.status === 'queued' || activeJob.status === 'running'))}
+                                className="ws-btn-primary"
+                                title={`Trigger Playwright execution suite (${readyCount} ready)`}
+                                style={{
+                                    height: '34px',
+                                    padding: '0 1rem',
+                                    background: activeJob?.status === 'running'
+                                        ? '#38BDF8'
+                                        : activeJob?.status === 'queued'
+                                        ? '#E5C07B'
+                                        : '#8BAF9A',
+                                    border: 'none',
+                                    color: '#080909',
+                                    fontWeight: 600,
+                                    fontSize: '0.82rem',
+                                    gap: '6px'
+                                }}
+                            >
+                                {activeJob?.status === 'running' ? (
+                                    <>
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        <span>Playwright Running... ({activeJob.completedCases || 0}/{activeJob.totalCases || 0})</span>
+                                    </>
+                                ) : activeJob?.status === 'queued' ? (
+                                    <>
+                                        <Clock size={14} />
+                                        <span>Playwright Queued in Worker...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play size={14} fill="#080909" />
+                                        <span>Trigger Playwright Suite ({automationReadyCount} Ready)</span>
+                                    </>
+                                )}
+                            </button>
+                        )
                     )}
 
                     {/* Rerun Failed Cases */}
@@ -1067,9 +1127,16 @@ const RunExecutionPage = () => {
                                             </span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 {isAuto ? (
-                                                    <span style={{ fontSize: '0.68rem', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 5px', borderRadius: '3px' }}>
-                                                        Auto
-                                                    </span>
+                                                    (c.caseSnapshot?.automationMapping?.mappingStatus === 'configured' &&
+                                                     (c.caseSnapshot?.automationMapping?.scriptCode || (c.caseSnapshot?.automationMapping?.scriptSource === 'existing' && c.caseSnapshot?.automationMapping?.scriptRef))) ? (
+                                                        <span style={{ fontSize: '0.68rem', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 5px', borderRadius: '3px' }}>
+                                                            Playwright
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.68rem', color: '#E5C07B', background: 'rgba(229, 192, 123, 0.1)', padding: '1px 5px', borderRadius: '3px' }}>
+                                                            Unmapped
+                                                        </span>
+                                                    )
                                                 ) : (
                                                     <span style={{ fontSize: '0.68rem', color: '#A0A5A5', background: 'rgba(255, 255, 255, 0.05)', padding: '1px 5px', borderRadius: '3px' }}>
                                                         Manual
@@ -1129,43 +1196,47 @@ const RunExecutionPage = () => {
                             </div>
 
                             {/* Structured Playwright Automation Mapping Card */}
-                            <div style={{
-                                background: '#121415',
-                                border: '1px solid #292D2D',
-                                borderLeft: (hasAutomation && snapshot.automationMapping?.mappingStatus === 'configured' && snapshot.automationMapping?.scriptCode)
-                                    ? '3px solid #8BAF9A'
-                                    : '3px solid #E5C07B',
-                                borderRadius: '8px',
-                                padding: '0.9rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.75rem'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Bot size={17} style={{ color: (hasAutomation && snapshot.automationMapping?.mappingStatus === 'configured' && snapshot.automationMapping?.scriptCode) ? '#8BAF9A' : '#E5C07B' }} />
-                                        <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#F2F3F3' }}>
-                                            Playwright Automation Mapping
-                                        </span>
-                                    </div>
-                                    <div>
-                                        {(hasAutomation && snapshot.automationMapping?.mappingStatus === 'configured' && snapshot.automationMapping?.scriptCode) ? (
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '4px',
-                                                padding: '2px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.72rem',
-                                                fontWeight: 600,
-                                                textTransform: 'uppercase',
-                                                background: 'rgba(139, 175, 154, 0.15)',
-                                                color: '#8BAF9A',
-                                                border: '1px solid rgba(139, 175, 154, 0.3)'
-                                            }}>
-                                                <Check size={12} /> Configured
-                                            </span>
-                                        ) : (
+                            {(() => {
+                                const isCaseAutoReady = hasAutomation &&
+                                    (snapshot.automationMapping?.mappingStatus === 'configured' || snapshot.automationMapping?.mappingStatus === 'enabled') &&
+                                    (Boolean(snapshot.automationMapping?.scriptCode) || (snapshot.automationMapping?.scriptSource === 'existing' && Boolean(snapshot.automationMapping?.scriptRef)));
+
+                                return (
+                                    <div style={{
+                                        background: '#121415',
+                                        border: '1px solid #292D2D',
+                                        borderLeft: isCaseAutoReady ? '3px solid #8BAF9A' : '3px solid #E5C07B',
+                                        borderRadius: '8px',
+                                        padding: '0.9rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.75rem'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <Bot size={17} style={{ color: isCaseAutoReady ? '#8BAF9A' : '#E5C07B' }} />
+                                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#F2F3F3' }}>
+                                                    Playwright Automation Mapping
+                                                </span>
+                                            </div>
+                                            <div>
+                                                {isCaseAutoReady ? (
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 600,
+                                                        textTransform: 'uppercase',
+                                                        background: 'rgba(139, 175, 154, 0.15)',
+                                                        color: '#8BAF9A',
+                                                        border: '1px solid rgba(139, 175, 154, 0.3)'
+                                                    }}>
+                                                        <Check size={12} /> Configured
+                                                    </span>
+                                                ) : (
                                             <span style={{
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
@@ -1220,7 +1291,7 @@ const RunExecutionPage = () => {
                                 </div>
 
                                 {/* Script State / Actions */}
-                                {(!hasAutomation || snapshot.automationMapping?.mappingStatus !== 'configured' || !snapshot.automationMapping?.scriptCode) ? (
+                                {!isCaseAutoReady ? (
                                     <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
@@ -1296,6 +1367,8 @@ const RunExecutionPage = () => {
                                     </div>
                                 )}
                             </div>
+                        );
+                    })()}
 
                             {/* Preconditions & Expected Result */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

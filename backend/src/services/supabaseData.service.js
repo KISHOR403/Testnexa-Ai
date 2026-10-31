@@ -2701,6 +2701,41 @@ class SupabaseDataService {
         const cases = await this.getRunCases(runId);
         const formattedRun = this._formatTestRun(runRow);
 
+        // Dynamically reconcile and verify summary counts from actual case records
+        if (cases && cases.length > 0) {
+            let p = 0, f = 0, b = 0, sk = 0, nr = 0, dur = 0;
+            for (const c of cases) {
+                const st = (c.status || 'not_run').toLowerCase();
+                if (st === 'passed') p++;
+                else if (['failed', 'timed_out', 'infrastructure_error'].includes(st)) f++;
+                else if (st === 'blocked') b++;
+                else if (st === 'skipped') sk++;
+                else nr++;
+                dur += (c.durationMs || 0);
+            }
+
+            formattedRun.summary = {
+                total: cases.length,
+                passed: p,
+                failed: f,
+                blocked: b,
+                skipped: sk,
+                not_run: nr,
+                duration_ms: dur
+            };
+
+            // Reconcile lifecycle status consistency
+            if (formattedRun.status !== 'cancelled' && formattedRun.status !== 'queued' && formattedRun.status !== 'running') {
+                if (nr === cases.length) {
+                    formattedRun.status = 'pending';
+                } else if (nr === 0) {
+                    formattedRun.status = f > 0 ? 'failed' : 'completed';
+                } else {
+                    formattedRun.status = 'partially_completed';
+                }
+            }
+        }
+
         return {
             ...formattedRun,
             cases: cases || []
@@ -2984,7 +3019,7 @@ class SupabaseDataService {
                         scriptSource: 'existing',
                         scriptRef: matchedTest.scriptRef,
                         scriptCode: matchedTest.code || '',
-                        mappingStatus: 'enabled',
+                        mappingStatus: 'configured',
                         validationStatus: 'valid',
                         updatedBy: 'system:auto-configure'
                     });
@@ -3122,18 +3157,28 @@ class SupabaseDataService {
 
         const run = await this.getTestRunById(runId);
         let newRunStatus = run.status;
-        let startedAt = run.startedAt;
-        let completedAt = run.completedAt;
+        let startedAt = run.startedAt || run.started_at;
+        let completedAt = run.completedAt || run.completed_at;
 
         if (!startedAt) {
             startedAt = now;
         }
 
-        if (notRun === 0 && inProgress === 0) {
-            newRunStatus = 'completed';
-            completedAt = now;
-        } else if (newRunStatus === 'pending') {
-            newRunStatus = 'in_progress';
+        // Strict Run Lifecycle state transitions:
+        // PENDING -> QUEUED -> RUNNING -> COMPLETED / FAILED / PARTIALLY_COMPLETED / CANCELLED
+        if (run.status !== 'cancelled') {
+            if (notRun === 0 && inProgress === 0) {
+                newRunStatus = failed > 0 ? 'failed' : 'completed';
+                completedAt = now;
+            } else if (passed > 0 || failed > 0 || blocked > 0 || skipped > 0) {
+                // If a background job is actively running, keep running; otherwise mark partially_completed
+                const isJobRunning = Array.from(this.inMemoryAutomationJobs.values()).some(
+                    j => j.run_id === runId && (j.status === 'queued' || j.status === 'running')
+                );
+                newRunStatus = isJobRunning ? 'running' : 'partially_completed';
+            } else if (newRunStatus !== 'queued' && newRunStatus !== 'running') {
+                newRunStatus = 'pending';
+            }
         }
 
         await this.updateTestRun(runId, run.workspaceId, {

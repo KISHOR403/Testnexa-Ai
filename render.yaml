@@ -11,3 +11,4 @@ services:
         value: production
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: "0"
+
