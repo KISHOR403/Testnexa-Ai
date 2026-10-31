@@ -5,7 +5,7 @@ import {
     AlertTriangle, MinusCircle, Clock, Shield, User, Bot,
     Terminal, FileText, Camera, Upload, Trash2, ExternalLink,
     ChevronRight, ChevronDown, Check, AlertCircle, StopCircle, Eye,
-    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare
+    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare, Search
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
