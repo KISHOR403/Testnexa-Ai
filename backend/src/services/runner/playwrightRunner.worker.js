@@ -57,7 +57,7 @@ const findExecutableOnDisk = () => {
         if (!fs.existsSync(root)) continue;
         try {
             const findFiles = (dir, depth = 0) => {
-                if (depth > 3) return null;
+                if (depth > 6) return null;
                 const entries = fs.readdirSync(dir, { withFileTypes: true });
                 for (const e of entries) {
                     const full = path.join(dir, e.name);
@@ -117,25 +117,47 @@ const ensureChromiumBinary = () => {
 
         logger.warn(`Playwright browser executable not found. Attempting runtime recovery...`);
         const { execSync } = require('child_process');
-        execSync('npx playwright install chromium', {
-            stdio: 'pipe',
-            timeout: 90000,
-            env: {
-                ...process.env,
-                PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '0'
-            }
-        });
+        try {
+            execSync('npx playwright install chromium', {
+                stdio: 'pipe',
+                timeout: 90000,
+                env: {
+                    ...process.env,
+                    PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '0'
+                }
+            });
+        } catch (installErr) {
+            // Also try default path install if 0 failed
+            try {
+                execSync('npx playwright install chromium', {
+                    stdio: 'pipe',
+                    timeout: 90000,
+                    env: { ...process.env }
+                });
+            } catch (e2) {}
+        }
 
         const recoveredDisk = findExecutableOnDisk();
         if (recoveredDisk) {
             resolvedChromiumPath = recoveredDisk;
             logger.info(`Playwright Chromium successfully resolved at ${recoveredDisk}`);
+            return pwChromium;
         }
+
+        // Check if executablePath is now valid after install
+        try {
+            const recheck = pwChromium.executablePath();
+            if (recheck && fs.existsSync(recheck)) {
+                resolvedChromiumPath = recheck;
+                return pwChromium;
+            }
+        } catch (e) {}
     } catch (err) {
         logger.warn('Playwright runtime recovery notice:', err.message);
     }
 
-    return pwChromium;
+    // If no binary was resolved on disk, return null so callers can present actionable feedback instead of crashing
+    return resolvedChromiumPath ? pwChromium : null;
 };
 
 // Secret sanitization patterns to prevent leaking credentials in reports/traces

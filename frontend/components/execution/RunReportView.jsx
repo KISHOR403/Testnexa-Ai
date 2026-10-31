@@ -31,7 +31,7 @@ const formatTimestamp = (iso) => {
             second: '2-digit'
         });
     } catch {
-        return iso;
+        return String(iso);
     }
 };
 
@@ -75,7 +75,8 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
         try {
             const res = await executionService.rerun({ runId, scope });
             if (res.success) {
-                setRerunStatus(`Rerun initiated (${res.data?.rerunCount || 0} cases queued).`);
+                const count = res.data?.rerunCasesCount || res.data?.rerunCount || 0;
+                setRerunStatus(`Rerun initiated (${count} cases queued).`);
                 if (onRerunTriggered) onRerunTriggered(res.data);
                 setTimeout(() => {
                     loadReport();
@@ -116,12 +117,42 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
         );
     }
 
-    const m = report.metrics || {};
-    const meta = report.meta || {};
+    // Normalized safe structures
+    const m = report.summary || report.metrics || {};
+    const meta = report.identifiers || report.meta || {};
+    const timestamps = report.timestamps || {};
+    const env = report.environment || meta.targetEnvironment || {};
     const method = report.methodBreakdown || {};
-    const cats = report.categories || {};
-    const failures = report.failures || [];
-    const coverage = report.requirementCoverage || {};
+    const rawCats = report.categoryBreakdown || report.categories || [];
+    const categoriesList = Array.isArray(rawCats)
+        ? rawCats
+        : Object.entries(rawCats).map(([k, v]) => ({ category: k, ...v }));
+    const failures = report.failureInvestigations || report.failures || [];
+    const coverage = report.coverage || report.requirementCoverage || {};
+
+    // Safely extract method numbers (defending against raw object renders)
+    const autoObj = (typeof method.automated === 'object' && method.automated !== null)
+        ? method.automated
+        : { total: Number(method.automated) || 0, passRate: 0 };
+    const manualObj = (typeof method.manual === 'object' && method.manual !== null)
+        ? method.manual
+        : { total: Number(method.manual) || 0, passRate: 0 };
+
+    const autoCount = autoObj.total || 0;
+    const manualCount = manualObj.total || 0;
+    const autoPassRate = autoObj.passRate ?? method.automatedPassRate ?? 0;
+    const manualPassRate = manualObj.passRate ?? method.manualPassRate ?? 0;
+    const totalMethodCases = autoCount + manualCount;
+    const adoptionRate = totalMethodCases > 0 ? Math.round((autoCount / totalMethodCases) * 100) : 0;
+
+    const totalDurationMs = timestamps.durationMs || m.durationMs || 0;
+    const avgDurationMs = m.total > 0 ? Math.round(totalDurationMs / m.total) : 0;
+    const startedAt = timestamps.startedAt || meta.startedAt;
+    const completedAt = timestamps.completedAt || meta.completedAt;
+
+    const coveragePct = coverage.requirementVerificationPercentage ?? coverage.requirementCoveragePercentage ?? coverage.coveragePercentage ?? 100;
+    const failedReqsCount = coverage.failedRequirements ?? coverage.failingRequirements ?? 0;
+    const uncoveredReqsCount = coverage.uncoveredRequirements ?? 0;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
@@ -146,21 +177,23 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             fontWeight: 600,
                             textTransform: 'uppercase'
                         }}>
-                            {meta.status}
+                            {meta.status || 'Report'}
                         </span>
-                        <span style={{ color: '#A0A5A5', fontSize: '0.85rem' }}>Run #{meta.runId?.slice(-6)}</span>
+                        <span style={{ color: '#A0A5A5', fontSize: '0.85rem' }}>
+                            Run #{String(meta.runId || runId || '').slice(-6)}
+                        </span>
                     </div>
                     <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F2F3F3', margin: 0 }}>
                         {meta.runName || 'Unified Execution Report'}
                     </h1>
                     <p style={{ margin: '4px 0 0', color: '#A0A5A5', fontSize: '0.85rem' }}>
-                        Suite: <strong style={{ color: '#F2F3F3' }}>{meta.suiteTitle}</strong> (v{meta.suiteVersion}) • Env: <strong style={{ color: '#F2F3F3' }}>{meta.targetEnvironment?.name || 'Default'}</strong>
+                        Suite: <strong style={{ color: '#F2F3F3' }}>{meta.suiteName || meta.suiteTitle || 'Test Suite'}</strong> (v{meta.suiteVersion || 1}) • Env: <strong style={{ color: '#F2F3F3' }}>{env.name || 'Default'}</strong>
                     </p>
                 </div>
 
                 {/* Export & Rerun Toolbar */}
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {m.failed > 0 && (
+                    {(m.failed > 0 || failures.length > 0) && (
                         <button
                             type="button"
                             onClick={() => handleRerun('failed')}
@@ -170,7 +203,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             title="Rerun only failed test cases"
                         >
                             <RefreshCw size={13} className={isRerunning ? 'spin' : ''} />
-                            <span>Rerun Failed ({m.failed})</span>
+                            <span>Rerun Failed ({m.failed || failures.length})</span>
                         </button>
                     )}
 
@@ -240,39 +273,39 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
             }}>
                 <div className="ws-stat-card">
                     <span className="ws-stat-label">TOTAL CASES</span>
-                    <span className="ws-stat-value">{m.total}</span>
+                    <span className="ws-stat-value">{m.total || 0}</span>
                     <span className="ws-stat-sub">100% of planned suite</span>
                 </div>
 
-                <div className="ws-stat-card" style={{ borderColor: m.passRate >= 80 ? 'rgba(139, 175, 154, 0.3)' : 'rgba(224, 108, 117, 0.3)' }}>
+                <div className="ws-stat-card" style={{ borderColor: (m.passRate || 0) >= 80 ? 'rgba(139, 175, 154, 0.3)' : 'rgba(224, 108, 117, 0.3)' }}>
                     <span className="ws-stat-label">PASS RATE</span>
-                    <span className="ws-stat-value" style={{ color: m.passRate >= 80 ? '#8BAF9A' : '#E06C75' }}>
-                        {m.passRate}%
+                    <span className="ws-stat-value" style={{ color: (m.passRate || 0) >= 80 ? '#8BAF9A' : '#E06C75' }}>
+                        {m.passRate || 0}%
                     </span>
-                    <span className="ws-stat-sub">{m.passed} passed / {m.executed} executed</span>
+                    <span className="ws-stat-sub">{m.passed || 0} passed / {m.total || 0} total</span>
                 </div>
 
                 <div className="ws-stat-card">
                     <span className="ws-stat-label">FAILED CASES</span>
-                    <span className="ws-stat-value" style={{ color: m.failed > 0 ? '#E06C75' : '#8BAF9A' }}>
-                        {m.failed}
+                    <span className="ws-stat-value" style={{ color: (m.failed || 0) > 0 ? '#E06C75' : '#8BAF9A' }}>
+                        {m.failed || 0}
                     </span>
                     <span className="ws-stat-sub">{m.blocked > 0 ? `${m.blocked} blocked` : '0 blocked'}</span>
                 </div>
 
                 <div className="ws-stat-card">
                     <span className="ws-stat-label">EXECUTION DURATION</span>
-                    <span className="ws-stat-value">{formatDuration(m.durationMs)}</span>
-                    <span className="ws-stat-sub">{m.avgDurationMs ? `Avg ${formatDuration(m.avgDurationMs)} / test` : 'Completed'}</span>
+                    <span className="ws-stat-value">{formatDuration(totalDurationMs)}</span>
+                    <span className="ws-stat-sub">{avgDurationMs ? `Avg ${formatDuration(avgDurationMs)} / test` : 'Completed'}</span>
                 </div>
 
                 <div className="ws-stat-card">
                     <span className="ws-stat-label">EXECUTION METHOD</span>
                     <span className="ws-stat-value" style={{ fontSize: '1.25rem', textTransform: 'capitalize' }}>
-                        {meta.executionType}
+                        {meta.executionType || 'Mixed'}
                     </span>
                     <span className="ws-stat-sub">
-                        {method.automated} Playwright · {method.manual} Manual
+                        {autoCount} Playwright · {manualCount} Manual
                     </span>
                 </div>
             </div>
@@ -289,7 +322,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                         Execution Method & Automation Coverage
                     </h2>
                     <span style={{ fontSize: '0.8rem', color: '#A0A5A5' }}>
-                        {method.automationAdoptionRate}% Automated via Playwright
+                        {adoptionRate}% Automated via Playwright
                     </span>
                 </div>
 
@@ -299,8 +332,12 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             <Bot size={16} color="#38BDF8" />
                             <strong style={{ color: '#38BDF8', fontSize: '0.9rem' }}>Playwright Automation</strong>
                         </div>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#F2F3F3' }}>{method.automated} <span style={{ fontSize: '0.8rem', color: '#A0A5A5', fontWeight: 400 }}>cases</span></div>
-                        <div style={{ fontSize: '0.75rem', color: '#A0A5A5', marginTop: '4px' }}>{method.automatedPassRate}% pass rate · Isolated Chromium worker</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#F2F3F3' }}>
+                            {autoCount} <span style={{ fontSize: '0.8rem', color: '#A0A5A5', fontWeight: 400 }}>cases</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#A0A5A5', marginTop: '4px' }}>
+                            {autoPassRate}% pass rate · Isolated Chromium worker
+                        </div>
                     </div>
 
                     <div style={{ padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #292D2D', borderRadius: '6px' }}>
@@ -308,8 +345,12 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             <User size={16} color="#A0A5A5" />
                             <strong style={{ color: '#F2F3F3', fontSize: '0.9rem' }}>Manual Verification</strong>
                         </div>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#F2F3F3' }}>{method.manual} <span style={{ fontSize: '0.8rem', color: '#A0A5A5', fontWeight: 400 }}>cases</span></div>
-                        <div style={{ fontSize: '0.75rem', color: '#A0A5A5', marginTop: '4px' }}>{method.manualPassRate}% pass rate · Verified by QA engineer</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#F2F3F3' }}>
+                            {manualCount} <span style={{ fontSize: '0.8rem', color: '#A0A5A5', fontWeight: 400 }}>cases</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#A0A5A5', marginTop: '4px' }}>
+                            {manualPassRate}% pass rate · Verified by QA engineer
+                        </div>
                     </div>
 
                     <div style={{ padding: '0.75rem 1rem', background: 'rgba(139, 175, 154, 0.05)', border: '1px solid rgba(139, 175, 154, 0.2)', borderRadius: '6px' }}>
@@ -317,8 +358,8 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             <Clock size={16} color="#8BAF9A" />
                             <strong style={{ color: '#8BAF9A', fontSize: '0.9rem' }}>Timestamps & Duration</strong>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#F2F3F3', marginTop: '6px' }}>Started: <strong>{formatTimestamp(meta.startedAt)}</strong></div>
-                        <div style={{ fontSize: '0.8rem', color: '#F2F3F3', marginTop: '2px' }}>Ended: <strong>{formatTimestamp(meta.completedAt)}</strong></div>
+                        <div style={{ fontSize: '0.8rem', color: '#F2F3F3', marginTop: '6px' }}>Started: <strong>{formatTimestamp(startedAt)}</strong></div>
+                        <div style={{ fontSize: '0.8rem', color: '#F2F3F3', marginTop: '2px' }}>Ended: <strong>{formatTimestamp(completedAt)}</strong></div>
                     </div>
                 </div>
             </div>
@@ -368,12 +409,13 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {failures.map((f, idx) => {
-                            const isExpanded = Boolean(expandedFailures[f.id]);
-                            const isAuto = f.executorType === 'automated' || f.isAutomated;
+                            const isExpanded = Boolean(expandedFailures[f.runCaseId || f.id || idx]);
+                            const isAuto = f.method === 'automated' || f.executionType === 'automated' || f.isAutomated;
+                            const screenshotUrl = f.screenshotArtifact?.url || f.screenshotUrl;
 
                             return (
                                 <div
-                                    key={f.id || idx}
+                                    key={f.runCaseId || f.id || idx}
                                     style={{
                                         background: '#0D0E0E',
                                         border: '1px solid rgba(224, 108, 117, 0.25)',
@@ -382,7 +424,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                     }}
                                 >
                                     <div
-                                        onClick={() => toggleFailureExpand(f.id)}
+                                        onClick={() => toggleFailureExpand(f.runCaseId || f.id || idx)}
                                         style={{
                                             padding: '1rem',
                                             cursor: 'pointer',
@@ -414,14 +456,14 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                                     </span>
                                                 </div>
                                                 <div style={{ color: '#E06C75', fontSize: '0.8rem', marginTop: '3px', fontFamily: 'monospace' }}>
-                                                    {f.errorMessage?.slice(0, 110) || f.actualResult || 'Assertion or expectation failed.'}
+                                                    {String(f.errorMessage || f.actualResult || 'Assertion or expectation failed.').slice(0, 110)}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <span style={{ fontSize: '0.75rem', color: '#A0A5A5' }}>
-                                                Attempt #{f.attempt || 1} · {formatDuration(f.durationMs)}
+                                                {formatDuration(f.durationMs)}
                                             </span>
                                             {isExpanded ? <ChevronUp size={16} color="#A0A5A5" /> : <ChevronDown size={16} color="#A0A5A5" />}
                                         </div>
@@ -432,20 +474,20 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                             {/* Automated Specific Diagnostic Details */}
                                             {isAuto && (
                                                 <>
-                                                    {f.failedAssertion && (
+                                                    {f.failedStep && (
                                                         <div>
-                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>FAILED ASSERTION</span>
+                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>FAILED STEP / ASSERTION</span>
                                                             <div style={{ fontFamily: 'monospace', color: '#F2F3F3', background: '#161819', padding: '6px 10px', borderRadius: '4px', fontSize: '0.82rem', marginTop: '2px' }}>
-                                                                {f.failedAssertion}
+                                                                {f.failedStep}
                                                             </div>
                                                         </div>
                                                     )}
 
-                                                    {f.scriptRef && (
+                                                    {f.errorMessage && (
                                                         <div>
-                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>SCRIPT REFERENCE</span>
-                                                            <div style={{ fontFamily: 'monospace', color: '#38BDF8', fontSize: '0.8rem', marginTop: '2px' }}>
-                                                                {f.scriptRef}
+                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ERROR MESSAGE</span>
+                                                            <div style={{ fontFamily: 'monospace', color: '#E06C75', background: '#161819', padding: '6px 10px', borderRadius: '4px', fontSize: '0.82rem', marginTop: '2px' }}>
+                                                                {f.errorMessage}
                                                             </div>
                                                         </div>
                                                     )}
@@ -487,14 +529,14 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                                             )}
 
                                             {/* Screenshot Evidence Artifact */}
-                                            {f.screenshotUrl && (
+                                            {screenshotUrl && (
                                                 <div>
                                                     <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase' }}>FAILURE SCREENSHOT EVIDENCE</span>
                                                     <div style={{ marginTop: '4px' }}>
                                                         <img
-                                                            src={f.screenshotUrl}
+                                                            src={screenshotUrl}
                                                             alt={`Failure screenshot for ${f.testCaseId}`}
-                                                            onClick={() => setPreviewImage(f.screenshotUrl)}
+                                                            onClick={() => setPreviewImage(screenshotUrl)}
                                                             style={{
                                                                 maxWidth: '300px',
                                                                 maxHeight: '160px',
@@ -540,25 +582,30 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {Object.entries(cats).map(([catKey, stat]) => {
-                                const pRate = stat.total > 0 ? Math.round((stat.passed / stat.total) * 100) : 0;
+                            {categoriesList.map((catItem, idx) => {
+                                const catName = catItem.category || catItem.name || 'General';
+                                const cTotal = Number(catItem.total) || 0;
+                                const cPassed = Number(catItem.passed) || 0;
+                                const cFailed = Number(catItem.failed) || 0;
+                                const pRate = catItem.passRate ?? (cTotal > 0 ? Math.round((cPassed / cTotal) * 100) : 0);
+
                                 return (
-                                    <tr key={catKey} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                                    <tr key={catItem.id || catName || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
                                         <td style={{ padding: '10px 8px', fontWeight: 500, color: '#F2F3F3', textTransform: 'capitalize' }}>
-                                            {catKey}
+                                            {catName}
                                         </td>
-                                        <td style={{ padding: '10px 8px', color: '#A0A5A5' }}>{stat.total}</td>
-                                        <td style={{ padding: '10px 8px', color: '#8BAF9A' }}>{stat.passed}</td>
-                                        <td style={{ padding: '10px 8px', color: stat.failed > 0 ? '#E06C75' : '#A0A5A5' }}>{stat.failed}</td>
+                                        <td style={{ padding: '10px 8px', color: '#A0A5A5' }}>{cTotal}</td>
+                                        <td style={{ padding: '10px 8px', color: '#8BAF9A' }}>{cPassed}</td>
+                                        <td style={{ padding: '10px 8px', color: cFailed > 0 ? '#E06C75' : '#A0A5A5' }}>{cFailed}</td>
                                         <td style={{ padding: '10px 8px', fontWeight: 600, color: pRate >= 80 ? '#8BAF9A' : '#E06C75' }}>
                                             {pRate}%
                                         </td>
                                         <td style={{ padding: '10px 8px' }}>
                                             <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden', background: '#292D2D' }}>
-                                                {stat.total > 0 && (
+                                                {cTotal > 0 && (
                                                     <>
-                                                        <div style={{ width: `${(stat.passed / stat.total) * 100}%`, background: '#8BAF9A' }} />
-                                                        <div style={{ width: `${(stat.failed / stat.total) * 100}%`, background: '#E06C75' }} />
+                                                        <div style={{ width: `${(cPassed / cTotal) * 100}%`, background: '#8BAF9A' }} />
+                                                        <div style={{ width: `${(cFailed / cTotal) * 100}%`, background: '#E06C75' }} />
                                                     </>
                                                 )}
                                             </div>
@@ -588,7 +635,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                         </p>
                     </div>
                     <span style={{ fontSize: '0.85rem', color: '#8BAF9A', fontWeight: 600 }}>
-                        {coverage.coveragePercentage || 100}% Verified
+                        {coveragePct}% Verified
                     </span>
                 </div>
 
@@ -607,16 +654,16 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
 
                     <div className="ws-stat-card">
                         <span className="ws-stat-label">FAILING REQUIREMENTS</span>
-                        <span className="ws-stat-value" style={{ color: coverage.failingRequirements > 0 ? '#E06C75' : '#8BAF9A' }}>
-                            {coverage.failingRequirements || 0}
+                        <span className="ws-stat-value" style={{ color: failedReqsCount > 0 ? '#E06C75' : '#8BAF9A' }}>
+                            {failedReqsCount}
                         </span>
                         <span className="ws-stat-sub">Requires engineering remediation</span>
                     </div>
 
                     <div className="ws-stat-card">
                         <span className="ws-stat-label">UNCOVERED</span>
-                        <span className="ws-stat-value" style={{ color: coverage.uncoveredRequirements > 0 ? '#E5C07B' : '#A0A5A5' }}>
-                            {coverage.uncoveredRequirements || 0}
+                        <span className="ws-stat-value" style={{ color: uncoveredReqsCount > 0 ? '#E5C07B' : '#A0A5A5' }}>
+                            {uncoveredReqsCount}
                         </span>
                         <span className="ws-stat-sub">No linked test cases</span>
                     </div>

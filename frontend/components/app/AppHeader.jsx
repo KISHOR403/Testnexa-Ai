@@ -46,6 +46,9 @@ const AppHeader = ({ onToggleMobile }) => {
         if (path.includes('/app/runs')) {
             return { section: 'Execution', current: 'Unified Test Runs', link: '/app/runs' };
         }
+        if (path.includes('/app/history')) {
+            return { section: 'Workspace', current: 'Generation History', link: '/app/history' };
+        }
         if (path.includes('/app/settings')) {
             const searchParams = new URLSearchParams(location.search);
             const tab = searchParams.get('tab') || 'profile';
