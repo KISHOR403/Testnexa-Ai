@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { NavLink } from 'react-router-dom';
 import {
     CheckCircle2, XCircle, AlertTriangle, MinusCircle, Clock,
-    Download, Printer, FileText, Bot, User, Terminal, ArrowRight,
-    RefreshCw, Layers, Shield, ExternalLink, ChevronDown, ChevronUp,
-    Check, AlertCircle, Eye
+    Download, Printer, FileText, Bot, User, RefreshCw,
+    ChevronDown, ChevronRight, ChevronUp, Check, AlertCircle, Eye,
+    Search, Shield, Layers, ExternalLink
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../loading';
 import '../../styles/app/WorkspaceDesignSystem.css';
+import '../../styles/app/ExecutionReport.css';
 
 const formatDuration = (ms) => {
     if (!ms || ms <= 0) return '0s';
@@ -26,20 +28,29 @@ const formatTimestamp = (iso) => {
         return d.toLocaleString(undefined, {
             month: 'short',
             day: 'numeric',
+            year: 'numeric',
             hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
+            minute: '2-digit'
         });
     } catch {
         return String(iso);
     }
 };
 
+const STANDARD_CATEGORIES = ['Functional', 'Negative', 'Edge', 'API', 'Non-Functional'];
+
 const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const [report, setReport] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Interactive view state
     const [expandedFailures, setExpandedFailures] = useState({});
+    const [expandedCases, setExpandedCases] = useState({});
+    const [expandedStackTraces, setExpandedStackTraces] = useState({});
+    const [caseSearch, setCaseSearch] = useState('');
+    const [caseStatusFilter, setCaseStatusFilter] = useState('all');
+    const [caseCategoryFilter, setCaseCategoryFilter] = useState('all');
     const [previewImage, setPreviewImage] = useState(null);
     const [isRerunning, setIsRerunning] = useState(false);
     const [rerunStatus, setRerunStatus] = useState(null);
@@ -67,6 +78,14 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
 
     const toggleFailureExpand = (id) => {
         setExpandedFailures(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const toggleCaseExpand = (id) => {
+        setExpandedCases(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const toggleStackTrace = (id) => {
+        setExpandedStackTraces(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
     const handleRerun = async (scope) => {
@@ -105,12 +124,12 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
 
     if (error || !report) {
         return (
-            <div className="ws-empty-state" style={{ margin: '2rem 0' }}>
-                <AlertTriangle size={32} color="#E06C75" />
-                <h2>Report Generation Failed</h2>
-                <p>{error || 'Execution records could not be loaded.'}</p>
-                <button type="button" onClick={loadReport} className="ws-btn-primary" style={{ marginTop: '1rem' }}>
-                    <RefreshCw size={14} />
+            <div className="ws-empty-state" style={{ margin: '3rem 0', textAlign: 'center' }}>
+                <AlertTriangle size={32} color="var(--er-fail)" />
+                <h2 style={{ color: '#FFFFFF', marginTop: '0.75rem' }}>Report Generation Failed</h2>
+                <p style={{ color: 'var(--er-text-muted)' }}>{error || 'Execution records could not be loaded.'}</p>
+                <button type="button" onClick={loadReport} className="er-btn" style={{ marginTop: '1rem' }}>
+                    <RefreshCw size={13} />
                     <span>Retry Report Generation</span>
                 </button>
             </div>
@@ -124,13 +143,11 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const env = report.environment || meta.targetEnvironment || {};
     const method = report.methodBreakdown || {};
     const rawCats = report.categoryBreakdown || report.categories || [];
-    const categoriesList = Array.isArray(rawCats)
-        ? rawCats
-        : Object.entries(rawCats).map(([k, v]) => ({ category: k, ...v }));
     const failures = report.failureInvestigations || report.failures || [];
     const coverage = report.coverage || report.requirementCoverage || {};
+    const allCases = report.cases || [];
 
-    // Safely extract method numbers (defending against raw object renders)
+    // Safely extract method breakdowns
     const autoObj = (typeof method.automated === 'object' && method.automated !== null)
         ? method.automated
         : { total: Number(method.automated) || 0, passRate: 0 };
@@ -140,10 +157,6 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
 
     const autoCount = autoObj.total || 0;
     const manualCount = manualObj.total || 0;
-    const autoPassRate = autoObj.passRate ?? method.automatedPassRate ?? 0;
-    const manualPassRate = manualObj.passRate ?? method.manualPassRate ?? 0;
-    const totalMethodCases = autoCount + manualCount;
-    const adoptionRate = totalMethodCases > 0 ? Math.round((autoCount / totalMethodCases) * 100) : 0;
 
     const totalDurationMs = timestamps.durationMs || m.durationMs || 0;
     const avgDurationMs = m.total > 0 ? Math.round(totalDurationMs / m.total) : 0;
@@ -151,76 +164,138 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
     const completedAt = timestamps.completedAt || meta.completedAt;
 
     const runStatus = (meta.status || 'pending').toLowerCase();
-    const executedCount = (m.total || 0) - (m.notRun || m.not_run || 0);
-    const isPending = runStatus === 'pending' || (executedCount === 0 && (m.passed || 0) === 0 && (m.failed || 0) === 0);
-    const isRunning = ['running', 'in_progress', 'queued'].includes(runStatus);
+    const totalCasesCount = m.total || allCases.length || 0;
+    const passedCount = m.passed || 0;
+    const failedCount = m.failed || 0;
+    const blockedCount = m.blocked || 0;
+    const skippedCount = m.skipped || 0;
+    const notRunCount = m.notRun ?? m.not_run ?? (totalCasesCount - (passedCount + failedCount + blockedCount + skippedCount));
+    const executedCount = totalCasesCount - notRunCount;
+
+    const isPending = runStatus === 'pending' || (executedCount === 0 && passedCount === 0 && failedCount === 0);
     const hasStarted = Boolean(startedAt);
 
-    const totalDurationFormatted = (isPending || !hasStarted) ? '—' : formatDuration(totalDurationMs);
-    const durationSub = isPending
-        ? 'Execution pending'
-        : isRunning
-        ? 'Running in worker...'
-        : runStatus === 'partially_completed'
-        ? `${executedCount} of ${m.total || 0} executed`
-        : avgDurationMs > 0
-        ? `Avg ${formatDuration(avgDurationMs)} / test`
-        : 'Completed';
+    const passRate = isPending ? 0 : (m.passRate ?? (executedCount > 0 ? Math.round((passedCount / executedCount) * 100) : 0));
 
+    // Progress bar segment percentages
+    const passedPct = totalCasesCount > 0 ? (passedCount / totalCasesCount) * 100 : 0;
+    const failedPct = totalCasesCount > 0 ? (failedCount / totalCasesCount) * 100 : 0;
+    const blockedPct = totalCasesCount > 0 ? (blockedCount / totalCasesCount) * 100 : 0;
+    const skippedPct = totalCasesCount > 0 ? (skippedCount / totalCasesCount) * 100 : 0;
+    const notRunPct = totalCasesCount > 0 ? (notRunCount / totalCasesCount) * 100 : 0;
+
+    // Requirement metrics
     const coveragePct = isPending ? 0 : (coverage.requirementVerificationPercentage ?? 0);
+    const verifiedReqsCount = coverage.verifiedRequirements ?? 0;
     const failedReqsCount = coverage.failedRequirements ?? coverage.failingRequirements ?? 0;
     const uncoveredReqsCount = coverage.uncoveredRequirements ?? 0;
+    const requirementsList = coverage.requirements || [];
+
+    // Filter test cases table
+    const filteredCases = allCases.filter(c => {
+        const query = caseSearch.toLowerCase().trim();
+        const matchesQuery = !query ||
+            (c.testCaseId && c.testCaseId.toLowerCase().includes(query)) ||
+            (c.title && c.title.toLowerCase().includes(query));
+        const matchesStatus = caseStatusFilter === 'all' || (c.status && c.status.toLowerCase() === caseStatusFilter);
+        const matchesCat = caseCategoryFilter === 'all' || (c.type && c.type.toLowerCase() === caseCategoryFilter.toLowerCase());
+        return matchesQuery && matchesStatus && matchesCat;
+    });
+
+    // Normalized Categories List ensuring all 5 standard categories exist
+    const categoriesList = useMemo(() => {
+        const rawMap = new Map();
+        const list = Array.isArray(rawCats)
+            ? rawCats
+            : Object.entries(rawCats).map(([k, v]) => ({ category: k, ...v }));
+
+        list.forEach(item => {
+            const name = item.category || item.name || 'General';
+            rawMap.set(name.toLowerCase(), {
+                name,
+                total: Number(item.total) || 0,
+                passed: Number(item.passed) || 0,
+                failed: Number(item.failed) || 0,
+                blocked: Number(item.blocked) || 0,
+                skipped: Number(item.skipped) || 0,
+                passRate: item.passRate ?? 0
+            });
+        });
+
+        // Ensure Functional, Negative, Edge, API, Non-Functional are present
+        const result = [];
+        const seen = new Set();
+
+        STANDARD_CATEGORIES.forEach(std => {
+            const key = std.toLowerCase();
+            seen.add(key);
+            if (rawMap.has(key)) {
+                result.push(rawMap.get(key));
+            } else {
+                result.push({
+                    name: std,
+                    total: 0,
+                    passed: 0,
+                    failed: 0,
+                    blocked: 0,
+                    skipped: 0,
+                    passRate: 0
+                });
+            }
+        });
+
+        // Add any remaining custom categories
+        rawMap.forEach((v, k) => {
+            if (!seen.has(k)) {
+                result.push(v);
+            }
+        });
+
+        return result;
+    }, [rawCats]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
-            {/* ─── 1. Report Header & Quick Actions ─── */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                borderBottom: '1px solid #292D2D',
-                paddingBottom: '1.25rem'
-            }}>
-                <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{
-                            padding: '2px 8px',
-                            background: meta.status === 'completed' ? 'rgba(139, 175, 154, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                            color: meta.status === 'completed' ? '#8BAF9A' : '#38BDF8',
-                            borderRadius: '4px',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            textTransform: 'uppercase'
-                        }}>
-                            {meta.status || 'Report'}
-                        </span>
-                        <span style={{ color: '#A0A5A5', fontSize: '0.85rem' }}>
-                            Run #{String(meta.runId || runId || '').slice(-6)}
+        <div className="er-document">
+            {/* ─── 1. REPORT HEADER & ACTIONS ─── */}
+            <header className="er-header">
+                <div className="er-title-area">
+                    <div className="er-breadcrumb">
+                        <NavLink to="/app/runs">Execution</NavLink>
+                        <span className="er-breadcrumb-sep">/</span>
+                        <span>Reports</span>
+                        <span className="er-breadcrumb-sep">/</span>
+                        <span className="er-breadcrumb-id">Run #{String(meta.runId || runId || '').slice(-8)}</span>
+                    </div>
+
+                    <div className="er-title-row">
+                        <h1 className="er-title">{meta.suiteName || meta.runName || 'Execution Report'}</h1>
+                        <span className="er-run-badge">Run #{String(meta.runId || runId || '').slice(-6)}</span>
+                        <span className={`er-status-badge ${runStatus}`}>
+                            {runStatus.replace('_', ' ')}
                         </span>
                     </div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#F2F3F3', margin: 0 }}>
-                        {meta.runName || 'Unified Execution Report'}
-                    </h1>
-                    <p style={{ margin: '4px 0 0', color: '#A0A5A5', fontSize: '0.85rem' }}>
-                        Suite: <strong style={{ color: '#F2F3F3' }}>{meta.suiteName || meta.suiteTitle || 'Test Suite'}</strong> (v{meta.suiteVersion || 1}) • Env: <strong style={{ color: '#F2F3F3' }}>{env.name || 'Default'}</strong>
-                    </p>
+
+                    <div className="er-meta-context">
+                        <span>Environment: <strong>{env.name || 'Default Staging'}</strong></span>
+                        <span>•</span>
+                        <span>Framework: <strong>{meta.executionType === 'automated' ? 'Playwright / Chromium' : meta.executionType === 'mixed' ? 'Hybrid (Playwright + Manual)' : 'Manual Execution'}</strong></span>
+                        <span>•</span>
+                        <span>Execution Date: <strong>{formatTimestamp(completedAt || startedAt || meta.createdAt)}</strong></span>
+                    </div>
                 </div>
 
-                {/* Export & Rerun Toolbar */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {(m.failed > 0 || failures.length > 0) && (
+                {/* Export & Print Actions Toolbar */}
+                <div className="er-actions">
+                    {failedCount > 0 && (
                         <button
                             type="button"
                             onClick={() => handleRerun('failed')}
                             disabled={isRerunning}
-                            className="ws-btn-primary"
-                            style={{ background: '#E06C75', borderColor: '#E06C75', color: '#FFFFFF' }}
+                            className="er-btn er-btn-danger"
                             title="Rerun only failed test cases"
                         >
-                            <RefreshCw size={13} className={isRerunning ? 'spin' : ''} />
-                            <span>Rerun Failed ({m.failed || failures.length})</span>
+                            <RefreshCw size={12} className={isRerunning ? 'animate-spin' : ''} />
+                            <span>Rerun Failed ({failedCount})</span>
                         </button>
                     )}
 
@@ -228,437 +303,220 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                         type="button"
                         onClick={() => handleRerun('all')}
                         disabled={isRerunning}
-                        className="ws-btn-secondary"
-                        title="Rerun the entire suite"
+                        className="er-btn"
+                        title="Rerun complete suite"
                     >
-                        <RefreshCw size={13} className={isRerunning ? 'spin' : ''} />
-                        <span>Rerun Full Suite</span>
+                        <RefreshCw size={12} className={isRerunning ? 'animate-spin' : ''} />
+                        <span>Rerun Suite</span>
                     </button>
 
-                    <div style={{ width: '1px', height: '24px', background: '#292D2D', margin: '0 4px' }} />
+                    <div className="er-btn-divider" />
 
                     <button
                         type="button"
                         onClick={() => handleExport('pdf')}
-                        className="ws-btn-secondary"
-                        title="Open Printable PDF Executive Report"
+                        className="er-btn"
+                        title="Print or export high-fidelity PDF report"
                     >
-                        <Printer size={13} />
+                        <Printer size={12} />
                         <span>Print / PDF</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={() => handleExport('csv')}
-                        className="ws-btn-secondary"
-                        title="Download CSV Test Results"
+                        className="er-btn"
+                        title="Download CSV test results"
                     >
-                        <Download size={13} />
+                        <Download size={12} />
                         <span>CSV</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={() => handleExport('json')}
-                        className="ws-btn-secondary"
-                        title="Export JSON Execution Schema"
+                        className="er-btn"
+                        title="Export JSON report schema"
                     >
-                        <FileText size={13} />
+                        <FileText size={12} />
                         <span>JSON</span>
                     </button>
                 </div>
-            </div>
+            </header>
 
             {rerunStatus && (
                 <div style={{
-                    padding: '0.75rem 1rem',
-                    background: rerunStatus.includes('failed') ? 'rgba(224, 108, 117, 0.12)' : 'rgba(139, 175, 154, 0.12)',
-                    border: `1px solid ${rerunStatus.includes('failed') ? 'rgba(224, 108, 117, 0.3)' : 'rgba(139, 175, 154, 0.3)'}`,
-                    borderRadius: '6px',
-                    color: rerunStatus.includes('failed') ? '#E06C75' : '#8BAF9A',
-                    fontSize: '0.85rem'
+                    padding: '0.65rem 0.95rem',
+                    background: rerunStatus.includes('failed') ? 'var(--er-fail-bg)' : 'var(--er-jade-bg)',
+                    border: `1px solid ${rerunStatus.includes('failed') ? 'var(--er-fail-border)' : 'var(--er-jade-border)'}`,
+                    borderRadius: '5px',
+                    color: rerunStatus.includes('failed') ? 'var(--er-fail)' : 'var(--er-jade)',
+                    fontSize: '0.82rem'
                 }}>
                     {rerunStatus}
                 </div>
             )}
 
-            {/* ─── 2. Executive KPI Cards Grid ─── */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-                gap: '12px'
-            }}>
-                <div className="ws-stat-card">
-                    <span className="ws-stat-label">TOTAL CASES</span>
-                    <span className="ws-stat-value">{m.total || 0}</span>
-                    <span className="ws-stat-sub">100% of planned suite</span>
-                </div>
-
-                <div className="ws-stat-card" style={{ borderColor: isPending ? 'rgba(255, 255, 255, 0.08)' : (m.passRate || 0) >= 80 ? 'rgba(139, 175, 154, 0.3)' : 'rgba(224, 108, 117, 0.3)' }}>
-                    <span className="ws-stat-label">PASS RATE</span>
-                    <span className="ws-stat-value" style={{ color: isPending ? '#A0A5A5' : (m.passRate || 0) >= 80 ? '#8BAF9A' : '#E06C75' }}>
-                        {isPending ? '—' : `${m.passRate || 0}%`}
-                    </span>
-                    <span className="ws-stat-sub">
-                        {isPending ? 'No tests executed' : `${m.passed || 0} passed / ${m.total || 0} total`}
-                    </span>
-                </div>
-
-                <div className="ws-stat-card">
-                    <span className="ws-stat-label">FAILED CASES</span>
-                    <span className="ws-stat-value" style={{ color: (m.failed || 0) > 0 ? '#E06C75' : '#8BAF9A' }}>
-                        {m.failed || 0}
-                    </span>
-                    <span className="ws-stat-sub">{m.blocked > 0 ? `${m.blocked} blocked` : isPending ? `${m.notRun || m.not_run || 0} pending` : '0 blocked'}</span>
-                </div>
-
-                <div className="ws-stat-card">
-                    <span className="ws-stat-label">EXECUTION DURATION</span>
-                    <span className="ws-stat-value">{totalDurationFormatted}</span>
-                    <span className="ws-stat-sub">{durationSub}</span>
-                </div>
-
-                <div className="ws-stat-card">
-                    <span className="ws-stat-label">EXECUTION METHOD</span>
-                    <span className="ws-stat-value" style={{ fontSize: '1.25rem', textTransform: 'capitalize' }}>
-                        {meta.executionType || 'Mixed'}
-                    </span>
-                    <span className="ws-stat-sub">
-                        {isPending
-                            ? `${m.total || 0} planned (${autoCount} automated, ${manualCount} manual)`
-                            : `${autoCount} Playwright · ${manualCount} Manual`}
-                    </span>
-                </div>
-            </div>
-
-            {/* ─── 3. Execution Method Breakdown ─── */}
-            <div style={{
-                background: '#161819',
-                border: '1px solid #292D2D',
-                borderRadius: '8px',
-                padding: '1.25rem'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, color: '#F2F3F3' }}>
-                        Execution Method & Automation Coverage
-                    </h2>
-                    <span style={{ fontSize: '0.8rem', color: '#A0A5A5' }}>
-                        {adoptionRate}% Automated via Playwright
-                    </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <Bot size={16} color="#38BDF8" />
-                            <strong style={{ color: '#38BDF8', fontSize: '0.9rem' }}>Playwright Automation</strong>
-                        </div>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#F2F3F3' }}>
-                            {autoCount} <span style={{ fontSize: '0.8rem', color: '#A0A5A5', fontWeight: 400 }}>cases</span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#A0A5A5', marginTop: '4px' }}>
-                            {autoPassRate}% pass rate · Isolated Chromium worker
+            {/* ─── 2. EXECUTION OUTCOME (PRIMARY FOCUS) ─── */}
+            <section className="er-outcome-block">
+                <div className="er-outcome-header">
+                    <div className="er-outcome-primary">
+                        <span className={`er-pass-rate ${isPending ? 'pending' : passRate >= 80 ? 'passed' : 'failed'}`}>
+                            {isPending ? '—' : `${passRate}%`}
+                        </span>
+                        <div>
+                            <div className="er-outcome-label">
+                                {isPending ? 'Pending Execution' : passRate === 100 ? 'All Tests Passed' : passRate >= 80 ? 'Suite Passed' : 'Tests Failed'}
+                            </div>
+                            <div className="er-outcome-summary-text">
+                                {isPending
+                                    ? `Suite planned with ${totalCasesCount} cases; execution has not started.`
+                                    : `${passedCount} of ${totalCasesCount} test cases completed successfully.`}
+                            </div>
                         </div>
                     </div>
-
-                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #292D2D', borderRadius: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <User size={16} color="#A0A5A5" />
-                            <strong style={{ color: '#F2F3F3', fontSize: '0.9rem' }}>Manual Verification</strong>
-                        </div>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 600, color: '#F2F3F3' }}>
-                            {manualCount} <span style={{ fontSize: '0.8rem', color: '#A0A5A5', fontWeight: 400 }}>cases</span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#A0A5A5', marginTop: '4px' }}>
-                            {manualPassRate}% pass rate · Verified by QA engineer
-                        </div>
-                    </div>
-
-                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(139, 175, 154, 0.05)', border: '1px solid rgba(139, 175, 154, 0.2)', borderRadius: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <Clock size={16} color="#8BAF9A" />
-                            <strong style={{ color: '#8BAF9A', fontSize: '0.9rem' }}>Timestamps & Duration</strong>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#F2F3F3', marginTop: '6px' }}>Started: <strong>{formatTimestamp(startedAt)}</strong></div>
-                        <div style={{ fontSize: '0.8rem', color: '#F2F3F3', marginTop: '2px' }}>Ended: <strong>{formatTimestamp(completedAt)}</strong></div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── 4. Failure Investigation Drawer / Section ─── */}
-            <div style={{
-                background: '#161819',
-                border: '1px solid #292D2D',
-                borderRadius: '8px',
-                padding: '1.25rem'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, color: '#F2F3F3' }}>
-                            Failure Investigation & Diagnostics
-                        </h2>
-                        <p style={{ margin: '2px 0 0', color: '#A0A5A5', fontSize: '0.8rem' }}>
-                            Root cause evidence, failed assertions, stack traces, and screenshots from real execution attempts.
-                        </p>
-                    </div>
-                    <span style={{
-                        padding: '3px 8px',
-                        background: failures.length > 0 ? 'rgba(224, 108, 117, 0.15)' : 'rgba(139, 175, 154, 0.15)',
-                        color: failures.length > 0 ? '#E06C75' : '#8BAF9A',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600
-                    }}>
-                        {failures.length} {failures.length === 1 ? 'Failure' : 'Failures'} Identified
-                    </span>
                 </div>
 
-                {isPending ? (
-                    <div style={{
-                        padding: '2.5rem 1.5rem',
-                        textAlign: 'center',
-                        background: '#121415',
-                        borderRadius: '6px',
-                        border: '1px dashed #292D2D'
-                    }}>
-                        <Clock size={30} color="#777E7E" style={{ margin: '0 auto 8px' }} />
-                        <h3 style={{ margin: 0, color: '#F2F3F3', fontSize: '1rem', fontWeight: 600 }}>Execution Has Not Started Yet</h3>
-                        <p style={{ margin: '6px auto 0', color: '#A0A5A5', fontSize: '0.85rem', maxWidth: '440px' }}>
-                            All {m.total || 0} test cases in this run are pending. Trigger the Playwright automated suite or record manual test outcomes to inspect execution diagnostics.
-                        </p>
+                {/* Slim Horizontal Progress Line */}
+                <div className="er-progress-track" title={`Passed: ${passedCount}, Failed: ${failedCount}, Blocked: ${blockedCount}, Skipped: ${skippedCount}, Not Run: ${notRunCount}`}>
+                    {totalCasesCount > 0 && (
+                        <>
+                            <div className="er-progress-seg passed" style={{ width: `${passedPct}%` }} />
+                            <div className="er-progress-seg failed" style={{ width: `${failedPct}%` }} />
+                            <div className="er-progress-seg blocked" style={{ width: `${blockedPct}%` }} />
+                            <div className="er-progress-seg skipped" style={{ width: `${skippedPct}%` }} />
+                            <div className="er-progress-seg not-run" style={{ width: `${notRunPct}%` }} />
+                        </>
+                    )}
+                </div>
+
+                {/* Compact Outcome Counts Row */}
+                <div className="er-counts-row">
+                    <div className="er-count-item">
+                        <span className="er-dot total" />
+                        <span>Total: <strong>{totalCasesCount}</strong></span>
                     </div>
-                ) : isRunning ? (
-                    <div style={{
-                        padding: '2.5rem 1.5rem',
-                        textAlign: 'center',
-                        background: 'rgba(56, 189, 248, 0.05)',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(56, 189, 248, 0.25)'
-                    }}>
-                        <RefreshCw size={28} color="#38BDF8" className="animate-spin" style={{ margin: '0 auto 8px' }} />
-                        <h3 style={{ margin: 0, color: '#38BDF8', fontSize: '1rem', fontWeight: 600 }}>Test Execution In Progress</h3>
-                        <p style={{ margin: '6px auto 0', color: '#A0A5A5', fontSize: '0.85rem', maxWidth: '440px' }}>
-                            The Playwright runner worker is currently executing test cases. Diagnostics and artifacts will populate dynamically.
-                        </p>
+                    <div className="er-count-item">
+                        <span className="er-dot passed" />
+                        <span>Passed: <strong style={{ color: 'var(--er-jade)' }}>{passedCount}</strong></span>
                     </div>
-                ) : failures.length === 0 ? (
-                    <div style={{
-                        padding: '2.5rem 1.5rem',
-                        textAlign: 'center',
-                        background: 'rgba(139, 175, 154, 0.05)',
-                        borderRadius: '6px',
-                        border: '1px dashed rgba(139, 175, 154, 0.25)'
-                    }}>
-                        <CheckCircle2 size={32} color="#8BAF9A" style={{ margin: '0 auto 8px' }} />
-                        <h3 style={{ margin: 0, color: '#8BAF9A', fontSize: '1rem', fontWeight: 600 }}>
-                            Zero Execution Failures Across {executedCount} Executed Tests
-                        </h3>
-                        <p style={{ margin: '6px auto 0', color: '#A0A5A5', fontSize: '0.85rem', maxWidth: '440px' }}>
-                            All {executedCount} executed test cases met expectations without assertion errors or timeouts.
-                            {((m.total || 0) > executedCount) && ` Note: ${(m.total || 0) - executedCount} test cases remain unexecuted.`}
-                        </p>
+                    <div className="er-count-item">
+                        <span className="er-dot failed" />
+                        <span>Failed: <strong style={{ color: failedCount > 0 ? 'var(--er-fail)' : 'inherit' }}>{failedCount}</strong></span>
                     </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {failures.map((f, idx) => {
-                            const isExpanded = Boolean(expandedFailures[f.runCaseId || f.id || idx]);
-                            const isAuto = f.method === 'automated' || f.executionType === 'automated' || f.isAutomated;
-                            const screenshotUrl = f.screenshotArtifact?.url || f.screenshotUrl;
-
-                            return (
-                                <div
-                                    key={f.runCaseId || f.id || idx}
-                                    style={{
-                                        background: '#0D0E0E',
-                                        border: '1px solid rgba(224, 108, 117, 0.25)',
-                                        borderRadius: '6px',
-                                        overflow: 'hidden'
-                                    }}
-                                >
-                                    <div
-                                        onClick={() => toggleFailureExpand(f.runCaseId || f.id || idx)}
-                                        style={{
-                                            padding: '1rem',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            borderBottom: isExpanded ? '1px solid #292D2D' : 'none',
-                                            background: 'rgba(224, 108, 117, 0.03)'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <XCircle size={16} color="#E06C75" />
-                                            <div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span style={{ fontFamily: 'monospace', color: '#E06C75', fontWeight: 600, fontSize: '0.85rem' }}>
-                                                        {f.testCaseId}
-                                                    </span>
-                                                    <span style={{ color: '#F2F3F3', fontWeight: 500, fontSize: '0.9rem' }}>
-                                                        {f.title}
-                                                    </span>
-                                                    <span style={{
-                                                        padding: '1px 6px',
-                                                        borderRadius: '3px',
-                                                        fontSize: '0.68rem',
-                                                        background: isAuto ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                                        color: isAuto ? '#38BDF8' : '#A0A5A5'
-                                                    }}>
-                                                        {isAuto ? 'Playwright' : 'Manual'}
-                                                    </span>
-                                                </div>
-                                                <div style={{ color: '#E06C75', fontSize: '0.8rem', marginTop: '3px', fontFamily: 'monospace' }}>
-                                                    {String(f.errorMessage || f.actualResult || 'Assertion or expectation failed.').slice(0, 110)}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#A0A5A5' }}>
-                                                {formatDuration(f.durationMs)}
-                                            </span>
-                                            {isExpanded ? <ChevronUp size={16} color="#A0A5A5" /> : <ChevronDown size={16} color="#A0A5A5" />}
-                                        </div>
-                                    </div>
-
-                                    {isExpanded && (
-                                        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                            {/* Automated Specific Diagnostic Details */}
-                                            {isAuto && (
-                                                <>
-                                                    {f.failedStep && (
-                                                        <div>
-                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>FAILED STEP / ASSERTION</span>
-                                                            <div style={{ fontFamily: 'monospace', color: '#F2F3F3', background: '#161819', padding: '6px 10px', borderRadius: '4px', fontSize: '0.82rem', marginTop: '2px' }}>
-                                                                {f.failedStep}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {f.errorMessage && (
-                                                        <div>
-                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ERROR MESSAGE</span>
-                                                            <div style={{ fontFamily: 'monospace', color: '#E06C75', background: '#161819', padding: '6px 10px', borderRadius: '4px', fontSize: '0.82rem', marginTop: '2px' }}>
-                                                                {f.errorMessage}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {f.stackTrace && (
-                                                        <div>
-                                                            <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>STACK TRACE</span>
-                                                            <pre style={{
-                                                                margin: '4px 0 0',
-                                                                padding: '8px 10px',
-                                                                background: '#161819',
-                                                                border: '1px solid #292D2D',
-                                                                borderRadius: '4px',
-                                                                color: '#E06C75',
-                                                                fontFamily: 'monospace',
-                                                                fontSize: '0.75rem',
-                                                                overflowX: 'auto',
-                                                                maxHeight: '180px'
-                                                            }}>
-                                                                {f.stackTrace}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-
-                                            {/* Manual Specific Diagnostic Details */}
-                                            {!isAuto && (
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                                    <div>
-                                                        <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase' }}>EXPECTED RESULT</span>
-                                                        <div style={{ color: '#8BAF9A', fontSize: '0.82rem', marginTop: '2px' }}>{f.expectedResult || 'Expected outcome met'}</div>
-                                                    </div>
-                                                    <div>
-                                                        <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase' }}>ACTUAL TESTER OBSERVATION</span>
-                                                        <div style={{ color: '#E06C75', fontSize: '0.82rem', marginTop: '2px' }}>{f.actualResult || 'No observation recorded'}</div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Screenshot Evidence Artifact */}
-                                            {screenshotUrl && (
-                                                <div>
-                                                    <span style={{ fontSize: '0.72rem', color: '#A0A5A5', textTransform: 'uppercase' }}>FAILURE SCREENSHOT EVIDENCE</span>
-                                                    <div style={{ marginTop: '4px' }}>
-                                                        <img
-                                                            src={screenshotUrl}
-                                                            alt={`Failure screenshot for ${f.testCaseId}`}
-                                                            onClick={() => setPreviewImage(screenshotUrl)}
-                                                            style={{
-                                                                maxWidth: '300px',
-                                                                maxHeight: '160px',
-                                                                borderRadius: '4px',
-                                                                border: '1px solid #292D2D',
-                                                                cursor: 'zoom-in',
-                                                                objectFit: 'cover'
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                    <div className="er-count-item">
+                        <span className="er-dot blocked" />
+                        <span>Blocked: <strong style={{ color: blockedCount > 0 ? 'var(--er-warn)' : 'inherit' }}>{blockedCount}</strong></span>
                     </div>
-                )}
-            </div>
+                    <div className="er-count-item">
+                        <span className="er-dot skipped" />
+                        <span>Skipped: <strong style={{ color: skippedCount > 0 ? 'var(--er-purple)' : 'inherit' }}>{skippedCount}</strong></span>
+                    </div>
+                    <div className="er-count-item">
+                        <span className="er-dot not-run" />
+                        <span>Not Run: <strong>{notRunCount}</strong></span>
+                    </div>
+                </div>
+            </section>
 
-            {/* ─── 5. Test Category Breakdown Table ─── */}
-            <div style={{
-                background: '#161819',
-                border: '1px solid #292D2D',
-                borderRadius: '8px',
-                padding: '1.25rem'
-            }}>
-                <h2 style={{ fontSize: '1rem', fontWeight: 600, margin: '0 0 1rem', color: '#F2F3F3' }}>
-                    Results by Test Category
-                </h2>
+            {/* ─── 3. EXECUTION METADATA (ALIGNED SPEC GRID) ─── */}
+            <section className="er-section">
+                <h3 className="er-section-title">Execution Specification & Environment</h3>
+                <div className="er-spec-grid">
+                    <div className="er-spec-item">
+                        <span className="er-spec-label">Duration</span>
+                        <span className="er-spec-value">
+                            {isPending || !hasStarted ? '—' : formatDuration(totalDurationMs)}
+                        </span>
+                        <span className="er-spec-sub">
+                            {isPending ? 'Pending execution' : avgDurationMs > 0 ? `Avg ${formatDuration(avgDurationMs)} per test` : 'Completed'}
+                        </span>
+                    </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <div className="er-spec-item">
+                        <span className="er-spec-label">Total Test Cases</span>
+                        <span className="er-spec-value">{totalCasesCount} cases</span>
+                        <span className="er-spec-sub">{executedCount} executed ({totalCasesCount > 0 ? Math.round((executedCount / totalCasesCount) * 100) : 0}% coverage)</span>
+                    </div>
+
+                    <div className="er-spec-item">
+                        <span className="er-spec-label">Execution Method</span>
+                        <span className="er-spec-value" style={{ textTransform: 'capitalize' }}>
+                            {meta.executionType || 'Mixed'}
+                        </span>
+                        <span className="er-spec-sub">
+                            {autoCount} Playwright Automated · {manualCount} Manual
+                        </span>
+                    </div>
+
+                    <div className="er-spec-item">
+                        <span className="er-spec-label">Target Environment</span>
+                        <span className="er-spec-value">{env.name || 'Default Staging'}</span>
+                        <span className="er-spec-sub">{env.baseUrl || 'https://staging.testnexa.dev'}</span>
+                    </div>
+
+                    <div className="er-spec-item">
+                        <span className="er-spec-label">Browser & Engine</span>
+                        <span className="er-spec-value">
+                            {meta.executionType === 'manual' ? 'Manual Browser' : 'Playwright (Chromium 1234)'}
+                        </span>
+                        <span className="er-spec-sub">Isolated worker sandbox</span>
+                    </div>
+
+                    <div className="er-spec-item">
+                        <span className="er-spec-label">Triggered By</span>
+                        <span className="er-spec-value">{meta.assignedTo || meta.createdBy || 'QA Automation Engineer'}</span>
+                        <span className="er-spec-sub">Workspace ID: {String(meta.workspaceId || 'default').slice(-8)}</span>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── 4. RESULTS BY CATEGORY ─── */}
+            <section className="er-section">
+                <h3 className="er-section-title">Results by Category</h3>
+                <div className="er-table-wrap">
+                    <table className="er-table">
                         <thead>
-                            <tr style={{ borderBottom: '1px solid #292D2D', textAlign: 'left', color: '#A0A5A5' }}>
-                                <th style={{ padding: '8px' }}>Category</th>
-                                <th style={{ padding: '8px' }}>Total</th>
-                                <th style={{ padding: '8px' }}>Passed</th>
-                                <th style={{ padding: '8px' }}>Failed</th>
-                                <th style={{ padding: '8px' }}>Pass Rate</th>
-                                <th style={{ padding: '8px', width: '220px' }}>Distribution</th>
+                            <tr>
+                                <th>Category</th>
+                                <th>Total</th>
+                                <th>Passed</th>
+                                <th>Failed</th>
+                                <th>Blocked</th>
+                                <th>Pass Rate</th>
+                                <th style={{ width: '180px' }}>Distribution</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {categoriesList.map((catItem, idx) => {
-                                const catName = catItem.category || catItem.name || 'General';
-                                const cTotal = Number(catItem.total) || 0;
-                                const cPassed = Number(catItem.passed) || 0;
-                                const cFailed = Number(catItem.failed) || 0;
-                                const pRate = catItem.passRate ?? (cTotal > 0 ? Math.round((cPassed / cTotal) * 100) : 0);
+                            {categoriesList.map((cat, idx) => {
+                                const cTotal = cat.total;
+                                const cPassed = cat.passed;
+                                const cFailed = cat.failed;
+                                const cBlocked = cat.blocked || 0;
+                                const pRate = cat.passRate;
 
                                 return (
-                                    <tr key={catItem.id || catName || idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                                        <td style={{ padding: '10px 8px', fontWeight: 500, color: '#F2F3F3', textTransform: 'capitalize' }}>
-                                            {catName}
+                                    <tr key={cat.name || idx}>
+                                        <td style={{ fontWeight: 500, color: 'var(--er-text)' }}>
+                                            {cat.name}
                                         </td>
-                                        <td style={{ padding: '10px 8px', color: '#A0A5A5' }}>{cTotal}</td>
-                                        <td style={{ padding: '10px 8px', color: '#8BAF9A' }}>{cPassed}</td>
-                                        <td style={{ padding: '10px 8px', color: cFailed > 0 ? '#E06C75' : '#A0A5A5' }}>{cFailed}</td>
-                                        <td style={{ padding: '10px 8px', fontWeight: 600, color: pRate >= 80 ? '#8BAF9A' : '#E06C75' }}>
-                                            {pRate}%
+                                        <td>{cTotal}</td>
+                                        <td style={{ color: cPassed > 0 ? 'var(--er-jade)' : 'inherit' }}>{cPassed}</td>
+                                        <td style={{ color: cFailed > 0 ? 'var(--er-fail)' : 'inherit' }}>{cFailed}</td>
+                                        <td style={{ color: cBlocked > 0 ? 'var(--er-warn)' : 'inherit' }}>{cBlocked}</td>
+                                        <td style={{ fontWeight: 600, color: pRate >= 80 ? 'var(--er-jade)' : cTotal > 0 ? 'var(--er-fail)' : 'inherit' }}>
+                                            {cTotal > 0 ? `${pRate}%` : '—'}
                                         </td>
-                                        <td style={{ padding: '10px 8px' }}>
-                                            <div style={{ display: 'flex', height: '6px', borderRadius: '3px', overflow: 'hidden', background: '#292D2D' }}>
-                                                {cTotal > 0 && (
+                                        <td>
+                                            <div style={{ display: 'flex', height: '4px', borderRadius: '2px', overflow: 'hidden', background: '#1A1D1F' }}>
+                                                {cTotal > 0 ? (
                                                     <>
-                                                        <div style={{ width: `${(cPassed / cTotal) * 100}%`, background: '#8BAF9A' }} />
-                                                        <div style={{ width: `${(cFailed / cTotal) * 100}%`, background: '#E06C75' }} />
+                                                        <div style={{ width: `${(cPassed / cTotal) * 100}%`, background: 'var(--er-jade)' }} />
+                                                        <div style={{ width: `${(cFailed / cTotal) * 100}%`, background: 'var(--er-fail)' }} />
+                                                        <div style={{ width: `${(cBlocked / cTotal) * 100}%`, background: 'var(--er-warn)' }} />
                                                     </>
+                                                ) : (
+                                                    <div style={{ width: '100%', background: '#252A2D' }} />
                                                 )}
                                             </div>
                                         </td>
@@ -668,63 +526,383 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
 
-            {/* ─── 6. Requirement Traceability Coverage ─── */}
-            <div style={{
-                background: '#161819',
-                border: '1px solid #292D2D',
-                borderRadius: '8px',
-                padding: '1.25rem'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div>
-                        <h2 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, color: '#F2F3F3' }}>
-                            Requirement Verification & Coverage
-                        </h2>
-                        <p style={{ margin: '2px 0 0', color: '#A0A5A5', fontSize: '0.8rem' }}>
-                            Traceability linking execution outcomes back to source functional requirements.
-                        </p>
+            {/* ─── 5. TEST CASE RESULTS (CLEAN EXPANDABLE TABLE) ─── */}
+            <section className="er-section">
+                <div className="er-table-toolbar">
+                    <h3 className="er-section-title">Test Case Results ({filteredCases.length})</h3>
+                    <div className="er-table-filters">
+                        <input
+                            type="text"
+                            value={caseSearch}
+                            onChange={(e) => setCaseSearch(e.target.value)}
+                            placeholder="Filter by ID or name..."
+                            className="er-search-input"
+                        />
+                        <select
+                            value={caseStatusFilter}
+                            onChange={(e) => setCaseStatusFilter(e.target.value)}
+                            className="er-select"
+                        >
+                            <option value="all">All Outcomes</option>
+                            <option value="passed">Passed</option>
+                            <option value="failed">Failed</option>
+                            <option value="blocked">Blocked</option>
+                            <option value="skipped">Skipped</option>
+                            <option value="not_run">Not Run</option>
+                        </select>
+                        <select
+                            value={caseCategoryFilter}
+                            onChange={(e) => setCaseCategoryFilter(e.target.value)}
+                            className="er-select"
+                        >
+                            <option value="all">All Categories</option>
+                            {STANDARD_CATEGORIES.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
                     </div>
-                    <span style={{ fontSize: '0.85rem', color: isPending ? '#A0A5A5' : '#8BAF9A', fontWeight: 600 }}>
-                        {isPending ? '0% Verified (Execution Pending)' : `${coveragePct}% Verified`}
+                </div>
+
+                <div className="er-table-wrap">
+                    <table className="er-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '28px' }}></th>
+                                <th>Test ID</th>
+                                <th>Test Name</th>
+                                <th>Category</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                                <th style={{ width: '24px' }}></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredCases.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: 'var(--er-text-dim)' }}>
+                                        No test cases match the applied filters.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredCases.map(c => {
+                                    const isExpanded = Boolean(expandedCases[c.id || c.testCaseId]);
+                                    const st = (c.status || 'not_run').toLowerCase();
+
+                                    return (
+                                        <React.Fragment key={c.id || c.testCaseId}>
+                                            <tr
+                                                className="clickable"
+                                                onClick={() => toggleCaseExpand(c.id || c.testCaseId)}
+                                                title="Click to toggle details"
+                                            >
+                                                <td>
+                                                    <span className={`er-dot ${st === 'passed' ? 'passed' : st === 'failed' ? 'failed' : st === 'blocked' ? 'blocked' : st === 'skipped' ? 'skipped' : 'not-run'}`} />
+                                                </td>
+                                                <td style={{ fontFamily: 'var(--er-mono-font)', color: 'var(--er-jade)', fontSize: '0.8rem' }}>
+                                                    {c.testCaseId}
+                                                </td>
+                                                <td style={{ color: 'var(--er-text)', fontWeight: 500 }}>
+                                                    {c.title}
+                                                </td>
+                                                <td>
+                                                    <span className="er-cat-pill">{c.type || 'Functional'}</span>
+                                                </td>
+                                                <td style={{ color: 'var(--er-text-muted)' }}>
+                                                    {c.executionType === 'automated' ? 'Playwright' : 'Manual'}
+                                                </td>
+                                                <td>
+                                                    <span className={`er-status-badge ${st}`}>
+                                                        {st.replace('_', ' ')}
+                                                    </span>
+                                                </td>
+                                                <td style={{ fontFamily: 'var(--er-mono-font)', color: 'var(--er-text-dim)', fontSize: '0.78rem' }}>
+                                                    {c.durationMs ? formatDuration(c.durationMs) : '—'}
+                                                </td>
+                                                <td style={{ color: 'var(--er-text-dim)' }}>
+                                                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                </td>
+                                            </tr>
+
+                                            {/* Expandable Details Drawer */}
+                                            {isExpanded && (
+                                                <tr>
+                                                    <td colSpan={8} style={{ padding: 0 }}>
+                                                        <div className="er-row-detail">
+                                                            <div className="er-detail-block">
+                                                                <span className="er-detail-label">Expected Result</span>
+                                                                <div className="er-detail-text" style={{ color: 'var(--er-jade)' }}>
+                                                                    {c.expectedResult || c.caseSnapshot?.expectedResult || 'System should verify criteria and complete flow.'}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="er-detail-block">
+                                                                <span className="er-detail-label">Actual Result & Observations</span>
+                                                                <div className="er-detail-text">
+                                                                    {c.actualResult || 'No deviations reported.'}
+                                                                </div>
+                                                            </div>
+
+                                                            {c.notes && (
+                                                                <div className="er-detail-block">
+                                                                    <span className="er-detail-label">Execution Notes</span>
+                                                                    <div className="er-detail-text" style={{ fontStyle: 'italic', color: 'var(--er-text-muted)' }}>
+                                                                        {c.notes}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="er-detail-block">
+                                                                <span className="er-detail-label">Attempt Context</span>
+                                                                <div className="er-detail-text" style={{ fontFamily: 'var(--er-mono-font)', fontSize: '0.76rem', color: 'var(--er-text-dim)' }}>
+                                                                    Attempt #{c.currentAttempt || 1} • Executed by: {c.executedBy || 'System'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            {/* ─── 6. FAILURE INVESTIGATION ─── */}
+            <section className="er-section">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h3 className="er-section-title">Failure Investigation ({failures.length})</h3>
+                    {failures.length > 0 && (
+                        <span style={{ fontSize: '0.74rem', color: 'var(--er-fail)', fontFamily: 'var(--er-mono-font)' }}>
+                            {failures.length} Assertion Failure(s) Recorded
+                        </span>
+                    )}
+                </div>
+
+                {failures.length === 0 ? (
+                    <div className="er-empty-failures">
+                        <Check size={16} />
+                        <span>Zero execution failures recorded. All executed test assertions passed within specified parameters.</span>
+                    </div>
+                ) : (
+                    <div className="er-failures-list">
+                        {failures.map((f, idx) => {
+                            const fId = f.runCaseId || f.testCaseId || idx;
+                            const isTraceOpen = Boolean(expandedStackTraces[fId]);
+                            const screenshotUrl = f.screenshotArtifact?.url || f.screenshotUrl;
+
+                            return (
+                                <div key={fId} className="er-failure-card">
+                                    <div className="er-failure-header">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                            <span style={{ fontFamily: 'var(--er-mono-font)', color: 'var(--er-fail)', fontSize: '0.82rem', fontWeight: 600 }}>
+                                                {f.testCaseId}
+                                            </span>
+                                            <h4 className="er-failure-title">{f.title}</h4>
+                                        </div>
+                                        <span style={{ fontSize: '0.74rem', color: 'var(--er-text-dim)' }}>
+                                            Failed at: {formatTimestamp(f.failedAt)} • {f.durationMs ? formatDuration(f.durationMs) : '0s'}
+                                        </span>
+                                    </div>
+
+                                    {/* Error Message */}
+                                    {f.errorMessage && (
+                                        <div>
+                                            <span className="er-detail-label" style={{ marginBottom: '4px', display: 'block' }}>Error Message</span>
+                                            <div className="er-error-box">{f.errorMessage}</div>
+                                        </div>
+                                    )}
+
+                                    {/* Expected vs Actual */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                                        <div>
+                                            <span className="er-detail-label">Expected Result</span>
+                                            <div style={{ color: 'var(--er-jade)', fontSize: '0.82rem', marginTop: '2px' }}>
+                                                {f.expectedResult || 'Expected scenario to complete successfully.'}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span className="er-detail-label">Actual Observation</span>
+                                            <div style={{ color: 'var(--er-fail)', fontSize: '0.82rem', marginTop: '2px' }}>
+                                                {f.actualResult || f.errorMessage || 'Assertion mismatch occurred.'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Stack Trace Collapsible */}
+                                    {f.stackTrace && (
+                                        <div>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleStackTrace(fId)}
+                                                className="er-btn"
+                                                style={{ fontSize: '0.74rem', padding: '0.3rem 0.6rem', marginBottom: '0.5rem' }}
+                                            >
+                                                {isTraceOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                                <span>{isTraceOpen ? 'Hide Stack Trace' : 'View Stack Trace'}</span>
+                                            </button>
+                                            {isTraceOpen && (
+                                                <pre className="er-stack-trace">{f.stackTrace}</pre>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Screenshot Artifact Preview */}
+                                    {screenshotUrl && (
+                                        <div>
+                                            <span className="er-detail-label" style={{ marginBottom: '4px', display: 'block' }}>Screenshot Artifact</span>
+                                            <img
+                                                src={screenshotUrl}
+                                                alt={`Failure artifact for ${f.testCaseId}`}
+                                                className="er-screenshot-thumb"
+                                                onClick={() => setPreviewImage(screenshotUrl)}
+                                                title="Click to expand full resolution image"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </section>
+
+            {/* ─── 7. REQUIREMENT COVERAGE ─── */}
+            <section className="er-section">
+                <div className="er-coverage-summary">
+                    <h3 className="er-section-title">Requirement Traceability & Coverage</h3>
+                    <span style={{ fontSize: '0.84rem', color: isPending ? 'var(--er-text-dim)' : 'var(--er-jade)', fontFamily: 'var(--er-mono-font)' }}>
+                        {isPending ? '0% Verified (Pending Execution)' : `${coveragePct}% Verified`}
                     </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">TOTAL REQUIREMENTS</span>
-                        <span className="ws-stat-value">{coverage.totalRequirements || 0}</span>
-                        <span className="ws-stat-sub">From parent specification</span>
+                {/* Horizontal Traceability Progress Bar */}
+                <div className="er-coverage-bar-track">
+                    <div
+                        style={{
+                            width: `${coveragePct}%`,
+                            background: 'var(--er-jade)',
+                            height: '100%',
+                            transition: 'width 0.3s ease'
+                        }}
+                    />
+                </div>
+
+                <div className="er-coverage-counts">
+                    <span>Total Requirements: <strong>{coverage.totalRequirements || 0}</strong></span>
+                    <span>•</span>
+                    <span style={{ color: 'var(--er-jade)' }}>Verified: <strong>{verifiedReqsCount}</strong></span>
+                    <span>•</span>
+                    <span style={{ color: failedReqsCount > 0 ? 'var(--er-fail)' : 'inherit' }}>Failing: <strong>{failedReqsCount}</strong></span>
+                    <span>•</span>
+                    <span style={{ color: uncoveredReqsCount > 0 ? 'var(--er-warn)' : 'inherit' }}>Uncovered: <strong>{uncoveredReqsCount}</strong></span>
+                </div>
+
+                {/* Requirements Table */}
+                {requirementsList.length > 0 && (
+                    <div className="er-table-wrap" style={{ marginTop: '0.5rem' }}>
+                        <table className="er-table">
+                            <thead>
+                                <tr>
+                                    <th>Requirement ID</th>
+                                    <th>Category</th>
+                                    <th>Specification Description</th>
+                                    <th>Status</th>
+                                    <th>Linked Tests</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {requirementsList.map(req => {
+                                    const st = req.status;
+                                    const isUncovered = st === 'uncovered';
+
+                                    return (
+                                        <tr key={req.id}>
+                                            <td style={{ fontFamily: 'var(--er-mono-font)', color: isUncovered ? 'var(--er-warn)' : 'var(--er-jade)', fontSize: '0.78rem' }}>
+                                                {req.id}
+                                            </td>
+                                            <td>
+                                                <span className="er-cat-pill">{req.category || 'Functional'}</span>
+                                            </td>
+                                            <td style={{ color: 'var(--er-text)', maxWidth: '420px' }}>
+                                                {req.description}
+                                            </td>
+                                            <td>
+                                                <span className={`er-status-badge ${st === 'verified' ? 'passed' : st === 'failed' ? 'failed' : 'pending'}`}>
+                                                    {st}
+                                                </span>
+                                            </td>
+                                            <td style={{ fontFamily: 'var(--er-mono-font)', color: 'var(--er-text-dim)', fontSize: '0.78rem' }}>
+                                                {(req.linkedCases || []).length} linked
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            {/* ─── 8. FINAL REPORT CONCLUSION ─── */}
+            <section className="er-section">
+                <h3 className="er-section-title">Final Report Summary & Next Actions</h3>
+                <div className="er-conclusion-box">
+                    <div className={`er-conclusion-status ${isPending ? 'pending' : failedCount === 0 && executedCount > 0 ? 'ready' : 'attention'}`}>
+                        {isPending ? (
+                            <>
+                                <Clock size={16} />
+                                <span>Execution Pending — Suite Ready for Run</span>
+                            </>
+                        ) : failedCount === 0 && executedCount > 0 ? (
+                            <>
+                                <Check size={16} />
+                                <span>Release Ready — All {executedCount} Test Scenarios Passed</span>
+                            </>
+                        ) : (
+                            <>
+                                <AlertTriangle size={16} />
+                                <span>Remediation Required — {failedCount} Failure(s) Detected</span>
+                            </>
+                        )}
                     </div>
 
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">VERIFIED (ALL PASSED)</span>
-                        <span className="ws-stat-value" style={{ color: isPending ? '#A0A5A5' : '#8BAF9A' }}>
-                            {isPending ? 0 : (coverage.verifiedRequirements || 0)}
-                        </span>
-                        <span className="ws-stat-sub">All linked test cases passed</span>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--er-text-muted)', lineHeight: '1.5' }}>
+                        {isPending
+                            ? `This execution report reflects a newly created test run consisting of ${totalCasesCount} test cases. No executions have occurred yet. Proceed to trigger the Playwright automation suite or conduct manual step verification.`
+                            : failedCount === 0 && executedCount > 0
+                            ? `All ${executedCount} executed test cases met functional expectations with zero reported assertion failures or timeouts. The software satisfies the verified requirements in the current build.`
+                            : `The test run completed with ${failedCount} failure(s) across ${executedCount} executed tests. Engineering attention is required to address root cause assertions before proceeding with release deployment.`}
                     </div>
 
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">FAILING REQUIREMENTS</span>
-                        <span className="ws-stat-value" style={{ color: failedReqsCount > 0 ? '#E06C75' : '#8BAF9A' }}>
-                            {failedReqsCount}
-                        </span>
-                        <span className="ws-stat-sub">Requires engineering remediation</span>
-                    </div>
-
-                    <div className="ws-stat-card">
-                        <span className="ws-stat-label">UNCOVERED</span>
-                        <span className="ws-stat-value" style={{ color: uncoveredReqsCount > 0 ? '#E5C07B' : '#A0A5A5' }}>
-                            {uncoveredReqsCount}
-                        </span>
-                        <span className="ws-stat-sub">No linked test cases</span>
+                    <div className="er-actions-checklist">
+                        <span className="er-detail-label">Recommended Next Actions</span>
+                        {failedCount > 0 && (
+                            <div className="er-action-item">
+                                <span style={{ color: 'var(--er-fail)' }}>•</span>
+                                <span>Review failure stack traces and failure screenshot artifacts in the investigation section.</span>
+                            </div>
+                        )}
+                        {uncoveredReqsCount > 0 && (
+                            <div className="er-action-item">
+                                <span style={{ color: 'var(--er-warn)' }}>•</span>
+                                <span>Generate or link additional test cases for the {uncoveredReqsCount} uncovered requirement(s).</span>
+                            </div>
+                        )}
+                        <div className="er-action-item">
+                            <span style={{ color: 'var(--er-jade)' }}>•</span>
+                            <span>Export or archive executive report artifact (PDF or CSV) for build audit compliance.</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Modal for Zoomed Screenshot Preview */}
+            {/* Screenshot Modal Lightbox */}
             {previewImage && (
                 <div
                     onClick={() => setPreviewImage(null)}
@@ -734,7 +912,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.85)',
+                        background: 'rgba(0, 0, 0, 0.88)',
                         zIndex: 9999,
                         display: 'flex',
                         alignItems: 'center',
@@ -745,7 +923,7 @@ const RunReportView = ({ runId, onRerunTriggered, onSwitchToCases }) => {
                     <img
                         src={previewImage}
                         alt="Zoomed failure artifact"
-                        style={{ maxWidth: '95vw', maxHeight: '90vh', borderRadius: '6px', border: '1px solid #292D2D' }}
+                        style={{ maxWidth: '92vw', maxHeight: '88vh', borderRadius: '6px', border: '1px solid var(--er-border)' }}
                     />
                 </div>
             )}

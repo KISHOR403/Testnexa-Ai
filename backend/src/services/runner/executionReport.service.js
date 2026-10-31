@@ -111,6 +111,7 @@ class ExecutionReportService {
                 status: st,
                 actualResult: c.actualResult || latestAttempt?.actualResult || latestAttempt?.actual_result || '',
                 notes: c.notes || latestAttempt?.notes || '',
+                expectedResult: c.caseSnapshot?.expectedResult || '',
                 currentAttempt: c.currentAttempt || attempts.length || 1,
                 durationMs: duration,
                 executedBy: c.executedBy || latestAttempt?.executedBy || latestAttempt?.executed_by || null,
