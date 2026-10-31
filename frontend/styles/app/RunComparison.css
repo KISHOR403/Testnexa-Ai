@@ -1,0 +1,588 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   TestNexa AI — Run Comparison Engineering Stylesheet
+   Design Philosophy: Premium modern developer-tool regression analysis.
+   Near-black palette, muted mineral green accent, clean typography,
+   subtle dividers, compact visualizations, and immediate differential clarity.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --rc-bg: #0A0B0D;
+  --rc-surface: #101214;
+  --rc-surface-elevated: #14171A;
+  --rc-border: #1E2225;
+  --rc-border-subtle: #16191B;
+  --rc-text: #E6EAE8;
+  --rc-text-muted: #8E999E;
+  --rc-text-dim: #5A6469;
+
+  /* Mineral Green (Primary Accent) */
+  --rc-jade: #8BAF9A;
+  --rc-jade-bg: rgba(139, 175, 154, 0.08);
+  --rc-jade-border: rgba(139, 175, 154, 0.25);
+
+  /* Shift / Outcome Colors */
+  --rc-fail: #D87D84;
+  --rc-fail-bg: rgba(216, 125, 132, 0.08);
+  --rc-fail-border: rgba(216, 125, 132, 0.25);
+
+  --rc-warn: #D4A76A;
+  --rc-warn-bg: rgba(212, 167, 106, 0.08);
+  --rc-warn-border: rgba(212, 167, 106, 0.25);
+
+  --rc-cyan: #38BDF8;
+  --rc-cyan-bg: rgba(56, 189, 248, 0.08);
+  --rc-cyan-border: rgba(56, 189, 248, 0.25);
+
+  --rc-purple: #9B8BB4;
+
+  --rc-mono-font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. DOCUMENT WRAPPER
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-document {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+  color: var(--rc-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. HEADER & ACTIONS
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--rc-border);
+  padding-bottom: 1.5rem;
+}
+
+.rc-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--rc-text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.rc-breadcrumb a {
+  color: var(--rc-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.rc-breadcrumb a:hover {
+  color: var(--rc-jade);
+}
+
+.rc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.rc-title {
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.rc-context-meta {
+  font-size: 0.8rem;
+  color: var(--rc-text-muted);
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rc-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 5px;
+  cursor: pointer;
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  color: var(--rc-text);
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.rc-btn:hover {
+  background: var(--rc-surface-elevated);
+  border-color: #2F3539;
+  color: #FFFFFF;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. RUN SELECTOR STRIP
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-selector-strip {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: 6px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.rc-selector-pair {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rc-run-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rc-chip-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rc-text-dim);
+  font-weight: 600;
+}
+
+.rc-select {
+  background: #08090A;
+  border: 1px solid var(--rc-border);
+  border-radius: 5px;
+  padding: 0.45rem 0.75rem;
+  color: var(--rc-text);
+  font-size: 0.82rem;
+  outline: none;
+  min-width: 260px;
+}
+
+.rc-select:focus {
+  border-color: var(--rc-jade);
+}
+
+.rc-chip-val {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rc-version-warning {
+  padding: 0.5rem 0.85rem;
+  background: var(--rc-warn-bg);
+  border: 1px solid var(--rc-warn-border);
+  border-radius: 5px;
+  font-size: 0.78rem;
+  color: var(--rc-warn);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. COMPARISON SUMMARY RIBBON
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-summary-ribbon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rc-border);
+  border-bottom: 1px solid var(--rc-border);
+}
+
+.rc-summary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rc-stat-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rc-text-dim);
+  font-weight: 600;
+}
+
+.rc-stat-val {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: var(--rc-mono-font);
+  line-height: 1;
+}
+
+.rc-stat-val.regression { color: var(--rc-fail); }
+.rc-stat-val.fix { color: var(--rc-jade); }
+.rc-stat-val.unchanged { color: var(--rc-text-muted); }
+.rc-stat-val.new { color: var(--rc-cyan); }
+.rc-stat-val.neutral { color: var(--rc-text); }
+
+.rc-stat-sub {
+  font-size: 0.72rem;
+  color: var(--rc-text-dim);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. REGRESSION & FIX HIGHLIGHTS SECTION
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rc-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rc-section-title {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--rc-text-dim);
+  margin: 0;
+}
+
+.rc-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.rc-highlight-card {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: 6px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.rc-highlight-card.regression {
+  border-left: 3px solid var(--rc-fail);
+}
+
+.rc-highlight-card.fix {
+  border-left: 3px solid var(--rc-jade);
+}
+
+.rc-highlight-card.chronic {
+  border-left: 3px solid var(--rc-warn);
+}
+
+.rc-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rc-card-tc-id {
+  font-family: var(--rc-mono-font);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.rc-card-tc-id.regression { color: var(--rc-fail); }
+.rc-card-tc-id.fix { color: var(--rc-jade); }
+.rc-card-tc-id.chronic { color: var(--rc-warn); }
+
+.rc-card-title {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--rc-text);
+  margin: 0;
+}
+
+.rc-status-transition {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.rc-arrow {
+  color: var(--rc-text-dim);
+}
+
+.rc-reason-box {
+  background: #08090A;
+  border: 1px solid var(--rc-border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--rc-fail);
+  font-family: var(--rc-mono-font);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. FILTER TOOLBAR & RESULT COMPARISON TABLE
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.rc-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.rc-tab-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--rc-border);
+  color: var(--rc-text-muted);
+  transition: all 0.15s ease;
+}
+
+.rc-tab-pill:hover {
+  background: var(--rc-surface);
+  color: var(--rc-text);
+}
+
+.rc-tab-pill.active {
+  background: var(--rc-surface-elevated);
+  border-color: var(--rc-jade);
+  color: var(--rc-jade);
+  font-weight: 600;
+}
+
+.rc-search-input {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: 4px;
+  padding: 0.35rem 0.65rem;
+  color: var(--rc-text);
+  font-size: 0.78rem;
+  outline: none;
+  min-width: 200px;
+}
+
+.rc-search-input:focus {
+  border-color: var(--rc-jade);
+}
+
+.rc-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rc-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.84rem;
+}
+
+.rc-table th {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rc-text-dim);
+  border-bottom: 1px solid var(--rc-border);
+  white-space: nowrap;
+}
+
+.rc-table td {
+  padding: 0.75rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--rc-text-muted);
+  vertical-align: middle;
+}
+
+.rc-table tr:hover td {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.rc-table tr.clickable {
+  cursor: pointer;
+}
+
+.rc-shift-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.rc-shift-pill.regression {
+  background: var(--rc-fail-bg);
+  border: 1px solid var(--rc-fail-border);
+  color: var(--rc-fail);
+}
+
+.rc-shift-pill.fix {
+  background: var(--rc-jade-bg);
+  border: 1px solid var(--rc-jade-border);
+  color: var(--rc-jade);
+}
+
+.rc-shift-pill.unchanged {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--rc-border);
+  color: var(--rc-text-dim);
+}
+
+.rc-shift-pill.new_case {
+  background: var(--rc-cyan-bg);
+  border: 1px solid var(--rc-cyan-border);
+  color: var(--rc-cyan);
+}
+
+.rc-shift-pill.removed {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--rc-border);
+  color: var(--rc-text-dim);
+}
+
+.rc-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.rc-status-dot.passed { background: var(--rc-jade); }
+.rc-status-dot.failed { background: var(--rc-fail); }
+.rc-status-dot.blocked { background: var(--rc-warn); }
+.rc-status-dot.skipped { background: var(--rc-purple); }
+.rc-status-dot.not_run { background: #3B4246; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. COVERAGE COMPARISON STRIP
+   ────────────────────────────────────────────────────────────────────────── */
+.rc-coverage-box {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-border);
+  border-radius: 6px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.rc-coverage-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rc-coverage-track {
+  width: 100%;
+  height: 5px;
+  background: #171A1C;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+
+.rc-req-shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.rc-req-shift-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  background: #08090A;
+  border: 1px solid var(--rc-border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   8. RESPONSIVE DESIGN
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .rc-document {
+    padding: 1rem 1rem 3rem;
+    gap: 1.75rem;
+  }
+
+  .rc-selector-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rc-select {
+    min-width: 100%;
+  }
+
+  .rc-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rc-search-input {
+    min-width: 100%;
+  }
+
+  .rc-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+}

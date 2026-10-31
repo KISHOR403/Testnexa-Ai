@@ -445,10 +445,64 @@ class ExecutionReportService {
             }
         }
 
+        // Coverage Comparison
+        const baseReqs = baselineReport.coverage?.requirements || [];
+        const targetReqs = targetReport.coverage?.requirements || [];
+
+        const baseReqMap = new Map();
+        baseReqs.forEach(r => baseReqMap.set(r.id, r));
+
+        const targetReqMap = new Map();
+        targetReqs.forEach(r => targetReqMap.set(r.id, r));
+
+        const newlyCovered = [];
+        const newlyUncovered = [];
+        const newlyFailing = [];
+        const newlyPassing = [];
+
+        targetReqMap.forEach((tr, id) => {
+            const br = baseReqMap.get(id);
+            if (!br || br.status === 'uncovered') {
+                if (tr.status === 'verified' || tr.status === 'partial') {
+                    newlyCovered.push(tr);
+                }
+            }
+            if (br && br.status !== 'failed' && tr.status === 'failed') {
+                newlyFailing.push(tr);
+            }
+            if (br && br.status === 'failed' && tr.status === 'verified') {
+                newlyPassing.push(tr);
+            }
+        });
+
+        baseReqMap.forEach((br, id) => {
+            const tr = targetReqMap.get(id);
+            if (!tr || tr.status === 'uncovered') {
+                if (br.status !== 'uncovered') {
+                    newlyUncovered.push(br);
+                }
+            }
+        });
+
+        const coverageComparison = {
+            baselineVerificationPct: baselineReport.coverage?.requirementVerificationPercentage ?? 0,
+            targetVerificationPct: targetReport.coverage?.requirementVerificationPercentage ?? 0,
+            verificationDeltaPct: (targetReport.coverage?.requirementVerificationPercentage ?? 0) - (baselineReport.coverage?.requirementVerificationPercentage ?? 0),
+            baselineVerifiedCount: baselineReport.coverage?.verifiedRequirements ?? 0,
+            targetVerifiedCount: targetReport.coverage?.verifiedRequirements ?? 0,
+            baselineUncoveredCount: baselineReport.coverage?.uncoveredRequirements ?? 0,
+            targetUncoveredCount: targetReport.coverage?.uncoveredRequirements ?? 0,
+            newlyCovered,
+            newlyUncovered,
+            newlyFailing,
+            newlyPassing
+        };
+
         // Summary Deltas
         const passRateDiff = targetReport.summary.passRate - baselineReport.summary.passRate;
         const durationDiffMs = targetReport.timestamps.durationMs - baselineReport.timestamps.durationMs;
         const totalCasesDiff = targetReport.summary.total - baselineReport.summary.total;
+        const isSuiteVersionCompatible = (baselineReport.identifiers.suiteVersion || 1) === (targetReport.identifiers.suiteVersion || 1);
 
         return {
             baselineRun: {
@@ -460,7 +514,10 @@ class ExecutionReportService {
                 passed: baselineReport.summary.passed,
                 failed: baselineReport.summary.failed,
                 durationMs: baselineReport.timestamps.durationMs,
-                environment: baselineReport.environment.name
+                environment: baselineReport.environment.name,
+                suiteId: baselineReport.identifiers.suiteId,
+                suiteName: baselineReport.identifiers.suiteName,
+                suiteVersion: baselineReport.identifiers.suiteVersion || 1
             },
             targetRun: {
                 id: targetReport.identifiers.runId,
@@ -471,8 +528,12 @@ class ExecutionReportService {
                 passed: targetReport.summary.passed,
                 failed: targetReport.summary.failed,
                 durationMs: targetReport.timestamps.durationMs,
-                environment: targetReport.environment.name
+                environment: targetReport.environment.name,
+                suiteId: targetReport.identifiers.suiteId,
+                suiteName: targetReport.identifiers.suiteName,
+                suiteVersion: targetReport.identifiers.suiteVersion || 1
             },
+            isSuiteVersionCompatible,
             deltas: {
                 passRateDelta: passRateDiff,
                 passRateFormatted: (passRateDiff >= 0 ? `+${passRateDiff}%` : `${passRateDiff}%`),
@@ -485,6 +546,7 @@ class ExecutionReportService {
                 newCasesCount: newCases.length,
                 removedCasesCount: removedCases.length
             },
+            coverageComparison,
             regressions,
             fixes,
             unchanged,
