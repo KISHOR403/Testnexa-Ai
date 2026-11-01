@@ -7,7 +7,7 @@ import {
     XCircle, AlertTriangle, MinusCircle, Clock, Archive, RotateCcw,
     Folder, FolderOpen, Filter, PanelLeftClose, PanelLeftOpen,
     PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Tag,
-    SlidersHorizontal, Layers3
+    SlidersHorizontal, Layers3, Unlink, Link2, AlertCircle
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { executionService } from '../../services/executionService';
@@ -27,7 +27,7 @@ const CATEGORY_LABELS = {
 const PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 const QUICK_FILTERS = [
     ['all', 'All Active'], ['draft', 'Draft'], ['ready', 'Ready'], ['needs-review', 'Needs Review'],
-    ['manual', 'Manual'], ['automated', 'Automated'], ['archived', 'Archived']
+    ['archived', 'Archived']
 ];
 
 const getSuiteData = (session) => {
@@ -48,8 +48,9 @@ const getRequirementTitle = (req) => typeof req === 'string'
 const validAutomation = (tc) => {
     const mapping = tc?.automationMapping || tc?.playwrightBinding || {};
     const configured = ['configured', 'enabled', 'ready'].includes(String(mapping.mappingStatus || mapping.status || '').toLowerCase());
-    return (configured || Boolean(mapping.scriptCode || mapping.code)) && String(mapping.validationStatus || '').toLowerCase() !== 'invalid'
-        && Boolean(mapping.scriptCode || mapping.code || mapping.spec || mapping.script || mapping.scriptRef || mapping.testId || mapping.automationTestId);
+    const hasCodeOrRef = Boolean(mapping.scriptCode || mapping.code || mapping.spec || mapping.script || mapping.scriptRef || mapping.testId || mapping.automationTestId);
+    const notInvalid = String(mapping.validationStatus || '').toLowerCase() !== 'invalid';
+    return (configured || Boolean(mapping.scriptCode || mapping.code)) && notInvalid && hasCodeOrRef;
 };
 
 const getMethod = (tc) => {
@@ -115,8 +116,9 @@ const flattenSessions = (sessions) => {
                 raw: tc,
                 suiteId: sid,
                 suiteName: session.title || session.feature || suite.testSuiteName || suite.feature || 'Untitled suite',
-                projectName: session.projectName || suite.projectName || suite.project || '',
+                projectName: session.projectName || suite.projectName || suite.project || 'Default Project',
                 context: session.context || 'web',
+                isReference: false,
                 session,
                 suite
             }];
@@ -156,7 +158,7 @@ const flattenSessions = (sessions) => {
                 raw: targetCase,
                 suiteId: sid,
                 suiteName: session.title || 'Untitled suite',
-                projectName: session.projectName || '',
+                projectName: session.projectName || 'Default Project',
                 context: session.context || 'web',
                 isReference: true,
                 sourceSuiteId: String(ref.sourceSuiteId),
@@ -186,6 +188,17 @@ const formatTimeAgo = (val) => {
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
+const formatExecutionStatus = (status) => {
+    switch (String(status || '').toLowerCase()) {
+        case 'passed': return 'Passed';
+        case 'failed': return 'Failed';
+        case 'blocked': return 'Blocked';
+        case 'skipped': return 'Skipped';
+        case 'running': return 'Running';
+        default: return 'Not Executed';
+    }
 };
 
 const makeCaseId = (suite, category) => {
@@ -229,6 +242,7 @@ const TestCasesPage = () => {
     const [quickFilter, setQuickFilter] = useState('all');
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
+    const [methodFilter, setMethodFilter] = useState('all');
     const [requirementFilter, setRequirementFilter] = useState('all');
     const [executionStatusFilter, setExecutionStatusFilter] = useState('all');
     const [sort, setSort] = useState('updated');
@@ -246,9 +260,9 @@ const TestCasesPage = () => {
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
-    // Execution history tracking
+    // Execution resolution maps: key -> execution object
     const [executionHistory, setExecutionHistory] = useState({ key: '', rows: [], loading: false, error: '' });
-    const [recentExecutionMap, setRecentExecutionMap] = useState({});
+    const [latestExecutionMap, setLatestExecutionMap] = useState({});
 
     // Show temporary toast notification
     const triggerToast = (msg) => {
@@ -277,11 +291,37 @@ const TestCasesPage = () => {
             ]);
 
             setSessions(allSessions);
-            if (runResult.status === 'fulfilled' && runResult.value?.success) {
-                setRuns(runResult.value.data || []);
-            } else {
-                setRuns([]);
-            }
+            const loadedRuns = runResult.status === 'fulfilled' && runResult.value?.success
+                ? (runResult.value.data || [])
+                : [];
+            setRuns(loadedRuns);
+
+            // Pre-fetch latest run outcomes for active suites to populate list outcome badges
+            const execMap = {};
+            const recentRuns = loadedRuns.slice(0, 20);
+            await Promise.allSettled(recentRuns.map(async (r) => {
+                const runDetail = await executionService.getRun(r.id).catch(() => null);
+                if (runDetail?.success && runDetail.data?.cases) {
+                    runDetail.data.cases.forEach(c => {
+                        const cid = String(c.testCaseId || c.caseSnapshot?.id || '');
+                        const runSuiteId = String(r.suiteId || r.suite_id || '');
+                        if (cid && runSuiteId) {
+                            const mapKey = `${runSuiteId}:${cid}`;
+                            if (!execMap[mapKey] || new Date(r.createdAt) > new Date(execMap[mapKey].executedAt)) {
+                                execMap[mapKey] = {
+                                    status: c.status,
+                                    runId: r.id,
+                                    runName: r.name || `Run #${r.id.slice(-6)}`,
+                                    executedAt: r.completedAt || r.startedAt || r.createdAt,
+                                    durationMs: c.durationMs || 0
+                                };
+                            }
+                        }
+                    });
+                }
+            }));
+            setLatestExecutionMap(prev => ({ ...prev, ...execMap }));
+
         } catch (err) {
             setError(err.message || 'Failed to load test cases workspace.');
         } finally {
@@ -376,6 +416,18 @@ const TestCasesPage = () => {
         return Array.from(reqMap.entries()).map(([id, count]) => ({ id, count }));
     }, [allCases, suiteId]);
 
+    // Helper to get execution status for a test case
+    const getCaseExecution = useCallback((tc) => {
+        if (!tc) return null;
+        const directKey = `${tc.suiteId}:${tc.id}`;
+        if (latestExecutionMap[directKey]) return latestExecutionMap[directKey];
+        if (tc.isReference && tc.sourceSuiteId) {
+            const sourceKey = `${tc.sourceSuiteId}:${tc.id}`;
+            if (latestExecutionMap[sourceKey]) return latestExecutionMap[sourceKey];
+        }
+        return null;
+    }, [latestExecutionMap]);
+
     // Sync URL queries
     useEffect(() => {
         const qSuite = new URLSearchParams(location.search).get('suiteId') || '';
@@ -403,26 +455,26 @@ const TestCasesPage = () => {
             if (quickFilter === 'draft') matchesQuick = tc.lifecycle === 'draft';
             else if (quickFilter === 'ready') matchesQuick = tc.lifecycle === 'ready';
             else if (quickFilter === 'needs-review') matchesQuick = tc.lifecycle === 'needs-review';
-            else if (quickFilter === 'manual') matchesQuick = tc.method === 'manual';
-            else if (quickFilter === 'automated') matchesQuick = tc.method === 'automated';
             else if (quickFilter === 'archived') matchesQuick = tc.lifecycle === 'archived';
             else matchesQuick = tc.lifecycle !== 'archived'; // 'all' excludes archived cases
 
             const matchesPriority = priorityFilter === 'all' || tc.priority.toLowerCase() === priorityFilter.toLowerCase();
             const matchesType = typeFilter === 'all' || tc.type.toLowerCase() === typeFilter.toLowerCase();
+            const matchesMethod = methodFilter === 'all' || tc.method === methodFilter;
             const matchesReq = requirementFilter === 'all' || tc.requirementId === requirementFilter;
 
             let matchesExecStatus = true;
             if (executionStatusFilter !== 'all') {
-                const recordedStatus = (recentExecutionMap[tc.id]?.status || tc.status || '').toLowerCase();
+                const execObj = getCaseExecution(tc);
+                const recordedStatus = (execObj?.status || '').toLowerCase();
                 if (executionStatusFilter === 'not_run') {
-                    matchesExecStatus = !recordedStatus || ['not_run', 'draft', 'ready'].includes(recordedStatus);
+                    matchesExecStatus = !recordedStatus || recordedStatus === 'not_run';
                 } else {
                     matchesExecStatus = recordedStatus === executionStatusFilter;
                 }
             }
 
-            return matchesText && matchesQuick && matchesPriority && matchesType && matchesReq && matchesExecStatus;
+            return matchesText && matchesQuick && matchesPriority && matchesType && matchesMethod && matchesReq && matchesExecStatus;
         });
 
         filtered.sort((left, right) => {
@@ -436,7 +488,7 @@ const TestCasesPage = () => {
         });
 
         return filtered;
-    }, [allCases, suiteId, query, quickFilter, priorityFilter, typeFilter, requirementFilter, executionStatusFilter, sort, recentExecutionMap]);
+    }, [allCases, suiteId, query, quickFilter, priorityFilter, typeFilter, methodFilter, requirementFilter, executionStatusFilter, sort, getCaseExecution]);
 
     // Active selected test case
     const selectedCase = useMemo(() => {
@@ -487,7 +539,7 @@ const TestCasesPage = () => {
         return filteredCases.slice((page - 1) * pageSize, page * pageSize);
     }, [filteredCases, page, pageSize]);
 
-    useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priorityFilter, typeFilter, requirementFilter, executionStatusFilter, sort]);
+    useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priorityFilter, typeFilter, methodFilter, requirementFilter, executionStatusFilter, sort]);
 
     // Fetch genuine execution history for selected test case
     useEffect(() => {
@@ -502,7 +554,13 @@ const TestCasesPage = () => {
         const loadCaseExecutions = async () => {
             try {
                 const rows = [];
-                const matchingRuns = runs.filter(run => String(run.suiteId || run.suite_id || '') === selectedCase.suiteId)
+                // Only inspect runs that belong to this suite (or source suite if referenced)
+                const relevantSuiteIds = new Set([
+                    selectedCase.suiteId,
+                    ...(selectedCase.isReference && selectedCase.sourceSuiteId ? [selectedCase.sourceSuiteId] : [])
+                ]);
+
+                const matchingRuns = runs.filter(run => relevantSuiteIds.has(String(run.suiteId || run.suite_id || '')))
                     .sort((a, b) => new Date(b.startedAt || b.createdAt || b.created_at || 0) - new Date(a.startedAt || a.createdAt || a.created_at || 0));
 
                 for (const run of matchingRuns.slice(0, 15)) {
@@ -510,9 +568,10 @@ const TestCasesPage = () => {
                     if (!runRes?.success || !runRes.data) continue;
 
                     const runCases = runRes.data.cases || [];
+                    // Ensure the runCase strictly matches THIS test case ID
                     const caseRecord = runCases.find(c => {
                         const snap = c.caseSnapshot || {};
-                        return [snap.id, snap.testCaseId, c.testCaseId].filter(Boolean).map(String).includes(selectedCase.id);
+                        return String(snap.id || snap.testCaseId || c.testCaseId) === String(selectedCase.id);
                     });
 
                     if (!caseRecord) continue;
@@ -526,7 +585,8 @@ const TestCasesPage = () => {
                                 runName: run.name || `Run #${run.id.slice(-6)}`,
                                 caseStatus: caseRecord.status,
                                 artifactCount: Array.isArray(caseRecord.artifacts) ? caseRecord.artifacts.length : 0,
-                                durationMs: attempt.durationMs || caseRecord.durationMs || 0
+                                durationMs: attempt.durationMs || caseRecord.durationMs || 0,
+                                executedAt: attempt.executedAt || attempt.createdAt || run.completedAt || run.startedAt || run.createdAt
                             });
                         });
                     } else {
@@ -536,15 +596,32 @@ const TestCasesPage = () => {
                             runName: run.name || `Run #${run.id.slice(-6)}`,
                             caseStatus: caseRecord.status,
                             artifactCount: Array.isArray(caseRecord.artifacts) ? caseRecord.artifacts.length : 0,
-                            durationMs: caseRecord.durationMs || 0
+                            durationMs: caseRecord.durationMs || 0,
+                            executedAt: caseRecord.updatedAt || caseRecord.createdAt || run.completedAt || run.startedAt || run.createdAt
                         });
                     }
                 }
 
-                rows.sort((a, b) => new Date(b.executedAt || b.createdAt || 0) - new Date(a.executedAt || a.createdAt || 0));
+                rows.sort((a, b) => new Date(b.executedAt || 0) - new Date(a.executedAt || 0));
 
                 if (isCurrent) {
                     setExecutionHistory({ key: selectedCase.key, rows, loading: false, error: '' });
+
+                    // Synchronize latest execution outcome with the newest genuine record
+                    if (rows.length > 0) {
+                        const top = rows[0];
+                        const latestStatus = top.status || top.caseStatus || 'not_run';
+                        setLatestExecutionMap(prev => ({
+                            ...prev,
+                            [`${selectedCase.suiteId}:${selectedCase.id}`]: {
+                                status: latestStatus,
+                                runId: top.runId,
+                                runName: top.runName,
+                                executedAt: top.executedAt,
+                                durationMs: top.durationMs
+                            }
+                        }));
+                    }
                 }
             } catch (err) {
                 if (isCurrent) {
@@ -635,7 +712,7 @@ const TestCasesPage = () => {
         });
 
         if (!found && nextCase !== null) {
-            const targetCat = nextCase.category || oldCase.category || 'functional';
+            const targetCat = nextCase.category || oldCase?.category || 'functional';
             nextSuiteData[targetCat] = [...(nextSuiteData[targetCat] || []), nextCase];
         }
 
@@ -647,56 +724,60 @@ const TestCasesPage = () => {
         return res;
     };
 
-    // Handle Create & Edit save
-    const handleSaveCaseModal = async (formData) => {
+    // Handle Create & Edit save modal
+    const handleSaveCaseModal = async (targetSuiteId, oldCase, nextCaseData, desiredStatus) => {
         setIsSaving(true);
         try {
-            const targetSuiteId = formData.suiteId || suiteId || suites[0]?.id;
-            const targetSession = sessions.find(s => String(s.id || s._id) === String(targetSuiteId));
+            let sId = targetSuiteId;
+            let payload = nextCaseData;
+
+            // Handle invocation either as (suiteId, initialCase, nextCase) OR as (formData)
+            if (typeof targetSuiteId === 'object' && !oldCase) {
+                payload = targetSuiteId;
+                sId = payload.suiteId || suiteId || suites[0]?.id;
+            }
+
+            const targetSession = sessions.find(s => String(s.id || s._id) === String(sId));
             if (!targetSession) throw new Error('Target test suite was not found.');
 
             const sData = getSuiteData(targetSession) || {};
-            const categoryKey = formData.category.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const categoryKey = (payload.type || payload.category || 'functional').toLowerCase().replace(/[^a-z0-9]/g, '');
             const safeCategory = CATEGORY_KEYS.includes(categoryKey) ? categoryKey : 'functional';
 
             const payloadCase = {
-                id: formData.id || makeCaseId(sData, safeCategory),
-                title: formData.title,
-                testScenario: formData.title,
-                scenario: formData.title,
-                description: formData.description,
-                testDescription: formData.description,
-                type: formData.category,
-                priority: formData.priority,
-                executionMethod: formData.executionMethod,
-                executionType: formData.executionMethod,
-                status: formData.status,
-                requirementId: formData.requirementId || '',
-                preconditions: formData.preconditions ? formData.preconditions.split('\n').filter(Boolean) : [],
-                steps: formData.steps || [],
-                expectedResult: formData.expectedResult || '',
-                automationMapping: formData.automationMapping || null,
+                id: payload.id || makeCaseId(sData, safeCategory),
+                title: payload.title,
+                testScenario: payload.title,
+                scenario: payload.title,
+                description: payload.description || '',
+                testDescription: payload.description || '',
+                type: payload.type || payload.category || 'Functional',
+                priority: payload.priority || 'Medium',
+                executionMethod: payload.executionType || payload.executionMethod || 'manual',
+                executionType: payload.executionType || payload.executionMethod || 'manual',
+                status: desiredStatus || payload.status || 'Draft',
+                requirementId: payload.requirementId || '',
+                preconditions: Array.isArray(payload.preconditions) ? payload.preconditions : (payload.preconditions ? String(payload.preconditions).split('\n').filter(Boolean) : []),
+                steps: Array.isArray(payload.steps) ? payload.steps : [],
+                expectedResult: payload.expectedResult || '',
+                automationMapping: payload.automationMapping || null,
                 updatedAt: new Date().toISOString(),
-                createdAt: editorMode === 'create' ? new Date().toISOString() : undefined
+                createdAt: oldCase?.createdAt || new Date().toISOString()
             };
 
-            if (editorMode === 'create') {
+            if (editorMode === 'create' || !oldCase) {
                 const nextSuiteData = { ...sData };
                 nextSuiteData[safeCategory] = [...(nextSuiteData[safeCategory] || []), payloadCase];
-                const res = await sessionService.update(targetSuiteId, { suiteData: nextSuiteData });
+                const res = await sessionService.update(sId, { suiteData: nextSuiteData });
                 if (!res.success) throw new Error(res.message || 'Failed to create test case.');
 
-                setSessions(prev => prev.map(s => String(s.id || s._id) === targetSuiteId ? { ...s, suiteData: nextSuiteData } : s));
+                setSessions(prev => prev.map(s => String(s.id || s._id) === sId ? { ...s, suiteData: nextSuiteData } : s));
                 triggerToast(`Created test case ${payloadCase.id}`);
                 setEditorOpen(false);
-                setSuiteId(targetSuiteId);
-                setSelectedKey(`${targetSuiteId}:${safeCategory}:${payloadCase.id}`);
+                setSuiteId(sId);
+                setSelectedKey(`${sId}:${safeCategory}:${payloadCase.id}`);
             } else {
-                if (!selectedCase) throw new Error('No test case is currently selected for editing.');
-                await patchCase(selectedCase.session, selectedCase, {
-                    ...selectedCase.raw,
-                    ...payloadCase
-                });
+                await patchCase(targetSession, oldCase, payloadCase);
                 triggerToast(`Updated test case ${payloadCase.id}`);
                 setEditorOpen(false);
             }
@@ -771,11 +852,22 @@ const TestCasesPage = () => {
         if (!selectedCase) return;
         setIsSaving(true);
         try {
-            await patchCase(selectedCase.session, selectedCase, null);
+            if (selectedCase.isReference) {
+                // If it's a reference mapping, unlink it from this suite's testCaseRefs
+                const sData = getSuiteData(selectedCase.session) || {};
+                const nextRefs = (sData.testCaseRefs || []).filter(r => !(String(r.sourceSuiteId) === selectedCase.sourceSuiteId && String(r.testCaseId) === selectedCase.id));
+                const nextSuiteData = { ...sData, testCaseRefs: nextRefs };
+                const sid = String(selectedCase.session.id || selectedCase.session._id);
+                await sessionService.update(sid, { suiteData: nextSuiteData });
+                setSessions(prev => prev.map(s => String(s.id || s._id) === sid ? { ...s, suiteData: nextSuiteData } : s));
+                triggerToast(`Removed mapping for ${selectedCase.id}`);
+            } else {
+                await patchCase(selectedCase.session, selectedCase, null);
+                triggerToast(`Deleted ${selectedCase.id}`);
+            }
             setDeleteModalOpen(false);
             setSelectedKey('');
             setMobileDetailOpen(false);
-            triggerToast(`Deleted ${selectedCase.id}`);
         } catch (err) {
             alert(`Delete error: ${err.message}`);
         } finally {
@@ -784,10 +876,11 @@ const TestCasesPage = () => {
     };
 
     // Save manual execution result
-    const handleManualExecutionSave = async ({ outcome, actualResult, notes, durationMs, screenshotData, screenshotName }) => {
+    const handleManualExecutionSave = async (payload) => {
         if (!selectedCase) return;
         setIsSaving(true);
         try {
+            const outcome = payload.outcome || payload.status || 'passed';
             let activeRun = runs.find(r => String(r.suiteId || r.suite_id || '') === selectedCase.suiteId && ['in_progress', 'pending'].includes(r.status));
 
             if (!activeRun) {
@@ -802,21 +895,34 @@ const TestCasesPage = () => {
                 setRuns(prev => [activeRun, ...prev]);
             }
 
-            const recordRes = await executionService.recordExecution(activeRun.id, {
-                caseId: selectedCase.id,
+            // Find runCase ID or fallback to testCase ID
+            const runCases = activeRun.cases || [];
+            const targetRunCase = runCases.find(c => String(c.testCaseId || c.caseSnapshot?.id) === String(selectedCase.id));
+            const targetCaseParam = targetRunCase?.id || selectedCase.id;
+
+            const recordRes = await executionService.recordExecution(activeRun.id, targetCaseParam, {
                 status: outcome,
-                actualResult,
-                notes,
-                durationMs,
-                screenshotData,
-                screenshotName
+                actualResult: payload.actualResult,
+                notes: payload.notes,
+                durationMs: payload.durationMs || 1200,
+                artifact: payload.artifact || (payload.screenshotData ? {
+                    name: payload.screenshotName || `${selectedCase.id}-evidence.png`,
+                    data: payload.screenshotData,
+                    mimeType: 'image/png'
+                } : null)
             });
 
             if (!recordRes.success) throw new Error(recordRes.message || 'Could not save execution result.');
 
-            setRecentExecutionMap(prev => ({
+            setLatestExecutionMap(prev => ({
                 ...prev,
-                [selectedCase.id]: { status: outcome, timestamp: new Date().toISOString() }
+                [`${selectedCase.suiteId}:${selectedCase.id}`]: {
+                    status: outcome,
+                    runId: activeRun.id,
+                    runName: activeRun.name,
+                    executedAt: new Date().toISOString(),
+                    durationMs: payload.durationMs || 1200
+                }
             }));
 
             triggerToast(`Recorded manual execution: ${outcome.toUpperCase()}`);
@@ -832,17 +938,19 @@ const TestCasesPage = () => {
     // Save automated execution result
     const handleAutoExecutionSave = async (autoResult) => {
         if (!selectedCase) return;
-        try {
-            const outcome = autoResult.status === 'passed' ? 'passed' : 'failed';
-            setRecentExecutionMap(prev => ({
-                ...prev,
-                [selectedCase.id]: { status: outcome, timestamp: new Date().toISOString() }
-            }));
-            triggerToast(`Playwright execution completed: ${outcome.toUpperCase()}`);
-            setRetry(v => v + 1);
-        } catch (err) {
-            console.error('Auto exec save error:', err);
-        }
+        const outcome = (autoResult?.status || 'passed').toLowerCase();
+        setLatestExecutionMap(prev => ({
+            ...prev,
+            [`${selectedCase.suiteId}:${selectedCase.id}`]: {
+                status: outcome,
+                runId: autoResult?.runId || '',
+                runName: `Automated Run · ${selectedCase.id}`,
+                executedAt: new Date().toISOString(),
+                durationMs: autoResult?.durationMs || 1200
+            }
+        }));
+        triggerToast(`Playwright execution completed: ${outcome.toUpperCase()}`);
+        setRetry(v => v + 1);
     };
 
     // Add test case reference to another suite
@@ -856,11 +964,12 @@ const TestCasesPage = () => {
             const sData = getSuiteData(targetSession) || {};
             const refs = Array.isArray(sData.testCaseRefs) ? sData.testCaseRefs : [];
 
-            if (refs.some(r => String(r.sourceSuiteId) === selectedCase.suiteId && String(r.testCaseId) === selectedCase.id)) {
+            const sourceId = selectedCase.isReference ? selectedCase.sourceSuiteId : selectedCase.suiteId;
+            if (refs.some(r => String(r.sourceSuiteId) === sourceId && String(r.testCaseId) === selectedCase.id)) {
                 throw new Error('This test case is already mapped into the target suite.');
             }
 
-            const nextRefs = [...refs, { sourceSuiteId: selectedCase.suiteId, testCaseId: selectedCase.id }];
+            const nextRefs = [...refs, { sourceSuiteId: sourceId, testCaseId: selectedCase.id }];
             const nextSuiteData = { ...sData, testCaseRefs: nextRefs };
 
             const res = await sessionService.update(targetSuiteId, { suiteData: nextSuiteData });
@@ -876,18 +985,55 @@ const TestCasesPage = () => {
         }
     };
 
+    // Unlink requirement handler
+    const handleUnlinkRequirement = async () => {
+        if (!selectedCase) return;
+        setIsSaving(true);
+        try {
+            await patchCase(selectedCase.session, selectedCase, {
+                ...selectedCase.raw,
+                requirementId: '',
+                updatedAt: new Date().toISOString()
+            });
+            triggerToast(`Unlinked requirement from ${selectedCase.id}`);
+        } catch (err) {
+            alert(`Unlink error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Quick link requirement handler
+    const handleLinkRequirement = async (reqId) => {
+        if (!selectedCase || !reqId) return;
+        setIsSaving(true);
+        try {
+            await patchCase(selectedCase.session, selectedCase, {
+                ...selectedCase.raw,
+                requirementId: reqId,
+                updatedAt: new Date().toISOString()
+            });
+            triggerToast(`Linked requirement ${reqId} to ${selectedCase.id}`);
+        } catch (err) {
+            alert(`Link error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     // Clear all filters
     const handleClearFilters = () => {
         setQuery('');
         setQuickFilter('all');
         setPriorityFilter('all');
         setTypeFilter('all');
+        setMethodFilter('all');
         setRequirementFilter('all');
         setExecutionStatusFilter('all');
         setSort('updated');
     };
 
-    const hasActiveFilters = query || quickFilter !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' || requirementFilter !== 'all' || executionStatusFilter !== 'all';
+    const hasActiveFilters = query || quickFilter !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' || methodFilter !== 'all' || requirementFilter !== 'all' || executionStatusFilter !== 'all';
 
     // Suite labels & counts
     const suiteLabel = selectedSuite ? selectedSuite.name : 'All Test Cases';
@@ -900,6 +1046,15 @@ const TestCasesPage = () => {
         const sText = suiteFilterText.trim().toLowerCase();
         return suites.filter(s => s.name.toLowerCase().includes(sText) || s.context.includes(sText));
     }, [suites, suiteFilterText]);
+
+    // Check automation readiness for selected case
+    const isSelectedCaseAutomated = selectedCase?.method === 'automated';
+    const selectedCaseAutomationValid = validAutomation(selectedCase);
+    const selectedCaseHasScript = Boolean(selectedCase?.automationMapping?.scriptCode || selectedCase?.automationMapping?.code || selectedCase?.automationMapping?.spec);
+
+    // Selected case execution status object
+    const selectedCaseExec = selectedCase ? getCaseExecution(selectedCase) : null;
+    const selectedCaseExecutionStatus = selectedCaseExec?.status || 'not_run';
 
     return (
         <div className={`tc-page ${mobileDetailOpen ? 'tc-mobile-detail-open' : ''}`}>
@@ -951,7 +1106,7 @@ const TestCasesPage = () => {
                         {/* Toggle Suite Nav */}
                         <button
                             type="button"
-                            className="tc-icon-button"
+                            className={`tc-icon-button ${isSuiteNavCollapsed ? 'active' : ''}`}
                             title={isSuiteNavCollapsed ? "Expand suite navigator" : "Collapse suite navigator"}
                             onClick={() => setIsSuiteNavCollapsed(!isSuiteNavCollapsed)}
                         >
@@ -1022,6 +1177,17 @@ const TestCasesPage = () => {
                         <option value="Non-functional">Non-functional</option>
                     </select>
 
+                    {/* Method Filter */}
+                    <select
+                        value={methodFilter}
+                        onChange={e => setMethodFilter(e.target.value)}
+                        aria-label="Filter by execution method"
+                    >
+                        <option value="all">All Methods</option>
+                        <option value="manual">Manual Verification</option>
+                        <option value="automated">Playwright Automated</option>
+                    </select>
+
                     {/* Requirement Filter */}
                     {availableRequirements.length > 0 && (
                         <select
@@ -1047,7 +1213,7 @@ const TestCasesPage = () => {
                         <option value="failed">Failed</option>
                         <option value="blocked">Blocked</option>
                         <option value="skipped">Skipped</option>
-                        <option value="not_run">Not Run / Untested</option>
+                        <option value="not_run">Not Executed / Untested</option>
                     </select>
 
                     {/* Sort Order */}
@@ -1088,7 +1254,7 @@ const TestCasesPage = () => {
                     )}
                 </div>
 
-                {/* Quick Lifecycle & Method Tabs */}
+                {/* Sub-Toolbar: Quick Lifecycle Tabs & View Toggle */}
                 <div className="tc-sub-toolbar">
                     <nav className="tc-filters" aria-label="Quick test case filters">
                         {QUICK_FILTERS.map(([key, label]) => (
@@ -1258,7 +1424,7 @@ const TestCasesPage = () => {
                         {/* List Column Header */}
                         <div className="tc-list-head">
                             <span>Test Case ID & Title</span>
-                            <span>Category · Priority · Method · Status</span>
+                            <span>Category · Priority · Method · Status · Outcome</span>
                             <span>Updated</span>
                             <span />
                         </div>
@@ -1363,6 +1529,8 @@ const TestCasesPage = () => {
                                                 <div className="tc-group-rows">
                                                     {group.cases.map(tc => {
                                                         const isSelected = selectedCase?.key === tc.key;
+                                                        const execObj = getCaseExecution(tc);
+                                                        const execStatus = execObj?.status || 'not_run';
                                                         return (
                                                             <button
                                                                 type="button"
@@ -1385,8 +1553,11 @@ const TestCasesPage = () => {
                                                                     <span className={`tc-method-pill ${tc.method}`}>
                                                                         {tc.method === 'automated' ? 'Playwright' : 'Manual'}
                                                                     </span>
-                                                                    <span className={`tc-status tc-status-${tc.lifecycle}`}>
+                                                                    <span className={`tc-lifecycle-badge tc-lifecycle-${tc.lifecycle}`} title={`Lifecycle Status: ${tc.lifecycle}`}>
                                                                         {tc.lifecycle.replaceAll('-', ' ')}
+                                                                    </span>
+                                                                    <span className={`tc-exec-badge tc-exec-${execStatus}`} title={`Execution Outcome: ${formatExecutionStatus(execStatus)}`}>
+                                                                        {formatExecutionStatus(execStatus)}
                                                                     </span>
                                                                     {tc.isReference && (
                                                                         <span className="tc-ref-chip" title={`Mapped from ${tc.sourceSuiteName}`}>
@@ -1410,6 +1581,8 @@ const TestCasesPage = () => {
                             /* ─── Flat Test Case Rows (By Suite or Flat List) ─── */
                             pageCases.map(tc => {
                                 const isSelected = selectedCase?.key === tc.key;
+                                const execObj = getCaseExecution(tc);
+                                const execStatus = execObj?.status || 'not_run';
                                 return (
                                     <button
                                         type="button"
@@ -1432,8 +1605,11 @@ const TestCasesPage = () => {
                                             <span className={`tc-method-pill ${tc.method}`}>
                                                 {tc.method === 'automated' ? 'Playwright' : 'Manual'}
                                             </span>
-                                            <span className={`tc-status tc-status-${tc.lifecycle}`}>
+                                            <span className={`tc-lifecycle-badge tc-lifecycle-${tc.lifecycle}`} title={`Lifecycle Status: ${tc.lifecycle}`}>
                                                 {tc.lifecycle.replaceAll('-', ' ')}
+                                            </span>
+                                            <span className={`tc-exec-badge tc-exec-${execStatus}`} title={`Execution Outcome: ${formatExecutionStatus(execStatus)}`}>
+                                                {formatExecutionStatus(execStatus)}
                                             </span>
                                             {!suiteId && (
                                                 <span className="tc-suite-tag" title={`Suite: ${tc.suiteName}`}>
@@ -1485,8 +1661,11 @@ const TestCasesPage = () => {
                             <div className="tc-detail-top">
                                 <div>
                                     <span className="tc-id" style={{ fontSize: '0.8rem' }}>{selectedCase.id}</span>
-                                    <span className={`tc-status tc-status-${selectedCase.lifecycle}`}>
+                                    <span className={`tc-lifecycle-badge tc-lifecycle-${selectedCase.lifecycle}`} title="Lifecycle Status">
                                         {selectedCase.lifecycle.replaceAll('-', ' ')}
+                                    </span>
+                                    <span className={`tc-exec-badge tc-exec-${selectedCaseExecutionStatus}`} title="Latest Execution Outcome">
+                                        {formatExecutionStatus(selectedCaseExecutionStatus)}
                                     </span>
                                     <span className={`tc-priority-badge ${selectedCase.priority.toLowerCase()}`}>
                                         {selectedCase.priority} Priority
@@ -1497,7 +1676,7 @@ const TestCasesPage = () => {
                                     <button
                                         type="button"
                                         aria-label="Edit test case"
-                                        title="Edit test case"
+                                        title="Edit test case definition"
                                         onClick={() => {
                                             setEditorMode('edit');
                                             setEditorOpen(true);
@@ -1508,7 +1687,7 @@ const TestCasesPage = () => {
                                     <button
                                         type="button"
                                         aria-label="Duplicate test case"
-                                        title="Duplicate test case"
+                                        title="Duplicate test case as new draft"
                                         onClick={handleDuplicateCase}
                                         disabled={isSaving}
                                     >
@@ -1556,11 +1735,12 @@ const TestCasesPage = () => {
                                 <span>Suite: <strong style={{ color: 'var(--tc-jade)' }}>{selectedCase.suiteName}</strong></span>
                             </div>
 
-                            {/* Direct Execution Buttons */}
+                            {/* Direct Execution Actions Bar */}
                             <div className="tc-execution-bar">
                                 <button
                                     type="button"
                                     className="tc-execute tc-manual-btn"
+                                    title="Open manual execution dialog"
                                     onClick={() => setManualExecOpen(true)}
                                 >
                                     <Clock size={14} />
@@ -1570,20 +1750,31 @@ const TestCasesPage = () => {
                                 <button
                                     type="button"
                                     className="tc-execute tc-auto-btn"
-                                    onClick={() => setAutoExecOpen(true)}
+                                    disabled={!selectedCaseAutomationValid}
+                                    title={selectedCaseAutomationValid ? "Run automated Playwright scenario in headless Chromium" : "No valid Playwright script mapped. Configure script first."}
+                                    onClick={() => {
+                                        if (selectedCaseAutomationValid) {
+                                            setAutoExecOpen(true);
+                                        } else {
+                                            setEditorMode('edit');
+                                            setEditorOpen(true);
+                                        }
+                                    }}
                                 >
                                     <Play size={14} />
-                                    <span>Run Playwright</span>
+                                    <span>{selectedCaseAutomationValid ? 'Run Playwright' : 'Configure Playwright'}</span>
                                 </button>
                             </div>
 
                             {/* Description */}
-                            {selectedCase.description && (
-                                <div className="tc-block">
-                                    <div className="tc-block-title">Description</div>
+                            <div className="tc-block">
+                                <div className="tc-block-title">Description</div>
+                                {selectedCase.description ? (
                                     <p className="tc-text-body">{selectedCase.description}</p>
-                                </div>
-                            )}
+                                ) : (
+                                    <p className="tc-muted-text">No detailed description recorded for this test case.</p>
+                                )}
+                            </div>
 
                             {/* Preconditions */}
                             <div className="tc-block">
@@ -1628,12 +1819,14 @@ const TestCasesPage = () => {
                             </div>
 
                             {/* Expected Result */}
-                            {selectedCase.expectedResult && (
-                                <div className="tc-block">
-                                    <div className="tc-block-title">Overall Expected Result / Acceptance Criteria</div>
+                            <div className="tc-block">
+                                <div className="tc-block-title">Overall Expected Result / Acceptance Criteria</div>
+                                {selectedCase.expectedResult ? (
                                     <div className="tc-expected-box">{selectedCase.expectedResult}</div>
-                                </div>
-                            )}
+                                ) : (
+                                    <p className="tc-muted-text">No overall expected result recorded.</p>
+                                )}
+                            </div>
 
                             {/* Suite Associations */}
                             <div className="tc-block">
@@ -1643,6 +1836,7 @@ const TestCasesPage = () => {
                                         type="button"
                                         className="tc-text-action"
                                         onClick={() => setAddToSuiteOpen(true)}
+                                        title="Map this test case into another suite"
                                     >
                                         + Add to another suite
                                     </button>
@@ -1650,10 +1844,10 @@ const TestCasesPage = () => {
                                 <div className="tc-suite-ledger">
                                     <div className="tc-suite-ledger-row">
                                         <div>
-                                            <strong>{selectedCase.suiteName}</strong>
+                                            <strong>{selectedCase.isReference ? selectedCase.sourceSuiteName : selectedCase.suiteName}</strong>
                                             <span>Primary Native Suite</span>
                                         </div>
-                                        <NavLink to={`/app/test-suites/${selectedCase.suiteId}`} className="tc-link">
+                                        <NavLink to={`/app/test-suites/${selectedCase.isReference ? selectedCase.sourceSuiteId : selectedCase.suiteId}`} className="tc-link">
                                             <span>View Suite</span>
                                             <ExternalLink size={12} />
                                         </NavLink>
@@ -1662,13 +1856,17 @@ const TestCasesPage = () => {
                                     {selectedCase.isReference && (
                                         <div className="tc-suite-ledger-row" style={{ borderTop: '1px solid var(--tc-line-subtle)' }}>
                                             <div>
-                                                <strong>{selectedCase.sourceSuiteName}</strong>
-                                                <span>Source Suite (Reference Mapping)</span>
+                                                <strong>{selectedCase.suiteName}</strong>
+                                                <span>Mapped Reference in this Suite</span>
                                             </div>
-                                            <NavLink to={`/app/test-suites/${selectedCase.sourceSuiteId}`} className="tc-link">
-                                                <span>View Source</span>
-                                                <ExternalLink size={12} />
-                                            </NavLink>
+                                            <button
+                                                type="button"
+                                                className="tc-text-danger"
+                                                onClick={() => setDeleteModalOpen(true)}
+                                                title="Remove this reference mapping from this suite"
+                                            >
+                                                Unlink from Suite
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -1685,49 +1883,81 @@ const TestCasesPage = () => {
                                                 <span>{selectedCase.requirementId}</span>
                                             </div>
                                             <p className="tc-req-desc">
-                                                Mapped to coverage matrix and traceability verification ledger.
+                                                Status: {selectedCaseExecutionStatus === 'passed' ? (
+                                                    <span style={{ color: 'var(--tc-jade)' }}>Verified (Passing)</span>
+                                                ) : selectedCaseExecutionStatus === 'failed' ? (
+                                                    <span style={{ color: 'var(--tc-fail)' }}>Failing Verification</span>
+                                                ) : (
+                                                    <span style={{ color: '#8C9990' }}>Unverified (Untested)</span>
+                                                )}
                                             </p>
                                         </div>
-                                        <NavLink to={`/app/coverage?reqId=${encodeURIComponent(selectedCase.requirementId)}`} className="tc-link">
-                                            <span>Matrix</span>
-                                            <ExternalLink size={12} />
-                                        </NavLink>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <NavLink to={`/app/coverage?reqId=${encodeURIComponent(selectedCase.requirementId)}`} className="tc-link" title="Open in Coverage Matrix">
+                                                <span>Coverage Matrix</span>
+                                                <ExternalLink size={12} />
+                                            </NavLink>
+                                            <button
+                                                type="button"
+                                                className="tc-text-action"
+                                                onClick={handleUnlinkRequirement}
+                                                title="Unlink this requirement"
+                                            >
+                                                <Unlink size={13} />
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="tc-req-unmapped">
                                         <span>No requirement ID linked.</span>
-                                        <button
-                                            type="button"
-                                            className="tc-text-action"
-                                            onClick={() => {
-                                                setEditorMode('edit');
-                                                setEditorOpen(true);
-                                            }}
-                                        >
-                                            Map Requirement
-                                        </button>
+                                        {availableRequirements.length > 0 ? (
+                                            <select
+                                                className="tc-quick-req-select"
+                                                aria-label="Link requirement"
+                                                onChange={(e) => {
+                                                    if (e.target.value) handleLinkRequirement(e.target.value);
+                                                }}
+                                                defaultValue=""
+                                            >
+                                                <option value="" disabled>Select Requirement to Link...</option>
+                                                {availableRequirements.map(req => (
+                                                    <option key={req.id} value={req.id}>{req.id} ({req.count} cases)</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="tc-text-action"
+                                                onClick={() => {
+                                                    setEditorMode('edit');
+                                                    setEditorOpen(true);
+                                                }}
+                                            >
+                                                Enter Requirement ID
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Playwright Automation Binding */}
+                            {/* Playwright Automation Ledger */}
                             <div className="tc-block">
                                 <div className="tc-block-title">Playwright Automation Ledger</div>
                                 {selectedCase.automationMapping ? (
                                     <div className="tc-auto-card">
                                         <div className="tc-auto-row">
+                                            <span>Framework</span>
+                                            <span>Playwright (Chromium)</span>
+                                        </div>
+                                        <div className="tc-auto-row">
                                             <span>Mapping Status</span>
-                                            <strong style={{ color: 'var(--tc-jade)' }}>
-                                                {selectedCase.automationMapping.mappingStatus || 'Configured'}
+                                            <strong style={{ color: selectedCaseAutomationValid ? 'var(--tc-jade)' : 'var(--tc-warn)' }}>
+                                                {selectedCaseAutomationValid ? 'Configured & Ready' : (selectedCase.automationMapping.mappingStatus || 'Configured')}
                                             </strong>
                                         </div>
                                         <div className="tc-auto-row">
                                             <span>Spec Reference</span>
-                                            <code>{selectedCase.automationMapping.spec || 'tests/smoke.spec.js'}</code>
-                                        </div>
-                                        <div className="tc-auto-row">
-                                            <span>Framework</span>
-                                            <span>Playwright (Chromium)</span>
+                                            <code>{selectedCase.automationMapping.spec || selectedCase.automationMapping.scriptRef || 'tests/smoke.spec.js'}</code>
                                         </div>
 
                                         {(selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code) && (
@@ -1785,13 +2015,15 @@ const TestCasesPage = () => {
                                                         <div>
                                                             <div className="tc-history-run-name">{row.runName}</div>
                                                             <div className="tc-history-time">
-                                                                {formatDate(row.executedAt || row.createdAt)} · {row.durationMs || 0}ms
+                                                                {formatDate(row.executedAt || row.createdAt)} · {row.durationMs || 0}ms · {row.executorType === 'automated' ? 'Playwright' : 'Manual'}
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     <div className="tc-history-right">
-                                                        <span className={`tc-status tc-status-${status}`}>{status}</span>
+                                                        <span className={`tc-exec-badge tc-exec-${status}`}>
+                                                            {formatExecutionStatus(status)}
+                                                        </span>
                                                         <NavLink to={`/app/runs/${row.runId}?tab=report`} className="tc-link" title="Open execution report">
                                                             <ExternalLink size={12} />
                                                         </NavLink>
@@ -1801,7 +2033,7 @@ const TestCasesPage = () => {
                                         })}
                                     </div>
                                 ) : (
-                                    <p className="tc-muted-text">No recorded executions in recent test runs.</p>
+                                    <p className="tc-muted-text">No recorded executions in recent test runs for this test case.</p>
                                 )}
                             </div>
                         </aside>
@@ -1812,9 +2044,12 @@ const TestCasesPage = () => {
             {/* ─── MODALS ─── */}
             {editorOpen && (
                 <TestCaseEditorModal
+                    isOpen={editorOpen}
                     mode={editorMode}
                     testCase={editorMode === 'edit' ? selectedCase : null}
+                    initialCase={editorMode === 'edit' ? selectedCase : null}
                     suites={suites}
+                    selectedSuiteId={suiteId || suites[0]?.id}
                     activeSuiteId={suiteId || suites[0]?.id}
                     onSave={handleSaveCaseModal}
                     onClose={() => setEditorOpen(false)}
@@ -1824,16 +2059,20 @@ const TestCasesPage = () => {
 
             {manualExecOpen && selectedCase && (
                 <ManualExecutionModal
+                    isOpen={manualExecOpen}
                     testCase={selectedCase}
+                    onRecord={handleManualExecutionSave}
                     onSave={handleManualExecutionSave}
                     onClose={() => setManualExecOpen(false)}
-                    isSaving={isSaving}
+                    isRecording={isSaving}
                 />
             )}
 
             {autoExecOpen && selectedCase && (
                 <AutomatedExecutionModal
+                    isOpen={autoExecOpen}
                     testCase={selectedCase}
+                    onExecutionComplete={handleAutoExecutionSave}
                     onSave={handleAutoExecutionSave}
                     onClose={() => setAutoExecOpen(false)}
                 />
@@ -1841,6 +2080,7 @@ const TestCasesPage = () => {
 
             {addToSuiteOpen && selectedCase && (
                 <AddToSuiteModal
+                    isOpen={addToSuiteOpen}
                     testCase={selectedCase}
                     suites={suites}
                     onAdd={handleAddToSuite}
@@ -1851,6 +2091,7 @@ const TestCasesPage = () => {
 
             {deleteModalOpen && selectedCase && (
                 <DeleteConfirmModal
+                    isOpen={deleteModalOpen}
                     testCase={selectedCase}
                     onConfirm={handleDeleteCase}
                     onClose={() => setDeleteModalOpen(false)}

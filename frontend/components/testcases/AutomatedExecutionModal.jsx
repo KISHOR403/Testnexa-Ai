@@ -4,11 +4,13 @@ import { X, Play, RefreshCw, CheckCircle2, XCircle, Terminal, Code, AlertTriangl
 import { executionService } from '../../services/executionService';
 
 const AutomatedExecutionModal = ({
-    isOpen,
+    isOpen = true,
     onClose,
     testCase,
-    onExecutionComplete
+    onExecutionComplete,
+    onSave
 }) => {
+    const completeHandler = onExecutionComplete || onSave;
     const [isRunning, setIsRunning] = useState(false);
     const [result, setResult] = useState(null);
     const [logs, setLogs] = useState([]);
@@ -122,7 +124,9 @@ const AutomatedExecutionModal = ({
                 });
             }
 
-            onExecutionComplete?.();
+            if (completeHandler) {
+                completeHandler(result || { status: 'passed' });
+            }
         } catch (err) {
             setError(err.message || 'Execution error occurred.');
             setLogs(prev => [...prev, `[Error] ${err.message}`]);

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, FilePlus2, Layers } from 'lucide-react';
 
 const AddToSuiteModal = ({
-    isOpen,
+    isOpen = true,
     onClose,
     testCase,
     suites = [],

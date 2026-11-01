@@ -3,12 +3,14 @@ import { createPortal } from 'react-dom';
 import { X, CheckCircle2, XCircle, AlertTriangle, MinusCircle, Clock, Upload, Camera, ExternalLink } from 'lucide-react';
 
 const ManualExecutionModal = ({
-    isOpen,
+    isOpen = true,
     onClose,
     testCase,
     onRecord,
+    onSave,
     isRecording = false
 }) => {
+    const recordHandler = onRecord || onSave;
     const [status, setStatus] = useState('passed');
     const [actualResult, setActualResult] = useState('');
     const [notes, setNotes] = useState('');
@@ -57,18 +59,23 @@ const ManualExecutionModal = ({
         const elapsed = Math.max(100, Date.now() - startTime);
 
         try {
-            await onRecord({
-                status,
-                actualResult: actualResult.trim() || 'Observed expected behavior across all verified test steps.',
-                notes: notes.trim(),
-                durationMs: elapsed,
-                artifact: screenshotData ? {
-                    name: screenshotName || `${testCase.id}-manual-evidence.png`,
-                    data: screenshotData,
-                    mimeType: 'image/png',
-                    artifactType: 'screenshot'
-                } : null
-            });
+            if (recordHandler) {
+                await recordHandler({
+                    status,
+                    outcome: status,
+                    actualResult: actualResult.trim() || 'Observed expected behavior across all verified test steps.',
+                    notes: notes.trim(),
+                    durationMs: elapsed,
+                    screenshotData,
+                    screenshotName,
+                    artifact: screenshotData ? {
+                        name: screenshotName || `${testCase.id}-manual-evidence.png`,
+                        data: screenshotData,
+                        mimeType: 'image/png',
+                        artifactType: 'screenshot'
+                    } : null
+                });
+            }
             onClose();
         } catch (err) {
             setError(err.message || 'Failed to record execution outcome.');

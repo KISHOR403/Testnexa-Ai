@@ -301,13 +301,17 @@ exports.getRunCase = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, run.workspaceId);
         if (!isAllowed) return;
 
-        const runCase = await supabaseService.getRunCaseById(caseId);
+        let runCase = await supabaseService.getRunCaseById(caseId);
         if (!runCase || runCase.runId !== id) {
+            const allRunCases = await supabaseService.getRunCases(id);
+            runCase = allRunCases.find(rc => rc.id === caseId || rc.testCaseId === caseId);
+        }
+        if (!runCase) {
             return res.status(404).json({ success: false, message: 'Test run case not found' });
         }
 
-        const executions = await supabaseService.getCaseExecutions(caseId);
-        const artifacts = await supabaseService.getRunArtifacts(id, caseId);
+        const executions = await supabaseService.getCaseExecutions(runCase.id);
+        const artifacts = await supabaseService.getRunArtifacts(id, runCase.id);
 
         res.json({
             success: true,
@@ -339,8 +343,12 @@ exports.recordExecution = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, run.workspaceId);
         if (!isAllowed) return;
 
-        const runCase = await supabaseService.getRunCaseById(caseId);
+        let runCase = await supabaseService.getRunCaseById(caseId);
         if (!runCase || runCase.runId !== id) {
+            const allRunCases = await supabaseService.getRunCases(id);
+            runCase = allRunCases.find(rc => rc.id === caseId || rc.testCaseId === caseId);
+        }
+        if (!runCase) {
             return res.status(404).json({ success: false, message: 'Test run case not found' });
         }
 
@@ -360,7 +368,7 @@ exports.recordExecution = async (req, res) => {
 
         const result = await supabaseService.recordTestExecution({
             runId: id,
-            runCaseId: caseId,
+            runCaseId: runCase.id,
             testCaseId: runCase.testCaseId,
             status,
             actualResult: actualResult || '',
@@ -378,14 +386,14 @@ exports.recordExecution = async (req, res) => {
                 const saved = await saveArtifactBuffer({
                     workspaceId: run.workspaceId,
                     runId: id,
-                    name: req.body.artifact.name || `evidence_${caseId}.png`,
+                    name: req.body.artifact.name || `evidence_${runCase.id}.png`,
                     data: req.body.artifact.data,
                     mimeType: req.body.artifact.mimeType || 'image/png'
                 });
 
                 await supabaseService.saveArtifact({
                     runId: id,
-                    runCaseId: caseId,
+                    runCaseId: runCase.id,
                     executionId: result.execution.id,
                     name: saved.name,
                     artifactType: 'screenshot',

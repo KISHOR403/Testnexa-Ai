@@ -40,18 +40,22 @@ const DEFAULT_PLAYWRIGHT_TEMPLATE = `async (page, expect) => {
 }`;
 
 const TestCaseEditorModal = ({
-    isOpen,
+    isOpen = true,
     onClose,
     mode = 'create',
+    testCase = null,
     initialCase = null,
     suites = [],
     selectedSuiteId = '',
+    activeSuiteId = '',
     onSave,
     isSaving = false
 }) => {
-    const isEdit = mode === 'edit' && Boolean(initialCase);
+    const targetCase = initialCase || testCase;
+    const isEdit = mode === 'edit' && Boolean(targetCase);
+    const targetSuiteId = selectedSuiteId || activeSuiteId || targetCase?.suiteId || suites[0]?.id || '';
 
-    const [suiteId, setSuiteId] = useState(initialCase?.suiteId || selectedSuiteId || suites[0]?.id || '');
+    const [suiteId, setSuiteId] = useState(targetCase?.suiteId || targetSuiteId);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [preconditions, setPreconditions] = useState('');
@@ -82,22 +86,22 @@ const TestCaseEditorModal = ({
     useEffect(() => {
         if (!isOpen) return;
         setFormError('');
-        if (isEdit && initialCase) {
-            setSuiteId(initialCase.suiteId || selectedSuiteId);
-            setTitle(initialCase.title || '');
-            setDescription(initialCase.description || '');
-            const pre = Array.isArray(initialCase.preconditions)
-                ? initialCase.preconditions.join('\n')
-                : String(initialCase.preconditions || '');
+        if (isEdit && targetCase) {
+            setSuiteId(targetCase.suiteId || targetSuiteId);
+            setTitle(targetCase.title || '');
+            setDescription(targetCase.description || '');
+            const pre = Array.isArray(targetCase.preconditions)
+                ? targetCase.preconditions.join('\n')
+                : String(targetCase.preconditions || '');
             setPreconditions(pre);
-            setType(initialCase.type || 'Functional');
-            setPriority(initialCase.priority || 'Medium');
-            setMethod(initialCase.method || 'manual');
-            setStatus(initialCase.lifecycle === 'ready' ? 'Ready' : initialCase.lifecycle === 'draft' ? 'Draft' : 'Needs Review');
-            setRequirementId(initialCase.requirementId || '');
-            setExpectedResult(initialCase.expectedResult || '');
-            if (Array.isArray(initialCase.steps) && initialCase.steps.length > 0) {
-                setSteps(initialCase.steps.map(s => ({
+            setType(targetCase.type || 'Functional');
+            setPriority(targetCase.priority || 'Medium');
+            setMethod(targetCase.method || 'manual');
+            setStatus(targetCase.lifecycle === 'ready' ? 'Ready' : targetCase.lifecycle === 'draft' ? 'Draft' : 'Needs Review');
+            setRequirementId(targetCase.requirementId || '');
+            setExpectedResult(targetCase.expectedResult || '');
+            if (Array.isArray(targetCase.steps) && targetCase.steps.length > 0) {
+                setSteps(targetCase.steps.map(s => ({
                     action: typeof s === 'object' ? s.action || s.description || s.step || '' : String(s),
                     expected: typeof s === 'object' ? s.expected || s.expectedResult || '' : '',
                     testData: typeof s === 'object' ? s.testData || s.data || '' : ''
@@ -105,12 +109,12 @@ const TestCaseEditorModal = ({
             } else {
                 setSteps([{ action: '', expected: '', testData: '' }]);
             }
-            const mapping = initialCase.automationMapping || {};
+            const mapping = targetCase.automationMapping || {};
             setFramework(mapping.framework || 'playwright');
             setScriptRef(mapping.scriptRef || mapping.automationTestId || '');
             setScriptCode(mapping.scriptCode || mapping.code || '');
         } else {
-            setSuiteId(selectedSuiteId || suites[0]?.id || '');
+            setSuiteId(targetSuiteId);
             setTitle('');
             setDescription('');
             setPreconditions('');
@@ -125,7 +129,7 @@ const TestCaseEditorModal = ({
             setScriptRef('');
             setScriptCode(DEFAULT_PLAYWRIGHT_TEMPLATE);
         }
-    }, [isOpen, isEdit, initialCase, selectedSuiteId, suites]);
+    }, [isOpen, isEdit, targetCase, targetSuiteId, suites]);
 
     if (!isOpen) return null;
 
@@ -234,7 +238,7 @@ const TestCaseEditorModal = ({
         };
 
         try {
-            await onSave(suiteId, initialCase, nextCase, desiredStatus);
+            await onSave(suiteId, targetCase, nextCase, desiredStatus);
             onClose();
         } catch (err) {
             setFormError(err.message || 'Failed to save test case. Please verify the input and try again.');

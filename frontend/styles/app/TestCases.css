@@ -1647,3 +1647,114 @@
     flex-basis: auto;
   }
 }
+
+/* ─── Lifecycle & Execution Status Separation ─── */
+.tc-lifecycle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  border: 1px solid #28332B;
+  background: #111613;
+  color: #9EABA2;
+}
+
+.tc-lifecycle-badge.ready {
+  background: rgba(139, 175, 154, 0.08);
+  border-color: rgba(139, 175, 154, 0.25);
+  color: #8BAF9A;
+}
+
+.tc-lifecycle-badge.draft {
+  background: rgba(150, 160, 154, 0.06);
+  border-color: rgba(150, 160, 154, 0.2);
+  color: #8D9991;
+}
+
+.tc-lifecycle-badge.needs_review,
+.tc-lifecycle-badge.needs-review {
+  background: rgba(229, 192, 123, 0.08);
+  border-color: rgba(229, 192, 123, 0.25);
+  color: #E5C07B;
+}
+
+.tc-lifecycle-badge.archived {
+  background: rgba(100, 110, 105, 0.08);
+  border-color: rgba(100, 110, 105, 0.2);
+  color: #6B776F;
+}
+
+.tc-exec-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.tc-exec-badge.passed {
+  background: rgba(139, 175, 154, 0.12);
+  border-color: rgba(139, 175, 154, 0.3);
+  color: #8BAF9A;
+}
+
+.tc-exec-badge.failed {
+  background: rgba(224, 108, 117, 0.12);
+  border-color: rgba(224, 108, 117, 0.3);
+  color: #E06C75;
+}
+
+.tc-exec-badge.blocked {
+  background: rgba(229, 192, 123, 0.12);
+  border-color: rgba(229, 192, 123, 0.3);
+  color: #E5C07B;
+}
+
+.tc-exec-badge.skipped {
+  background: rgba(132, 144, 135, 0.1);
+  border-color: rgba(132, 144, 135, 0.25);
+  color: #849087;
+}
+
+.tc-exec-badge.not_run,
+.tc-exec-badge.untested {
+  background: rgba(93, 108, 98, 0.08);
+  border-color: rgba(93, 108, 98, 0.2);
+  color: #5D6C62;
+}
+
+.tc-quick-req-select {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid var(--tc-line);
+  background: #101412;
+  color: var(--tc-text);
+  font-size: 0.74rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.tc-quick-req-select:focus {
+  border-color: var(--tc-jade);
+}
+
+.tc-text-danger {
+  color: #E06C75 !important;
+}
+
+.tc-text-danger:hover {
+  background: rgba(224, 108, 117, 0.1) !important;
+  color: #FF8F95 !important;
+}
+

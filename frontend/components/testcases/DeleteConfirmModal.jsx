@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Trash2, X } from 'lucide-react';
 
 const DeleteConfirmModal = ({
-    isOpen,
+    isOpen = true,
     onClose,
     testCase,
     onConfirm,
