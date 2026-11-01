@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, NavLink } from 'react-router-dom';
 import {
-    ArrowLeft, Check, ChevronRight, Copy, ExternalLink,
+    ArrowLeft, Check, ChevronRight, ChevronDown, Copy, ExternalLink,
     FilePlus2, Pencil, Play, Plus, RefreshCw, Search, Trash2, X,
     Layers, Sparkles, Code, Terminal, Camera, Shield, CheckCircle2,
-    XCircle, AlertTriangle, MinusCircle, Clock, Archive, RotateCcw
+    XCircle, AlertTriangle, MinusCircle, Clock, Archive, RotateCcw,
+    Folder, FolderOpen, Filter, PanelLeftClose, PanelLeftOpen,
+    PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Tag,
+    SlidersHorizontal, Layers3
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { executionService } from '../../services/executionService';
@@ -23,7 +26,7 @@ const CATEGORY_LABELS = {
 };
 const PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 const QUICK_FILTERS = [
-    ['all', 'All'], ['draft', 'Draft'], ['ready', 'Ready'], ['needs-review', 'Needs Review'],
+    ['all', 'All Active'], ['draft', 'Draft'], ['ready', 'Ready'], ['needs-review', 'Needs Review'],
     ['manual', 'Manual'], ['automated', 'Automated'], ['archived', 'Archived']
 ];
 
@@ -206,6 +209,13 @@ const TestCasesPage = () => {
     const [error, setError] = useState('');
     const [retry, setRetry] = useState(0);
 
+    // Layout panels state
+    const [isSuiteNavCollapsed, setIsSuiteNavCollapsed] = useState(false);
+    const [isDetailPanelCollapsed, setIsDetailPanelCollapsed] = useState(false);
+    const [groupBySuite, setGroupBySuite] = useState(true);
+    const [expandedSuiteNavIds, setExpandedSuiteNavIds] = useState(new Set());
+    const [collapsedGroupIds, setCollapsedGroupIds] = useState(new Set());
+
     // Context & selection
     const initialSuiteQuery = new URLSearchParams(location.search).get('suiteId') || '';
     const initialCaseQuery = new URLSearchParams(location.search).get('caseId') || '';
@@ -214,10 +224,13 @@ const TestCasesPage = () => {
     const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
     // Filters and toolbar
+    const [suiteFilterText, setSuiteFilterText] = useState('');
     const [query, setQuery] = useState('');
     const [quickFilter, setQuickFilter] = useState('all');
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
+    const [requirementFilter, setRequirementFilter] = useState('all');
+    const [executionStatusFilter, setExecutionStatusFilter] = useState('all');
     const [sort, setSort] = useState('updated');
     const [page, setPage] = useState(1);
     const pageSize = 25;
@@ -235,6 +248,7 @@ const TestCasesPage = () => {
 
     // Execution history tracking
     const [executionHistory, setExecutionHistory] = useState({ key: '', rows: [], loading: false, error: '' });
+    const [recentExecutionMap, setRecentExecutionMap] = useState({});
 
     // Show temporary toast notification
     const triggerToast = (msg) => {
@@ -279,23 +293,50 @@ const TestCasesPage = () => {
         loadData();
     }, [loadData, retry]);
 
-    // Distinct suite descriptors with computed actual test counts
+    // Distinct suite descriptors with actual counts & category breakdown
     const suites = useMemo(() => {
         return sessions.map(session => {
             const sData = getSuiteData(session) || {};
-            const directCount = CATEGORY_KEYS.reduce((acc, cat) => acc + (Array.isArray(sData[cat]) ? sData[cat].length : 0), 0);
+            const sid = String(session.id || session._id);
+
+            // Compute category counts
+            const categoryBreakdown = {};
+            let directCount = 0;
+            let archivedCount = 0;
+
+            CATEGORY_KEYS.forEach(cat => {
+                const items = Array.isArray(sData[cat]) ? sData[cat] : [];
+                if (items.length > 0) {
+                    const label = CATEGORY_LABELS[cat] || 'Functional';
+                    categoryBreakdown[label] = (categoryBreakdown[label] || 0) + items.length;
+                    directCount += items.length;
+                    items.forEach(tc => {
+                        if (tc?.archivedAt || tc?.status === 'archived' || tc?.status === 'Archived') {
+                            archivedCount += 1;
+                        }
+                    });
+                }
+            });
+
             const refCount = Array.isArray(sData.testCaseRefs) ? sData.testCaseRefs.length : 0;
-            const caseCount = directCount + refCount;
+            const totalCount = directCount + refCount;
+            const activeCount = Math.max(0, totalCount - archivedCount);
             const updatedAt = session.updatedAt || session.updated_at || session.createdAt;
+
             return {
-                id: String(session.id || session._id),
+                id: sid,
                 name: session.title || session.feature || sData.testSuiteName || sData.feature || 'Untitled suite',
-                project: session.projectName || sData.projectName || sData.project || '',
-                context: session.context || sData.context || 'web',
-                caseCount,
+                project: session.projectName || sData.projectName || sData.project || 'Default Project',
+                context: (session.context || sData.context || 'web').toLowerCase(),
+                status: session.status || 'Ready',
+                caseCount: totalCount,
+                activeCount,
+                archivedCount,
+                categoryBreakdown: Object.entries(categoryBreakdown).map(([label, count]) => ({ label, count })),
                 updatedAt,
                 formattedDate: formatDate(updatedAt),
-                session
+                session,
+                sData
             };
         });
     }, [sessions]);
@@ -303,8 +344,37 @@ const TestCasesPage = () => {
     // Flatten all test cases across all sessions
     const allCases = useMemo(() => flattenSessions(sessions), [sessions]);
 
-    // Total test cases across all suites
-    const totalCasesCount = allCases.length;
+    // Deduplicate unique test cases across all suites for "All Test Cases" view
+    const uniqueCases = useMemo(() => {
+        const seen = new Map();
+        allCases.forEach(tc => {
+            const idKey = tc.id ? String(tc.id) : tc.key;
+            if (!seen.has(idKey)) {
+                seen.set(idKey, {
+                    ...tc,
+                    associatedSuites: [{ id: tc.suiteId, name: tc.suiteName, isNative: !tc.isReference }]
+                });
+            } else {
+                const existing = seen.get(idKey);
+                if (!existing.associatedSuites.some(s => s.id === tc.suiteId)) {
+                    existing.associatedSuites.push({ id: tc.suiteId, name: tc.suiteName, isNative: !tc.isReference });
+                }
+            }
+        });
+        return Array.from(seen.values());
+    }, [allCases]);
+
+    // Unique requirements extracted across available suites
+    const availableRequirements = useMemo(() => {
+        const reqMap = new Map();
+        const targetCases = suiteId ? allCases.filter(c => c.suiteId === suiteId) : allCases;
+        targetCases.forEach(c => {
+            if (c.requirementId) {
+                reqMap.set(c.requirementId, (reqMap.get(c.requirementId) || 0) + 1);
+            }
+        });
+        return Array.from(reqMap.entries()).map(([id, count]) => ({ id, count }));
+    }, [allCases, suiteId]);
 
     // Sync URL queries
     useEffect(() => {
@@ -323,10 +393,11 @@ const TestCasesPage = () => {
     // Filter and sort test cases
     const filteredCases = useMemo(() => {
         const text = query.trim().toLowerCase();
-        const filtered = allCases.filter(tc => {
-            const matchesSuite = !suiteId || tc.suiteId === String(suiteId);
+        const baseSet = suiteId ? allCases.filter(tc => tc.suiteId === String(suiteId)) : allCases;
+
+        const filtered = baseSet.filter(tc => {
             const matchesText = !text ||
-                `${tc.id} ${tc.title} ${tc.description} ${tc.requirementId} ${tc.suiteName}`.toLowerCase().includes(text);
+                `${tc.id} ${tc.title} ${tc.description} ${tc.requirementId} ${tc.suiteName} ${tc.type}`.toLowerCase().includes(text);
 
             let matchesQuick = true;
             if (quickFilter === 'draft') matchesQuick = tc.lifecycle === 'draft';
@@ -339,8 +410,19 @@ const TestCasesPage = () => {
 
             const matchesPriority = priorityFilter === 'all' || tc.priority.toLowerCase() === priorityFilter.toLowerCase();
             const matchesType = typeFilter === 'all' || tc.type.toLowerCase() === typeFilter.toLowerCase();
+            const matchesReq = requirementFilter === 'all' || tc.requirementId === requirementFilter;
 
-            return matchesSuite && matchesText && matchesQuick && matchesPriority && matchesType;
+            let matchesExecStatus = true;
+            if (executionStatusFilter !== 'all') {
+                const recordedStatus = (recentExecutionMap[tc.id]?.status || tc.status || '').toLowerCase();
+                if (executionStatusFilter === 'not_run') {
+                    matchesExecStatus = !recordedStatus || ['not_run', 'draft', 'ready'].includes(recordedStatus);
+                } else {
+                    matchesExecStatus = recordedStatus === executionStatusFilter;
+                }
+            }
+
+            return matchesText && matchesQuick && matchesPriority && matchesType && matchesReq && matchesExecStatus;
         });
 
         filtered.sort((left, right) => {
@@ -350,12 +432,11 @@ const TestCasesPage = () => {
             if (sort === 'created') {
                 return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
             }
-            // default: updated
             return new Date(right.updatedAt || 0).getTime() - new Date(left.updatedAt || 0).getTime();
         });
 
         return filtered;
-    }, [allCases, query, suiteId, quickFilter, priorityFilter, typeFilter, sort]);
+    }, [allCases, suiteId, query, quickFilter, priorityFilter, typeFilter, requirementFilter, executionStatusFilter, sort, recentExecutionMap]);
 
     // Active selected test case
     const selectedCase = useMemo(() => {
@@ -375,13 +456,38 @@ const TestCasesPage = () => {
         return suites.find(s => s.id === String(suiteId)) || null;
     }, [suites, suiteId]);
 
+    // Grouping for "All Test Cases" view
+    const casesGroupedBySuite = useMemo(() => {
+        if (suiteId || !groupBySuite) return [];
+        const groups = [];
+        const map = new Map();
+
+        filteredCases.forEach(tc => {
+            const sid = tc.suiteId;
+            if (!map.has(sid)) {
+                const sObj = suites.find(s => s.id === sid);
+                const group = {
+                    suiteId: sid,
+                    suiteName: tc.suiteName,
+                    context: sObj?.context || tc.context,
+                    cases: []
+                };
+                map.set(sid, group);
+                groups.push(group);
+            }
+            map.get(sid).cases.push(tc);
+        });
+
+        return groups;
+    }, [filteredCases, suiteId, groupBySuite, suites]);
+
     // Pagination
     const pageCount = Math.max(1, Math.ceil(filteredCases.length / pageSize));
     const pageCases = useMemo(() => {
         return filteredCases.slice((page - 1) * pageSize, page * pageSize);
     }, [filteredCases, page, pageSize]);
 
-    useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priorityFilter, typeFilter, sort]);
+    useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priorityFilter, typeFilter, requirementFilter, executionStatusFilter, sort]);
 
     // Fetch genuine execution history for selected test case
     useEffect(() => {
@@ -462,10 +568,11 @@ const TestCasesPage = () => {
     };
 
     // Suite change handler
-    const handleSuiteChange = (newSuiteId) => {
+    const handleSuiteChange = (newSuiteId, categoryFilter = 'all') => {
         setSuiteId(newSuiteId);
         setSelectedKey('');
         setMobileDetailOpen(false);
+        setTypeFilter(categoryFilter);
         const params = new URLSearchParams(location.search);
         if (newSuiteId) {
             params.set('suiteId', newSuiteId);
@@ -476,84 +583,159 @@ const TestCasesPage = () => {
         navigate({ pathname: '/app/test-cases', search: params.toString() }, { replace: true });
     };
 
+    // Toggle navigation expansion for a suite
+    const toggleSuiteNavExpansion = (e, sid) => {
+        e.stopPropagation();
+        setExpandedSuiteNavIds(prev => {
+            const next = new Set(prev);
+            if (next.has(sid)) next.delete(sid);
+            else next.add(sid);
+            return next;
+        });
+    };
+
+    // Toggle accordion collapse for grouped list in All Cases
+    const toggleGroupAccordion = (sid) => {
+        setCollapsedGroupIds(prev => {
+            const next = new Set(prev);
+            if (next.has(sid)) next.delete(sid);
+            else next.add(sid);
+            return next;
+        });
+    };
+
     // Save test case mutations to backend
     const patchCase = async (targetSession, oldCase, nextCase) => {
-        const suiteData = structuredClone(getSuiteData(targetSession) || {});
-        const sourceKeys = CATEGORY_KEYS.filter(key => Array.isArray(suiteData[key]));
-        let targetKey = oldCase?.category || '';
+        const rawSuite = getSuiteData(targetSession) || {};
+        const isRef = oldCase?.isReference;
 
-        if (!targetKey) {
-            if (suiteData.testCases?.length) targetKey = 'testCases';
-            else if (suiteData.tests?.length) targetKey = 'tests';
-            else {
-                const category = String(nextCase.type || 'Functional').toLowerCase();
-                targetKey = category === 'negative' ? 'negative'
-                    : category === 'edge' ? 'edge'
-                        : category === 'security' ? 'security'
-                            : category === 'api' ? 'apiChecklist'
-                                : category === 'non-functional' ? 'nonFunctional' : 'functional';
-            }
+        if (isRef) {
+            throw new Error(`Referenced test case belongs to suite "${oldCase.sourceSuiteName}". Edit it in its native suite.`);
         }
 
-        if (!Array.isArray(suiteData[targetKey])) suiteData[targetKey] = [];
+        const nextSuiteData = { ...rawSuite };
+        let found = false;
 
-        if (oldCase) {
-            let found = false;
-            for (const key of sourceKeys) {
-                const index = oldCase.id
-                    ? suiteData[key].findIndex(item => getCaseId(item) === oldCase.id)
-                    : (key === oldCase.category ? oldCase.sourceIndex : -1);
-                if (index >= 0) {
-                    suiteData[key][index] = nextCase;
+        CATEGORY_KEYS.forEach(cat => {
+            if (Array.isArray(nextSuiteData[cat])) {
+                const idx = nextSuiteData[cat].findIndex(c => getCaseId(c) === oldCase.id);
+                if (idx !== -1) {
                     found = true;
-                    break;
+                    if (nextCase === null) {
+                        nextSuiteData[cat] = nextSuiteData[cat].filter((_, i) => i !== idx);
+                    } else {
+                        nextSuiteData[cat] = [
+                            ...nextSuiteData[cat].slice(0, idx),
+                            nextCase,
+                            ...nextSuiteData[cat].slice(idx + 1)
+                        ];
+                    }
                 }
-            }
-            if (!found) throw new Error('This test case no longer exists in the suite. Refresh and try again.');
-        } else {
-            suiteData[targetKey].push(nextCase);
-        }
-
-        const sid = targetSession.id || targetSession._id;
-        const response = await sessionService.update(sid, {
-            suiteData,
-            testCaseMutation: {
-                action: oldCase ? 'update' : 'create',
-                previousTestCaseId: oldCase?.id || '',
-                testCaseId: nextCase.id
             }
         });
 
-        if (!response?.success) {
-            throw new Error(response?.message || 'Test case changes could not be saved.');
+        if (!found && nextCase !== null) {
+            const targetCat = nextCase.category || oldCase.category || 'functional';
+            nextSuiteData[targetCat] = [...(nextSuiteData[targetCat] || []), nextCase];
         }
 
-        window.dispatchEvent(new Event('historyUpdated'));
-        await loadData();
-        setSelectedKey(`${sid}:${targetKey}:${nextCase.id}`);
-        setMobileDetailOpen(true);
-        triggerToast(`Test case ${nextCase.id} saved successfully.`);
+        const sid = String(targetSession.id || targetSession._id);
+        const res = await sessionService.update(sid, { suiteData: nextSuiteData });
+        if (!res.success) throw new Error(res.message || 'Failed to update test suite.');
+
+        setSessions(prev => prev.map(s => String(s.id || s._id) === sid ? { ...s, suiteData: nextSuiteData } : s));
+        return res;
     };
 
-    // Duplicate test case handler
-    const handleDuplicateCase = async () => {
-        if (!selectedCase) return;
-        const targetSession = selectedCase.session;
-        const suiteData = getSuiteData(targetSession);
-        const newId = makeCaseId(suiteData, String(selectedCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_'));
-        const clone = {
-            ...structuredClone(selectedCase.raw),
-            id: newId,
-            title: `${selectedCase.title} (copy)`,
-            status: 'Draft',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
+    // Handle Create & Edit save
+    const handleSaveCaseModal = async (formData) => {
         setIsSaving(true);
         try {
-            await patchCase(targetSession, null, clone);
-            triggerToast(`Duplicated as ${newId} (Draft).`);
+            const targetSuiteId = formData.suiteId || suiteId || suites[0]?.id;
+            const targetSession = sessions.find(s => String(s.id || s._id) === String(targetSuiteId));
+            if (!targetSession) throw new Error('Target test suite was not found.');
+
+            const sData = getSuiteData(targetSession) || {};
+            const categoryKey = formData.category.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const safeCategory = CATEGORY_KEYS.includes(categoryKey) ? categoryKey : 'functional';
+
+            const payloadCase = {
+                id: formData.id || makeCaseId(sData, safeCategory),
+                title: formData.title,
+                testScenario: formData.title,
+                scenario: formData.title,
+                description: formData.description,
+                testDescription: formData.description,
+                type: formData.category,
+                priority: formData.priority,
+                executionMethod: formData.executionMethod,
+                executionType: formData.executionMethod,
+                status: formData.status,
+                requirementId: formData.requirementId || '',
+                preconditions: formData.preconditions ? formData.preconditions.split('\n').filter(Boolean) : [],
+                steps: formData.steps || [],
+                expectedResult: formData.expectedResult || '',
+                automationMapping: formData.automationMapping || null,
+                updatedAt: new Date().toISOString(),
+                createdAt: editorMode === 'create' ? new Date().toISOString() : undefined
+            };
+
+            if (editorMode === 'create') {
+                const nextSuiteData = { ...sData };
+                nextSuiteData[safeCategory] = [...(nextSuiteData[safeCategory] || []), payloadCase];
+                const res = await sessionService.update(targetSuiteId, { suiteData: nextSuiteData });
+                if (!res.success) throw new Error(res.message || 'Failed to create test case.');
+
+                setSessions(prev => prev.map(s => String(s.id || s._id) === targetSuiteId ? { ...s, suiteData: nextSuiteData } : s));
+                triggerToast(`Created test case ${payloadCase.id}`);
+                setEditorOpen(false);
+                setSuiteId(targetSuiteId);
+                setSelectedKey(`${targetSuiteId}:${safeCategory}:${payloadCase.id}`);
+            } else {
+                if (!selectedCase) throw new Error('No test case is currently selected for editing.');
+                await patchCase(selectedCase.session, selectedCase, {
+                    ...selectedCase.raw,
+                    ...payloadCase
+                });
+                triggerToast(`Updated test case ${payloadCase.id}`);
+                setEditorOpen(false);
+            }
+        } catch (err) {
+            alert(`Save failed: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Duplicate test case
+    const handleDuplicateCase = async () => {
+        if (!selectedCase) return;
+        setIsSaving(true);
+        try {
+            const targetSession = selectedCase.session;
+            const sData = getSuiteData(targetSession) || {};
+            const categoryKey = selectedCase.category || 'functional';
+            const newId = makeCaseId(sData, categoryKey);
+
+            const clone = {
+                ...selectedCase.raw,
+                id: newId,
+                title: `${selectedCase.title} (Copy)`,
+                status: 'Draft',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            const nextSuiteData = { ...sData };
+            nextSuiteData[categoryKey] = [...(nextSuiteData[categoryKey] || []), clone];
+
+            const sid = String(targetSession.id || targetSession._id);
+            const res = await sessionService.update(sid, { suiteData: nextSuiteData });
+            if (!res.success) throw new Error(res.message || 'Duplicate failed.');
+
+            setSessions(prev => prev.map(s => String(s.id || s._id) === sid ? { ...s, suiteData: nextSuiteData } : s));
+            triggerToast(`Cloned to ${newId}`);
+            setSelectedKey(`${sid}:${categoryKey}:${newId}`);
         } catch (err) {
             alert(`Duplicate error: ${err.message}`);
         } finally {
@@ -561,60 +743,22 @@ const TestCasesPage = () => {
         }
     };
 
-    // Delete test case handler
-    const handleDeleteCase = async () => {
-        if (!selectedCase) return;
-        setIsSaving(true);
-        try {
-            const suiteData = structuredClone(getSuiteData(selectedCase.session) || {});
-            if (selectedCase.id) {
-                for (const cat of CATEGORY_KEYS) {
-                    if (Array.isArray(suiteData[cat])) {
-                        suiteData[cat] = suiteData[cat].filter(item => getCaseId(item) !== selectedCase.id);
-                    }
-                }
-            } else if (Array.isArray(suiteData[selectedCase.category])) {
-                suiteData[selectedCase.category] = suiteData[selectedCase.category].filter((_, idx) => idx !== selectedCase.sourceIndex);
-            }
-
-            const sid = selectedCase.suiteId;
-            const res = await sessionService.update(sid, {
-                suiteData,
-                testCaseMutation: {
-                    action: 'delete',
-                    testCaseId: selectedCase.id
-                }
-            });
-
-            if (!res?.success) throw new Error(res?.message || 'Failed to delete test case.');
-            window.dispatchEvent(new Event('historyUpdated'));
-            setDeleteModalOpen(false);
-            setSelectedKey('');
-            setMobileDetailOpen(false);
-            await loadData();
-            triggerToast(`Test case ${selectedCase.id} deleted.`);
-        } catch (err) {
-            alert(`Delete error: ${err.message}`);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // Archive / Restore test case handler
+    // Archive / Restore test case
     const handleToggleArchive = async () => {
         if (!selectedCase) return;
-        const isArchived = selectedCase.lifecycle === 'archived';
-        const nextCase = {
-            ...selectedCase.raw,
-            status: isArchived ? 'Ready' : 'Archived',
-            archivedAt: isArchived ? null : new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
         setIsSaving(true);
         try {
-            await patchCase(selectedCase.session, selectedCase, nextCase);
-            triggerToast(isArchived ? `Restored ${selectedCase.id} to active suite.` : `Archived ${selectedCase.id}.`);
+            const isArchived = selectedCase.lifecycle === 'archived';
+            const nextStatus = isArchived ? 'Ready' : 'Archived';
+            const updated = {
+                ...selectedCase.raw,
+                status: nextStatus,
+                archivedAt: isArchived ? null : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            await patchCase(selectedCase.session, selectedCase, updated);
+            triggerToast(isArchived ? `Restored ${selectedCase.id}` : `Archived ${selectedCase.id}`);
         } catch (err) {
             alert(`Archive error: ${err.message}`);
         } finally {
@@ -622,157 +766,209 @@ const TestCasesPage = () => {
         }
     };
 
-    // Add copy of case to another suite
-    const handleAddToSuite = async (targetId) => {
-        const targetSuite = suites.find(s => s.id === targetId);
-        if (!selectedCase || !targetSuite) return;
-        const targetData = getSuiteData(targetSuite.session) || {};
-        const newId = makeCaseId(targetData, String(selectedCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_'));
-        const copy = {
-            ...structuredClone(selectedCase.raw),
-            id: newId,
-            status: 'Draft',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
+    // Delete test case
+    const handleDeleteCase = async () => {
+        if (!selectedCase) return;
         setIsSaving(true);
         try {
-            await patchCase(targetSuite.session, null, copy);
-            setSuiteId(targetId);
-            setAddToSuiteOpen(false);
-            triggerToast(`Added ${newId} to ${targetSuite.name}.`);
+            await patchCase(selectedCase.session, selectedCase, null);
+            setDeleteModalOpen(false);
+            setSelectedKey('');
+            setMobileDetailOpen(false);
+            triggerToast(`Deleted ${selectedCase.id}`);
         } catch (err) {
-            alert(`Add to suite error: ${err.message}`);
+            alert(`Delete error: ${err.message}`);
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Manual execution record handler
-    const handleRecordManualExecution = async ({ status: outcomeStatus, actualResult, notes, durationMs, artifact }) => {
+    // Save manual execution result
+    const handleManualExecutionSave = async ({ outcome, actualResult, notes, durationMs, screenshotData, screenshotName }) => {
         if (!selectedCase) return;
         setIsSaving(true);
         try {
-            // Find existing run or create single-case ad-hoc run
-            let runId;
-            let runCaseId;
-            const existingRun = runs.find(r => String(r.suiteId || r.suite_id) === selectedCase.suiteId && r.status !== 'completed');
+            let activeRun = runs.find(r => String(r.suiteId || r.suite_id || '') === selectedCase.suiteId && ['in_progress', 'pending'].includes(r.status));
 
-            if (existingRun) {
-                runId = existingRun.id;
-                const runRes = await executionService.getRun(runId);
-                const runCases = runRes?.data?.cases || [];
-                const found = runCases.find(c => {
-                    const snap = c.caseSnapshot || {};
-                    return [snap.id, snap.testCaseId, c.testCaseId].filter(Boolean).map(String).includes(selectedCase.id);
-                });
-                runCaseId = found?.id;
-            }
-
-            if (!runId || !runCaseId) {
-                const newRunRes = await executionService.createRun({
-                    name: `Manual Verification · ${selectedCase.id}`,
+            if (!activeRun) {
+                const createRes = await executionService.createRun({
                     suiteId: selectedCase.suiteId,
+                    name: `Manual Verification - ${selectedSuite?.name || 'Suite'}`,
                     executionType: 'manual',
-                    caseIds: [selectedCase.id]
+                    selectedCaseIds: [selectedCase.id]
                 });
-                if (!newRunRes?.success || !newRunRes.data) throw new Error('Failed to initialize execution run.');
-                runId = newRunRes.data.id;
-                runCaseId = newRunRes.data.cases?.[0]?.id;
+                if (!createRes.success) throw new Error(createRes.message || 'Could not initiate test run.');
+                activeRun = createRes.data;
+                setRuns(prev => [activeRun, ...prev]);
             }
 
-            // Record execution attempt
-            await executionService.recordExecution(runId, runCaseId, {
-                status: outcomeStatus,
+            const recordRes = await executionService.recordExecution(activeRun.id, {
+                caseId: selectedCase.id,
+                status: outcome,
                 actualResult,
                 notes,
                 durationMs,
-                executorType: 'manual',
-                artifact
+                screenshotData,
+                screenshotName
             });
 
-            triggerToast(`Recorded manual outcome: ${outcomeStatus.toUpperCase()} (${(durationMs / 1000).toFixed(1)}s)`);
-            await loadData();
+            if (!recordRes.success) throw new Error(recordRes.message || 'Could not save execution result.');
+
+            setRecentExecutionMap(prev => ({
+                ...prev,
+                [selectedCase.id]: { status: outcome, timestamp: new Date().toISOString() }
+            }));
+
+            triggerToast(`Recorded manual execution: ${outcome.toUpperCase()}`);
+            setManualExecOpen(false);
+            setRetry(v => v + 1);
         } catch (err) {
-            throw new Error(`Execution record failed: ${err.message}`);
+            alert(`Execution recording failed: ${err.message}`);
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Open execution modal based on method
-    const handleOpenExecution = () => {
+    // Save automated execution result
+    const handleAutoExecutionSave = async (autoResult) => {
         if (!selectedCase) return;
-        if (selectedCase.method === 'automated') {
-            setAutoExecOpen(true);
-        } else {
-            setManualExecOpen(true);
+        try {
+            const outcome = autoResult.status === 'passed' ? 'passed' : 'failed';
+            setRecentExecutionMap(prev => ({
+                ...prev,
+                [selectedCase.id]: { status: outcome, timestamp: new Date().toISOString() }
+            }));
+            triggerToast(`Playwright execution completed: ${outcome.toUpperCase()}`);
+            setRetry(v => v + 1);
+        } catch (err) {
+            console.error('Auto exec save error:', err);
         }
     };
 
-    // Check if any filter is active
-    const hasActiveFilters = Boolean(
-        query.trim() ||
-        quickFilter !== 'all' ||
-        priorityFilter !== 'all' ||
-        typeFilter !== 'all' ||
-        sort !== 'updated'
-    );
+    // Add test case reference to another suite
+    const handleAddToSuite = async (targetSuiteId) => {
+        if (!selectedCase) return;
+        setIsSaving(true);
+        try {
+            const targetSession = sessions.find(s => String(s.id || s._id) === targetSuiteId);
+            if (!targetSession) throw new Error('Target suite not found.');
 
+            const sData = getSuiteData(targetSession) || {};
+            const refs = Array.isArray(sData.testCaseRefs) ? sData.testCaseRefs : [];
+
+            if (refs.some(r => String(r.sourceSuiteId) === selectedCase.suiteId && String(r.testCaseId) === selectedCase.id)) {
+                throw new Error('This test case is already mapped into the target suite.');
+            }
+
+            const nextRefs = [...refs, { sourceSuiteId: selectedCase.suiteId, testCaseId: selectedCase.id }];
+            const nextSuiteData = { ...sData, testCaseRefs: nextRefs };
+
+            const res = await sessionService.update(targetSuiteId, { suiteData: nextSuiteData });
+            if (!res.success) throw new Error(res.message || 'Could not add to suite.');
+
+            setSessions(prev => prev.map(s => String(s.id || s._id) === targetSuiteId ? { ...s, suiteData: nextSuiteData } : s));
+            triggerToast(`Linked ${selectedCase.id} into "${targetSession.title || 'target suite'}"`);
+            setAddToSuiteOpen(false);
+        } catch (err) {
+            alert(`Mapping error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Clear all filters
     const handleClearFilters = () => {
         setQuery('');
         setQuickFilter('all');
         setPriorityFilter('all');
         setTypeFilter('all');
+        setRequirementFilter('all');
+        setExecutionStatusFilter('all');
         setSort('updated');
     };
 
-    const suiteLabel = selectedSuite
-        ? `${selectedSuite.project ? selectedSuite.project + ' / ' : ''}${selectedSuite.name}`
-        : 'All Test Suites';
+    const hasActiveFilters = query || quickFilter !== 'all' || priorityFilter !== 'all' || typeFilter !== 'all' || requirementFilter !== 'all' || executionStatusFilter !== 'all';
+
+    // Suite labels & counts
+    const suiteLabel = selectedSuite ? selectedSuite.name : 'All Test Cases';
+    const activeSuitesCount = suites.filter(s => s.caseCount > 0).length;
+    const totalUniqueCasesCount = uniqueCases.length;
+
+    // Filter suites in navigation rail by user text
+    const visibleSuitesInNav = useMemo(() => {
+        if (!suiteFilterText.trim()) return suites;
+        const sText = suiteFilterText.trim().toLowerCase();
+        return suites.filter(s => s.name.toLowerCase().includes(sText) || s.context.includes(sText));
+    }, [suites, suiteFilterText]);
 
     return (
         <div className={`tc-page ${mobileDetailOpen ? 'tc-mobile-detail-open' : ''}`}>
-            {/* ─── HEADER & BREADCRUMB ─── */}
+            {/* Top Workspace Header & Breadcrumbs */}
             <header className="tc-header">
                 <div className="tc-breadcrumb">
                     <NavLink to="/app/workspace">Quality</NavLink>
                     <span>/</span>
-                    <button type="button" onClick={() => handleSuiteChange('')}>Test Cases</button>
-                    {selectedSuite && (
+                    <NavLink to="/app/test-suites">Test Suites</NavLink>
+                    <span>/</span>
+                    {selectedSuite ? (
                         <>
+                            <button type="button" onClick={() => handleSuiteChange('')}>All Cases</button>
                             <span>/</span>
-                            <span>{selectedSuite.name}</span>
+                            <span className="tc-breadcrumb-current">{selectedSuite.name}</span>
                         </>
+                    ) : (
+                        <span className="tc-breadcrumb-current">All Test Cases</span>
                     )}
                 </div>
 
                 <div className="tc-header-main">
                     <div>
-                        <h1>Test Cases</h1>
+                        <div className="tc-title-row">
+                            <h1>{suiteLabel}</h1>
+                            {selectedSuite && (
+                                <span className={`tc-context-tag ${selectedSuite.context}`}>
+                                    {selectedSuite.context.toUpperCase()}
+                                </span>
+                            )}
+                        </div>
                         <p>
-                            {suiteLabel} <span>·</span> {filteredCases.length} {filteredCases.length === 1 ? 'case' : 'cases'}
-                            {suiteId && selectedSuite && ` (${selectedSuite.context.toUpperCase()})`}
+                            {selectedSuite ? (
+                                <>
+                                    {selectedSuite.caseCount} associated test {selectedSuite.caseCount === 1 ? 'case' : 'cases'}
+                                    <span>·</span> {selectedSuite.activeCount} active
+                                    {selectedSuite.archivedCount > 0 && ` (${selectedSuite.archivedCount} archived)`}
+                                    <span>·</span> {selectedSuite.project}
+                                </>
+                            ) : (
+                                <>
+                                    {totalUniqueCasesCount} unique test cases across {activeSuitesCount} active {activeSuitesCount === 1 ? 'suite' : 'suites'}
+                                </>
+                            )}
                         </p>
                     </div>
 
                     <div className="tc-header-actions">
-                        {/* Dynamic Suite Selector */}
-                        <select
-                            className="tc-suite-selector"
-                            aria-label="Filter by test suite"
-                            value={suiteId}
-                            onChange={e => handleSuiteChange(e.target.value)}
+                        {/* Toggle Suite Nav */}
+                        <button
+                            type="button"
+                            className="tc-icon-button"
+                            title={isSuiteNavCollapsed ? "Expand suite navigator" : "Collapse suite navigator"}
+                            onClick={() => setIsSuiteNavCollapsed(!isSuiteNavCollapsed)}
                         >
-                            <option value="">All Test Cases ({totalCasesCount})</option>
-                            {suites.map(s => (
-                                <option key={s.id} value={s.id}>
-                                    {s.name} ({s.context.toUpperCase()} · {s.caseCount} {s.caseCount === 1 ? 'case' : 'cases'} · {s.formattedDate})
-                                </option>
-                            ))}
-                        </select>
+                            {isSuiteNavCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+                        </button>
 
+                        {/* Toggle Detail Panel */}
+                        <button
+                            type="button"
+                            className={`tc-icon-button ${isDetailPanelCollapsed ? 'active' : ''}`}
+                            title={isDetailPanelCollapsed ? "Show details panel" : "Hide details panel"}
+                            onClick={() => setIsDetailPanelCollapsed(!isDetailPanelCollapsed)}
+                        >
+                            {isDetailPanelCollapsed ? <PanelRightOpen size={15} /> : <PanelRightClose size={15} />}
+                        </button>
+
+                        {/* Create Case Button */}
                         <button
                             type="button"
                             className="tc-primary"
@@ -787,18 +983,19 @@ const TestCasesPage = () => {
                     </div>
                 </div>
 
-                {/* Search & Secondary Filter Toolbar */}
+                {/* Search & Multi-Filter Toolbar */}
                 <div className="tc-toolbar">
                     <label className="tc-search">
                         <Search size={14} />
                         <input
                             value={query}
                             onChange={e => setQuery(e.target.value)}
-                            placeholder="Search by ID, title, description, or requirement..."
+                            placeholder="Search by ID, title, description, requirement, or suite..."
                             aria-label="Search test cases"
                         />
                     </label>
 
+                    {/* Priority Filter */}
                     <select
                         value={priorityFilter}
                         onChange={e => setPriorityFilter(e.target.value)}
@@ -810,10 +1007,11 @@ const TestCasesPage = () => {
                         ))}
                     </select>
 
+                    {/* Category Filter */}
                     <select
                         value={typeFilter}
                         onChange={e => setTypeFilter(e.target.value)}
-                        aria-label="Filter by type"
+                        aria-label="Filter by category"
                     >
                         <option value="all">All Categories</option>
                         <option value="Functional">Functional</option>
@@ -824,6 +1022,35 @@ const TestCasesPage = () => {
                         <option value="Non-functional">Non-functional</option>
                     </select>
 
+                    {/* Requirement Filter */}
+                    {availableRequirements.length > 0 && (
+                        <select
+                            value={requirementFilter}
+                            onChange={e => setRequirementFilter(e.target.value)}
+                            aria-label="Filter by requirement"
+                        >
+                            <option value="all">All Requirements</option>
+                            {availableRequirements.map(req => (
+                                <option key={req.id} value={req.id}>{req.id} ({req.count})</option>
+                            ))}
+                        </select>
+                    )}
+
+                    {/* Execution Outcome Filter */}
+                    <select
+                        value={executionStatusFilter}
+                        onChange={e => setExecutionStatusFilter(e.target.value)}
+                        aria-label="Filter by execution outcome"
+                    >
+                        <option value="all">All Outcomes</option>
+                        <option value="passed">Passed</option>
+                        <option value="failed">Failed</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="skipped">Skipped</option>
+                        <option value="not_run">Not Run / Untested</option>
+                    </select>
+
+                    {/* Sort Order */}
                     <select
                         value={sort}
                         onChange={e => setSort(e.target.value)}
@@ -836,6 +1063,7 @@ const TestCasesPage = () => {
                         <option value="id">Test ID (A to Z)</option>
                     </select>
 
+                    {/* Refresh */}
                     <button
                         type="button"
                         className="tc-icon-button"
@@ -846,55 +1074,69 @@ const TestCasesPage = () => {
                         <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                     </button>
 
+                    {/* Clear Filters */}
                     {hasActiveFilters && (
                         <button
                             type="button"
                             className="tc-clear-filters"
                             onClick={handleClearFilters}
-                            title="Reset search and filters"
+                            title="Reset all filters"
                         >
-                            Clear Filters
+                            <X size={12} />
+                            <span>Clear Filters</span>
                         </button>
                     )}
                 </div>
 
-                {/* Quick Lifecycle & Method Filters */}
-                <nav className="tc-filters" aria-label="Quick test case filters">
-                    {QUICK_FILTERS.map(([key, label]) => (
-                        <button
-                            type="button"
-                            key={key}
-                            className={quickFilter === key ? 'active' : ''}
-                            onClick={() => setQuickFilter(key)}
-                        >
-                            {label}
-                        </button>
-                    ))}
-                </nav>
+                {/* Quick Lifecycle & Method Tabs */}
+                <div className="tc-sub-toolbar">
+                    <nav className="tc-filters" aria-label="Quick test case filters">
+                        {QUICK_FILTERS.map(([key, label]) => (
+                            <button
+                                type="button"
+                                key={key}
+                                className={quickFilter === key ? 'active' : ''}
+                                onClick={() => setQuickFilter(key)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    {!suiteId && (
+                        <div className="tc-view-toggle">
+                            <button
+                                type="button"
+                                className={groupBySuite ? 'active' : ''}
+                                onClick={() => setGroupBySuite(true)}
+                                title="Group test cases by suite"
+                            >
+                                <Folder size={13} />
+                                <span>Group by Suite</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={!groupBySuite ? 'active' : ''}
+                                onClick={() => setGroupBySuite(false)}
+                                title="Flat list view"
+                            >
+                                <Layers3 size={13} />
+                                <span>Flat List</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
             </header>
 
+            {/* Notification Toast */}
             {toastMessage && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: '24px',
-                    right: '24px',
-                    zIndex: 2000,
-                    background: '#151D18',
-                    border: '1px solid var(--tc-jade)',
-                    borderRadius: '5px',
-                    padding: '10px 16px',
-                    color: '#FFFFFF',
-                    fontSize: '0.78rem',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}>
+                <div className="tc-toast" role="status">
                     <CheckCircle2 size={16} color="var(--tc-jade)" />
                     <span>{toastMessage}</span>
                 </div>
             )}
 
+            {/* Error Notification */}
             {error && (
                 <div className="tc-error" role="alert">
                     <span>{error}</span>
@@ -902,22 +1144,127 @@ const TestCasesPage = () => {
                 </div>
             )}
 
-            {/* ─── MAIN WORKSPACE TWO-PANEL LAYOUT ─── */}
+            {/* ─── MAIN 3-PANEL INFORMATION ARCHITECTURE ─── */}
             {loading ? (
-                <DataLoadingState message="Loading test cases repository..." />
+                <DataLoadingState message="Loading test suites and cases..." />
             ) : (
-                <div className="tc-workspace">
-                    {/* ─── LEFT PANEL: TEST CASE LIST (~35% width) ─── */}
-                    <section className="tc-list" aria-label="Test case list">
+                <div className={`tc-workspace-shell ${isSuiteNavCollapsed ? 'nav-collapsed' : ''} ${isDetailPanelCollapsed ? 'detail-collapsed' : ''}`}>
+                    {/* ─── 1. LEFT PANEL: SUITE NAVIGATION AREA ─── */}
+                    <aside className="tc-suite-nav" aria-label="Test suite navigation">
+                        <div className="tc-suite-nav-header">
+                            <span className="tc-suite-nav-title">Suites ({suites.length})</span>
+                            <button
+                                type="button"
+                                className="tc-suite-nav-collapse-btn"
+                                onClick={() => setIsSuiteNavCollapsed(true)}
+                                title="Collapse suite panel"
+                            >
+                                <PanelLeftClose size={13} />
+                            </button>
+                        </div>
+
+                        {/* Search Suites Input */}
+                        <div className="tc-suite-nav-search">
+                            <Search size={13} />
+                            <input
+                                placeholder="Filter suites..."
+                                value={suiteFilterText}
+                                onChange={e => setSuiteFilterText(e.target.value)}
+                                aria-label="Filter suites list"
+                            />
+                        </div>
+
+                        <div className="tc-suite-nav-list">
+                            {/* All Test Cases Option */}
+                            <button
+                                type="button"
+                                className={`tc-suite-nav-item tc-suite-nav-all ${!suiteId ? 'active' : ''}`}
+                                onClick={() => handleSuiteChange('')}
+                            >
+                                <div className="tc-suite-nav-item-main">
+                                    <Layers3 size={15} className="tc-suite-icon" />
+                                    <span className="tc-suite-name">All Test Cases</span>
+                                </div>
+                                <span className="tc-count-badge">{totalUniqueCasesCount}</span>
+                            </button>
+
+                            <div className="tc-suite-nav-divider">Test Suites</div>
+
+                            {/* Suites List */}
+                            {visibleSuitesInNav.length === 0 ? (
+                                <div className="tc-suite-nav-empty">No suites found</div>
+                            ) : (
+                                visibleSuitesInNav.map(suite => {
+                                    const isSelected = suiteId === suite.id;
+                                    const isExpanded = expandedSuiteNavIds.has(suite.id);
+                                    return (
+                                        <div key={suite.id} className="tc-suite-nav-group">
+                                            <div
+                                                className={`tc-suite-nav-item ${isSelected ? 'active' : ''}`}
+                                                onClick={() => handleSuiteChange(suite.id)}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className="tc-nav-expand-btn"
+                                                    onClick={(e) => toggleSuiteNavExpansion(e, suite.id)}
+                                                    title={isExpanded ? "Collapse categories" : "Expand categories"}
+                                                >
+                                                    {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                                                </button>
+
+                                                <div className="tc-suite-nav-item-main">
+                                                    <span className="tc-suite-name" title={suite.name}>{suite.name}</span>
+                                                    <span className={`tc-context-micro ${suite.context}`}>{suite.context.toUpperCase()}</span>
+                                                </div>
+
+                                                <span className="tc-count-badge" title={`${suite.caseCount} total test cases`}>
+                                                    {suite.caseCount}
+                                                </span>
+                                            </div>
+
+                                            {/* Expandable Suite Category Breakdown */}
+                                            {isExpanded && (
+                                                <div className="tc-suite-categories-list">
+                                                    <button
+                                                        type="button"
+                                                        className={`tc-suite-cat-item ${isSelected && typeFilter === 'all' ? 'active' : ''}`}
+                                                        onClick={() => handleSuiteChange(suite.id, 'all')}
+                                                    >
+                                                        <span>All in Suite</span>
+                                                        <span className="tc-cat-count">{suite.caseCount}</span>
+                                                    </button>
+                                                    {suite.categoryBreakdown.map(cat => (
+                                                        <button
+                                                            type="button"
+                                                            key={cat.label}
+                                                            className={`tc-suite-cat-item ${isSelected && typeFilter === cat.label ? 'active' : ''}`}
+                                                            onClick={() => handleSuiteChange(suite.id, cat.label)}
+                                                        >
+                                                            <span>{cat.label}</span>
+                                                            <span className="tc-cat-count">{cat.count}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </aside>
+
+                    {/* ─── 2. CENTER PANEL: MAIN TEST CASES LIST ─── */}
+                    <main className="tc-list-panel" aria-label="Test case list">
+                        {/* List Column Header */}
                         <div className="tc-list-head">
-                            <span>Test Case</span>
-                            <span>Type · Priority · Status</span>
+                            <span>Test Case ID & Title</span>
+                            <span>Category · Priority · Method · Status</span>
                             <span>Updated</span>
                             <span />
                         </div>
 
                         {/* Empty States */}
-                        {pageCases.length === 0 ? (
+                        {filteredCases.length === 0 ? (
                             selectedSuite && selectedSuite.caseCount === 0 ? (
                                 <div className="tc-empty-suite-state">
                                     <div className="tc-empty-icon">
@@ -971,7 +1318,96 @@ const TestCasesPage = () => {
                                     )}
                                 </div>
                             )
+                        ) : !suiteId && groupBySuite ? (
+                            /* ─── Grouped by Suite View (for All Test Cases) ─── */
+                            <div className="tc-grouped-list">
+                                {casesGroupedBySuite.map(group => {
+                                    const isCollapsed = collapsedGroupIds.has(group.suiteId);
+                                    return (
+                                        <div key={group.suiteId} className="tc-suite-group-section">
+                                            {/* Suite Section Header */}
+                                            <div
+                                                className="tc-suite-group-header"
+                                                onClick={() => toggleGroupAccordion(group.suiteId)}
+                                            >
+                                                <div className="tc-group-header-left">
+                                                    <button type="button" className="tc-group-chevron">
+                                                        {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                                    </button>
+                                                    <Folder size={15} className="tc-group-icon" />
+                                                    <strong className="tc-group-title">{group.suiteName}</strong>
+                                                    <span className={`tc-context-micro ${group.context}`}>
+                                                        {group.context.toUpperCase()}
+                                                    </span>
+                                                    <span className="tc-group-count">
+                                                        {group.cases.length} {group.cases.length === 1 ? 'case' : 'cases'}
+                                                    </span>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    className="tc-jump-suite-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleSuiteChange(group.suiteId);
+                                                    }}
+                                                    title={`Open suite ${group.suiteName}`}
+                                                >
+                                                    <span>View Suite</span>
+                                                    <ArrowLeft size={12} style={{ transform: 'rotate(180deg)' }} />
+                                                </button>
+                                            </div>
+
+                                            {/* Suite Rows */}
+                                            {!isCollapsed && (
+                                                <div className="tc-group-rows">
+                                                    {group.cases.map(tc => {
+                                                        const isSelected = selectedCase?.key === tc.key;
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={tc.key}
+                                                                className={`tc-row ${isSelected ? 'selected' : ''}`}
+                                                                onClick={() => handleSelectCase(tc)}
+                                                            >
+                                                                <div className="tc-row-main">
+                                                                    <div className="tc-row-title-line">
+                                                                        <span className="tc-id">{tc.id || 'TC-NEW'}</span>
+                                                                        <strong className="tc-title">{tc.title}</strong>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="tc-row-meta">
+                                                                    <span className="tc-cat-badge">{tc.type}</span>
+                                                                    <span className={`tc-priority-badge ${tc.priority.toLowerCase()}`}>
+                                                                        {tc.priority}
+                                                                    </span>
+                                                                    <span className={`tc-method-pill ${tc.method}`}>
+                                                                        {tc.method === 'automated' ? 'Playwright' : 'Manual'}
+                                                                    </span>
+                                                                    <span className={`tc-status tc-status-${tc.lifecycle}`}>
+                                                                        {tc.lifecycle.replaceAll('-', ' ')}
+                                                                    </span>
+                                                                    {tc.isReference && (
+                                                                        <span className="tc-ref-chip" title={`Mapped from ${tc.sourceSuiteName}`}>
+                                                                            Ref: {tc.sourceSuiteName}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                <span className="tc-row-date">{formatTimeAgo(tc.updatedAt)}</span>
+                                                                <ChevronRight size={14} className="tc-chevron" />
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         ) : (
+                            /* ─── Flat Test Case Rows (By Suite or Flat List) ─── */
                             pageCases.map(tc => {
                                 const isSelected = selectedCase?.key === tc.key;
                                 return (
@@ -981,27 +1417,38 @@ const TestCasesPage = () => {
                                         className={`tc-row ${isSelected ? 'selected' : ''}`}
                                         onClick={() => handleSelectCase(tc)}
                                     >
-                                        <span className="tc-row-main">
-                                            <span className="tc-id">{tc.id || 'TC-NEW'}</span>
-                                            <strong>{tc.title}</strong>
-                                            {!suiteId && <span className="tc-suite-tag">{tc.suiteName}</span>}
-                                        </span>
+                                        <div className="tc-row-main">
+                                            <div className="tc-row-title-line">
+                                                <span className="tc-id">{tc.id || 'TC-NEW'}</span>
+                                                <strong className="tc-title">{tc.title}</strong>
+                                            </div>
+                                        </div>
 
-                                        <span className="tc-row-meta">
+                                        <div className="tc-row-meta">
                                             <span className="tc-cat-badge">{tc.type}</span>
                                             <span className={`tc-priority-badge ${tc.priority.toLowerCase()}`}>
                                                 {tc.priority}
                                             </span>
+                                            <span className={`tc-method-pill ${tc.method}`}>
+                                                {tc.method === 'automated' ? 'Playwright' : 'Manual'}
+                                            </span>
                                             <span className={`tc-status tc-status-${tc.lifecycle}`}>
                                                 {tc.lifecycle.replaceAll('-', ' ')}
                                             </span>
-                                            <span className={`tc-method ${tc.method}`}>
-                                                {tc.method === 'automated' ? 'Playwright' : 'Manual'}
-                                            </span>
-                                        </span>
+                                            {!suiteId && (
+                                                <span className="tc-suite-tag" title={`Suite: ${tc.suiteName}`}>
+                                                    {tc.suiteName}
+                                                </span>
+                                            )}
+                                            {tc.isReference && (
+                                                <span className="tc-ref-chip" title={`Mapped from ${tc.sourceSuiteName}`}>
+                                                    Ref
+                                                </span>
+                                            )}
+                                        </div>
 
                                         <span className="tc-row-date">{formatTimeAgo(tc.updatedAt)}</span>
-                                        <ChevronRight size={14} />
+                                        <ChevronRight size={14} className="tc-chevron" />
                                     </button>
                                 );
                             })
@@ -1021,11 +1468,11 @@ const TestCasesPage = () => {
                                 </button>
                             </div>
                         )}
-                    </section>
+                    </main>
 
-                    {/* ─── RIGHT PANEL: SELECTED TEST CASE DETAIL (~65% width) ─── */}
-                    {selectedCase ? (
-                        <aside className="tc-detail" aria-label="Test case details">
+                    {/* ─── 3. RIGHT PANEL: COLLAPSIBLE TEST CASE DETAIL ─── */}
+                    {!isDetailPanelCollapsed && selectedCase && (
+                        <aside className="tc-detail-panel" aria-label="Test case details">
                             <button
                                 type="button"
                                 className="tc-mobile-back"
@@ -1085,6 +1532,14 @@ const TestCasesPage = () => {
                                     >
                                         <Trash2 size={14} color="var(--tc-fail)" />
                                     </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Close detail panel"
+                                        title="Close detail panel"
+                                        onClick={() => setIsDetailPanelCollapsed(true)}
+                                    >
+                                        <X size={14} />
+                                    </button>
                                 </div>
                             </div>
 
@@ -1098,170 +1553,185 @@ const TestCasesPage = () => {
                                     {selectedCase.method === 'automated' ? 'Playwright Automated' : 'Manual Verification'}
                                 </strong></span>
                                 <span>•</span>
-                                <span>Updated: <strong style={{ color: '#FFFFFF' }}>{formatDate(selectedCase.updatedAt)}</strong></span>
-                                {selectedCase.suiteName && (
-                                    <>
-                                        <span>•</span>
-                                        <span>Suite: <strong style={{ color: '#FFFFFF' }}>{selectedCase.suiteName}</strong></span>
-                                    </>
+                                <span>Suite: <strong style={{ color: 'var(--tc-jade)' }}>{selectedCase.suiteName}</strong></span>
+                            </div>
+
+                            {/* Direct Execution Buttons */}
+                            <div className="tc-execution-bar">
+                                <button
+                                    type="button"
+                                    className="tc-execute tc-manual-btn"
+                                    onClick={() => setManualExecOpen(true)}
+                                >
+                                    <Clock size={14} />
+                                    <span>Execute Manually</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="tc-execute tc-auto-btn"
+                                    onClick={() => setAutoExecOpen(true)}
+                                >
+                                    <Play size={14} />
+                                    <span>Run Playwright</span>
+                                </button>
+                            </div>
+
+                            {/* Description */}
+                            {selectedCase.description && (
+                                <div className="tc-block">
+                                    <div className="tc-block-title">Description</div>
+                                    <p className="tc-text-body">{selectedCase.description}</p>
+                                </div>
+                            )}
+
+                            {/* Preconditions */}
+                            <div className="tc-block">
+                                <div className="tc-block-title">Preconditions</div>
+                                {selectedCase.preconditions && selectedCase.preconditions.length > 0 ? (
+                                    <ul className="tc-bullets">
+                                        {(Array.isArray(selectedCase.preconditions) ? selectedCase.preconditions : [selectedCase.preconditions]).map((p, i) => (
+                                            <li key={i}>{p}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="tc-muted-text">No preconditions specified for this test scenario.</p>
                                 )}
                             </div>
 
-                            {/* Prominent Execution Action Bar */}
-                            <div className="tc-execute-bar">
-                                <button
-                                    type="button"
-                                    className="tc-execute"
-                                    onClick={handleOpenExecution}
-                                    disabled={!selectedCase.id}
-                                    title="Record or run execution"
-                                >
-                                    <Play size={14} />
-                                    <span>{selectedCase.method === 'automated' ? 'Run Playwright Automation' : 'Execute Test Scenario'}</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="tc-secondary"
-                                    onClick={() => navigate(`/app/test-suites/${selectedCase.suiteId}?testCaseId=${encodeURIComponent(selectedCase.id)}&execute=1`)}
-                                    title="Open full suite in Run Execution Workspace"
-                                >
-                                    <ExternalLink size={13} />
-                                    <span>Open in Run Workspace</span>
-                                </button>
-                            </div>
+                            {/* Test Steps Table */}
+                            <div className="tc-block">
+                                <div className="tc-block-title">
+                                    <span>Structured Test Steps ({selectedCase.steps?.length || 0})</span>
+                                </div>
 
-                            {/* Section 1: Overview & Description */}
-                            {selectedCase.description && (
-                                <section className="tc-detail-section">
-                                    <h3>Scenario Description</h3>
-                                    <p>{selectedCase.description}</p>
-                                </section>
-                            )}
-
-                            {/* Section 2: Preconditions */}
-                            <section className="tc-detail-section">
-                                <h3>Preconditions</h3>
-                                <p>
-                                    {Array.isArray(selectedCase.preconditions) && selectedCase.preconditions.length > 0
-                                        ? selectedCase.preconditions.join('\n')
-                                        : 'None specified.'}
-                                </p>
-                            </section>
-
-                            {/* Section 3: Structured Test Steps */}
-                            <section className="tc-detail-section">
-                                <h3>Test Execution Procedure ({selectedCase.steps.length} steps)</h3>
-                                {selectedCase.steps.length > 0 ? (
-                                    <div className="tc-detail-steps">
-                                        {selectedCase.steps.map((step, idx) => (
-                                            <div className="tc-detail-step-card" key={idx}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                    <span className="tc-detail-step-num">Step {idx + 1}</span>
-                                                    {step.testData && (
-                                                        <span className="tc-detail-step-data">
-                                                            Data: {step.testData}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="tc-detail-step-action">
-                                                    {typeof step === 'object' ? (step.action || step.description || '') : String(step)}
-                                                </div>
-                                                {step.expected && (
-                                                    <div className="tc-detail-step-expected">
-                                                        ↳ Expected: {typeof step === 'object' ? (step.expected || step.expectedResult || '') : ''}
-                                                    </div>
-                                                )}
+                                {selectedCase.steps && selectedCase.steps.length > 0 ? (
+                                    <div className="tc-steps-table">
+                                        <div className="tc-steps-head">
+                                            <span>#</span>
+                                            <span>Action</span>
+                                            <span>Expected Result</span>
+                                            <span>Test Data</span>
+                                        </div>
+                                        {selectedCase.steps.map((st, i) => (
+                                            <div className="tc-step-row" key={i}>
+                                                <span className="tc-step-num">{st.step || i + 1}</span>
+                                                <span className="tc-step-action">{st.action || '—'}</span>
+                                                <span className="tc-step-expected">{st.expectedResult || st.expected || '—'}</span>
+                                                <span className="tc-step-data">{st.testData || st.data || '—'}</span>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <p>No individual execution steps recorded.</p>
+                                    <p className="tc-muted-text">No structured test steps recorded.</p>
                                 )}
-                            </section>
+                            </div>
 
-                            {/* Section 4: Target Expected Result */}
-                            <section className="tc-detail-section">
-                                <h3>Acceptance Criteria / Overall Expected Result</h3>
-                                <p style={{ color: 'var(--tc-jade)' }}>
-                                    {selectedCase.expectedResult || 'System should complete flow without errors or assertion differences.'}
-                                </p>
-                            </section>
+                            {/* Expected Result */}
+                            {selectedCase.expectedResult && (
+                                <div className="tc-block">
+                                    <div className="tc-block-title">Overall Expected Result / Acceptance Criteria</div>
+                                    <div className="tc-expected-box">{selectedCase.expectedResult}</div>
+                                </div>
+                            )}
 
-                            {/* Section 5: Requirement Traceability Mapping */}
-                            <section className="tc-detail-section">
-                                <h3>Requirement Traceability</h3>
-                                {selectedCase.requirementId ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <button
-                                            type="button"
-                                            className="tc-text-link"
-                                            onClick={() => navigate(`/app/coverage?suiteId=${encodeURIComponent(selectedCase.suiteId)}&requirementId=${encodeURIComponent(selectedCase.requirementId)}`)}
-                                            title="View requirement in Coverage Matrix"
-                                        >
-                                            <Shield size={13} color="var(--tc-jade)" />
-                                            <strong>{selectedCase.requirementId}</strong>
+                            {/* Suite Associations */}
+                            <div className="tc-block">
+                                <div className="tc-block-title">
+                                    <span>Suite Associations</span>
+                                    <button
+                                        type="button"
+                                        className="tc-text-action"
+                                        onClick={() => setAddToSuiteOpen(true)}
+                                    >
+                                        + Add to another suite
+                                    </button>
+                                </div>
+                                <div className="tc-suite-ledger">
+                                    <div className="tc-suite-ledger-row">
+                                        <div>
+                                            <strong>{selectedCase.suiteName}</strong>
+                                            <span>Primary Native Suite</span>
+                                        </div>
+                                        <NavLink to={`/app/test-suites/${selectedCase.suiteId}`} className="tc-link">
+                                            <span>View Suite</span>
                                             <ExternalLink size={12} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <p style={{ color: 'var(--tc-text-dim)' }}>
-                                        No specification requirement currently linked. Click Edit to associate this test case with a functional requirement.
-                                    </p>
-                                )}
-                            </section>
-
-                            {/* Section 6: Suite Associations */}
-                            <section className="tc-detail-section">
-                                <h3>Suite Associations</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <button
-                                            type="button"
-                                            className="tc-text-link"
-                                            onClick={() => navigate(`/app/test-suites/${selectedCase.suiteId}?testCaseId=${encodeURIComponent(selectedCase.id)}`)}
-                                            title="Open test suite specification"
-                                        >
-                                            <Layers size={13} color="var(--tc-jade)" />
-                                            <span>{selectedCase.suiteName}</span>
-                                            <ExternalLink size={12} />
-                                        </button>
-                                        <span style={{ fontSize: '0.65rem', color: 'var(--tc-text-dim)' }}>Parent Suite</span>
+                                        </NavLink>
                                     </div>
 
-                                    {suites.length > 1 && (
-                                        <button
-                                            type="button"
-                                            className="tc-text-link"
-                                            onClick={() => setAddToSuiteOpen(true)}
-                                            style={{ marginTop: '4px' }}
-                                        >
-                                            <FilePlus2 size={13} />
-                                            <span>Add a copy to another test suite</span>
-                                        </button>
+                                    {selectedCase.isReference && (
+                                        <div className="tc-suite-ledger-row" style={{ borderTop: '1px solid var(--tc-line-subtle)' }}>
+                                            <div>
+                                                <strong>{selectedCase.sourceSuiteName}</strong>
+                                                <span>Source Suite (Reference Mapping)</span>
+                                            </div>
+                                            <NavLink to={`/app/test-suites/${selectedCase.sourceSuiteId}`} className="tc-link">
+                                                <span>View Source</span>
+                                                <ExternalLink size={12} />
+                                            </NavLink>
+                                        </div>
                                     )}
                                 </div>
-                            </section>
+                            </div>
 
-                            {/* Section 7: Automation Information */}
-                            <section className="tc-detail-section">
-                                <h3>Playwright Automation Ledger</h3>
-                                {selectedCase.method === 'automated' ? (
-                                    <div className="tc-automation">
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <span className={validAutomation(selectedCase.raw) ? 'mapped' : 'unmapped'}>
-                                                {validAutomation(selectedCase.raw) ? '✓ Configured & Validated' : '⚠ Unvalidated / Needs Mapping'}
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', color: 'var(--tc-text-dim)' }}>
-                                                {selectedCase.automationMapping?.framework || 'Playwright (Chromium)'}
-                                            </span>
+                            {/* Requirement Traceability */}
+                            <div className="tc-block">
+                                <div className="tc-block-title">Requirement Traceability</div>
+                                {selectedCase.requirementId ? (
+                                    <div className="tc-req-card">
+                                        <div>
+                                            <div className="tc-req-badge">
+                                                <Shield size={13} />
+                                                <span>{selectedCase.requirementId}</span>
+                                            </div>
+                                            <p className="tc-req-desc">
+                                                Mapped to coverage matrix and traceability verification ledger.
+                                            </p>
+                                        </div>
+                                        <NavLink to={`/app/coverage?reqId=${encodeURIComponent(selectedCase.requirementId)}`} className="tc-link">
+                                            <span>Matrix</span>
+                                            <ExternalLink size={12} />
+                                        </NavLink>
+                                    </div>
+                                ) : (
+                                    <div className="tc-req-unmapped">
+                                        <span>No requirement ID linked.</span>
+                                        <button
+                                            type="button"
+                                            className="tc-text-action"
+                                            onClick={() => {
+                                                setEditorMode('edit');
+                                                setEditorOpen(true);
+                                            }}
+                                        >
+                                            Map Requirement
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Playwright Automation Binding */}
+                            <div className="tc-block">
+                                <div className="tc-block-title">Playwright Automation Ledger</div>
+                                {selectedCase.automationMapping ? (
+                                    <div className="tc-auto-card">
+                                        <div className="tc-auto-row">
+                                            <span>Mapping Status</span>
+                                            <strong style={{ color: 'var(--tc-jade)' }}>
+                                                {selectedCase.automationMapping.mappingStatus || 'Configured'}
+                                            </strong>
+                                        </div>
+                                        <div className="tc-auto-row">
+                                            <span>Spec Reference</span>
+                                            <code>{selectedCase.automationMapping.spec || 'tests/smoke.spec.js'}</code>
+                                        </div>
+                                        <div className="tc-auto-row">
+                                            <span>Framework</span>
+                                            <span>Playwright (Chromium)</span>
                                         </div>
 
-                                        <div style={{ fontSize: '0.7rem' }}>
-                                            Script Target: <code>{selectedCase.automationMapping?.scriptRef || selectedCase.automationMapping?.automationTestId || 'Custom embedded script'}</code>
-                                        </div>
-
-                                        {selectedCase.automationMapping?.scriptCode && (
-                                            <div>
+                                        {(selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code) && (
+                                            <div className="tc-script-preview">
                                                 <button
                                                     type="button"
                                                     className="tc-code-toggle"
@@ -1270,138 +1740,123 @@ const TestCasesPage = () => {
                                                     <Code size={13} />
                                                     <span>{showScriptPreview ? 'Hide Script Code' : 'View Script Code'}</span>
                                                 </button>
+
                                                 {showScriptPreview && (
                                                     <pre className="tc-code-block">
-                                                        {selectedCase.automationMapping.scriptCode}
+                                                        <code>{selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code}</code>
                                                     </pre>
                                                 )}
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <p>Manual test case — Verified through step-by-step human execution. Can be automated with Playwright.</p>
+                                    <div className="tc-auto-unmapped">
+                                        <span>No automated script mapped.</span>
+                                        <button
+                                            type="button"
+                                            className="tc-text-action"
+                                            onClick={() => {
+                                                setEditorMode('edit');
+                                                setEditorOpen(true);
+                                            }}
+                                        >
+                                            Configure Playwright
+                                        </button>
+                                    </div>
                                 )}
-                            </section>
+                            </div>
 
-                            {/* Section 8: Execution History */}
-                            <section className="tc-detail-section">
-                                <h3>Execution History</h3>
+                            {/* Genuine Execution History */}
+                            <div className="tc-block">
+                                <div className="tc-block-title">
+                                    <span>Execution History ({executionHistory.rows.length})</span>
+                                </div>
+
                                 {executionHistory.loading ? (
-                                    <span className="tc-muted">Querying execution records…</span>
-                                ) : executionHistory.error ? (
-                                    <span className="tc-error-text">{executionHistory.error}</span>
+                                    <p className="tc-muted-text">Querying test run executions...</p>
                                 ) : executionHistory.rows.length > 0 ? (
-                                    <div className="tc-executions">
-                                        {executionHistory.rows.map((row, idx) => {
-                                            const st = String(row.status || row.caseStatus || 'not_run').toLowerCase();
+                                    <div className="tc-history-list">
+                                        {executionHistory.rows.map((row, i) => {
+                                            const status = (row.status || row.caseStatus || 'not_run').toLowerCase();
                                             return (
-                                                <div className="tc-execution-item" key={idx}>
-                                                    <div className="tc-execution-left">
-                                                        <span className={`tc-status tc-status-${st}`}>
-                                                            {st.replace('_', ' ')}
-                                                        </span>
-                                                        <span style={{ color: '#FFFFFF', fontWeight: 500 }}>
-                                                            {row.runName || `Run #${String(row.runId).slice(-6)}`}
-                                                        </span>
+                                                <div key={i} className="tc-history-row">
+                                                    <div className="tc-history-left">
+                                                        <span className={`tc-status-dot ${status}`} />
+                                                        <div>
+                                                            <div className="tc-history-run-name">{row.runName}</div>
+                                                            <div className="tc-history-time">
+                                                                {formatDate(row.executedAt || row.createdAt)} · {row.durationMs || 0}ms
+                                                            </div>
+                                                        </div>
                                                     </div>
 
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                        <span className="tc-execution-dur">
-                                                            {row.durationMs ? `${(row.durationMs / 1000).toFixed(1)}s` : '—'}
-                                                        </span>
-                                                        <span style={{ color: 'var(--tc-text-dim)', fontSize: '0.66rem' }}>
-                                                            {row.executedAt || row.createdAt ? formatDate(row.executedAt || row.createdAt) : ''}
-                                                        </span>
-                                                        <NavLink
-                                                            to={`/app/runs/${row.runId}?tab=report&caseId=${encodeURIComponent(selectedCase.id)}`}
-                                                            className="tc-text-link"
-                                                            title="Inspect Execution Report"
-                                                        >
-                                                            <span>Report</span>
-                                                            <ExternalLink size={11} />
+                                                    <div className="tc-history-right">
+                                                        <span className={`tc-status tc-status-${status}`}>{status}</span>
+                                                        <NavLink to={`/app/runs/${row.runId}?tab=report`} className="tc-link" title="Open execution report">
+                                                            <ExternalLink size={12} />
                                                         </NavLink>
-                                                        {row.artifactCount > 0 && (
-                                                            <NavLink
-                                                                to={`/app/runs/${row.runId}?tab=artifacts&caseId=${encodeURIComponent(selectedCase.id)}`}
-                                                                className="tc-text-link"
-                                                                title="View Evidence Artifacts"
-                                                            >
-                                                                <Camera size={11} />
-                                                                <span>Evidence</span>
-                                                            </NavLink>
-                                                        )}
                                                     </div>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 ) : (
-                                    <p>No historical execution records found. Click "Execute" to run this test case.</p>
+                                    <p className="tc-muted-text">No recorded executions in recent test runs.</p>
                                 )}
-                            </section>
-                        </aside>
-                    ) : (
-                        <aside className="tc-detail tc-detail-empty">
-                            <span>Select a test case from the list to inspect its specification, mapping, and execution records.</span>
+                            </div>
                         </aside>
                     )}
                 </div>
             )}
 
             {/* ─── MODALS ─── */}
-            <TestCaseEditorModal
-                isOpen={editorOpen}
-                onClose={() => setEditorOpen(false)}
-                mode={editorMode}
-                initialCase={editorMode === 'edit' ? selectedCase : null}
-                suites={suites}
-                selectedSuiteId={suiteId || suites[0]?.id || ''}
-                onSave={async (targetSuiteId, oldCase, nextCase, desiredStatus) => {
-                    const targetSession = suites.find(s => s.id === targetSuiteId)?.session;
-                    if (!targetSession) throw new Error('Target suite was not found.');
-                    const caseWithId = {
-                        ...nextCase,
-                        id: nextCase.id || makeCaseId(getSuiteData(targetSession), String(nextCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_'))
-                    };
-                    await patchCase(targetSession, oldCase, caseWithId);
-                }}
-                isSaving={isSaving}
-            />
+            {editorOpen && (
+                <TestCaseEditorModal
+                    mode={editorMode}
+                    testCase={editorMode === 'edit' ? selectedCase : null}
+                    suites={suites}
+                    activeSuiteId={suiteId || suites[0]?.id}
+                    onSave={handleSaveCaseModal}
+                    onClose={() => setEditorOpen(false)}
+                    isSaving={isSaving}
+                />
+            )}
 
-            <ManualExecutionModal
-                isOpen={manualExecOpen}
-                onClose={() => setManualExecOpen(false)}
-                testCase={selectedCase}
-                onRecord={handleRecordManualExecution}
-                isRecording={isSaving}
-            />
+            {manualExecOpen && selectedCase && (
+                <ManualExecutionModal
+                    testCase={selectedCase}
+                    onSave={handleManualExecutionSave}
+                    onClose={() => setManualExecOpen(false)}
+                    isSaving={isSaving}
+                />
+            )}
 
-            <AutomatedExecutionModal
-                isOpen={autoExecOpen}
-                onClose={() => setAutoExecOpen(false)}
-                testCase={selectedCase}
-                onExecutionComplete={async () => {
-                    await loadData();
-                    triggerToast(`Automated execution completed for ${selectedCase.id}.`);
-                }}
-            />
+            {autoExecOpen && selectedCase && (
+                <AutomatedExecutionModal
+                    testCase={selectedCase}
+                    onSave={handleAutoExecutionSave}
+                    onClose={() => setAutoExecOpen(false)}
+                />
+            )}
 
-            <AddToSuiteModal
-                isOpen={addToSuiteOpen}
-                onClose={() => setAddToSuiteOpen(false)}
-                testCase={selectedCase}
-                suites={suites}
-                onAdd={handleAddToSuite}
-                isSaving={isSaving}
-            />
+            {addToSuiteOpen && selectedCase && (
+                <AddToSuiteModal
+                    testCase={selectedCase}
+                    suites={suites}
+                    onAdd={handleAddToSuite}
+                    onClose={() => setAddToSuiteOpen(false)}
+                    isSaving={isSaving}
+                />
+            )}
 
-            <DeleteConfirmModal
-                isOpen={deleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                testCase={selectedCase}
-                onConfirm={handleDeleteCase}
-                isDeleting={isSaving}
-            />
+            {deleteModalOpen && selectedCase && (
+                <DeleteConfirmModal
+                    testCase={selectedCase}
+                    onConfirm={handleDeleteCase}
+                    onClose={() => setDeleteModalOpen(false)}
+                    isDeleting={isSaving}
+                />
+            )}
         </div>
     );
 };
