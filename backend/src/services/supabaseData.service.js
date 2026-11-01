@@ -218,6 +218,10 @@ class SupabaseDataService {
         }
 
         const mem = this.inMemorySessions.get(sessionId);
+        const ownerId = mem?.user_id || mem?.userId;
+        if (mem && userId && ownerId && ownerId !== userId) {
+            return null;
+        }
         return mem ? this._formatSession(mem) : null;
     }
 
@@ -589,6 +593,10 @@ class SupabaseDataService {
 
         const existing = this.inMemorySessions.get(sessionId);
         if (existing) {
+            const existingOwner = existing.user_id || existing.userId;
+            if (userId && existingOwner && existingOwner !== userId) {
+                return null;
+            }
             const updated = { ...existing, ...updatePayload };
             this.inMemorySessions.set(sessionId, updated);
             this._saveDiskWorkspacesStore();

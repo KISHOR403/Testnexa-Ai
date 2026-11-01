@@ -210,7 +210,24 @@ const updateSession = async (req, res) => {
         if (accessRole === 'reviewer') {
             const updates = {};
             if (req.body.status !== undefined) updates.status = req.body.status;
-            if (req.body.suiteData !== undefined) updates.suiteData = req.body.suiteData;
+            if (req.body.suiteData !== undefined) {
+                updates.suiteData = req.body.suiteData;
+                const suite = unwrapSuiteData(updates.suiteData);
+                const counts = {};
+                let total = 0;
+                suiteCaseArrays.forEach(arr => {
+                    const len = Array.isArray(suite[arr]) ? suite[arr].length : 0;
+                    counts[arr] = len;
+                    total += len;
+                });
+                const refCount = Array.isArray(suite.testCaseRefs) ? suite.testCaseRefs.length : 0;
+                total += refCount;
+                updates.summary = {
+                    ...(session.summary || {}),
+                    ...counts,
+                    total
+                };
+            }
 
             if (Object.keys(updates).length === 0) {
                 return res.status(400).json({
@@ -246,6 +263,24 @@ const updateSession = async (req, res) => {
             if (req.body[field] !== undefined) {
                 updates[field] = req.body[field];
             }
+        }
+
+        if (updates.suiteData && !updates.summary) {
+            const suite = unwrapSuiteData(updates.suiteData);
+            const counts = {};
+            let total = 0;
+            suiteCaseArrays.forEach(arr => {
+                const len = Array.isArray(suite[arr]) ? suite[arr].length : 0;
+                counts[arr] = len;
+                total += len;
+            });
+            const refCount = Array.isArray(suite.testCaseRefs) ? suite.testCaseRefs.length : 0;
+            total += refCount;
+            updates.summary = {
+                ...(session.summary || {}),
+                ...counts,
+                total
+            };
         }
 
         if (updates.requirement && (session.title === 'Untitled Session' || !session.title)) {

@@ -1,13 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, NavLink } from 'react-router-dom';
 import {
-    ArrowLeft, ArrowUp, ArrowDown, Check, ChevronRight, Copy, ExternalLink,
-    FilePlus2, Pencil, Play, Plus, RefreshCw, Search, Trash2, X
+    ArrowLeft, Check, ChevronRight, Copy, ExternalLink,
+    FilePlus2, Pencil, Play, Plus, RefreshCw, Search, Trash2, X,
+    Layers, Sparkles, Code, Terminal, Camera, Shield, CheckCircle2,
+    XCircle, AlertTriangle, MinusCircle, Clock, Archive, RotateCcw
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
+import TestCaseEditorModal from '../../components/testcases/TestCaseEditorModal';
+import ManualExecutionModal from '../../components/testcases/ManualExecutionModal';
+import AutomatedExecutionModal from '../../components/testcases/AutomatedExecutionModal';
+import AddToSuiteModal from '../../components/testcases/AddToSuiteModal';
+import DeleteConfirmModal from '../../components/testcases/DeleteConfirmModal';
 import '../../styles/app/TestCases.css';
 
 const CATEGORY_KEYS = ['testCases', 'tests', 'functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist', 'api'];
@@ -25,83 +31,160 @@ const getSuiteData = (session) => {
     const suite = session?.suiteData || session?.suite_data || session?.data || session?.suite || null;
     return suite?.suiteData || suite?.suite_data || suite?.data || suite;
 };
-const getCaseId = (testCase) => String(testCase?.id || testCase?.testCaseId || '');
-const getCaseTitle = (testCase) => testCase?.title || testCase?.testScenario || testCase?.scenario || '';
-const getRequirementId = (requirement) => requirement && typeof requirement === 'object'
-    ? requirement.id || requirement.reqId || requirement.requirementId || ''
+
+const getCaseId = (tc) => String(tc?.id || tc?.testCaseId || '');
+const getCaseTitle = (tc) => tc?.title || tc?.testScenario || tc?.scenario || '';
+const getRequirementId = (req) => req && typeof req === 'object'
+    ? req.id || req.reqId || req.requirementId || ''
     : '';
-const getRequirementTitle = (requirement) => typeof requirement === 'string'
-    ? requirement
-    : requirement?.description || requirement?.requirement || requirement?.text || requirement?.title || '';
-const validAutomation = (testCase) => {
-    const mapping = testCase?.automationMapping || testCase?.playwrightBinding || {};
-    const configured = ['configured', 'enabled'].includes(String(mapping.mappingStatus || mapping.status || '').toLowerCase());
-    return configured && String(mapping.validationStatus || '').toLowerCase() === 'valid'
+
+const getRequirementTitle = (req) => typeof req === 'string'
+    ? req
+    : req?.description || req?.requirement || req?.text || req?.title || '';
+
+const validAutomation = (tc) => {
+    const mapping = tc?.automationMapping || tc?.playwrightBinding || {};
+    const configured = ['configured', 'enabled', 'ready'].includes(String(mapping.mappingStatus || mapping.status || '').toLowerCase());
+    return (configured || Boolean(mapping.scriptCode || mapping.code)) && String(mapping.validationStatus || '').toLowerCase() !== 'invalid'
         && Boolean(mapping.scriptCode || mapping.code || mapping.spec || mapping.script || mapping.scriptRef || mapping.testId || mapping.automationTestId);
 };
-const getMethod = (testCase) => {
-    const method = String(testCase?.executionType || testCase?.executionMethod || testCase?.method || '').toLowerCase();
+
+const getMethod = (tc) => {
+    const method = String(tc?.executionType || tc?.executionMethod || tc?.method || '').toLowerCase();
     if (method) return ['automated', 'automation', 'playwright'].includes(method) ? 'automated' : 'manual';
-    return testCase?.isAutomated || validAutomation(testCase) ? 'automated' : 'manual';
+    return tc?.isAutomated || validAutomation(tc) ? 'automated' : 'manual';
 };
-const getLifecycle = (testCase) => {
-    const status = String(testCase?.status || '').toLowerCase().replaceAll('_', ' ').trim();
-    if (testCase?.archivedAt || status === 'archived') return 'archived';
+
+const getLifecycle = (tc) => {
+    const status = String(tc?.status || '').toLowerCase().replaceAll('_', ' ').trim();
+    if (tc?.archivedAt || status === 'archived') return 'archived';
     if (status === 'draft') return 'draft';
-    if (['ready', 'approved'].includes(status)) return getMethod(testCase) === 'automated' && !validAutomation(testCase) ? 'needs-review' : 'ready';
+    if (['ready', 'approved'].includes(status)) return getMethod(tc) === 'automated' && !validAutomation(tc) ? 'needs-review' : 'ready';
     if (['needs review', 'review', 'generated', 'pending'].includes(status)) return 'needs-review';
-    return status ? status.replaceAll(' ', '-') : 'needs-review';
+    return status ? status.replaceAll(' ', '-') : 'ready';
 };
+
 const requirementsFromSuite = (suite) => {
     const source = [suite?.understanding?.functional_requirements, suite?.requirements, suite?.traceability?.matrix]
-        .find(value => Array.isArray(value) ? value.length : value && typeof value === 'object' && Object.keys(value).length) || [];
-    const entries = Array.isArray(source) ? source : Object.entries(source).map(([id, value]) =>
-        typeof value === 'object' && value !== null ? { ...value, id: value.id || value.reqId || id } : { id, description: String(value || '') }
+        .find(val => Array.isArray(val) ? val.length : val && typeof val === 'object' && Object.keys(val).length) || [];
+    const entries = Array.isArray(source) ? source : Object.entries(source).map(([id, val]) =>
+        typeof val === 'object' && val !== null ? { ...val, id: val.id || val.reqId || id } : { id, description: String(val || '') }
     );
     return entries.map(req => ({ id: String(getRequirementId(req) || ''), title: getRequirementTitle(req) })).filter(req => req.id);
 };
-const flattenSessions = (sessions) => sessions.flatMap(session => {
-    const suite = getSuiteData(session);
-    if (!suite || typeof suite !== 'object') return [];
-    const seen = new Set();
-    return CATEGORY_KEYS.flatMap(category => (Array.isArray(suite[category]) ? suite[category] : []).flatMap((testCase, index) => {
-        if (!testCase || typeof testCase !== 'object') return [];
-        const id = getCaseId(testCase);
-        const key = `${session.id || session._id}:${category}:${id || index}`;
-        if (seen.has(id) && id) return [];
-        if (id) seen.add(id);
-        const lifecycle = getLifecycle(testCase);
-        return [{
-            key,
-            id,
-            title: getCaseTitle(testCase),
-            description: testCase.description || testCase.testDescription || '',
-            preconditions: testCase.preconditions || [],
-            steps: Array.isArray(testCase.steps) ? testCase.steps : [],
-            expectedResult: testCase.expectedResult || testCase.expected || '',
-            priority: testCase.priority || '',
-            type: testCase.type || CATEGORY_LABELS[category] || 'Functional',
-            method: getMethod(testCase),
-            lifecycle,
-            status: testCase.status || '',
-            requirementId: String(testCase.requirementId || testCase.requirementRef || testCase.reqId || ''),
-            automationMapping: testCase.automationMapping || testCase.playwrightBinding || null,
-            updatedAt: testCase.updatedAt || testCase.updated_at || testCase.createdAt || testCase.created_at || null,
-            category,
-            sourceIndex: index,
-            raw: testCase,
-            suiteId: String(session.id || session._id || ''),
-            suiteName: session.title || session.feature || suite.testSuiteName || suite.feature || 'Untitled suite',
-            projectName: session.projectName || suite.projectName || suite.project || '',
-            session,
-            suite
-        }];
-    }));
-});
-const formatDate = (value) => value && !Number.isNaN(new Date(value).getTime())
-    ? new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-    : 'Not recorded';
-const readText = (value) => Array.isArray(value) ? value.map(item => typeof item === 'object' ? item.text || item.description || item.value || '' : String(item)).filter(Boolean).join('\n') : String(value || '');
+
+const flattenSessions = (sessions) => {
+    const sessionMap = new Map(sessions.map(s => [String(s.id || s._id), s]));
+
+    return sessions.flatMap(session => {
+        const suite = getSuiteData(session);
+        if (!suite || typeof suite !== 'object') return [];
+        const seen = new Set();
+        const sid = String(session.id || session._id || '');
+
+        // 1. Direct suite test cases
+        const directCases = CATEGORY_KEYS.flatMap(category => (Array.isArray(suite[category]) ? suite[category] : []).flatMap((tc, idx) => {
+            if (!tc || typeof tc !== 'object') return [];
+            const id = getCaseId(tc);
+            const key = `${sid}:${category}:${id || idx}`;
+            if (seen.has(id) && id) return [];
+            if (id) seen.add(id);
+            const lifecycle = getLifecycle(tc);
+            return [{
+                key,
+                id,
+                title: getCaseTitle(tc),
+                description: tc.description || tc.testDescription || '',
+                preconditions: tc.preconditions || [],
+                steps: Array.isArray(tc.steps) ? tc.steps : [],
+                expectedResult: tc.expectedResult || tc.expected || '',
+                priority: tc.priority || 'Medium',
+                type: tc.type || CATEGORY_LABELS[category] || 'Functional',
+                method: getMethod(tc),
+                lifecycle,
+                status: tc.status || '',
+                requirementId: String(tc.requirementId || tc.requirementRef || tc.reqId || ''),
+                automationMapping: tc.automationMapping || tc.playwrightBinding || null,
+                updatedAt: tc.updatedAt || tc.updated_at || tc.createdAt || tc.created_at || session.updatedAt || session.updated_at || null,
+                createdAt: tc.createdAt || tc.created_at || session.createdAt || session.created_at || null,
+                category,
+                sourceIndex: idx,
+                raw: tc,
+                suiteId: sid,
+                suiteName: session.title || session.feature || suite.testSuiteName || suite.feature || 'Untitled suite',
+                projectName: session.projectName || suite.projectName || suite.project || '',
+                context: session.context || 'web',
+                session,
+                suite
+            }];
+        }));
+
+        // 2. Mapped test case references (testCaseRefs)
+        const refCases = (Array.isArray(suite.testCaseRefs) ? suite.testCaseRefs : []).flatMap(ref => {
+            const srcSession = sessionMap.get(String(ref.sourceSuiteId));
+            if (!srcSession) return [];
+            const srcSuite = getSuiteData(srcSession);
+            if (!srcSuite) return [];
+            const targetCase = CATEGORY_KEYS.flatMap(cat => Array.isArray(srcSuite[cat]) ? srcSuite[cat] : [])
+                .find(c => getCaseId(c) === String(ref.testCaseId));
+            if (!targetCase || seen.has(getCaseId(targetCase))) return [];
+            const cid = getCaseId(targetCase);
+            seen.add(cid);
+            const lifecycle = getLifecycle(targetCase);
+            return [{
+                key: `${sid}:ref:${cid}`,
+                id: cid,
+                title: getCaseTitle(targetCase),
+                description: targetCase.description || '',
+                preconditions: targetCase.preconditions || [],
+                steps: Array.isArray(targetCase.steps) ? targetCase.steps : [],
+                expectedResult: targetCase.expectedResult || targetCase.expected || '',
+                priority: targetCase.priority || 'Medium',
+                type: targetCase.type || 'Functional',
+                method: getMethod(targetCase),
+                lifecycle,
+                status: targetCase.status || '',
+                requirementId: String(targetCase.requirementId || ''),
+                automationMapping: targetCase.automationMapping || null,
+                updatedAt: targetCase.updatedAt || session.updatedAt || null,
+                createdAt: targetCase.createdAt || session.createdAt || null,
+                category: 'referenced',
+                sourceIndex: -1,
+                raw: targetCase,
+                suiteId: sid,
+                suiteName: session.title || 'Untitled suite',
+                projectName: session.projectName || '',
+                context: session.context || 'web',
+                isReference: true,
+                sourceSuiteId: String(ref.sourceSuiteId),
+                sourceSuiteName: srcSession.title || 'Source suite',
+                session,
+                suite
+            }];
+        });
+
+        return [...directCases, ...refCases];
+    });
+};
+
+const formatDate = (val) => {
+    if (!val) return 'Not recorded';
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return 'Not recorded';
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const formatTimeAgo = (val) => {
+    if (!val) return 'Recently';
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return 'Recently';
+    const diff = Date.now() - d.getTime();
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
 const makeCaseId = (suite, category) => {
     const ids = new Set(CATEGORY_KEYS.flatMap(key => Array.isArray(suite?.[key]) ? suite[key].map(getCaseId) : []));
     const prefix = `TC_${category.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_`;
@@ -112,40 +195,54 @@ const makeCaseId = (suite, category) => {
     return id;
 };
 
-const emptyForm = () => ({
-    id: '', title: '', description: '', preconditions: '', steps: [{ action: '', expected: '' }],
-    expectedResult: '', priority: 'Medium', type: 'Functional', method: 'manual', status: 'Draft',
-    requirementId: '', framework: 'playwright', scriptRef: '', scriptCode: ''
-});
-
 const TestCasesPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Data state
     const [sessions, setSessions] = useState([]);
     const [runs, setRuns] = useState([]);
-    const [runLoadError, setRunLoadError] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [retry, setRetry] = useState(0);
-    const [suiteId, setSuiteId] = useState(new URLSearchParams(location.search).get('suiteId') || '');
+
+    // Context & selection
+    const initialSuiteQuery = new URLSearchParams(location.search).get('suiteId') || '';
+    const initialCaseQuery = new URLSearchParams(location.search).get('caseId') || '';
+    const [suiteId, setSuiteId] = useState(initialSuiteQuery);
     const [selectedKey, setSelectedKey] = useState('');
+    const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+    // Filters and toolbar
     const [query, setQuery] = useState('');
     const [quickFilter, setQuickFilter] = useState('all');
-    const [priority, setPriority] = useState('all');
+    const [priorityFilter, setPriorityFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
     const [sort, setSort] = useState('updated');
     const [page, setPage] = useState(1);
-    const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
-    const [formOpen, setFormOpen] = useState(false);
-    const [editingCase, setEditingCase] = useState(null);
-    const [form, setForm] = useState(emptyForm);
-    const [formError, setFormError] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState(null);
-    const [addToSuiteOpen, setAddToSuiteOpen] = useState(false);
-    const [targetSuiteId, setTargetSuiteId] = useState('');
-    const [executionHistory, setExecutionHistory] = useState({ key: '', rows: [], loading: false, error: '' });
-    const pageSize = 30;
+    const pageSize = 25;
 
+    // Modals
+    const [editorOpen, setEditorOpen] = useState(false);
+    const [editorMode, setEditorMode] = useState('create');
+    const [manualExecOpen, setManualExecOpen] = useState(false);
+    const [autoExecOpen, setAutoExecOpen] = useState(false);
+    const [addToSuiteOpen, setAddToSuiteOpen] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [showScriptPreview, setShowScriptPreview] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+
+    // Execution history tracking
+    const [executionHistory, setExecutionHistory] = useState({ key: '', rows: [], loading: false, error: '' });
+
+    // Show temporary toast notification
+    const triggerToast = (msg) => {
+        setToastMessage(msg);
+        window.setTimeout(() => setToastMessage(''), 3500);
+    };
+
+    // Load suites and execution runs from backend
     const loadData = useCallback(async () => {
         setLoading(true);
         setError('');
@@ -156,149 +253,235 @@ const TestCasesPage = () => {
             const totalPages = Number(first.pagination?.totalPages || 1);
             for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
                 const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt' });
-                if (!response?.success) throw new Error(response?.message || 'Additional test suites could not be loaded.');
-                allSessions.push(...(response.data || []));
+                if (response?.success && Array.isArray(response.data)) {
+                    allSessions.push(...response.data);
+                }
             }
-            const [runResult] = await Promise.allSettled([executionService.listRuns({ page: 1, limit: 100, sort: 'newest' })]);
+
+            const [runResult] = await Promise.allSettled([
+                executionService.listRuns({ page: 1, limit: 100, sort: 'newest' })
+            ]);
+
             setSessions(allSessions);
             if (runResult.status === 'fulfilled' && runResult.value?.success) {
                 setRuns(runResult.value.data || []);
-                setRunLoadError('');
             } else {
                 setRuns([]);
-                setRunLoadError(runResult.status === 'rejected' ? runResult.reason?.message || 'Execution history could not be loaded.' : runResult.value?.message || 'Execution history could not be loaded.');
             }
-            setSuiteId(current => current || String(allSessions[0]?.id || allSessions[0]?._id || ''));
-        } catch (loadError) {
-            setError(loadError.message || 'Test cases could not be loaded.');
+        } catch (err) {
+            setError(err.message || 'Failed to load test cases workspace.');
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => { loadData(); }, [loadData, retry]);
-
-    const suites = useMemo(() => sessions.map(session => ({
-        id: String(session.id || session._id),
-        name: session.title || session.feature || getSuiteData(session)?.testSuiteName || 'Untitled suite',
-        project: session.projectName || getSuiteData(session)?.projectName || getSuiteData(session)?.project || '',
-        session
-    })), [sessions]);
-    const cases = useMemo(() => flattenSessions(sessions), [sessions]);
-
     useEffect(() => {
-        const requestedSuite = new URLSearchParams(location.search).get('suiteId');
-        const requestedCase = new URLSearchParams(location.search).get('caseId');
-        if (requestedSuite && requestedSuite !== suiteId) setSuiteId(requestedSuite);
-        if (requestedCase) {
-            const match = cases.find(item => item.suiteId === requestedSuite && item.id === requestedCase);
-            if (match) { setSelectedKey(match.key); setMobileDetailOpen(true); }
-        }
-    }, [location.search, cases, suiteId]);
+        loadData();
+    }, [loadData, retry]);
 
+    // Distinct suite descriptors with computed actual test counts
+    const suites = useMemo(() => {
+        return sessions.map(session => {
+            const sData = getSuiteData(session) || {};
+            const directCount = CATEGORY_KEYS.reduce((acc, cat) => acc + (Array.isArray(sData[cat]) ? sData[cat].length : 0), 0);
+            const refCount = Array.isArray(sData.testCaseRefs) ? sData.testCaseRefs.length : 0;
+            const caseCount = directCount + refCount;
+            const updatedAt = session.updatedAt || session.updated_at || session.createdAt;
+            return {
+                id: String(session.id || session._id),
+                name: session.title || session.feature || sData.testSuiteName || sData.feature || 'Untitled suite',
+                project: session.projectName || sData.projectName || sData.project || '',
+                context: session.context || sData.context || 'web',
+                caseCount,
+                updatedAt,
+                formattedDate: formatDate(updatedAt),
+                session
+            };
+        });
+    }, [sessions]);
+
+    // Flatten all test cases across all sessions
+    const allCases = useMemo(() => flattenSessions(sessions), [sessions]);
+
+    // Total test cases across all suites
+    const totalCasesCount = allCases.length;
+
+    // Sync URL queries
+    useEffect(() => {
+        const qSuite = new URLSearchParams(location.search).get('suiteId') || '';
+        const qCase = new URLSearchParams(location.search).get('caseId') || '';
+        if (qSuite !== suiteId) setSuiteId(qSuite);
+        if (qCase) {
+            const match = allCases.find(c => (!qSuite || c.suiteId === qSuite) && c.id === qCase);
+            if (match) {
+                setSelectedKey(match.key);
+                setMobileDetailOpen(true);
+            }
+        }
+    }, [location.search, allCases]);
+
+    // Filter and sort test cases
     const filteredCases = useMemo(() => {
         const text = query.trim().toLowerCase();
-        const filtered = cases.filter(testCase => {
-            const matchesSuite = !suiteId || testCase.suiteId === String(suiteId);
-            const matchesText = !text || `${testCase.id} ${testCase.title} ${testCase.description} ${testCase.requirementId}`.toLowerCase().includes(text);
-            const matchesQuick = quickFilter === 'all' || testCase.lifecycle === quickFilter || testCase.method === quickFilter;
-            const matchesPriority = priority === 'all' || testCase.priority.toLowerCase() === priority;
-            return matchesSuite && matchesText && matchesQuick && matchesPriority;
+        const filtered = allCases.filter(tc => {
+            const matchesSuite = !suiteId || tc.suiteId === String(suiteId);
+            const matchesText = !text ||
+                `${tc.id} ${tc.title} ${tc.description} ${tc.requirementId} ${tc.suiteName}`.toLowerCase().includes(text);
+
+            let matchesQuick = true;
+            if (quickFilter === 'draft') matchesQuick = tc.lifecycle === 'draft';
+            else if (quickFilter === 'ready') matchesQuick = tc.lifecycle === 'ready';
+            else if (quickFilter === 'needs-review') matchesQuick = tc.lifecycle === 'needs-review';
+            else if (quickFilter === 'manual') matchesQuick = tc.method === 'manual';
+            else if (quickFilter === 'automated') matchesQuick = tc.method === 'automated';
+            else if (quickFilter === 'archived') matchesQuick = tc.lifecycle === 'archived';
+            else matchesQuick = tc.lifecycle !== 'archived'; // 'all' excludes archived cases
+
+            const matchesPriority = priorityFilter === 'all' || tc.priority.toLowerCase() === priorityFilter.toLowerCase();
+            const matchesType = typeFilter === 'all' || tc.type.toLowerCase() === typeFilter.toLowerCase();
+
+            return matchesSuite && matchesText && matchesQuick && matchesPriority && matchesType;
         });
+
         filtered.sort((left, right) => {
             if (sort === 'title') return left.title.localeCompare(right.title);
             if (sort === 'priority') return PRIORITIES.indexOf(left.priority) - PRIORITIES.indexOf(right.priority);
-            const leftDate = new Date(left.updatedAt || 0).getTime();
-            const rightDate = new Date(right.updatedAt || 0).getTime();
-            return rightDate - leftDate;
+            if (sort === 'id') return left.id.localeCompare(right.id);
+            if (sort === 'created') {
+                return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
+            }
+            // default: updated
+            return new Date(right.updatedAt || 0).getTime() - new Date(left.updatedAt || 0).getTime();
         });
+
         return filtered;
-    }, [cases, query, suiteId, quickFilter, priority, sort]);
-    const selectedCase = filteredCases.find(testCase => testCase.key === selectedKey) || null;
-    const selectedSuite = suites.find(suite => suite.id === (selectedCase?.suiteId || suiteId)) || null;
-    const selectedRequirements = requirementsFromSuite(selectedCase?.suite || getSuiteData(selectedSuite?.session));
-    const pageCount = Math.max(1, Math.ceil(filteredCases.length / pageSize));
-    const pageCases = filteredCases.slice((page - 1) * pageSize, page * pageSize);
+    }, [allCases, query, suiteId, quickFilter, priorityFilter, typeFilter, sort]);
 
-    useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priority, sort]);
-    useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+    // Active selected test case
+    const selectedCase = useMemo(() => {
+        return filteredCases.find(tc => tc.key === selectedKey) || null;
+    }, [filteredCases, selectedKey]);
 
+    // Auto-select first test case if selection is empty and cases exist
     useEffect(() => {
-        if (!selectedCase) { setExecutionHistory({ key: '', rows: [], loading: false, error: '' }); return; }
-        let current = true;
+        if (!selectedKey && filteredCases.length > 0 && !mobileDetailOpen) {
+            setSelectedKey(filteredCases[0].key);
+        }
+    }, [filteredCases, selectedKey, mobileDetailOpen]);
+
+    // Selected suite descriptor
+    const selectedSuite = useMemo(() => {
+        if (!suiteId) return null;
+        return suites.find(s => s.id === String(suiteId)) || null;
+    }, [suites, suiteId]);
+
+    // Pagination
+    const pageCount = Math.max(1, Math.ceil(filteredCases.length / pageSize));
+    const pageCases = useMemo(() => {
+        return filteredCases.slice((page - 1) * pageSize, page * pageSize);
+    }, [filteredCases, page, pageSize]);
+
+    useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priorityFilter, typeFilter, sort]);
+
+    // Fetch genuine execution history for selected test case
+    useEffect(() => {
+        if (!selectedCase) {
+            setExecutionHistory({ key: '', rows: [], loading: false, error: '' });
+            return;
+        }
+
+        let isCurrent = true;
         setExecutionHistory({ key: selectedCase.key, rows: [], loading: true, error: '' });
-        const loadExecutions = async () => {
+
+        const loadCaseExecutions = async () => {
             try {
                 const rows = [];
                 const matchingRuns = runs.filter(run => String(run.suiteId || run.suite_id || '') === selectedCase.suiteId)
                     .sort((a, b) => new Date(b.startedAt || b.createdAt || b.created_at || 0) - new Date(a.startedAt || a.createdAt || a.created_at || 0));
-                for (const run of matchingRuns.slice(0, 12)) {
-                    const runResult = await executionService.getRun(run.id);
-                    if (!runResult?.success) continue;
-                    const runCases = runResult.data?.cases || [];
-                    const caseRecord = runCases.find(item => {
-                        const snapshot = item.caseSnapshot || {};
-                        return [snapshot.id, snapshot.testCaseId, item.testCaseId].filter(Boolean).map(String).includes(selectedCase.id);
+
+                for (const run of matchingRuns.slice(0, 15)) {
+                    const runRes = await executionService.getRun(run.id).catch(() => null);
+                    if (!runRes?.success || !runRes.data) continue;
+
+                    const runCases = runRes.data.cases || [];
+                    const caseRecord = runCases.find(c => {
+                        const snap = c.caseSnapshot || {};
+                        return [snap.id, snap.testCaseId, c.testCaseId].filter(Boolean).map(String).includes(selectedCase.id);
                     });
+
                     if (!caseRecord) continue;
-                    const details = await executionService.getRunCase(run.id, caseRecord.id).catch(() => null);
-                    const detailedCase = details?.success ? details.data : caseRecord;
-                    const attempts = Array.isArray(detailedCase.executions) ? detailedCase.executions : [];
-                    if (attempts.length) {
-                        attempts.forEach(attempt => rows.push({ ...attempt, runId: run.id, runName: run.name || run.title || '', caseStatus: detailedCase.status, artifactCount: detailedCase.artifacts?.length || 0 }));
+
+                    const attempts = Array.isArray(caseRecord.executions) ? caseRecord.executions : [];
+                    if (attempts.length > 0) {
+                        attempts.forEach(attempt => {
+                            rows.push({
+                                ...attempt,
+                                runId: run.id,
+                                runName: run.name || `Run #${run.id.slice(-6)}`,
+                                caseStatus: caseRecord.status,
+                                artifactCount: Array.isArray(caseRecord.artifacts) ? caseRecord.artifacts.length : 0,
+                                durationMs: attempt.durationMs || caseRecord.durationMs || 0
+                            });
+                        });
                     } else {
-                        rows.push({ ...detailedCase, runId: run.id, runName: run.name || run.title || '', artifactCount: detailedCase.artifacts?.length || 0 });
+                        rows.push({
+                            ...caseRecord,
+                            runId: run.id,
+                            runName: run.name || `Run #${run.id.slice(-6)}`,
+                            caseStatus: caseRecord.status,
+                            artifactCount: Array.isArray(caseRecord.artifacts) ? caseRecord.artifacts.length : 0,
+                            durationMs: caseRecord.durationMs || 0
+                        });
                     }
                 }
-                rows.sort((left, right) => new Date(right.executedAt || right.createdAt || right.updatedAt || 0) - new Date(left.executedAt || left.createdAt || left.updatedAt || 0));
-                if (current) setExecutionHistory({ key: selectedCase.key, rows, loading: false, error: '' });
-            } catch (historyError) {
-                if (current) setExecutionHistory({ key: selectedCase.key, rows: [], loading: false, error: historyError.message || 'Execution history could not be loaded.' });
+
+                rows.sort((a, b) => new Date(b.executedAt || b.createdAt || 0) - new Date(a.executedAt || a.createdAt || 0));
+
+                if (isCurrent) {
+                    setExecutionHistory({ key: selectedCase.key, rows, loading: false, error: '' });
+                }
+            } catch (err) {
+                if (isCurrent) {
+                    setExecutionHistory({ key: selectedCase.key, rows: [], loading: false, error: err.message || 'Execution history unavailable' });
+                }
             }
         };
-        loadExecutions();
-        return () => { current = false; };
+
+        loadCaseExecutions();
+        return () => { isCurrent = false; };
     }, [selectedCase, runs]);
 
-    const selectCase = (testCase) => {
-        setSelectedKey(testCase.key);
+    // Handle user selecting a test case row
+    const handleSelectCase = (tc) => {
+        setSelectedKey(tc.key);
         setMobileDetailOpen(true);
         const params = new URLSearchParams(location.search);
-        params.set('suiteId', testCase.suiteId);
-        params.set('caseId', testCase.id);
+        if (suiteId) params.set('suiteId', tc.suiteId);
+        params.set('caseId', tc.id);
         navigate({ pathname: '/app/test-cases', search: params.toString() }, { replace: true });
     };
 
-    const openCreate = () => {
-        if (!selectedSuite) { setFormError('Select a saved suite before creating a test case.'); return; }
-        setEditingCase(null);
-        setForm(emptyForm());
-        setFormError('');
-        setFormOpen(true);
-    };
-    const openEdit = () => {
-        if (!selectedCase) return;
-        const mapping = selectedCase.automationMapping || {};
-        setEditingCase(selectedCase);
-        setForm({
-            ...emptyForm(), id: selectedCase.id, title: selectedCase.title, description: selectedCase.description,
-            preconditions: readText(selectedCase.preconditions), steps: selectedCase.steps.length ? selectedCase.steps.map(step => ({
-                action: typeof step === 'object' ? step.action || step.description || '' : String(step),
-                expected: typeof step === 'object' ? step.expected || step.expectedResult || '' : ''
-            })) : [{ action: '', expected: '' }], expectedResult: selectedCase.expectedResult,
-            priority: selectedCase.priority || 'Medium', type: selectedCase.type, method: selectedCase.method,
-            status: selectedCase.lifecycle === 'ready' ? 'Ready' : selectedCase.lifecycle === 'draft' ? 'Draft' : 'Needs Review',
-            requirementId: selectedCase.requirementId, framework: mapping.framework || 'playwright',
-            scriptRef: mapping.scriptRef || '', scriptCode: mapping.scriptCode || mapping.code || ''
-        });
-        setFormError('');
-        setFormOpen(true);
+    // Suite change handler
+    const handleSuiteChange = (newSuiteId) => {
+        setSuiteId(newSuiteId);
+        setSelectedKey('');
+        setMobileDetailOpen(false);
+        const params = new URLSearchParams(location.search);
+        if (newSuiteId) {
+            params.set('suiteId', newSuiteId);
+        } else {
+            params.delete('suiteId');
+        }
+        params.delete('caseId');
+        navigate({ pathname: '/app/test-cases', search: params.toString() }, { replace: true });
     };
 
-    const patchCase = async (record, oldCase, nextCase) => {
-        const suiteData = structuredClone(getSuiteData(record.session) || {});
+    // Save test case mutations to backend
+    const patchCase = async (targetSession, oldCase, nextCase) => {
+        const suiteData = structuredClone(getSuiteData(targetSession) || {});
         const sourceKeys = CATEGORY_KEYS.filter(key => Array.isArray(suiteData[key]));
         let targetKey = oldCase?.category || '';
+
         if (!targetKey) {
             if (suiteData.testCases?.length) targetKey = 'testCases';
             else if (suiteData.tests?.length) targetKey = 'tests';
@@ -311,7 +494,9 @@ const TestCasesPage = () => {
                                 : category === 'non-functional' ? 'nonFunctional' : 'functional';
             }
         }
+
         if (!Array.isArray(suiteData[targetKey])) suiteData[targetKey] = [];
+
         if (oldCase) {
             let found = false;
             for (const key of sourceKeys) {
@@ -328,8 +513,9 @@ const TestCasesPage = () => {
         } else {
             suiteData[targetKey].push(nextCase);
         }
-        const sessionId = record.id || record._id;
-        const response = await sessionService.update(sessionId, {
+
+        const sid = targetSession.id || targetSession._id;
+        const response = await sessionService.update(sid, {
             suiteData,
             testCaseMutation: {
                 action: oldCase ? 'update' : 'create',
@@ -337,235 +523,885 @@ const TestCasesPage = () => {
                 testCaseId: nextCase.id
             }
         });
-        if (!response?.success) throw new Error(response?.message || 'Test case changes could not be saved.');
+
+        if (!response?.success) {
+            throw new Error(response?.message || 'Test case changes could not be saved.');
+        }
+
         window.dispatchEvent(new Event('historyUpdated'));
         await loadData();
-        setSelectedKey(`${sessionId}:${targetKey}:${nextCase.id}`);
-        setFormOpen(false);
-        setEditingCase(null);
+        setSelectedKey(`${sid}:${targetKey}:${nextCase.id}`);
         setMobileDetailOpen(true);
+        triggerToast(`Test case ${nextCase.id} saved successfully.`);
     };
 
-    const saveForm = async (event, desiredStatus = form.status) => {
-        event?.preventDefault();
-        if (!selectedSuite?.session) { setFormError('The selected suite is unavailable. Choose a saved suite and retry.'); return; }
-        const title = form.title.trim();
-        if (!title) { setFormError('Enter a test case title.'); return; }
-        const steps = form.steps.map(step => ({ action: step.action.trim(), expected: step.expected.trim() })).filter(step => step.action || step.expected);
-        if (desiredStatus === 'Ready' && (steps.length === 0 || steps.some(step => !step.action || !step.expected))) {
-            setFormError('Add an action and expected result for every step before marking this test Ready.'); return;
-        }
-        const isAutomated = form.method === 'automated';
-        const existingMapping = editingCase?.automationMapping || {};
-        const mappingChanged = form.scriptCode !== (existingMapping.scriptCode || existingMapping.code || '')
-            || form.scriptRef.trim() !== (existingMapping.scriptRef || '');
-        const mappingIsValid = isAutomated && !mappingChanged && validAutomation(editingCase?.raw);
-        if (desiredStatus === 'Ready' && isAutomated && !mappingIsValid) {
-            setFormError('An automated test needs a script reference or script content before it can be marked Ready.'); return;
-        }
-        const suiteData = getSuiteData(selectedSuite.session) || {};
-        const id = editingCase?.id || makeCaseId(suiteData, form.type.toLowerCase().replace(/[^a-z0-9]+/g, '_'));
-        const duplicate = cases.some(item => item.suiteId === selectedSuite.id && item.id === id && item.key !== editingCase?.key);
-        if (duplicate) { setFormError(`Test case ID ${id} already exists in this suite.`); return; }
-        const automationMapping = isAutomated ? {
-            ...existingMapping,
-            framework: form.framework || 'playwright',
-            scriptRef: form.scriptRef.trim(),
-            scriptCode: form.scriptCode,
-            mappingStatus: mappingChanged ? 'not_configured' : existingMapping.mappingStatus || 'not_configured',
-            validationStatus: mappingChanged ? 'unvalidated' : existingMapping.validationStatus || 'unvalidated',
-            ...(mappingChanged ? { validatedAt: null } : {}),
-            updatedAt: new Date().toISOString()
-        } : (editingCase?.raw?.automationMapping || null);
-        const nextCase = {
-            ...(editingCase?.raw || {}),
-            id,
-            title,
-            description: form.description.trim(),
-            preconditions: form.preconditions.split('\n').map(line => line.trim()).filter(Boolean),
-            steps,
-            expectedResult: form.expectedResult.trim(),
-            priority: form.priority,
-            type: form.type,
-            executionType: form.method,
-            status: desiredStatus === 'Ready' && isAutomated && !mappingIsValid ? 'Needs Review' : desiredStatus,
-            requirementId: form.requirementId || '',
-            automationMapping,
-            updatedAt: new Date().toISOString(),
-            ...(editingCase ? {} : { createdAt: new Date().toISOString() })
-        };
-        setIsSaving(true);
-        setFormError('');
-        try { await patchCase(selectedSuite.session, editingCase, nextCase); }
-        catch (saveError) { setFormError(saveError.message || 'Test case could not be saved.'); }
-        finally { setIsSaving(false); }
-    };
-
-    const duplicateCase = async () => {
-        if (!selectedCase || !selectedSuite) return;
-        const suiteData = getSuiteData(selectedSuite.session);
-        const clone = { ...structuredClone(selectedCase.raw), id: makeCaseId(suiteData, String(selectedCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_')), title: `${selectedCase.title} (copy)`, status: 'Draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-        setIsSaving(true);
-        setError('');
-        try { await patchCase(selectedSuite.session, null, clone); }
-        catch (saveError) { setError(saveError.message || 'Test case could not be duplicated.'); }
-        finally { setIsSaving(false); }
-    };
-
-    const deleteCase = async () => {
-        if (!deleteTarget) return;
-        setIsSaving(true);
-        setError('');
-        try {
-            const suiteData = structuredClone(getSuiteData(deleteTarget.session) || {});
-            if (deleteTarget.id) {
-                for (const category of CATEGORY_KEYS) {
-                    if (Array.isArray(suiteData[category])) suiteData[category] = suiteData[category].filter(item => getCaseId(item) !== deleteTarget.id);
-                }
-            } else if (Array.isArray(suiteData[deleteTarget.category])) {
-                suiteData[deleteTarget.category] = suiteData[deleteTarget.category].filter((_, index) => index !== deleteTarget.sourceIndex);
-            }
-            const response = await sessionService.update(deleteTarget.suiteId, {
-                suiteData,
-                ...(deleteTarget.id ? { testCaseMutation: { action: 'delete', testCaseId: deleteTarget.id } } : {})
-            });
-            if (!response?.success) throw new Error(response?.message || 'Test case could not be deleted.');
-            window.dispatchEvent(new Event('historyUpdated'));
-            setDeleteTarget(null);
-            setSelectedKey('');
-            setMobileDetailOpen(false);
-            await loadData();
-        } catch (deleteError) { setError(deleteError.message || 'Test case could not be deleted.'); }
-        finally { setIsSaving(false); }
-    };
-
-    const archiveCase = async () => {
-        if (!selectedCase || !selectedSuite) return;
-        const nextCase = { ...selectedCase.raw, status: 'Archived', archivedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-        setIsSaving(true);
-        try { await patchCase(selectedSuite.session, selectedCase, nextCase); }
-        catch (archiveError) { setError(archiveError.message || 'Test case could not be archived.'); }
-        finally { setIsSaving(false); }
-    };
-
-    const addCaseToSelectedSuite = async () => {
-        const targetSuite = suites.find(suite => suite.id === targetSuiteId);
-        if (!selectedCase || !targetSuite || targetSuite.id === selectedCase.suiteId) return;
-        const targetData = getSuiteData(targetSuite.session) || {};
-        const targetRequirementExists = requirementsFromSuite(targetData).some(requirement => requirement.id === selectedCase.requirementId);
-        const copy = {
+    // Duplicate test case handler
+    const handleDuplicateCase = async () => {
+        if (!selectedCase) return;
+        const targetSession = selectedCase.session;
+        const suiteData = getSuiteData(targetSession);
+        const newId = makeCaseId(suiteData, String(selectedCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_'));
+        const clone = {
             ...structuredClone(selectedCase.raw),
-            id: makeCaseId(targetData, String(selectedCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_')),
-            ...(targetRequirementExists ? {} : { requirementId: '' }),
+            id: newId,
+            title: `${selectedCase.title} (copy)`,
             status: 'Draft',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+
         setIsSaving(true);
-        setError('');
+        try {
+            await patchCase(targetSession, null, clone);
+            triggerToast(`Duplicated as ${newId} (Draft).`);
+        } catch (err) {
+            alert(`Duplicate error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Delete test case handler
+    const handleDeleteCase = async () => {
+        if (!selectedCase) return;
+        setIsSaving(true);
+        try {
+            const suiteData = structuredClone(getSuiteData(selectedCase.session) || {});
+            if (selectedCase.id) {
+                for (const cat of CATEGORY_KEYS) {
+                    if (Array.isArray(suiteData[cat])) {
+                        suiteData[cat] = suiteData[cat].filter(item => getCaseId(item) !== selectedCase.id);
+                    }
+                }
+            } else if (Array.isArray(suiteData[selectedCase.category])) {
+                suiteData[selectedCase.category] = suiteData[selectedCase.category].filter((_, idx) => idx !== selectedCase.sourceIndex);
+            }
+
+            const sid = selectedCase.suiteId;
+            const res = await sessionService.update(sid, {
+                suiteData,
+                testCaseMutation: {
+                    action: 'delete',
+                    testCaseId: selectedCase.id
+                }
+            });
+
+            if (!res?.success) throw new Error(res?.message || 'Failed to delete test case.');
+            window.dispatchEvent(new Event('historyUpdated'));
+            setDeleteModalOpen(false);
+            setSelectedKey('');
+            setMobileDetailOpen(false);
+            await loadData();
+            triggerToast(`Test case ${selectedCase.id} deleted.`);
+        } catch (err) {
+            alert(`Delete error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Archive / Restore test case handler
+    const handleToggleArchive = async () => {
+        if (!selectedCase) return;
+        const isArchived = selectedCase.lifecycle === 'archived';
+        const nextCase = {
+            ...selectedCase.raw,
+            status: isArchived ? 'Ready' : 'Archived',
+            archivedAt: isArchived ? null : new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        setIsSaving(true);
+        try {
+            await patchCase(selectedCase.session, selectedCase, nextCase);
+            triggerToast(isArchived ? `Restored ${selectedCase.id} to active suite.` : `Archived ${selectedCase.id}.`);
+        } catch (err) {
+            alert(`Archive error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Add copy of case to another suite
+    const handleAddToSuite = async (targetId) => {
+        const targetSuite = suites.find(s => s.id === targetId);
+        if (!selectedCase || !targetSuite) return;
+        const targetData = getSuiteData(targetSuite.session) || {};
+        const newId = makeCaseId(targetData, String(selectedCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_'));
+        const copy = {
+            ...structuredClone(selectedCase.raw),
+            id: newId,
+            status: 'Draft',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        setIsSaving(true);
         try {
             await patchCase(targetSuite.session, null, copy);
-            setSuiteId(targetSuite.id);
+            setSuiteId(targetId);
             setAddToSuiteOpen(false);
-        } catch (addError) { setError(addError.message || 'Test case could not be added to the selected suite.'); }
-        finally { setIsSaving(false); }
+            triggerToast(`Added ${newId} to ${targetSuite.name}.`);
+        } catch (err) {
+            alert(`Add to suite error: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const openExecution = () => {
+    // Manual execution record handler
+    const handleRecordManualExecution = async ({ status: outcomeStatus, actualResult, notes, durationMs, artifact }) => {
         if (!selectedCase) return;
-        navigate(`/app/test-suites/${selectedCase.suiteId}?testCaseId=${encodeURIComponent(selectedCase.id)}&execute=1`);
+        setIsSaving(true);
+        try {
+            // Find existing run or create single-case ad-hoc run
+            let runId;
+            let runCaseId;
+            const existingRun = runs.find(r => String(r.suiteId || r.suite_id) === selectedCase.suiteId && r.status !== 'completed');
+
+            if (existingRun) {
+                runId = existingRun.id;
+                const runRes = await executionService.getRun(runId);
+                const runCases = runRes?.data?.cases || [];
+                const found = runCases.find(c => {
+                    const snap = c.caseSnapshot || {};
+                    return [snap.id, snap.testCaseId, c.testCaseId].filter(Boolean).map(String).includes(selectedCase.id);
+                });
+                runCaseId = found?.id;
+            }
+
+            if (!runId || !runCaseId) {
+                const newRunRes = await executionService.createRun({
+                    name: `Manual Verification · ${selectedCase.id}`,
+                    suiteId: selectedCase.suiteId,
+                    executionType: 'manual',
+                    caseIds: [selectedCase.id]
+                });
+                if (!newRunRes?.success || !newRunRes.data) throw new Error('Failed to initialize execution run.');
+                runId = newRunRes.data.id;
+                runCaseId = newRunRes.data.cases?.[0]?.id;
+            }
+
+            // Record execution attempt
+            await executionService.recordExecution(runId, runCaseId, {
+                status: outcomeStatus,
+                actualResult,
+                notes,
+                durationMs,
+                executorType: 'manual',
+                artifact
+            });
+
+            triggerToast(`Recorded manual outcome: ${outcomeStatus.toUpperCase()} (${(durationMs / 1000).toFixed(1)}s)`);
+            await loadData();
+        } catch (err) {
+            throw new Error(`Execution record failed: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const suiteLabel = selectedSuite?.project ? `${selectedSuite.project} / ${selectedSuite.name}` : selectedSuite?.name || 'All test suites';
-    const showingHistory = executionHistory.key === selectedCase?.key ? executionHistory : { rows: [], loading: Boolean(selectedCase), error: '' };
+    // Open execution modal based on method
+    const handleOpenExecution = () => {
+        if (!selectedCase) return;
+        if (selectedCase.method === 'automated') {
+            setAutoExecOpen(true);
+        } else {
+            setManualExecOpen(true);
+        }
+    };
+
+    // Check if any filter is active
+    const hasActiveFilters = Boolean(
+        query.trim() ||
+        quickFilter !== 'all' ||
+        priorityFilter !== 'all' ||
+        typeFilter !== 'all' ||
+        sort !== 'updated'
+    );
+
+    const handleClearFilters = () => {
+        setQuery('');
+        setQuickFilter('all');
+        setPriorityFilter('all');
+        setTypeFilter('all');
+        setSort('updated');
+    };
+
+    const suiteLabel = selectedSuite
+        ? `${selectedSuite.project ? selectedSuite.project + ' / ' : ''}${selectedSuite.name}`
+        : 'All Test Suites';
 
     return (
         <div className={`tc-page ${mobileDetailOpen ? 'tc-mobile-detail-open' : ''}`}>
+            {/* ─── HEADER & BREADCRUMB ─── */}
             <header className="tc-header">
-                <div className="tc-breadcrumb"><span>Quality</span><span>/</span><span>Test Cases</span></div>
+                <div className="tc-breadcrumb">
+                    <NavLink to="/app/workspace">Quality</NavLink>
+                    <span>/</span>
+                    <button type="button" onClick={() => handleSuiteChange('')}>Test Cases</button>
+                    {selectedSuite && (
+                        <>
+                            <span>/</span>
+                            <span>{selectedSuite.name}</span>
+                        </>
+                    )}
+                </div>
+
                 <div className="tc-header-main">
-                    <div><h1>Test Cases</h1><p>{suiteLabel} <span>·</span> {filteredCases.length} cases</p></div>
+                    <div>
+                        <h1>Test Cases</h1>
+                        <p>
+                            {suiteLabel} <span>·</span> {filteredCases.length} {filteredCases.length === 1 ? 'case' : 'cases'}
+                            {suiteId && selectedSuite && ` (${selectedSuite.context.toUpperCase()})`}
+                        </p>
+                    </div>
+
                     <div className="tc-header-actions">
-                        <select aria-label="Filter by test suite" value={suiteId} onChange={event => { setSuiteId(event.target.value); setSelectedKey(''); setMobileDetailOpen(false); }}>
-                            <option value="">All suites</option>{suites.map(suite => <option key={suite.id} value={suite.id}>{suite.name}</option>)}
+                        {/* Dynamic Suite Selector */}
+                        <select
+                            className="tc-suite-selector"
+                            aria-label="Filter by test suite"
+                            value={suiteId}
+                            onChange={e => handleSuiteChange(e.target.value)}
+                        >
+                            <option value="">All Test Cases ({totalCasesCount})</option>
+                            {suites.map(s => (
+                                <option key={s.id} value={s.id}>
+                                    {s.name} ({s.context.toUpperCase()} · {s.caseCount} {s.caseCount === 1 ? 'case' : 'cases'} · {s.formattedDate})
+                                </option>
+                            ))}
                         </select>
-                        <button type="button" className="tc-primary" onClick={openCreate} disabled={!selectedSuite}><Plus size={15} />Create Test Case</button>
+
+                        <button
+                            type="button"
+                            className="tc-primary"
+                            onClick={() => {
+                                setEditorMode('create');
+                                setEditorOpen(true);
+                            }}
+                        >
+                            <Plus size={15} />
+                            <span>Create Test Case</span>
+                        </button>
                     </div>
                 </div>
+
+                {/* Search & Secondary Filter Toolbar */}
                 <div className="tc-toolbar">
-                    <label className="tc-search"><Search size={15} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search by ID, title, or requirement" aria-label="Search test cases" /></label>
-                    <select value={priority} onChange={event => setPriority(event.target.value)} aria-label="Filter by priority"><option value="all">All priorities</option>{PRIORITIES.map(item => <option key={item} value={item.toLowerCase()}>{item} priority</option>)}</select>
-                    <select value={sort} onChange={event => setSort(event.target.value)} aria-label="Sort test cases"><option value="updated">Recently updated</option><option value="title">Title A to Z</option><option value="priority">Priority</option></select>
-                    <button type="button" className="tc-icon-button" title="Refresh test cases" aria-label="Refresh test cases" onClick={() => setRetry(value => value + 1)}><RefreshCw size={15} /></button>
+                    <label className="tc-search">
+                        <Search size={14} />
+                        <input
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                            placeholder="Search by ID, title, description, or requirement..."
+                            aria-label="Search test cases"
+                        />
+                    </label>
+
+                    <select
+                        value={priorityFilter}
+                        onChange={e => setPriorityFilter(e.target.value)}
+                        aria-label="Filter by priority"
+                    >
+                        <option value="all">All Priorities</option>
+                        {PRIORITIES.map(p => (
+                            <option key={p} value={p.toLowerCase()}>{p} Priority</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={typeFilter}
+                        onChange={e => setTypeFilter(e.target.value)}
+                        aria-label="Filter by type"
+                    >
+                        <option value="all">All Categories</option>
+                        <option value="Functional">Functional</option>
+                        <option value="Negative">Negative</option>
+                        <option value="Edge">Edge</option>
+                        <option value="Security">Security</option>
+                        <option value="API">API</option>
+                        <option value="Non-functional">Non-functional</option>
+                    </select>
+
+                    <select
+                        value={sort}
+                        onChange={e => setSort(e.target.value)}
+                        aria-label="Sort test cases"
+                    >
+                        <option value="updated">Recently Updated</option>
+                        <option value="created">Created Date</option>
+                        <option value="title">Title (A to Z)</option>
+                        <option value="priority">Priority (High to Low)</option>
+                        <option value="id">Test ID (A to Z)</option>
+                    </select>
+
+                    <button
+                        type="button"
+                        className="tc-icon-button"
+                        title="Refresh test cases"
+                        aria-label="Refresh test cases"
+                        onClick={() => setRetry(v => v + 1)}
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                    </button>
+
+                    {hasActiveFilters && (
+                        <button
+                            type="button"
+                            className="tc-clear-filters"
+                            onClick={handleClearFilters}
+                            title="Reset search and filters"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
                 </div>
-                <nav className="tc-filters" aria-label="Test case filters">
-                    {QUICK_FILTERS.map(([key, label]) => <button type="button" key={key} className={quickFilter === key ? 'active' : ''} onClick={() => setQuickFilter(key)}>{label}</button>)}
+
+                {/* Quick Lifecycle & Method Filters */}
+                <nav className="tc-filters" aria-label="Quick test case filters">
+                    {QUICK_FILTERS.map(([key, label]) => (
+                        <button
+                            type="button"
+                            key={key}
+                            className={quickFilter === key ? 'active' : ''}
+                            onClick={() => setQuickFilter(key)}
+                        >
+                            {label}
+                        </button>
+                    ))}
                 </nav>
             </header>
 
-            {error && <div className="tc-error" role="alert">{error}<button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div>}
-            {loading ? <DataLoadingState message="Loading saved test cases…" /> : (
-                <div className="tc-workspace">
-                    <section className="tc-list" aria-label="Test case list">
-                        <div className="tc-list-head"><span>Test case</span><span>Type · Priority · Status</span><span>Updated</span></div>
-                        {pageCases.length === 0 ? <div className="tc-empty"><FilePlus2 size={18} /><strong>{cases.length ? 'No test cases match these filters.' : suites.length ? 'No saved test cases yet.' : 'No saved test suites found.'}</strong><span>{cases.length ? 'Adjust your search or filters.' : suites.length ? 'Select a suite and create a test case to get started.' : 'Create a suite before managing its test cases.'}</span>{cases.length > 0 && <button type="button" onClick={() => { setQuery(''); setQuickFilter('all'); setPriority('all'); }}>Clear filters</button>}{suites.length === 0 && <button type="button" onClick={() => navigate('/app/workspace')}>Open AI Workspace</button>}</div> : pageCases.map(testCase => <button type="button" key={testCase.key} className={`tc-row ${selectedCase?.key === testCase.key ? 'selected' : ''}`} onClick={() => selectCase(testCase)}>
-                            <span className="tc-row-main"><span className="tc-id">{testCase.id || 'ID not recorded'}</span><strong>{testCase.title || 'Title not recorded'}</strong><small>{testCase.suiteName}</small></span>
-                            <span className="tc-row-meta"><span>{testCase.type}</span><span>{testCase.priority || 'Priority not set'}</span><span className={`tc-status tc-status-${testCase.lifecycle}`}>{testCase.lifecycle.replaceAll('-', ' ')}</span><span className="tc-method">{testCase.method}</span></span>
-                            <span className="tc-row-date">{formatDate(testCase.updatedAt)}</span><ChevronRight size={15} />
-                        </button>)}
-                        {pageCount > 1 && <div className="tc-pagination"><span>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredCases.length)} of {filteredCases.length}</span><button type="button" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Previous</button><button type="button" disabled={page >= pageCount} onClick={() => setPage(value => value + 1)}>Next</button></div>}
-                    </section>
-
-                    {selectedCase && <aside className="tc-detail" aria-label="Test case details">
-                        <button type="button" className="tc-mobile-back" onClick={() => setMobileDetailOpen(false)}><ArrowLeft size={14} />All test cases</button>
-                        <div className="tc-detail-top"><div><span className="tc-id">{selectedCase.id || 'ID not recorded'}</span><span className={`tc-status tc-status-${selectedCase.lifecycle}`}>{selectedCase.lifecycle.replaceAll('-', ' ')}</span></div><div className="tc-actions"><button type="button" aria-label="Edit test case" title="Edit" onClick={openEdit}><Pencil size={14} /></button><button type="button" aria-label="Duplicate test case" title="Duplicate" onClick={duplicateCase} disabled={isSaving}><Copy size={14} /></button><button type="button" aria-label="Delete test case" title="Delete" onClick={() => setDeleteTarget(selectedCase)}><Trash2 size={14} /></button></div></div>
-                        <h2>{selectedCase.title || 'Title not recorded'}</h2>
-                        <div className="tc-facts"><span>{selectedCase.type}</span><span>{selectedCase.method}</span><span>{selectedCase.priority || 'Priority not set'}</span><span>Updated {formatDate(selectedCase.updatedAt)}</span></div>
-        <button type="button" className="tc-execute" onClick={openExecution} disabled={!selectedCase.id} title={!selectedCase.id ? 'Assign a test case ID before execution.' : ''}><Play size={14} />Execute in Test Run Workspace</button>
-                        {suites.length > 1 && <button type="button" className="tc-text-link" onClick={() => { setTargetSuiteId(suites.find(suite => suite.id !== selectedCase.suiteId)?.id || ''); setAddToSuiteOpen(true); }}><FilePlus2 size={13} />Add a copy to another suite</button>}
-                        {selectedCase.description && <section className="tc-detail-section"><h3>Description</h3><p>{selectedCase.description}</p></section>}
-                        <section className="tc-detail-section"><h3>Preconditions</h3><p>{readText(selectedCase.preconditions) || 'No preconditions recorded.'}</p></section>
-                        <section className="tc-detail-section"><h3>Test steps</h3>{selectedCase.steps.length ? <ol>{selectedCase.steps.map((step, index) => <li key={`${selectedCase.key}-step-${index}`}><strong>{typeof step === 'object' ? step.action || step.description || 'Step description not recorded' : String(step)}</strong><span>Expected: {typeof step === 'object' ? step.expected || step.expectedResult || 'Not recorded' : 'Not recorded'}</span></li>)}</ol> : <p>No steps recorded.</p>}</section>
-                        <section className="tc-detail-section"><h3>Expected result</h3><p>{selectedCase.expectedResult || 'No overall expected result recorded.'}</p></section>
-                        <section className="tc-detail-section"><h3>Requirement</h3>{selectedCase.requirementId ? <button type="button" className="tc-text-link" onClick={() => navigate(`/app/coverage?suiteId=${encodeURIComponent(selectedCase.suiteId)}&requirementId=${encodeURIComponent(selectedCase.requirementId)}`)}>{selectedCase.requirementId}<ExternalLink size={12} /></button> : <p>No requirement linked.</p>}</section>
-                        <section className="tc-detail-section"><h3>Test suite</h3><button type="button" className="tc-text-link" onClick={() => navigate(`/app/test-suites/${selectedCase.suiteId}?testCaseId=${encodeURIComponent(selectedCase.id)}`)}>{selectedCase.suiteName}<ExternalLink size={12} /></button></section>
-                        <section className="tc-detail-section"><h3>Automation mapping</h3>{selectedCase.method === 'automated' ? <div className="tc-automation"><span className={validAutomation(selectedCase.raw) ? 'mapped' : 'unmapped'}>{validAutomation(selectedCase.raw) ? 'Configured and validated' : 'Not configured or validated'}</span><span>{selectedCase.automationMapping?.framework || 'Framework not recorded'}</span><span>{selectedCase.automationMapping?.scriptRef || selectedCase.automationMapping?.automationTestId || 'Script reference not recorded'}</span>{showingHistory.rows[0] && <span>Last execution: {showingHistory.rows[0].status || showingHistory.rows[0].caseStatus || 'Status not recorded'}</span>}</div> : <p>Manual test case</p>}</section>
-                        <section className="tc-detail-section"><h3>Execution history</h3>{showingHistory.loading ? <span className="tc-muted">Loading execution records…</span> : showingHistory.error || runLoadError ? <span className="tc-error-text">{showingHistory.error || runLoadError}</span> : showingHistory.rows.length ? <div className="tc-executions">{showingHistory.rows.map((execution, index) => <div key={`${execution.runId}-${execution.id || index}`}><span className={`tc-status tc-status-${String(execution.status || execution.caseStatus || 'not_run').toLowerCase().replaceAll('_', '-')}`}>{execution.status || execution.caseStatus || 'Status not recorded'}</span><span>{execution.executedAt || execution.createdAt ? formatDate(execution.executedAt || execution.createdAt) : 'Date not recorded'}</span><button type="button" className="tc-text-link" onClick={() => navigate(`/app/runs/${execution.runId}?tab=report`)}>{execution.runName || `Run ${execution.runId.slice(0, 8)}`}<ExternalLink size={12} /></button>{execution.artifactCount > 0 && <button type="button" className="tc-text-link" onClick={() => navigate(`/app/runs/${execution.runId}?tab=artifacts`)}>Artifacts &amp; Evidence ({execution.artifactCount})<ExternalLink size={12} /></button>}</div>)}</div> : <p>No execution records found.</p>}</section>
-                        {selectedCase.lifecycle === 'archived' ? null : <div className="tc-detail-footer"><button type="button" className="tc-archive" onClick={archiveCase}>Archive test case</button></div>}
-                    </aside>}
-                    {!selectedCase && cases.length > 0 && <aside className="tc-detail tc-detail-empty"><span>Select a test case to inspect its details.</span></aside>}
+            {toastMessage && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '24px',
+                    right: '24px',
+                    zIndex: 2000,
+                    background: '#151D18',
+                    border: '1px solid var(--tc-jade)',
+                    borderRadius: '5px',
+                    padding: '10px 16px',
+                    color: '#FFFFFF',
+                    fontSize: '0.78rem',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    <CheckCircle2 size={16} color="var(--tc-jade)" />
+                    <span>{toastMessage}</span>
                 </div>
             )}
 
-            {formOpen && createPortal(<div className="tc-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setFormOpen(false); }}>
-                <section className="tc-form-dialog" role="dialog" aria-modal="true" aria-labelledby="tc-form-title">
-                    <header><div><span>{selectedSuite?.name || 'Test suite'}</span><h2 id="tc-form-title">{editingCase ? 'Edit test case' : 'Create test case'}</h2></div><button type="button" aria-label="Close form" onClick={() => setFormOpen(false)}><X size={16} /></button></header>
-                    <form onSubmit={event => saveForm(event, form.status)}>
-                        <div className="tc-form-grid">
-                            <label className="wide">Title *<input value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} maxLength={200} required /></label>
-                            <label>Description<textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} rows={3} /></label>
-                            <label>Preconditions<textarea value={form.preconditions} onChange={event => setForm({ ...form, preconditions: event.target.value })} rows={3} placeholder="One precondition per line" /></label>
-                            <label>Suite association<select value={selectedSuite?.id || ''} onChange={event => { setSuiteId(event.target.value); setSelectedKey(''); setForm(current => ({ ...current, requirementId: '' })); }} disabled={Boolean(editingCase)}>{suites.map(suite => <option key={suite.id} value={suite.id}>{suite.name}</option>)}</select>{editingCase && <small>Use “Add a copy to another suite” to create a related case in another suite.</small>}</label>
-                            <label>Test category<select value={form.type} onChange={event => setForm({ ...form, type: event.target.value })}>{['Functional', 'Negative', 'Edge', 'Security', 'API', 'Non-functional'].map(type => <option key={type}>{type}</option>)}</select></label>
-                            <label>Execution method<select value={form.method} onChange={event => setForm({ ...form, method: event.target.value })}><option value="manual">Manual</option><option value="automated">Automated</option></select></label>
-                            <label>Priority<select value={form.priority} onChange={event => setForm({ ...form, priority: event.target.value })}>{PRIORITIES.map(value => <option key={value}>{value}</option>)}</select></label>
-                            <label>Status<select value={form.status} onChange={event => setForm({ ...form, status: event.target.value })}><option>Draft</option><option>Needs Review</option><option>Ready</option></select></label>
-                            <label>Requirement<select value={form.requirementId} onChange={event => setForm({ ...form, requirementId: event.target.value })}><option value="">No requirement linked</option>{selectedRequirements.map(requirement => <option key={requirement.id} value={requirement.id}>{requirement.id} — {requirement.title}</option>)}</select></label>
-                            <label className="wide">Overall expected result<textarea value={form.expectedResult} onChange={event => setForm({ ...form, expectedResult: event.target.value })} rows={2} /></label>
-                        </div>
-                        <div className="tc-steps-editor"><div><h3>Steps</h3><button type="button" className="tc-text-link" onClick={() => setForm({ ...form, steps: [...form.steps, { action: '', expected: '' }] })}><Plus size={13} />Add step</button></div>
-                            {form.steps.map((step, index) => <div className="tc-step-editor" key={`edit-step-${index}`}><span className="tc-step-number">{index + 1}</span><label>Action<textarea value={step.action} onChange={event => setForm({ ...form, steps: form.steps.map((item, position) => position === index ? { ...item, action: event.target.value } : item) })} rows={2} /></label><label>Expected result<textarea value={step.expected} onChange={event => setForm({ ...form, steps: form.steps.map((item, position) => position === index ? { ...item, expected: event.target.value } : item) })} rows={2} /></label><div className="tc-step-actions"><button type="button" aria-label={`Move step ${index + 1} up`} disabled={index === 0} onClick={() => setForm({ ...form, steps: form.steps.map((item, position, list) => position === index ? list[index - 1] : position === index - 1 ? list[index] : item) })}><ArrowUp size={13} /></button><button type="button" aria-label={`Move step ${index + 1} down`} disabled={index === form.steps.length - 1} onClick={() => setForm({ ...form, steps: form.steps.map((item, position, list) => position === index ? list[index + 1] : position === index + 1 ? list[index] : item) })}><ArrowDown size={13} /></button><button type="button" aria-label={`Remove step ${index + 1}`} onClick={() => setForm({ ...form, steps: form.steps.filter((_, position) => position !== index) })}><X size={13} /></button></div></div>)}
-                        </div>
-                        {form.method === 'automated' && <div className="tc-form-grid"><label>Framework<input value={form.framework} onChange={event => setForm({ ...form, framework: event.target.value })} /></label><label>Script reference<input value={form.scriptRef} onChange={event => setForm({ ...form, scriptRef: event.target.value })} placeholder="tests/e2e/login.spec.js" /></label><label className="wide">Playwright script<textarea value={form.scriptCode} onChange={event => setForm({ ...form, scriptCode: event.target.value })} rows={5} /></label><div className="tc-mapping-help wide">A script reference or script body is saved as a draft mapping. The case can be marked Ready only after its existing Playwright mapping has a valid status.</div></div>}
-                        {formError && <div className="tc-form-error" role="alert">{formError}</div>}
-                        <footer><button type="button" onClick={() => setFormOpen(false)}>Cancel</button><button type="button" disabled={isSaving} onClick={event => saveForm(event, 'Draft')}>{isSaving ? 'Saving…' : 'Save as Draft'}</button><button type="submit" className="tc-primary" disabled={isSaving}><Check size={14} />{isSaving ? 'Saving…' : 'Save test case'}</button><button type="button" className="tc-ready" disabled={isSaving} onClick={event => saveForm(event, 'Ready')}>Mark Ready</button></footer>
-                    </form>
-                </section>
-            </div>, document.body)}
+            {error && (
+                <div className="tc-error" role="alert">
+                    <span>{error}</span>
+                    <button type="button" onClick={() => setRetry(v => v + 1)}>Retry</button>
+                </div>
+            )}
 
-            {addToSuiteOpen && selectedCase && createPortal(<div className="tc-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setAddToSuiteOpen(false); }}><section className="tc-confirm-dialog tc-suite-copy-dialog" role="dialog" aria-modal="true" aria-labelledby="tc-copy-title"><h2 id="tc-copy-title">Add a copy to another suite</h2><p>The original stays in {selectedCase.suiteName}. The new case is saved as a draft.</p><label>Target suite<select value={targetSuiteId} onChange={event => setTargetSuiteId(event.target.value)}><option value="">Select a suite</option>{suites.filter(suite => suite.id !== selectedCase.suiteId).map(suite => <option key={suite.id} value={suite.id}>{suite.project ? `${suite.project} / ` : ''}{suite.name}</option>)}</select></label>{error && <div className="tc-form-error">{error}</div>}<footer><button type="button" onClick={() => setAddToSuiteOpen(false)}>Cancel</button><button type="button" className="tc-primary" disabled={!targetSuiteId || isSaving} onClick={addCaseToSelectedSuite}>{isSaving ? 'Saving…' : 'Add to suite'}</button></footer></section></div>, document.body)}
+            {/* ─── MAIN WORKSPACE TWO-PANEL LAYOUT ─── */}
+            {loading ? (
+                <DataLoadingState message="Loading test cases repository..." />
+            ) : (
+                <div className="tc-workspace">
+                    {/* ─── LEFT PANEL: TEST CASE LIST (~35% width) ─── */}
+                    <section className="tc-list" aria-label="Test case list">
+                        <div className="tc-list-head">
+                            <span>Test Case</span>
+                            <span>Type · Priority · Status</span>
+                            <span>Updated</span>
+                            <span />
+                        </div>
 
-            {deleteTarget && createPortal(<div className="tc-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setDeleteTarget(null); }}><section className="tc-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="tc-delete-title"><h2 id="tc-delete-title">Delete {deleteTarget.id}?</h2><p>This removes the case from its suite. Existing execution records and run snapshots are preserved.</p>{error && <div className="tc-form-error">{error}</div>}<footer><button type="button" onClick={() => setDeleteTarget(null)}>Cancel</button><button type="button" className="tc-delete-confirm" disabled={isSaving} onClick={deleteCase}>{isSaving ? 'Deleting…' : 'Delete test case'}</button></footer></section></div>, document.body)}
+                        {/* Empty States */}
+                        {pageCases.length === 0 ? (
+                            selectedSuite && selectedSuite.caseCount === 0 ? (
+                                <div className="tc-empty-suite-state">
+                                    <div className="tc-empty-icon">
+                                        <Layers size={28} />
+                                    </div>
+                                    <h3>No test cases in "{selectedSuite.name}"</h3>
+                                    <p>
+                                        This {selectedSuite.context.toUpperCase()} test suite is currently empty.
+                                        Create manual or automated test cases to begin test execution, or generate a full test suite with AI.
+                                    </p>
+                                    <div className="tc-empty-actions">
+                                        <button
+                                            type="button"
+                                            className="tc-primary"
+                                            onClick={() => {
+                                                setEditorMode('create');
+                                                setEditorOpen(true);
+                                            }}
+                                        >
+                                            <Plus size={14} /> Create Test Case
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="tc-secondary"
+                                            onClick={() => navigate(`/app/workspace/${selectedSuite.id}`)}
+                                        >
+                                            <Sparkles size={14} /> Open in AI Workspace
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="tc-text-btn"
+                                            onClick={() => handleSuiteChange('')}
+                                        >
+                                            View All Test Cases
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="tc-empty">
+                                    <FilePlus2 size={24} color="var(--tc-jade)" />
+                                    <strong style={{ fontSize: '0.85rem' }}>
+                                        {allCases.length ? 'No test cases match these filters.' : 'No saved test cases found.'}
+                                    </strong>
+                                    <span>
+                                        {allCases.length ? 'Adjust or clear your search terms and category filters.' : 'Create a suite in the AI Workspace to begin.'}
+                                    </span>
+                                    {hasActiveFilters && (
+                                        <button type="button" className="tc-secondary" onClick={handleClearFilters} style={{ marginTop: '8px' }}>
+                                            Clear all filters
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        ) : (
+                            pageCases.map(tc => {
+                                const isSelected = selectedCase?.key === tc.key;
+                                return (
+                                    <button
+                                        type="button"
+                                        key={tc.key}
+                                        className={`tc-row ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => handleSelectCase(tc)}
+                                    >
+                                        <span className="tc-row-main">
+                                            <span className="tc-id">{tc.id || 'TC-NEW'}</span>
+                                            <strong>{tc.title}</strong>
+                                            {!suiteId && <span className="tc-suite-tag">{tc.suiteName}</span>}
+                                        </span>
+
+                                        <span className="tc-row-meta">
+                                            <span className="tc-cat-badge">{tc.type}</span>
+                                            <span className={`tc-priority-badge ${tc.priority.toLowerCase()}`}>
+                                                {tc.priority}
+                                            </span>
+                                            <span className={`tc-status tc-status-${tc.lifecycle}`}>
+                                                {tc.lifecycle.replaceAll('-', ' ')}
+                                            </span>
+                                            <span className={`tc-method ${tc.method}`}>
+                                                {tc.method === 'automated' ? 'Playwright' : 'Manual'}
+                                            </span>
+                                        </span>
+
+                                        <span className="tc-row-date">{formatTimeAgo(tc.updatedAt)}</span>
+                                        <ChevronRight size={14} />
+                                    </button>
+                                );
+                            })
+                        )}
+
+                        {/* Pagination Bar */}
+                        {pageCount > 1 && (
+                            <div className="tc-pagination">
+                                <span>
+                                    {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredCases.length)} of {filteredCases.length}
+                                </span>
+                                <button type="button" disabled={page <= 1} onClick={() => setPage(v => v - 1)}>
+                                    Previous
+                                </button>
+                                <button type="button" disabled={page >= pageCount} onClick={() => setPage(v => v + 1)}>
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* ─── RIGHT PANEL: SELECTED TEST CASE DETAIL (~65% width) ─── */}
+                    {selectedCase ? (
+                        <aside className="tc-detail" aria-label="Test case details">
+                            <button
+                                type="button"
+                                className="tc-mobile-back"
+                                onClick={() => setMobileDetailOpen(false)}
+                            >
+                                <ArrowLeft size={14} /> Back to test case list
+                            </button>
+
+                            {/* Top Bar: Identity & Actions */}
+                            <div className="tc-detail-top">
+                                <div>
+                                    <span className="tc-id" style={{ fontSize: '0.8rem' }}>{selectedCase.id}</span>
+                                    <span className={`tc-status tc-status-${selectedCase.lifecycle}`}>
+                                        {selectedCase.lifecycle.replaceAll('-', ' ')}
+                                    </span>
+                                    <span className={`tc-priority-badge ${selectedCase.priority.toLowerCase()}`}>
+                                        {selectedCase.priority} Priority
+                                    </span>
+                                </div>
+
+                                <div className="tc-actions">
+                                    <button
+                                        type="button"
+                                        aria-label="Edit test case"
+                                        title="Edit test case"
+                                        onClick={() => {
+                                            setEditorMode('edit');
+                                            setEditorOpen(true);
+                                        }}
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Duplicate test case"
+                                        title="Duplicate test case"
+                                        onClick={handleDuplicateCase}
+                                        disabled={isSaving}
+                                    >
+                                        <Copy size={14} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        aria-label={selectedCase.lifecycle === 'archived' ? 'Restore test case' : 'Archive test case'}
+                                        title={selectedCase.lifecycle === 'archived' ? 'Restore test case' : 'Archive test case'}
+                                        onClick={handleToggleArchive}
+                                        disabled={isSaving}
+                                    >
+                                        {selectedCase.lifecycle === 'archived' ? <RotateCcw size={14} /> : <Archive size={14} />}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        aria-label="Delete test case"
+                                        title="Delete test case"
+                                        onClick={() => setDeleteModalOpen(true)}
+                                        disabled={isSaving}
+                                    >
+                                        <Trash2 size={14} color="var(--tc-fail)" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h2>{selectedCase.title}</h2>
+
+                            {/* Metadata Facts Strip */}
+                            <div className="tc-facts">
+                                <span>Category: <strong style={{ color: '#FFFFFF' }}>{selectedCase.type}</strong></span>
+                                <span>•</span>
+                                <span>Method: <strong style={{ color: selectedCase.method === 'automated' ? 'var(--tc-blue)' : '#FFFFFF' }}>
+                                    {selectedCase.method === 'automated' ? 'Playwright Automated' : 'Manual Verification'}
+                                </strong></span>
+                                <span>•</span>
+                                <span>Updated: <strong style={{ color: '#FFFFFF' }}>{formatDate(selectedCase.updatedAt)}</strong></span>
+                                {selectedCase.suiteName && (
+                                    <>
+                                        <span>•</span>
+                                        <span>Suite: <strong style={{ color: '#FFFFFF' }}>{selectedCase.suiteName}</strong></span>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Prominent Execution Action Bar */}
+                            <div className="tc-execute-bar">
+                                <button
+                                    type="button"
+                                    className="tc-execute"
+                                    onClick={handleOpenExecution}
+                                    disabled={!selectedCase.id}
+                                    title="Record or run execution"
+                                >
+                                    <Play size={14} />
+                                    <span>{selectedCase.method === 'automated' ? 'Run Playwright Automation' : 'Execute Test Scenario'}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="tc-secondary"
+                                    onClick={() => navigate(`/app/test-suites/${selectedCase.suiteId}?testCaseId=${encodeURIComponent(selectedCase.id)}&execute=1`)}
+                                    title="Open full suite in Run Execution Workspace"
+                                >
+                                    <ExternalLink size={13} />
+                                    <span>Open in Run Workspace</span>
+                                </button>
+                            </div>
+
+                            {/* Section 1: Overview & Description */}
+                            {selectedCase.description && (
+                                <section className="tc-detail-section">
+                                    <h3>Scenario Description</h3>
+                                    <p>{selectedCase.description}</p>
+                                </section>
+                            )}
+
+                            {/* Section 2: Preconditions */}
+                            <section className="tc-detail-section">
+                                <h3>Preconditions</h3>
+                                <p>
+                                    {Array.isArray(selectedCase.preconditions) && selectedCase.preconditions.length > 0
+                                        ? selectedCase.preconditions.join('\n')
+                                        : 'None specified.'}
+                                </p>
+                            </section>
+
+                            {/* Section 3: Structured Test Steps */}
+                            <section className="tc-detail-section">
+                                <h3>Test Execution Procedure ({selectedCase.steps.length} steps)</h3>
+                                {selectedCase.steps.length > 0 ? (
+                                    <div className="tc-detail-steps">
+                                        {selectedCase.steps.map((step, idx) => (
+                                            <div className="tc-detail-step-card" key={idx}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <span className="tc-detail-step-num">Step {idx + 1}</span>
+                                                    {step.testData && (
+                                                        <span className="tc-detail-step-data">
+                                                            Data: {step.testData}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="tc-detail-step-action">
+                                                    {typeof step === 'object' ? (step.action || step.description || '') : String(step)}
+                                                </div>
+                                                {step.expected && (
+                                                    <div className="tc-detail-step-expected">
+                                                        ↳ Expected: {typeof step === 'object' ? (step.expected || step.expectedResult || '') : ''}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p>No individual execution steps recorded.</p>
+                                )}
+                            </section>
+
+                            {/* Section 4: Target Expected Result */}
+                            <section className="tc-detail-section">
+                                <h3>Acceptance Criteria / Overall Expected Result</h3>
+                                <p style={{ color: 'var(--tc-jade)' }}>
+                                    {selectedCase.expectedResult || 'System should complete flow without errors or assertion differences.'}
+                                </p>
+                            </section>
+
+                            {/* Section 5: Requirement Traceability Mapping */}
+                            <section className="tc-detail-section">
+                                <h3>Requirement Traceability</h3>
+                                {selectedCase.requirementId ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                            type="button"
+                                            className="tc-text-link"
+                                            onClick={() => navigate(`/app/coverage?suiteId=${encodeURIComponent(selectedCase.suiteId)}&requirementId=${encodeURIComponent(selectedCase.requirementId)}`)}
+                                            title="View requirement in Coverage Matrix"
+                                        >
+                                            <Shield size={13} color="var(--tc-jade)" />
+                                            <strong>{selectedCase.requirementId}</strong>
+                                            <ExternalLink size={12} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p style={{ color: 'var(--tc-text-dim)' }}>
+                                        No specification requirement currently linked. Click Edit to associate this test case with a functional requirement.
+                                    </p>
+                                )}
+                            </section>
+
+                            {/* Section 6: Suite Associations */}
+                            <section className="tc-detail-section">
+                                <h3>Suite Associations</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <button
+                                            type="button"
+                                            className="tc-text-link"
+                                            onClick={() => navigate(`/app/test-suites/${selectedCase.suiteId}?testCaseId=${encodeURIComponent(selectedCase.id)}`)}
+                                            title="Open test suite specification"
+                                        >
+                                            <Layers size={13} color="var(--tc-jade)" />
+                                            <span>{selectedCase.suiteName}</span>
+                                            <ExternalLink size={12} />
+                                        </button>
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--tc-text-dim)' }}>Parent Suite</span>
+                                    </div>
+
+                                    {suites.length > 1 && (
+                                        <button
+                                            type="button"
+                                            className="tc-text-link"
+                                            onClick={() => setAddToSuiteOpen(true)}
+                                            style={{ marginTop: '4px' }}
+                                        >
+                                            <FilePlus2 size={13} />
+                                            <span>Add a copy to another test suite</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </section>
+
+                            {/* Section 7: Automation Information */}
+                            <section className="tc-detail-section">
+                                <h3>Playwright Automation Ledger</h3>
+                                {selectedCase.method === 'automated' ? (
+                                    <div className="tc-automation">
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span className={validAutomation(selectedCase.raw) ? 'mapped' : 'unmapped'}>
+                                                {validAutomation(selectedCase.raw) ? '✓ Configured & Validated' : '⚠ Unvalidated / Needs Mapping'}
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', color: 'var(--tc-text-dim)' }}>
+                                                {selectedCase.automationMapping?.framework || 'Playwright (Chromium)'}
+                                            </span>
+                                        </div>
+
+                                        <div style={{ fontSize: '0.7rem' }}>
+                                            Script Target: <code>{selectedCase.automationMapping?.scriptRef || selectedCase.automationMapping?.automationTestId || 'Custom embedded script'}</code>
+                                        </div>
+
+                                        {selectedCase.automationMapping?.scriptCode && (
+                                            <div>
+                                                <button
+                                                    type="button"
+                                                    className="tc-code-toggle"
+                                                    onClick={() => setShowScriptPreview(!showScriptPreview)}
+                                                >
+                                                    <Code size={13} />
+                                                    <span>{showScriptPreview ? 'Hide Script Code' : 'View Script Code'}</span>
+                                                </button>
+                                                {showScriptPreview && (
+                                                    <pre className="tc-code-block">
+                                                        {selectedCase.automationMapping.scriptCode}
+                                                    </pre>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p>Manual test case — Verified through step-by-step human execution. Can be automated with Playwright.</p>
+                                )}
+                            </section>
+
+                            {/* Section 8: Execution History */}
+                            <section className="tc-detail-section">
+                                <h3>Execution History</h3>
+                                {executionHistory.loading ? (
+                                    <span className="tc-muted">Querying execution records…</span>
+                                ) : executionHistory.error ? (
+                                    <span className="tc-error-text">{executionHistory.error}</span>
+                                ) : executionHistory.rows.length > 0 ? (
+                                    <div className="tc-executions">
+                                        {executionHistory.rows.map((row, idx) => {
+                                            const st = String(row.status || row.caseStatus || 'not_run').toLowerCase();
+                                            return (
+                                                <div className="tc-execution-item" key={idx}>
+                                                    <div className="tc-execution-left">
+                                                        <span className={`tc-status tc-status-${st}`}>
+                                                            {st.replace('_', ' ')}
+                                                        </span>
+                                                        <span style={{ color: '#FFFFFF', fontWeight: 500 }}>
+                                                            {row.runName || `Run #${String(row.runId).slice(-6)}`}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <span className="tc-execution-dur">
+                                                            {row.durationMs ? `${(row.durationMs / 1000).toFixed(1)}s` : '—'}
+                                                        </span>
+                                                        <span style={{ color: 'var(--tc-text-dim)', fontSize: '0.66rem' }}>
+                                                            {row.executedAt || row.createdAt ? formatDate(row.executedAt || row.createdAt) : ''}
+                                                        </span>
+                                                        <NavLink
+                                                            to={`/app/runs/${row.runId}?tab=report&caseId=${encodeURIComponent(selectedCase.id)}`}
+                                                            className="tc-text-link"
+                                                            title="Inspect Execution Report"
+                                                        >
+                                                            <span>Report</span>
+                                                            <ExternalLink size={11} />
+                                                        </NavLink>
+                                                        {row.artifactCount > 0 && (
+                                                            <NavLink
+                                                                to={`/app/runs/${row.runId}?tab=artifacts&caseId=${encodeURIComponent(selectedCase.id)}`}
+                                                                className="tc-text-link"
+                                                                title="View Evidence Artifacts"
+                                                            >
+                                                                <Camera size={11} />
+                                                                <span>Evidence</span>
+                                                            </NavLink>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p>No historical execution records found. Click "Execute" to run this test case.</p>
+                                )}
+                            </section>
+                        </aside>
+                    ) : (
+                        <aside className="tc-detail tc-detail-empty">
+                            <span>Select a test case from the list to inspect its specification, mapping, and execution records.</span>
+                        </aside>
+                    )}
+                </div>
+            )}
+
+            {/* ─── MODALS ─── */}
+            <TestCaseEditorModal
+                isOpen={editorOpen}
+                onClose={() => setEditorOpen(false)}
+                mode={editorMode}
+                initialCase={editorMode === 'edit' ? selectedCase : null}
+                suites={suites}
+                selectedSuiteId={suiteId || suites[0]?.id || ''}
+                onSave={async (targetSuiteId, oldCase, nextCase, desiredStatus) => {
+                    const targetSession = suites.find(s => s.id === targetSuiteId)?.session;
+                    if (!targetSession) throw new Error('Target suite was not found.');
+                    const caseWithId = {
+                        ...nextCase,
+                        id: nextCase.id || makeCaseId(getSuiteData(targetSession), String(nextCase.type).toLowerCase().replace(/[^a-z0-9]+/g, '_'))
+                    };
+                    await patchCase(targetSession, oldCase, caseWithId);
+                }}
+                isSaving={isSaving}
+            />
+
+            <ManualExecutionModal
+                isOpen={manualExecOpen}
+                onClose={() => setManualExecOpen(false)}
+                testCase={selectedCase}
+                onRecord={handleRecordManualExecution}
+                isRecording={isSaving}
+            />
+
+            <AutomatedExecutionModal
+                isOpen={autoExecOpen}
+                onClose={() => setAutoExecOpen(false)}
+                testCase={selectedCase}
+                onExecutionComplete={async () => {
+                    await loadData();
+                    triggerToast(`Automated execution completed for ${selectedCase.id}.`);
+                }}
+            />
+
+            <AddToSuiteModal
+                isOpen={addToSuiteOpen}
+                onClose={() => setAddToSuiteOpen(false)}
+                testCase={selectedCase}
+                suites={suites}
+                onAdd={handleAddToSuite}
+                isSaving={isSaving}
+            />
+
+            <DeleteConfirmModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                testCase={selectedCase}
+                onConfirm={handleDeleteCase}
+                isDeleting={isSaving}
+            />
         </div>
     );
 };
