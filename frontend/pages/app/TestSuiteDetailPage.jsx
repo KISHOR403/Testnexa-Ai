@@ -340,6 +340,52 @@ const TestSuiteDetailPage = () => {
         return caseCandidates.filter(testCase => !text || `${testCase.testCaseId} ${testCase.title} ${testCase.sourceSuiteName} ${testCase.type}`.toLowerCase().includes(text));
     }, [caseCandidates, caseMappingSearch]);
 
+    const loadCaseSources = useCallback(async () => {
+        setCaseSourceLoading(true);
+        setCaseMappingError('');
+        try {
+            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt' });
+            if (!first?.success) throw new Error(first?.message || 'Available test cases could not be loaded.');
+            const sources = [...(first.data || [])];
+            for (let currentPage = 2; currentPage <= Number(first.pagination?.totalPages || 1); currentPage += 1) {
+                const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt' });
+                if (!response?.success) throw new Error(response?.message || 'Additional test cases could not be loaded.');
+                sources.push(...(response.data || []));
+            }
+            setCaseSourceSessions(sources);
+            return sources;
+        } catch (error) {
+            setCaseMappingError(error.message || 'Available test cases could not be loaded.');
+            return null;
+        } finally { setCaseSourceLoading(false); }
+    }, []);
+
+    const saveCaseMappings = async () => {
+        const candidatesByKey = new Map(caseCandidates.map(candidate => [candidate.key, candidate]));
+        const nextRefs = [...caseMappingSelection].flatMap(key => {
+            const candidate = candidatesByKey.get(key);
+            return candidate ? [{ sourceSuiteId: candidate.sourceSuiteId, testCaseId: candidate.testCaseId }] : [];
+        });
+        setCaseMappingSaving(true);
+        setCaseMappingError('');
+        try {
+            const nextData = { ...(rawSuiteData || {}), managedSuite: true, testCaseRefs: nextRefs };
+            const response = await sessionService.update(id, { suiteData: nextData }, shareToken);
+            setRemoteSession(response.data || { ...remoteSession, suiteData: nextData });
+            setCaseMappingOpen(false);
+        } catch (error) { setCaseMappingError(error.message || 'Test case mappings could not be saved.'); }
+        finally { setCaseMappingSaving(false); }
+    };
+
+    const openCaseMappings = async () => {
+        const sources = caseSourceSessions.length ? caseSourceSessions : await loadCaseSources();
+        if (!sources) return;
+        setCaseMappingSelection(new Set((rawSuiteData?.testCaseRefs || []).map(mappingKey)));
+        setCaseMappingSearch('');
+        setCaseMappingError('');
+        setCaseMappingOpen(true);
+    };
+
     useEffect(() => {
         if (rawSuiteData?.testCaseRefs?.length && !caseSourceSessions.length) loadCaseSources();
     }, [rawSuiteData?.testCaseRefs?.length, caseSourceSessions.length, loadCaseSources]);
@@ -395,52 +441,6 @@ const TestSuiteDetailPage = () => {
             }, shareToken);
             setRemoteSession(response.data || remoteSession);
         } catch (error) { setSuiteEditError(error.message || 'Suite status could not be updated.'); }
-    };
-
-    const loadCaseSources = useCallback(async () => {
-        setCaseSourceLoading(true);
-        setCaseMappingError('');
-        try {
-            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt' });
-            if (!first?.success) throw new Error(first?.message || 'Available test cases could not be loaded.');
-            const sources = [...(first.data || [])];
-            for (let currentPage = 2; currentPage <= Number(first.pagination?.totalPages || 1); currentPage += 1) {
-                const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt' });
-                if (!response?.success) throw new Error(response?.message || 'Additional test cases could not be loaded.');
-                sources.push(...(response.data || []));
-            }
-            setCaseSourceSessions(sources);
-            return sources;
-        } catch (error) {
-            setCaseMappingError(error.message || 'Available test cases could not be loaded.');
-            return null;
-        } finally { setCaseSourceLoading(false); }
-    }, []);
-
-    const openCaseMappings = async () => {
-        const sources = caseSourceSessions.length ? caseSourceSessions : await loadCaseSources();
-        if (!sources) return;
-        setCaseMappingSelection(new Set((rawSuiteData?.testCaseRefs || []).map(mappingKey)));
-        setCaseMappingSearch('');
-        setCaseMappingError('');
-        setCaseMappingOpen(true);
-    };
-
-    const saveCaseMappings = async () => {
-        const candidatesByKey = new Map(caseCandidates.map(candidate => [candidate.key, candidate]));
-        const nextRefs = [...caseMappingSelection].flatMap(key => {
-            const candidate = candidatesByKey.get(key);
-            return candidate ? [{ sourceSuiteId: candidate.sourceSuiteId, testCaseId: candidate.testCaseId }] : [];
-        });
-        setCaseMappingSaving(true);
-        setCaseMappingError('');
-        try {
-            const nextData = { ...(rawSuiteData || {}), managedSuite: true, testCaseRefs: nextRefs };
-            const response = await sessionService.update(id, { suiteData: nextData }, shareToken);
-            setRemoteSession(response.data || { ...remoteSession, suiteData: nextData });
-            setCaseMappingOpen(false);
-        } catch (error) { setCaseMappingError(error.message || 'Test case mappings could not be saved.'); }
-        finally { setCaseMappingSaving(false); }
     };
 
     // ─── Loading State (Layout Preserving) ───
