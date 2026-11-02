@@ -19,6 +19,9 @@ const ManualExecutionModal = ({
     const [screenshotName, setScreenshotName] = useState('');
     const [error, setError] = useState('');
     const [startTime] = useState(Date.now());
+    const [stepOutcomes, setStepOutcomes] = useState({});
+
+    const steps = Array.isArray(testCase?.steps) ? testCase.steps : [];
 
     useEffect(() => {
         if (!isOpen) return;
@@ -28,7 +31,27 @@ const ManualExecutionModal = ({
         setScreenshotData(null);
         setScreenshotName('');
         setError('');
+        const initial = {};
+        steps.forEach((_, idx) => { initial[idx] = 'passed'; });
+        setStepOutcomes(initial);
     }, [isOpen]);
+
+    const handleStepOutcomeChange = (idx, outcome) => {
+        const next = { ...stepOutcomes, [idx]: outcome };
+        setStepOutcomes(next);
+
+        // Auto-calculate final execution outcome
+        const values = Object.values(next);
+        if (values.includes('failed')) {
+            setStatus('failed');
+        } else if (values.includes('blocked')) {
+            setStatus('blocked');
+        } else if (values.length > 0 && values.every(v => v === 'skipped')) {
+            setStatus('skipped');
+        } else {
+            setStatus('passed');
+        }
+    };
 
     if (!isOpen || !testCase) return null;
 
@@ -82,10 +105,9 @@ const ManualExecutionModal = ({
         }
     };
 
-    const steps = Array.isArray(testCase.steps) ? testCase.steps : [];
-    const preconditions = Array.isArray(testCase.preconditions)
+    const preconditions = Array.isArray(testCase?.preconditions)
         ? testCase.preconditions.join(', ')
-        : String(testCase.preconditions || '');
+        : String(testCase?.preconditions || '');
 
     return createPortal(
         <div className="tc-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -120,23 +142,76 @@ const ManualExecutionModal = ({
                                 Verification Steps ({steps.length})
                             </span>
                             <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '4px' }}>
-                                {steps.map((st, idx) => (
-                                    <div key={idx} style={{ background: '#131815', padding: '8px 10px', borderRadius: '4px', border: '1px solid #1E2521', fontSize: '0.72rem' }}>
-                                        <div style={{ color: '#FFFFFF', fontWeight: 500 }}>
-                                            Step {idx + 1}: {typeof st === 'object' ? (st.action || st.description || '') : String(st)}
+                                {steps.map((st, idx) => {
+                                    const currentStepOutcome = stepOutcomes[idx] || 'passed';
+                                    return (
+                                        <div key={idx} style={{ background: '#131815', padding: '8px 10px', borderRadius: '4px', border: '1px solid #1E2521', fontSize: '0.72rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ color: '#FFFFFF', fontWeight: 500 }}>
+                                                        Step {idx + 1}: {typeof st === 'object' ? (st.action || st.description || '') : String(st)}
+                                                    </div>
+                                                    {st.expected && (
+                                                        <div style={{ color: 'var(--tc-jade)', marginTop: '3px' }}>
+                                                            ↳ Expected: {typeof st === 'object' ? (st.expected || st.expectedResult || '') : ''}
+                                                        </div>
+                                                    )}
+                                                    {st.testData && (
+                                                        <div style={{ color: 'var(--tc-muted)', fontFamily: 'ui-monospace, monospace', fontSize: '0.68rem', marginTop: '2px' }}>
+                                                            Data: {st.testData}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Step-Level Outcome Toggle */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                                    <button
+                                                        type="button"
+                                                        title="Pass step"
+                                                        onClick={() => handleStepOutcomeChange(idx, 'passed')}
+                                                        style={{
+                                                            padding: '2px 6px', borderRadius: '3px', border: '1px solid',
+                                                            borderColor: currentStepOutcome === 'passed' ? 'var(--tc-jade)' : '#28332B',
+                                                            background: currentStepOutcome === 'passed' ? 'rgba(139, 175, 154, 0.2)' : 'transparent',
+                                                            color: currentStepOutcome === 'passed' ? 'var(--tc-jade)' : '#6C7A71',
+                                                            cursor: 'pointer', fontSize: '0.65rem'
+                                                        }}
+                                                    >
+                                                        ✓ Pass
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        title="Fail step"
+                                                        onClick={() => handleStepOutcomeChange(idx, 'failed')}
+                                                        style={{
+                                                            padding: '2px 6px', borderRadius: '3px', border: '1px solid',
+                                                            borderColor: currentStepOutcome === 'failed' ? 'var(--tc-fail)' : '#28332B',
+                                                            background: currentStepOutcome === 'failed' ? 'rgba(224, 108, 117, 0.2)' : 'transparent',
+                                                            color: currentStepOutcome === 'failed' ? 'var(--tc-fail)' : '#6C7A71',
+                                                            cursor: 'pointer', fontSize: '0.65rem'
+                                                        }}
+                                                    >
+                                                        ✕ Fail
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        title="Block step"
+                                                        onClick={() => handleStepOutcomeChange(idx, 'blocked')}
+                                                        style={{
+                                                            padding: '2px 6px', borderRadius: '3px', border: '1px solid',
+                                                            borderColor: currentStepOutcome === 'blocked' ? 'var(--tc-warn)' : '#28332B',
+                                                            background: currentStepOutcome === 'blocked' ? 'rgba(229, 192, 123, 0.2)' : 'transparent',
+                                                            color: currentStepOutcome === 'blocked' ? 'var(--tc-warn)' : '#6C7A71',
+                                                            cursor: 'pointer', fontSize: '0.65rem'
+                                                        }}
+                                                    >
+                                                        ⚠ Block
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        {st.expected && (
-                                            <div style={{ color: 'var(--tc-jade)', marginTop: '3px' }}>
-                                                ↳ Expected: {typeof st === 'object' ? (st.expected || st.expectedResult || '') : ''}
-                                            </div>
-                                        )}
-                                        {st.testData && (
-                                            <div style={{ color: 'var(--tc-muted)', fontFamily: 'ui-monospace, monospace', fontSize: '0.68rem', marginTop: '2px' }}>
-                                                Data: {st.testData}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

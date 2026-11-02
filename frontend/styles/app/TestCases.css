@@ -639,7 +639,7 @@
 
 .tc-list-head {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) minmax(180px, 1.1fr) minmax(80px, 0.4fr) 16px;
+  grid-template-columns: minmax(280px, 2.4fr) minmax(130px, 0.85fr) minmax(70px, 0.35fr) 16px;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
@@ -734,7 +734,7 @@
 /* Individual Test Case Row */
 .tc-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) minmax(180px, 1.1fr) minmax(80px, 0.4fr) 16px;
+  grid-template-columns: minmax(280px, 2.4fr) minmax(130px, 0.85fr) minmax(70px, 0.35fr) 16px;
   align-items: center;
   gap: 12px;
   width: 100%;

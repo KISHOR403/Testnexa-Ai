@@ -60,12 +60,23 @@ const getMethod = (tc) => {
 };
 
 const getLifecycle = (tc) => {
+    if (tc?.archivedAt) return 'archived';
+    const explicit = String(tc?.lifecycle || tc?.lifecycleStatus || '').toLowerCase().trim();
+    if (explicit === 'draft') return 'draft';
+    if (['needs-review', 'needs_review', 'review'].includes(explicit)) return 'needs-review';
+    if (explicit === 'archived') return 'archived';
+    if (explicit === 'ready') return 'ready';
+
     const status = String(tc?.status || '').toLowerCase().replaceAll('_', ' ').trim();
-    if (tc?.archivedAt || status === 'archived') return 'archived';
+    if (status === 'archived') return 'archived';
     if (status === 'draft') return 'draft';
-    if (['ready', 'approved'].includes(status)) return getMethod(tc) === 'automated' && !validAutomation(tc) ? 'needs-review' : 'ready';
-    if (['needs review', 'review', 'generated', 'pending'].includes(status)) return 'needs-review';
-    return status ? status.replaceAll(' ', '-') : 'ready';
+    if (['needs review', 'needs-review', 'review', 'generated', 'pending'].includes(status)) return 'needs-review';
+    if (['ready', 'approved', 'active'].includes(status)) {
+        return getMethod(tc) === 'automated' && !validAutomation(tc) ? 'needs-review' : 'ready';
+    }
+
+    // Default to ready for existing test cases; never let execution values masquerade as lifecycle
+    return 'ready';
 };
 
 const requirementsFromSuite = (suite) => {
@@ -197,7 +208,20 @@ const formatExecutionStatus = (status) => {
         case 'blocked': return 'Blocked';
         case 'skipped': return 'Skipped';
         case 'running': return 'Running';
+        case 'queued': return 'Queued';
+        case 'error': return 'Error';
+        case 'cancelled': return 'Cancelled';
         default: return 'Not Executed';
+    }
+};
+
+const formatLifecycleStatus = (status) => {
+    switch (String(status || '').toLowerCase()) {
+        case 'draft': return 'Draft';
+        case 'needs-review':
+        case 'needs_review': return 'Needs Review';
+        case 'archived': return 'Archived';
+        default: return 'Ready';
     }
 };
 
@@ -259,6 +283,29 @@ const TestCasesPage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [copiedCaseId, setCopiedCaseId] = useState(false);
+    const [collapsedDetailSections, setCollapsedDetailSections] = useState(new Set());
+
+    const toggleDetailSection = (sec) => {
+        setCollapsedDetailSections(prev => {
+            const next = new Set(prev);
+            if (next.has(sec)) next.delete(sec);
+            else next.add(sec);
+            return next;
+        });
+    };
+
+    const handleCopyId = async (id) => {
+        if (!id) return;
+        try {
+            await navigator.clipboard.writeText(id);
+            setCopiedCaseId(true);
+            triggerToast(`Copied ${id} to clipboard`);
+            window.setTimeout(() => setCopiedCaseId(false), 2000);
+        } catch {
+            triggerToast(`ID: ${id}`);
+        }
+    };
 
     // Execution resolution maps: key -> execution object
     const [executionHistory, setExecutionHistory] = useState({ key: '', rows: [], loading: false, error: '' });
@@ -1659,15 +1706,35 @@ const TestCasesPage = () => {
 
                             {/* Top Bar: Identity & Actions */}
                             <div className="tc-detail-top">
-                                <div>
-                                    <span className="tc-id" style={{ fontSize: '0.8rem' }}>{selectedCase.id}</span>
-                                    <span className={`tc-lifecycle-badge tc-lifecycle-${selectedCase.lifecycle}`} title="Lifecycle Status">
-                                        {selectedCase.lifecycle.replaceAll('-', ' ')}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        <span className="tc-id" style={{ fontSize: '0.8rem' }}>{selectedCase.id}</span>
+                                        <button
+                                            type="button"
+                                            className="tc-copy-id-btn"
+                                            title="Copy test case ID"
+                                            aria-label="Copy test case ID"
+                                            onClick={() => handleCopyId(selectedCase.id)}
+                                            style={{
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: copiedCaseId ? 'var(--tc-jade)' : '#6C7A71',
+                                                cursor: 'pointer',
+                                                padding: '2px 4px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+                                            {copiedCaseId ? <Check size={12} /> : <Copy size={12} />}
+                                        </button>
+                                    </div>
+                                    <span className={`tc-lifecycle-badge tc-lifecycle-${selectedCase.lifecycle}`} title={`Lifecycle Status: ${formatLifecycleStatus(selectedCase.lifecycle)}`}>
+                                        {formatLifecycleStatus(selectedCase.lifecycle)}
                                     </span>
-                                    <span className={`tc-exec-badge tc-exec-${selectedCaseExecutionStatus}`} title="Latest Execution Outcome">
+                                    <span className={`tc-exec-badge tc-exec-${selectedCaseExecutionStatus}`} title={`Latest Execution Outcome: ${formatExecutionStatus(selectedCaseExecutionStatus)}`}>
                                         {formatExecutionStatus(selectedCaseExecutionStatus)}
                                     </span>
-                                    <span className={`tc-priority-badge ${selectedCase.priority.toLowerCase()}`}>
+                                    <span className={`tc-priority-badge ${selectedCase.priority.toLowerCase()}`} title={`Priority: ${selectedCase.priority}`}>
                                         {selectedCase.priority} Priority
                                     </span>
                                 </div>
@@ -1768,163 +1835,290 @@ const TestCasesPage = () => {
 
                             {/* Description */}
                             <div className="tc-block">
-                                <div className="tc-block-title">Description</div>
-                                {selectedCase.description ? (
-                                    <p className="tc-text-body">{selectedCase.description}</p>
-                                ) : (
-                                    <p className="tc-muted-text">No detailed description recorded for this test case.</p>
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('desc')}
+                                    title="Toggle description section"
+                                >
+                                    <span>Description</span>
+                                    {collapsedDetailSections.has('desc') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                </div>
+                                {!collapsedDetailSections.has('desc') && (
+                                    selectedCase.description ? (
+                                        <p className="tc-text-body">{selectedCase.description}</p>
+                                    ) : (
+                                        <p className="tc-muted-text">No detailed description recorded for this test case.</p>
+                                    )
                                 )}
                             </div>
 
                             {/* Preconditions */}
                             <div className="tc-block">
-                                <div className="tc-block-title">Preconditions</div>
-                                {selectedCase.preconditions && selectedCase.preconditions.length > 0 ? (
-                                    <ul className="tc-bullets">
-                                        {(Array.isArray(selectedCase.preconditions) ? selectedCase.preconditions : [selectedCase.preconditions]).map((p, i) => (
-                                            <li key={i}>{p}</li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="tc-muted-text">No preconditions specified for this test scenario.</p>
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('pre')}
+                                    title="Toggle preconditions section"
+                                >
+                                    <span>Preconditions</span>
+                                    {collapsedDetailSections.has('pre') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                </div>
+                                {!collapsedDetailSections.has('pre') && (
+                                    selectedCase.preconditions && selectedCase.preconditions.length > 0 ? (
+                                        <ul className="tc-bullets">
+                                            {(Array.isArray(selectedCase.preconditions) ? selectedCase.preconditions : [selectedCase.preconditions]).map((p, i) => (
+                                                <li key={i}>{p}</li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="tc-muted-text">No preconditions specified for this test scenario.</p>
+                                    )
                                 )}
                             </div>
 
                             {/* Test Steps Table */}
                             <div className="tc-block">
-                                <div className="tc-block-title">
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('steps')}
+                                    title="Toggle test steps section"
+                                >
                                     <span>Structured Test Steps ({selectedCase.steps?.length || 0})</span>
+                                    {collapsedDetailSections.has('steps') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                                 </div>
 
-                                {selectedCase.steps && selectedCase.steps.length > 0 ? (
-                                    <div className="tc-steps-table">
-                                        <div className="tc-steps-head">
-                                            <span>#</span>
-                                            <span>Action</span>
-                                            <span>Expected Result</span>
-                                            <span>Test Data</span>
-                                        </div>
-                                        {selectedCase.steps.map((st, i) => (
-                                            <div className="tc-step-row" key={i}>
-                                                <span className="tc-step-num">{st.step || i + 1}</span>
-                                                <span className="tc-step-action">{st.action || '—'}</span>
-                                                <span className="tc-step-expected">{st.expectedResult || st.expected || '—'}</span>
-                                                <span className="tc-step-data">{st.testData || st.data || '—'}</span>
+                                {!collapsedDetailSections.has('steps') && (
+                                    selectedCase.steps && selectedCase.steps.length > 0 ? (
+                                        <div className="tc-steps-table">
+                                            <div className="tc-steps-head">
+                                                <span>#</span>
+                                                <span>Action</span>
+                                                <span>Expected Result</span>
+                                                <span>Test Data</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="tc-muted-text">No structured test steps recorded.</p>
+                                            {selectedCase.steps.map((st, i) => (
+                                                <div className="tc-step-row" key={i}>
+                                                    <span className="tc-step-num">{st.step || i + 1}</span>
+                                                    <span className="tc-step-action">{st.action || '—'}</span>
+                                                    <span className="tc-step-expected">{st.expectedResult || st.expected || '—'}</span>
+                                                    <span className="tc-step-data">{st.testData || st.data || '—'}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="tc-muted-text">No structured test steps recorded.</p>
+                                    )
                                 )}
                             </div>
 
                             {/* Expected Result */}
                             <div className="tc-block">
-                                <div className="tc-block-title">Overall Expected Result / Acceptance Criteria</div>
-                                {selectedCase.expectedResult ? (
-                                    <div className="tc-expected-box">{selectedCase.expectedResult}</div>
-                                ) : (
-                                    <p className="tc-muted-text">No overall expected result recorded.</p>
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('expected')}
+                                    title="Toggle acceptance criteria section"
+                                >
+                                    <span>Overall Expected Result / Acceptance Criteria</span>
+                                    {collapsedDetailSections.has('expected') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                </div>
+                                {!collapsedDetailSections.has('expected') && (
+                                    selectedCase.expectedResult ? (
+                                        <div className="tc-expected-box">{selectedCase.expectedResult}</div>
+                                    ) : (
+                                        <p className="tc-muted-text">No overall expected result recorded.</p>
+                                    )
                                 )}
                             </div>
 
                             {/* Suite Associations */}
                             <div className="tc-block">
-                                <div className="tc-block-title">
-                                    <span>Suite Associations</span>
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('suites')}
+                                    title="Toggle suite associations section"
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>Suite Associations</span>
+                                        {collapsedDetailSections.has('suites') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                    </div>
                                     <button
                                         type="button"
                                         className="tc-text-action"
-                                        onClick={() => setAddToSuiteOpen(true)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAddToSuiteOpen(true);
+                                        }}
                                         title="Map this test case into another suite"
                                     >
                                         + Add to another suite
                                     </button>
                                 </div>
-                                <div className="tc-suite-ledger">
-                                    <div className="tc-suite-ledger-row">
-                                        <div>
-                                            <strong>{selectedCase.isReference ? selectedCase.sourceSuiteName : selectedCase.suiteName}</strong>
-                                            <span>Primary Native Suite</span>
-                                        </div>
-                                        <NavLink to={`/app/test-suites/${selectedCase.isReference ? selectedCase.sourceSuiteId : selectedCase.suiteId}`} className="tc-link">
-                                            <span>View Suite</span>
-                                            <ExternalLink size={12} />
-                                        </NavLink>
-                                    </div>
-
-                                    {selectedCase.isReference && (
-                                        <div className="tc-suite-ledger-row" style={{ borderTop: '1px solid var(--tc-line-subtle)' }}>
+                                {!collapsedDetailSections.has('suites') && (
+                                    <div className="tc-suite-ledger">
+                                        <div className="tc-suite-ledger-row">
                                             <div>
-                                                <strong>{selectedCase.suiteName}</strong>
-                                                <span>Mapped Reference in this Suite</span>
+                                                <strong>{selectedCase.isReference ? selectedCase.sourceSuiteName : selectedCase.suiteName}</strong>
+                                                <span>Primary Native Suite</span>
                                             </div>
-                                            <button
-                                                type="button"
-                                                className="tc-text-danger"
-                                                onClick={() => setDeleteModalOpen(true)}
-                                                title="Remove this reference mapping from this suite"
-                                            >
-                                                Unlink from Suite
-                                            </button>
+                                            <NavLink to={`/app/test-suites/${selectedCase.isReference ? selectedCase.sourceSuiteId : selectedCase.suiteId}`} className="tc-link" title="Navigate to test suite">
+                                                <span>View Suite</span>
+                                                <ExternalLink size={12} />
+                                            </NavLink>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {selectedCase.isReference && (
+                                            <div className="tc-suite-ledger-row" style={{ borderTop: '1px solid var(--tc-line-subtle)' }}>
+                                                <div>
+                                                    <strong>{selectedCase.suiteName}</strong>
+                                                    <span>Mapped Reference in this Suite</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="tc-text-danger"
+                                                    onClick={() => setDeleteModalOpen(true)}
+                                                    title="Remove this reference mapping from this suite"
+                                                >
+                                                    Unlink from Suite
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Requirement Traceability */}
                             <div className="tc-block">
-                                <div className="tc-block-title">Requirement Traceability</div>
-                                {selectedCase.requirementId ? (
-                                    <div className="tc-req-card">
-                                        <div>
-                                            <div className="tc-req-badge">
-                                                <Shield size={13} />
-                                                <span>{selectedCase.requirementId}</span>
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('trace')}
+                                    title="Toggle requirement traceability section"
+                                >
+                                    <span>Requirement Traceability</span>
+                                    {collapsedDetailSections.has('trace') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                </div>
+                                {!collapsedDetailSections.has('trace') && (
+                                    selectedCase.requirementId ? (
+                                        <div className="tc-req-card">
+                                            <div>
+                                                <div className="tc-req-badge">
+                                                    <Shield size={13} />
+                                                    <span>{selectedCase.requirementId}</span>
+                                                </div>
+                                                <p className="tc-req-desc">
+                                                    Status: {selectedCaseExecutionStatus === 'passed' ? (
+                                                        <span style={{ color: 'var(--tc-jade)' }}>Verified (Passing)</span>
+                                                    ) : selectedCaseExecutionStatus === 'failed' ? (
+                                                        <span style={{ color: 'var(--tc-fail)' }}>Failing Verification</span>
+                                                    ) : (
+                                                        <span style={{ color: '#8C9990' }}>Unverified (Untested)</span>
+                                                    )}
+                                                </p>
                                             </div>
-                                            <p className="tc-req-desc">
-                                                Status: {selectedCaseExecutionStatus === 'passed' ? (
-                                                    <span style={{ color: 'var(--tc-jade)' }}>Verified (Passing)</span>
-                                                ) : selectedCaseExecutionStatus === 'failed' ? (
-                                                    <span style={{ color: 'var(--tc-fail)' }}>Failing Verification</span>
-                                                ) : (
-                                                    <span style={{ color: '#8C9990' }}>Unverified (Untested)</span>
-                                                )}
-                                            </p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <NavLink to={`/app/coverage?reqId=${encodeURIComponent(selectedCase.requirementId)}`} className="tc-link" title="Open in Coverage Matrix">
+                                                    <span>Coverage Matrix</span>
+                                                    <ExternalLink size={12} />
+                                                </NavLink>
+                                                <button
+                                                    type="button"
+                                                    className="tc-text-action"
+                                                    onClick={handleUnlinkRequirement}
+                                                    title="Unlink this requirement"
+                                                >
+                                                    <Unlink size={13} />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <NavLink to={`/app/coverage?reqId=${encodeURIComponent(selectedCase.requirementId)}`} className="tc-link" title="Open in Coverage Matrix">
-                                                <span>Coverage Matrix</span>
-                                                <ExternalLink size={12} />
-                                            </NavLink>
-                                            <button
-                                                type="button"
-                                                className="tc-text-action"
-                                                onClick={handleUnlinkRequirement}
-                                                title="Unlink this requirement"
-                                            >
-                                                <Unlink size={13} />
-                                            </button>
+                                    ) : (
+                                        <div className="tc-req-unmapped">
+                                            <span>No requirement ID linked.</span>
+                                            {availableRequirements.length > 0 ? (
+                                                <select
+                                                    className="tc-quick-req-select"
+                                                    aria-label="Link requirement"
+                                                    onChange={(e) => {
+                                                        if (e.target.value) handleLinkRequirement(e.target.value);
+                                                    }}
+                                                    defaultValue=""
+                                                >
+                                                    <option value="" disabled>Select Requirement to Link...</option>
+                                                    {availableRequirements.map(req => (
+                                                        <option key={req.id} value={req.id}>{req.id} ({req.count} cases)</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="tc-text-action"
+                                                    onClick={() => {
+                                                        setEditorMode('edit');
+                                                        setEditorOpen(true);
+                                                    }}
+                                                >
+                                                    Enter Requirement ID
+                                                </button>
+                                            )}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="tc-req-unmapped">
-                                        <span>No requirement ID linked.</span>
-                                        {availableRequirements.length > 0 ? (
-                                            <select
-                                                className="tc-quick-req-select"
-                                                aria-label="Link requirement"
-                                                onChange={(e) => {
-                                                    if (e.target.value) handleLinkRequirement(e.target.value);
-                                                }}
-                                                defaultValue=""
-                                            >
-                                                <option value="" disabled>Select Requirement to Link...</option>
-                                                {availableRequirements.map(req => (
-                                                    <option key={req.id} value={req.id}>{req.id} ({req.count} cases)</option>
-                                                ))}
-                                            </select>
-                                        ) : (
+                                    )
+                                )}
+                            </div>
+
+                            {/* Playwright Automation Ledger */}
+                            <div className="tc-block">
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('auto')}
+                                    title="Toggle automation ledger section"
+                                >
+                                    <span>Playwright Automation Ledger</span>
+                                    {collapsedDetailSections.has('auto') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                </div>
+                                {!collapsedDetailSections.has('auto') && (
+                                    selectedCase.automationMapping ? (
+                                        <div className="tc-auto-card">
+                                            <div className="tc-auto-row">
+                                                <span>Framework</span>
+                                                <span>Playwright (Chromium)</span>
+                                            </div>
+                                            <div className="tc-auto-row">
+                                                <span>Mapping Status</span>
+                                                <strong style={{ color: selectedCaseAutomationValid ? 'var(--tc-jade)' : 'var(--tc-warn)' }}>
+                                                    {selectedCaseAutomationValid ? 'Configured & Ready' : (selectedCase.automationMapping.mappingStatus || 'Configured')}
+                                                </strong>
+                                            </div>
+                                            <div className="tc-auto-row">
+                                                <span>Spec Reference</span>
+                                                <code>{selectedCase.automationMapping.spec || selectedCase.automationMapping.scriptRef || 'tests/smoke.spec.js'}</code>
+                                            </div>
+
+                                            {(selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code) && (
+                                                <div className="tc-script-preview">
+                                                    <button
+                                                        type="button"
+                                                        className="tc-code-toggle"
+                                                        onClick={() => setShowScriptPreview(!showScriptPreview)}
+                                                    >
+                                                        <Code size={13} />
+                                                        <span>{showScriptPreview ? 'Hide Script Code' : 'View Script Code'}</span>
+                                                    </button>
+
+                                                    {showScriptPreview && (
+                                                        <pre className="tc-code-block">
+                                                            <code>{selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code}</code>
+                                                        </pre>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="tc-auto-unmapped">
+                                            <span>No automated script mapped.</span>
                                             <button
                                                 type="button"
                                                 className="tc-text-action"
@@ -1933,107 +2127,59 @@ const TestCasesPage = () => {
                                                     setEditorOpen(true);
                                                 }}
                                             >
-                                                Enter Requirement ID
+                                                Configure Playwright
                                             </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Playwright Automation Ledger */}
-                            <div className="tc-block">
-                                <div className="tc-block-title">Playwright Automation Ledger</div>
-                                {selectedCase.automationMapping ? (
-                                    <div className="tc-auto-card">
-                                        <div className="tc-auto-row">
-                                            <span>Framework</span>
-                                            <span>Playwright (Chromium)</span>
                                         </div>
-                                        <div className="tc-auto-row">
-                                            <span>Mapping Status</span>
-                                            <strong style={{ color: selectedCaseAutomationValid ? 'var(--tc-jade)' : 'var(--tc-warn)' }}>
-                                                {selectedCaseAutomationValid ? 'Configured & Ready' : (selectedCase.automationMapping.mappingStatus || 'Configured')}
-                                            </strong>
-                                        </div>
-                                        <div className="tc-auto-row">
-                                            <span>Spec Reference</span>
-                                            <code>{selectedCase.automationMapping.spec || selectedCase.automationMapping.scriptRef || 'tests/smoke.spec.js'}</code>
-                                        </div>
-
-                                        {(selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code) && (
-                                            <div className="tc-script-preview">
-                                                <button
-                                                    type="button"
-                                                    className="tc-code-toggle"
-                                                    onClick={() => setShowScriptPreview(!showScriptPreview)}
-                                                >
-                                                    <Code size={13} />
-                                                    <span>{showScriptPreview ? 'Hide Script Code' : 'View Script Code'}</span>
-                                                </button>
-
-                                                {showScriptPreview && (
-                                                    <pre className="tc-code-block">
-                                                        <code>{selectedCase.automationMapping.scriptCode || selectedCase.automationMapping.code}</code>
-                                                    </pre>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="tc-auto-unmapped">
-                                        <span>No automated script mapped.</span>
-                                        <button
-                                            type="button"
-                                            className="tc-text-action"
-                                            onClick={() => {
-                                                setEditorMode('edit');
-                                                setEditorOpen(true);
-                                            }}
-                                        >
-                                            Configure Playwright
-                                        </button>
-                                    </div>
+                                    )
                                 )}
                             </div>
 
                             {/* Genuine Execution History */}
                             <div className="tc-block">
-                                <div className="tc-block-title">
+                                <div
+                                    className="tc-block-title"
+                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                    onClick={() => toggleDetailSection('history')}
+                                    title="Toggle execution history section"
+                                >
                                     <span>Execution History ({executionHistory.rows.length})</span>
+                                    {collapsedDetailSections.has('history') ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                                 </div>
 
-                                {executionHistory.loading ? (
-                                    <p className="tc-muted-text">Querying test run executions...</p>
-                                ) : executionHistory.rows.length > 0 ? (
-                                    <div className="tc-history-list">
-                                        {executionHistory.rows.map((row, i) => {
-                                            const status = (row.status || row.caseStatus || 'not_run').toLowerCase();
-                                            return (
-                                                <div key={i} className="tc-history-row">
-                                                    <div className="tc-history-left">
-                                                        <span className={`tc-status-dot ${status}`} />
-                                                        <div>
-                                                            <div className="tc-history-run-name">{row.runName}</div>
-                                                            <div className="tc-history-time">
-                                                                {formatDate(row.executedAt || row.createdAt)} · {row.durationMs || 0}ms · {row.executorType === 'automated' ? 'Playwright' : 'Manual'}
+                                {!collapsedDetailSections.has('history') && (
+                                    executionHistory.loading ? (
+                                        <p className="tc-muted-text">Querying test run executions...</p>
+                                    ) : executionHistory.rows.length > 0 ? (
+                                        <div className="tc-history-list">
+                                            {executionHistory.rows.map((row, i) => {
+                                                const status = (row.status || row.caseStatus || 'not_run').toLowerCase();
+                                                return (
+                                                    <div key={i} className="tc-history-row">
+                                                        <div className="tc-history-left">
+                                                            <span className={`tc-status-dot ${status}`} />
+                                                            <div>
+                                                                <div className="tc-history-run-name">{row.runName}</div>
+                                                                <div className="tc-history-time">
+                                                                    {formatDate(row.executedAt || row.createdAt)} · {row.durationMs || 0}ms · {row.executorType === 'automated' ? 'Playwright' : 'Manual'}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
 
-                                                    <div className="tc-history-right">
-                                                        <span className={`tc-exec-badge tc-exec-${status}`}>
-                                                            {formatExecutionStatus(status)}
-                                                        </span>
-                                                        <NavLink to={`/app/runs/${row.runId}?tab=report`} className="tc-link" title="Open execution report">
-                                                            <ExternalLink size={12} />
-                                                        </NavLink>
+                                                        <div className="tc-history-right">
+                                                            <span className={`tc-exec-badge tc-exec-${status}`}>
+                                                                {formatExecutionStatus(status)}
+                                                            </span>
+                                                            <NavLink to={`/app/runs/${row.runId}?tab=report`} className="tc-link" title="Open execution report">
+                                                                <ExternalLink size={12} />
+                                                            </NavLink>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <p className="tc-muted-text">No recorded executions in recent test runs for this test case.</p>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="tc-muted-text">No recorded executions in recent test runs for this test case.</p>
+                                    )
                                 )}
                             </div>
                         </aside>

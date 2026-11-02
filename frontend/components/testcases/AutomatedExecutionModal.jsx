@@ -47,6 +47,7 @@ const AutomatedExecutionModal = ({
                 name: `Automated Run · ${testCase.id}`,
                 suiteId: testCase.suiteId,
                 executionType: 'automated',
+                selectedCaseIds: [testCase.id],
                 caseIds: [testCase.id]
             });
 
