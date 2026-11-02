@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Play, RefreshCw, CheckCircle2, XCircle, Terminal, Code, AlertTriangle } from 'lucide-react';
+import { X, Play, RefreshCw, CheckCircle2, XCircle, Terminal, Code, AlertTriangle, ExternalLink, Globe } from 'lucide-react';
 import { executionService } from '../../services/executionService';
+import { Link } from 'react-router-dom';
 
 const AutomatedExecutionModal = ({
     isOpen = true,
@@ -17,7 +18,6 @@ const AutomatedExecutionModal = ({
     const [error, setError] = useState('');
 
     const mapping = testCase?.automationMapping || {};
-    const hasScript = Boolean(mapping.scriptCode || mapping.scriptRef);
 
     useEffect(() => {
         if (!isOpen) {
@@ -35,20 +35,19 @@ const AutomatedExecutionModal = ({
         setError('');
         setResult(null);
         setLogs([
-            `[Init] Preparing Playwright worker environment...`,
+            `[Init] Initializing Playwright execution runner...`,
             `[Target] Suite: ${testCase.suiteName || 'Test Suite'}`,
             `[Test] Case ID: ${testCase.id} — "${testCase.title}"`,
-            `[Worker] Launching headless Chromium sandbox...`
+            `[Mapping] Reference: ${mapping.scriptRef || mapping.automationTestId || 'Custom script'}`
         ]);
 
         try {
-            // 1. Create ad-hoc automated test run
+            // 1. Create ad-hoc automated test run to establish immutable execution record
             const runRes = await executionService.createRun({
                 name: `Automated Run · ${testCase.id}`,
                 suiteId: testCase.suiteId,
                 executionType: 'automated',
-                selectedCaseIds: [testCase.id],
-                caseIds: [testCase.id]
+                selectedCaseIds: [testCase.id]
             });
 
             if (!runRes?.success || !runRes.data) {
@@ -62,71 +61,67 @@ const AutomatedExecutionModal = ({
                 return String(snap.id || snap.testCaseId || c.testCaseId) === String(testCase.id);
             }) || runCases[0];
 
-            if (!targetRunCase) {
-                throw new Error('Test case snapshot could not be initialized in test run.');
-            }
+            const targetCaseIdParam = targetRunCase?.id || testCase.id;
 
             setLogs(prev => [
                 ...prev,
-                `[Queue] Job queued in execution manager (Run #${run.id.slice(-6)})`,
-                `[Exec] Executing Playwright test scenario...`
+                `[Run] Created execution run #${run.id} (${run.name})`,
+                `[Worker] Launching headless browser execution...`
             ]);
 
-            // 2. Execute via dry run or trigger
-            const dryRunPayload = {
-                scriptCode: mapping.scriptCode,
-                scriptRef: mapping.scriptRef,
-                automationTestId: mapping.automationTestId,
-                framework: mapping.framework || 'playwright'
+            // 2. Execute via worker in headless Chromium
+            const payload = {
+                scriptSource: mapping.scriptSource || (mapping.scriptRef ? 'existing' : 'custom'),
+                scriptRef: mapping.scriptRef || '',
+                automationTestId: mapping.automationTestId || testCase.id,
+                scriptCode: mapping.scriptCode || '',
+                framework: mapping.framework || 'playwright',
+                executionTimeout: mapping.timeoutMs || 30000,
+                browserName: mapping.browser || 'chromium',
+                headless: mapping.headless !== undefined ? mapping.headless : true
             };
 
-            const dryRes = await executionService.testCaseScript(run.id, targetRunCase.id, dryRunPayload).catch(() => null);
+            const execRes = await executionService.testCaseScript(run.id, targetCaseIdParam, payload);
 
-            if (dryRes?.success && dryRes.data) {
-                const resData = dryRes.data;
-                const passed = resData.passed;
-                const dur = resData.durationMs || 1400;
-
-                setLogs(prev => [
-                    ...prev,
-                    ...(Array.isArray(resData.consoleLogs) ? resData.consoleLogs.map(l => `[Browser] ${l}`) : []),
-                    `[Worker] Execution completed in ${dur}ms`,
-                    passed ? `[Result] Status: PASSED` : `[Result] Status: FAILED`
-                ]);
-
-                // Record attempt in run
-                await executionService.recordExecution(run.id, targetRunCase.id, {
-                    status: passed ? 'passed' : 'failed',
-                    actualResult: passed ? 'All Playwright assertions verified successfully in headless Chromium.' : (resData.error || 'Playwright assertion failed.'),
-                    durationMs: dur,
-                    errorMessage: passed ? null : resData.error,
-                    stackTrace: passed ? null : resData.stackTrace,
-                    executorType: 'automated'
-                }).catch(() => {});
-
-                setResult({
-                    status: passed ? 'passed' : 'failed',
-                    durationMs: dur,
-                    error: resData.error,
-                    runId: run.id
-                });
-            } else {
-                // Fallback: trigger automated worker
-                const trigRes = await executionService.triggerAutomatedExecution(run.id);
-                setLogs(prev => [
-                    ...prev,
-                    `[Worker] Automated runner job dispatched: ${trigRes.message || 'Running in background worker'}`,
-                    `[Done] Execution tracked under Run #${run.id.slice(-6)}`
-                ]);
-                setResult({
-                    status: 'passed',
-                    durationMs: 1200,
-                    runId: run.id
-                });
+            if (!execRes?.success || !execRes.data) {
+                throw new Error(execRes?.message || 'Automation execution failed to return results.');
             }
 
+            const data = execRes.data;
+            const isPassed = data.status === 'passed' || data.success === true;
+            const duration = data.durationMs || 1200;
+            const consoleLogs = Array.isArray(data.logs) ? data.logs : (Array.isArray(data.consoleLogs) ? data.consoleLogs : []);
+
+            setLogs(prev => [
+                ...prev,
+                ...consoleLogs.map(l => typeof l === 'string' ? l : JSON.stringify(l)),
+                `[Worker] Completed in ${duration}ms`,
+                isPassed ? `[Result] Status: PASSED` : `[Result] Status: FAILED`
+            ]);
+
+            // 3. Record attempt immutably in test run
+            await executionService.recordExecution(run.id, targetCaseIdParam, {
+                status: isPassed ? 'passed' : 'failed',
+                actualResult: isPassed
+                    ? 'All Playwright assertions verified successfully in headless Chromium.'
+                    : (data.errorMessage || data.error || 'Playwright assertion or runtime error occurred.'),
+                durationMs: duration,
+                errorMessage: isPassed ? null : (data.errorMessage || data.error),
+                stackTrace: isPassed ? null : (data.stackTrace || null),
+                executorType: 'automated'
+            }).catch(() => {});
+
+            const executionOutcome = {
+                status: isPassed ? 'passed' : 'failed',
+                durationMs: duration,
+                error: isPassed ? null : (data.errorMessage || data.error),
+                runId: run.id
+            };
+
+            setResult(executionOutcome);
+
             if (completeHandler) {
-                completeHandler(result || { status: 'passed' });
+                completeHandler(executionOutcome);
             }
         } catch (err) {
             setError(err.message || 'Execution error occurred.');
@@ -139,103 +134,125 @@ const AutomatedExecutionModal = ({
 
     return createPortal(
         <div className="tc-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !isRunning) onClose(); }}>
-            <section className="tc-form-dialog" role="dialog" aria-modal="true" aria-labelledby="tc-auto-title" style={{ maxWidth: '640px' }}>
+            <section className="tc-form-dialog" role="dialog" aria-modal="true" aria-labelledby="tc-auto-title" style={{ maxWidth: '680px' }}>
                 <header>
                     <div>
-                        <span>Playwright Automation Runner · {testCase.suiteName || 'Test Suite'}</span>
-                        <h2 id="tc-auto-title">Automated Execution: {testCase.id}</h2>
+                        <span style={{ color: 'var(--tc-jade)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            Playwright Execution Worker
+                        </span>
+                        <h2 id="tc-auto-title" style={{ margin: '4px 0 0 0', fontSize: '1.2rem', color: '#FFFFFF' }}>
+                            Run Scenario: {testCase.id}
+                        </h2>
                     </div>
                     <button type="button" aria-label="Close" onClick={onClose} disabled={isRunning}>
-                        <X size={16} />
+                        <X size={18} />
                     </button>
                 </header>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '14px 2px 0', flex: 1, overflowY: 'auto' }}>
-                    <div style={{ background: 'var(--tc-surface)', padding: '12px 14px', borderRadius: '5px', border: '1px solid var(--tc-line)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                            <strong style={{ color: '#FFFFFF', fontSize: '0.85rem' }}>{testCase.title}</strong>
-                            <span className="tc-id">{testCase.id}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 20px' }}>
+                    {/* Test Info Ribbon */}
+                    <div style={{ background: '#101512', padding: '10px 14px', borderRadius: '5px', border: '1px solid #1B231E', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <strong style={{ color: '#FFFFFF', fontSize: '0.86rem', display: 'block' }}>{testCase.title}</strong>
+                            <small style={{ color: '#7A8580', fontSize: '0.72rem' }}>
+                                Mapped to: <code style={{ color: '#8BAF9A' }}>{mapping.scriptRef || mapping.automationTestId || 'tests/e2e'}</code>
+                            </small>
                         </div>
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '0.7rem', color: 'var(--tc-muted)', marginTop: '6px' }}>
-                            <span>Framework: <strong>Playwright (Chromium)</strong></span>
-                            <span>Script: <code>{mapping.scriptRef || 'Custom embedded script'}</code></span>
-                        </div>
+                        <span style={{ background: 'rgba(139, 175, 154, 0.15)', color: '#8BAF9A', border: '1px solid rgba(139, 175, 154, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+                            Playwright ({mapping.browser || 'Chromium'})
+                        </span>
                     </div>
 
-                    {!hasScript && (
-                        <div style={{ padding: '12px', background: 'rgba(229, 192, 123, 0.1)', border: '1px solid var(--tc-warn)', borderRadius: '4px', color: 'var(--tc-warn)', fontSize: '0.74rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                                <AlertTriangle size={15} />
-                                <span>Automation Script Not Configured</span>
-                            </div>
-                            <p style={{ margin: '4px 0 0', color: 'var(--tc-text)' }}>
-                                This automated test case has no Playwright script reference or executable function mapped yet.
-                                Please edit the test case to add script details before executing.
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Console / Terminal Log Stream */}
+                    {/* Execution Output Console */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--tc-muted)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem', color: '#A0A5A5' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <Terminal size={13} /> Execution Logs
+                                <Terminal size={13} color="#8BAF9A" />
+                                <strong>Execution Telemetry & Console Stream</strong>
                             </span>
-                            {result && (
-                                <span style={{
-                                    color: result.status === 'passed' ? 'var(--tc-jade)' : 'var(--tc-fail)',
-                                    fontWeight: 600
-                                }}>
-                                    {result.status === 'passed' ? '✓ Passed' : '✕ Failed'}
-                                    {result.durationMs ? ` (${(result.durationMs / 1000).toFixed(1)}s)` : ''}
+                            {isRunning && (
+                                <span style={{ color: '#8BAF9A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <RefreshCw size={11} className="spin" /> Running in headless browser…
                                 </span>
                             )}
                         </div>
 
-                        <pre style={{
-                            background: '#090B0A',
-                            border: '1px solid var(--tc-line)',
+                        <div style={{
+                            background: '#070908',
+                            border: '1px solid #1A211D',
                             borderRadius: '4px',
-                            padding: '10px 12px',
-                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                            fontSize: '0.72rem',
-                            color: '#A0AFA5',
-                            lineHeight: '1.5',
-                            minHeight: '140px',
+                            padding: '12px',
+                            minHeight: '160px',
                             maxHeight: '220px',
                             overflowY: 'auto',
-                            margin: 0
+                            fontFamily: 'ui-monospace, monospace',
+                            fontSize: '0.74rem',
+                            color: '#A0A5A5',
+                            lineHeight: 1.6
                         }}>
-                            {logs.length > 0
-                                ? logs.join('\n')
-                                : '// Click "Launch Playwright Run" to execute this test case in a headless Chromium sandbox.'}
-                        </pre>
+                            {logs.length === 0 ? (
+                                <p style={{ margin: 0, color: '#556059' }}>
+                                    Ready to launch headless Playwright worker. Click "Run Playwright Scenario" below.
+                                </p>
+                            ) : (
+                                logs.map((line, i) => (
+                                    <div key={i} style={{ color: line.includes('[Error]') || line.includes('FAILED') ? '#E06C75' : line.includes('PASSED') ? '#8BAF9A' : line.includes('[Browser]') ? '#CBD5E1' : '#8C9490' }}>
+                                        {line}
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
 
-                    {error && <div className="tc-form-error" role="alert">{error}</div>}
+                    {/* Result Banner */}
+                    {result && (
+                        <div style={{
+                            padding: '10px 14px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: result.status === 'passed' ? 'rgba(139, 175, 154, 0.15)' : 'rgba(224, 108, 117, 0.15)',
+                            border: `1px solid ${result.status === 'passed' ? 'rgba(139, 175, 154, 0.35)' : 'rgba(224, 108, 117, 0.35)'}`,
+                            color: result.status === 'passed' ? '#8BAF9A' : '#E06C75',
+                            fontSize: '0.78rem'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {result.status === 'passed' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                                <strong>Execution Outcome: {result.status.toUpperCase()} ({result.durationMs}ms)</strong>
+                            </div>
+                            {result.runId && (
+                                <Link
+                                    to={`/app/runs/${result.runId}`}
+                                    style={{ color: 'inherit', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem' }}
+                                >
+                                    <span>View Test Run</span>
+                                    <ExternalLink size={12} />
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
+                    {error && (
+                        <div style={{ background: 'rgba(224, 108, 117, 0.12)', border: '1px solid rgba(224, 108, 117, 0.35)', color: '#E06C75', padding: '8px 12px', borderRadius: '4px', fontSize: '0.76rem' }} role="alert">
+                            {error}
+                        </div>
+                    )}
                 </div>
 
-                <footer>
-                    <button type="button" onClick={onClose} disabled={isRunning}>
-                        {result ? 'Close' : 'Cancel'}
+                <footer style={{ padding: '12px 20px', borderTop: '1px solid #1A211D', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: '#0E1210' }}>
+                    <button type="button" className="tc-secondary" onClick={onClose} disabled={isRunning}>
+                        {result ? 'Done' : 'Cancel'}
                     </button>
                     <button
                         type="button"
                         className="tc-primary"
-                        disabled={isRunning || !hasScript}
                         onClick={handleRun}
+                        disabled={isRunning}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
-                        {isRunning ? (
-                            <>
-                                <RefreshCw size={13} className="animate-spin" />
-                                <span>Running Playwright…</span>
-                            </>
-                        ) : (
-                            <>
-                                <Play size={13} />
-                                <span>{result ? 'Rerun Playwright' : 'Launch Playwright Run'}</span>
-                            </>
-                        )}
+                        <Play size={13} />
+                        <span>{isRunning ? 'Executing…' : (result ? 'Rerun Scenario' : 'Run Playwright Scenario')}</span>
                     </button>
                 </footer>
             </section>
@@ -245,4 +262,3 @@ const AutomatedExecutionModal = ({
 };
 
 export default AutomatedExecutionModal;
-

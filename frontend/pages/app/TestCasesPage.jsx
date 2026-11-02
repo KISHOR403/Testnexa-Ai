@@ -15,6 +15,7 @@ import { DataLoadingState } from '../../components/loading';
 import TestCaseEditorModal from '../../components/testcases/TestCaseEditorModal';
 import ManualExecutionModal from '../../components/testcases/ManualExecutionModal';
 import AutomatedExecutionModal from '../../components/testcases/AutomatedExecutionModal';
+import PlaywrightConfigurationDrawer from '../../components/testcases/PlaywrightConfigurationDrawer';
 import AddToSuiteModal from '../../components/testcases/AddToSuiteModal';
 import DeleteConfirmModal from '../../components/testcases/DeleteConfirmModal';
 import '../../styles/app/TestCases.css';
@@ -278,6 +279,7 @@ const TestCasesPage = () => {
     const [editorMode, setEditorMode] = useState('create');
     const [manualExecOpen, setManualExecOpen] = useState(false);
     const [autoExecOpen, setAutoExecOpen] = useState(false);
+    const [pwDrawerOpen, setPwDrawerOpen] = useState(false);
     const [addToSuiteOpen, setAddToSuiteOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -952,6 +954,9 @@ const TestCasesPage = () => {
                 actualResult: payload.actualResult,
                 notes: payload.notes,
                 durationMs: payload.durationMs || 1200,
+                stepOutcomes: payload.stepOutcomes || {},
+                environment: payload.environment || {},
+                executedBy: payload.executedBy || 'Tester',
                 artifact: payload.artifact || (payload.screenshotData ? {
                     name: payload.screenshotName || `${selectedCase.id}-evidence.png`,
                     data: payload.screenshotData,
@@ -998,6 +1003,60 @@ const TestCasesPage = () => {
         }));
         triggerToast(`Playwright execution completed: ${outcome.toUpperCase()}`);
         setRetry(v => v + 1);
+    };
+
+    // Save Playwright automation mapping for test case
+    const handleSaveAutomationMapping = async (mappingPayload) => {
+        if (!selectedCase) return;
+        setIsSaving(true);
+        try {
+            const targetSession = selectedCase.session;
+            if (!targetSession) throw new Error('Target test suite session not found.');
+
+            const nextRawCase = {
+                ...selectedCase.raw,
+                automationMapping: mappingPayload,
+                executionMethod: 'automated',
+                executionType: 'automated',
+                updatedAt: new Date().toISOString()
+            };
+
+            await patchCase(targetSession, selectedCase, nextRawCase);
+            triggerToast(`Playwright automation mapped for ${selectedCase.id}`);
+            setPwDrawerOpen(false);
+            setRetry(v => v + 1);
+        } catch (err) {
+            alert(`Failed to save automation mapping: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Remove Playwright automation mapping from test case
+    const handleRemoveAutomationMapping = async (caseToRemove) => {
+        if (!caseToRemove) return;
+        setIsSaving(true);
+        try {
+            const targetSession = caseToRemove.session;
+            if (!targetSession) throw new Error('Target test suite session not found.');
+
+            const nextRawCase = {
+                ...caseToRemove.raw,
+                automationMapping: null,
+                executionMethod: 'manual',
+                executionType: 'manual',
+                updatedAt: new Date().toISOString()
+            };
+
+            await patchCase(targetSession, caseToRemove, nextRawCase);
+            triggerToast(`Removed Playwright mapping from ${caseToRemove.id}`);
+            setPwDrawerOpen(false);
+            setRetry(v => v + 1);
+        } catch (err) {
+            alert(`Failed to remove automation mapping: ${err.message}`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // Add test case reference to another suite
@@ -1807,30 +1866,58 @@ const TestCasesPage = () => {
                                 <button
                                     type="button"
                                     className="tc-execute tc-manual-btn"
-                                    title="Open manual execution dialog"
+                                    title="Open manual execution workspace"
                                     onClick={() => setManualExecOpen(true)}
                                 >
                                     <Clock size={14} />
                                     <span>Execute Manually</span>
                                 </button>
 
-                                <button
-                                    type="button"
-                                    className="tc-execute tc-auto-btn"
-                                    disabled={!selectedCaseAutomationValid}
-                                    title={selectedCaseAutomationValid ? "Run automated Playwright scenario in headless Chromium" : "No valid Playwright script mapped. Configure script first."}
-                                    onClick={() => {
-                                        if (selectedCaseAutomationValid) {
-                                            setAutoExecOpen(true);
-                                        } else {
-                                            setEditorMode('edit');
-                                            setEditorOpen(true);
-                                        }
-                                    }}
-                                >
-                                    <Play size={14} />
-                                    <span>{selectedCaseAutomationValid ? 'Run Playwright' : 'Configure Playwright'}</span>
-                                </button>
+                                {selectedCaseAutomationValid ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="tc-execute tc-auto-btn"
+                                            title="Run automated Playwright scenario in headless Chromium"
+                                            onClick={() => setAutoExecOpen(true)}
+                                        >
+                                            <Play size={14} />
+                                            <span>Run Playwright</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="tc-execute"
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px solid #28332B',
+                                                color: '#8BAF9A',
+                                                padding: '6px 12px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.78rem',
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px'
+                                            }}
+                                            title="Edit Playwright mapping and execution settings"
+                                            onClick={() => setPwDrawerOpen(true)}
+                                        >
+                                            <Code size={13} />
+                                            <span>Edit Mapping</span>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className="tc-execute tc-auto-btn"
+                                        title="Configure Playwright automation mapping for this test case"
+                                        onClick={() => setPwDrawerOpen(true)}
+                                    >
+                                        <Play size={14} />
+                                        <span>Configure Playwright</span>
+                                    </button>
+                                )}
                             </div>
 
                             {/* Description */}
@@ -2115,6 +2202,17 @@ const TestCasesPage = () => {
                                                     )}
                                                 </div>
                                             )}
+                                            <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                                                <button
+                                                    type="button"
+                                                    className="tc-text-action"
+                                                    onClick={() => setPwDrawerOpen(true)}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem' }}
+                                                >
+                                                    <Pencil size={12} />
+                                                    <span>Edit Playwright Mapping</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="tc-auto-unmapped">
@@ -2122,10 +2220,7 @@ const TestCasesPage = () => {
                                             <button
                                                 type="button"
                                                 className="tc-text-action"
-                                                onClick={() => {
-                                                    setEditorMode('edit');
-                                                    setEditorOpen(true);
-                                                }}
+                                                onClick={() => setPwDrawerOpen(true)}
                                             >
                                                 Configure Playwright
                                             </button>
@@ -2221,6 +2316,17 @@ const TestCasesPage = () => {
                     onExecutionComplete={handleAutoExecutionSave}
                     onSave={handleAutoExecutionSave}
                     onClose={() => setAutoExecOpen(false)}
+                />
+            )}
+
+            {pwDrawerOpen && selectedCase && (
+                <PlaywrightConfigurationDrawer
+                    isOpen={pwDrawerOpen}
+                    testCase={selectedCase}
+                    onSaveMapping={handleSaveAutomationMapping}
+                    onRemoveMapping={handleRemoveAutomationMapping}
+                    onClose={() => setPwDrawerOpen(false)}
+                    isSaving={isSaving}
                 />
             )}
 

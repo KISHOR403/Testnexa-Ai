@@ -10,8 +10,11 @@ router.use(protect);
 // Workspace members list for tester assignment
 router.get('/members', executionController.listMembers);
 
-// Automation Inventory
+// Automation Inventory & Standalone Verification
 router.get('/automation/inventory', executionController.listAutomationInventory);
+router.get('/automation/sources', executionController.listAutomationSources);
+router.post('/automation/validate', executionController.validateAutomationConfig);
+router.post('/automation/execute-single', executionController.executeSingleTest);
 
 // Test Run CRUD
 router.get('/', executionController.listRuns);

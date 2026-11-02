@@ -2623,7 +2623,8 @@ class SupabaseDataService {
 
         return {
             ...this._formatTestRun(runRecord),
-            casesCount: runCaseRecords.length
+            casesCount: runCaseRecords.length,
+            cases: runCaseRecords.map(r => this._formatTestRunCase(r))
         };
     }
 

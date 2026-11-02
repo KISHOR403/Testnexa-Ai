@@ -668,6 +668,115 @@ exports.listAutomationInventory = async (req, res) => {
 };
 
 /**
+ * LIST registered automation projects / sources
+ * GET /api/v1/runs/automation/sources
+ */
+exports.listAutomationSources = async (req, res) => {
+    try {
+        const suites = automationInventory.listApprovedSuites();
+        const totalTests = suites.reduce((acc, s) => acc + (s.testsCount || 0), 0);
+        const projects = [
+            {
+                id: 'proj_e2e_core',
+                name: 'TestNexa Core E2E Suite',
+                framework: 'Playwright (JavaScript/Node.js)',
+                repository: 'tests/e2e',
+                status: 'connected',
+                isAvailable: true,
+                lastDiscoveryAt: new Date().toISOString(),
+                filesCount: suites.length,
+                testsCount: totalTests,
+                suites
+            }
+        ];
+        res.json({
+            success: true,
+            data: projects
+        });
+    } catch (err) {
+        logger.error('Error listing automation sources:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * STANDALONE VALIDATE automation mapping configuration
+ * POST /api/v1/runs/automation/validate
+ */
+exports.validateAutomationConfig = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Active workspace not found' });
+        }
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const validation = scriptValidator.validateConfiguration({
+            ...req.body,
+            targetEnvironment: req.body.targetEnvironment || {}
+        });
+
+        res.json({
+            success: true,
+            data: validation
+        });
+    } catch (err) {
+        logger.error('Error validating automation configuration:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * STANDALONE EXECUTE single Playwright test scenario
+ * POST /api/v1/runs/automation/execute-single
+ */
+exports.executeSingleTest = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Active workspace not found' });
+        }
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const {
+            testCaseId = 'TEST_SINGLE',
+            title = 'Single Test Execution',
+            scriptSource = 'existing',
+            scriptRef = '',
+            automationTestId = '',
+            scriptCode = '',
+            targetEnvironment = {},
+            executionTimeout = 30000,
+            browserName = 'chromium',
+            headless = true
+        } = req.body;
+
+        const result = await executeSinglePlaywrightTest({
+            testCaseId,
+            title,
+            scriptSource,
+            scriptRef,
+            automationTestId,
+            scriptCode,
+            targetEnvironment,
+            timeoutMs: parseInt(executionTimeout || 30000, 10),
+            browserName,
+            headless
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (err) {
+        logger.error('Error executing single Playwright test:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+/**
  * VALIDATE a case Playwright automation script configuration
  * POST /api/v1/runs/:id/cases/:caseId/validate-script
  */

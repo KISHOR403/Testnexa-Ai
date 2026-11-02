@@ -336,4 +336,47 @@ test('Playwright Automation Configuration Modal & Verification Suite (13 Scenari
         assert.ok(code.includes('express'), 'Must select express shipping');
         assert.ok(code.includes('order'), 'Must verify order confirmation');
     });
+
+    await t.test('Scenario 14: listAutomationSources exposes registered Playwright projects and suites', async () => {
+        const res = createMockRes();
+        await executionController.listAutomationSources(createMockReq(authorizedUser), res);
+
+        assert.equal(res.statusCode, 200);
+        assert.ok(res.data.success);
+        assert.ok(Array.isArray(res.data.data));
+        assert.ok(res.data.data.length >= 1);
+        const proj = res.data.data[0];
+        assert.equal(proj.id, 'proj_e2e_core');
+        assert.equal(proj.status, 'connected');
+        assert.equal(proj.isAvailable, true);
+        assert.ok(proj.suites.length >= 3, 'Must discover at least auth, checkout, and navigation specs');
+    });
+
+    await t.test('Scenario 15: validateAutomationConfig verifies configuration standalone', async () => {
+        const validRes = createMockRes();
+        await executionController.validateAutomationConfig(createMockReq(authorizedUser, {}, {
+            scriptSource: 'existing',
+            scriptRef: 'tests/e2e/auth.spec.js#auth-valid-login',
+            automationTestId: 'auth-valid-login',
+            framework: 'playwright'
+        }), validRes);
+
+        assert.equal(validRes.statusCode, 200);
+        assert.ok(validRes.data.success);
+        assert.equal(validRes.data.data.valid, true);
+
+        // Invalid config should return validation errors
+        const invalidRes = createMockRes();
+        await executionController.validateAutomationConfig(createMockReq(authorizedUser, {}, {
+            scriptSource: 'existing',
+            scriptRef: 'tests/e2e/nonexistent.spec.js#missing-test',
+            automationTestId: 'missing-test',
+            framework: 'playwright'
+        }), invalidRes);
+
+        assert.equal(invalidRes.statusCode, 200);
+        assert.ok(invalidRes.data.success);
+        assert.equal(invalidRes.data.data.valid, false);
+        assert.ok(invalidRes.data.data.errors.length > 0);
+    });
 });

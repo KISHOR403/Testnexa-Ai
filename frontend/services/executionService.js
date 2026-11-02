@@ -254,6 +254,44 @@ export const executionService = {
     },
 
     /**
+     * Get registered Playwright automation projects / sources
+     */
+    getAutomationSources: async () => {
+        const response = await fetch(`${API_BASE_URL}/runs/automation/sources`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Validate automation mapping configuration statically without needing existing run
+     */
+    validateAutomationConfig: async (configData) => {
+        const response = await fetch(`${API_BASE_URL}/runs/automation/validate`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(configData)
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Standalone execute single Playwright test scenario
+     */
+    executeSingleTest: async (executionPayload) => {
+        const response = await fetch(`${API_BASE_URL}/runs/automation/execute-single`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(executionPayload)
+        });
+        return handleResponse(response);
+    },
+
+    /**
      * Validate an automation script configuration statically
      */
     validateCaseScript: async (runId, caseId, configData) => {
