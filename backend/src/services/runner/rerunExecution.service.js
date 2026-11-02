@@ -272,43 +272,144 @@ class RerunExecutionService {
 
     /**
      * Compare a rerun execution against its original execution
+     * Supports querying by rerunId, or by originalRunId with explicit rerunIdQuery
      */
-    async compareRerun(rerunId, workspaceId) {
-        if (!rerunId || !workspaceId) {
-            throw new Error('rerunId and workspaceId are required for rerun comparison');
+    async compareRerun(targetRunId, workspaceId, rerunIdQuery = null) {
+        if (!targetRunId || !workspaceId) {
+            throw new Error('targetRunId and workspaceId are required for rerun comparison');
         }
 
-        const rerunRun = await supabaseService.getTestRunById(rerunId, workspaceId);
-        if (!rerunRun) {
-            const err = new Error(`Rerun test run not found (${rerunId})`);
-            err.statusCode = 404;
-            throw err;
+        let originalRun = null;
+        let rerunRun = null;
+
+        if (rerunIdQuery) {
+            // Case A: Querying on original run with explicit ?rerunId=...
+            const rawOrig = await supabaseService.getTestRunById(targetRunId);
+            if (!rawOrig) {
+                const err = new Error(`Original test run not found (${targetRunId})`);
+                err.statusCode = 404;
+                throw err;
+            }
+            if (String(rawOrig.workspaceId) !== String(workspaceId)) {
+                const err = new Error('Cross-workspace comparison is prohibited');
+                err.statusCode = 403;
+                throw err;
+            }
+            originalRun = rawOrig;
+
+            const rawRerun = await supabaseService.getTestRunById(rerunIdQuery);
+            if (!rawRerun) {
+                const err = new Error(`Rerun test run not found (${rerunIdQuery})`);
+                err.statusCode = 404;
+                throw err;
+            }
+            if (String(rawRerun.workspaceId) !== String(workspaceId)) {
+                const err = new Error('Cross-workspace comparison is prohibited');
+                err.statusCode = 403;
+                throw err;
+            }
+            rerunRun = rawRerun;
+        } else {
+            // Case B: Querying on a test run ID
+            const targetRun = await supabaseService.getTestRunById(targetRunId);
+            if (!targetRun) {
+                const err = new Error(`Test run not found (${targetRunId})`);
+                err.statusCode = 404;
+                throw err;
+            }
+            if (String(targetRun.workspaceId) !== String(workspaceId)) {
+                const err = new Error('Cross-workspace comparison is prohibited');
+                err.statusCode = 403;
+                throw err;
+            }
+
+            if (targetRun.originalRunId) {
+                // targetRun is the rerun
+                rerunRun = targetRun;
+                originalRun = await supabaseService.getTestRunById(targetRun.originalRunId);
+                if (!originalRun) {
+                    const err = new Error(`Original test run not found (${targetRun.originalRunId})`);
+                    err.statusCode = 404;
+                    throw err;
+                }
+            } else {
+                // targetRun is an original run; check for child reruns
+                const reruns = await supabaseService.getRerunHistory(targetRunId, workspaceId);
+                if (reruns && reruns.length > 0) {
+                    originalRun = targetRun;
+                    rerunRun = await supabaseService.getTestRunById(reruns[0].id);
+                    if (!rerunRun) {
+                        const err = new Error(`Associated rerun test run not found (${reruns[0].id})`);
+                        err.statusCode = 404;
+                        throw err;
+                    }
+                } else {
+                    const err = new Error(`Test run ${targetRunId} is not a rerun execution and has no associated reruns to compare.`);
+                    err.statusCode = 400;
+                    throw err;
+                }
+            }
         }
 
-        if (!rerunRun.originalRunId) {
-            const err = new Error(`Test run ${rerunId} is not a rerun execution (no originalRunId linked)`);
-            err.statusCode = 400;
-            throw err;
-        }
-
-        const originalRun = await supabaseService.getTestRunById(rerunRun.originalRunId, workspaceId);
-        if (!originalRun) {
-            const err = new Error(`Original test run not found (${rerunRun.originalRunId})`);
-            err.statusCode = 404;
-            throw err;
-        }
-
-        if (String(rerunRun.workspaceId) !== String(originalRun.workspaceId)) {
+        // Workspace authorization validation
+        if (String(rerunRun.workspaceId) !== String(workspaceId) || String(originalRun.workspaceId) !== String(workspaceId)) {
             const err = new Error('Cross-workspace comparison is prohibited');
             err.statusCode = 403;
             throw err;
         }
 
-        const [origCases, rerunCases] = await Promise.all([
+        // Lineage relationship validation: rerun must be directly linked to original run
+        const isLinked = String(rerunRun.originalRunId) === String(originalRun.id) ||
+                         String(rerunRun.parentRunId) === String(originalRun.id);
+
+        if (!isLinked) {
+            const err = new Error(`Rerun execution ${rerunRun.id} is not associated with original execution ${originalRun.id}.`);
+            err.statusCode = 400;
+            throw err;
+        }
+
+        // Fetch test cases, executions, and artifacts in parallel
+        const [origCases, rerunCases, origExecs, rerunExecs, origArtifacts, rerunArtifacts] = await Promise.all([
             supabaseService.getRunCases(originalRun.id),
-            supabaseService.getRunCases(rerunRun.id)
+            supabaseService.getRunCases(rerunRun.id),
+            supabaseService.getRunExecutions(originalRun.id).catch(() => []),
+            supabaseService.getRunExecutions(rerunRun.id).catch(() => []),
+            supabaseService.getRunArtifacts(originalRun.id).catch(() => []),
+            supabaseService.getRunArtifacts(rerunRun.id).catch(() => [])
         ]);
 
+        // Map executions and artifacts by runCaseId
+        const origExecMap = new Map();
+        origExecs.forEach(e => {
+            const key = String(e.runCaseId || e.run_case_id);
+            if (!origExecMap.has(key) || (e.attemptNumber || 1) >= (origExecMap.get(key).attemptNumber || 1)) {
+                origExecMap.set(key, e);
+            }
+        });
+
+        const rerunExecMap = new Map();
+        rerunExecs.forEach(e => {
+            const key = String(e.runCaseId || e.run_case_id);
+            if (!rerunExecMap.has(key) || (e.attemptNumber || 1) >= (rerunExecMap.get(key).attemptNumber || 1)) {
+                rerunExecMap.set(key, e);
+            }
+        });
+
+        const origArtifactsMap = new Map();
+        origArtifacts.forEach(a => {
+            const key = String(a.runCaseId || a.run_case_id || '');
+            if (!origArtifactsMap.has(key)) origArtifactsMap.set(key, []);
+            origArtifactsMap.get(key).push(a);
+        });
+
+        const rerunArtifactsMap = new Map();
+        rerunArtifacts.forEach(a => {
+            const key = String(a.runCaseId || a.run_case_id || '');
+            if (!rerunArtifactsMap.has(key)) rerunArtifactsMap.set(key, []);
+            rerunArtifactsMap.get(key).push(a);
+        });
+
+        // Map original cases by stable testCaseId
         const origCasesMap = new Map();
         origCases.forEach(c => {
             origCasesMap.set(String(c.testCaseId || c.caseSnapshot?.id), c);
@@ -319,32 +420,52 @@ class RerunExecutionService {
 
         let fixedCount = 0;
         let stillFailingCount = 0;
+        let regressionCount = 0;
+        let stillPassingCount = 0;
         let blockedCount = 0;
         let skippedCount = 0;
-        let missingResultCount = 0;
+        let pendingCount = 0;
+        let addedCount = 0;
+        let omittedCount = 0;
+
+        const rerunSeenCaseIds = new Set();
 
         const comparisons = rerunCases.map(rCase => {
             const tcId = String(rCase.testCaseId || rCase.caseSnapshot?.id);
+            rerunSeenCaseIds.add(tcId);
             const oCase = origCasesMap.get(tcId);
 
-            const origStatus = oCase ? (oCase.status || 'not_run').toLowerCase() : 'unknown';
+            const origStatus = oCase ? (oCase.status || 'not_run').toLowerCase() : 'missing';
             const rerunStatus = (rCase.status || 'not_run').toLowerCase();
 
-            let transition = 'missing_result';
-            let transitionLabel = 'Incomplete';
+            let transition = 'pending';
+            let transitionLabel = 'Pending';
 
-            if (['not_run', 'in_progress'].includes(rerunStatus)) {
-                transition = 'missing_result';
-                transitionLabel = 'Pending or in progress';
-                missingResultCount++;
+            if (!oCase) {
+                // Case exists in rerun but was not present in original run
+                transition = 'added';
+                transitionLabel = 'New Test';
+                addedCount++;
+            } else if (!isRerunTerminal && ['not_run', 'in_progress', 'pending'].includes(rerunStatus)) {
+                transition = 'pending';
+                transitionLabel = 'Pending';
+                pendingCount++;
             } else if (['failed', 'blocked'].includes(origStatus) && rerunStatus === 'passed') {
                 transition = 'fixed';
                 transitionLabel = 'Fixed';
                 fixedCount++;
             } else if (origStatus === 'failed' && rerunStatus === 'failed') {
                 transition = 'still_failing';
-                transitionLabel = 'Still failing';
+                transitionLabel = 'Still Failing';
                 stillFailingCount++;
+            } else if (origStatus === 'passed' && rerunStatus === 'failed') {
+                transition = 'regression';
+                transitionLabel = 'Regression';
+                regressionCount++;
+            } else if (origStatus === 'passed' && rerunStatus === 'passed') {
+                transition = 'still_passing';
+                transitionLabel = 'Still Passing';
+                stillPassingCount++;
             } else if (rerunStatus === 'blocked') {
                 transition = 'blocked';
                 transitionLabel = 'Blocked';
@@ -353,33 +474,175 @@ class RerunExecutionService {
                 transition = 'skipped';
                 transitionLabel = 'Skipped';
                 skippedCount++;
+            } else if (['not_run', 'in_progress', 'pending'].includes(rerunStatus)) {
+                transition = 'pending';
+                transitionLabel = 'Pending';
+                pendingCount++;
             } else {
                 transition = 'other';
                 transitionLabel = `Shifted (${origStatus} -> ${rerunStatus})`;
             }
 
+            // Extract failure & execution details
+            const oExec = oCase ? origExecMap.get(String(oCase.id)) : null;
+            const rExec = rerunExecMap.get(String(rCase.id));
+
+            const origError = oExec?.errorMessage || (origStatus === 'failed' ? (oCase?.notes || oCase?.actualResult || '') : '');
+            const rerunError = rExec?.errorMessage || (rerunStatus === 'failed' ? (rCase.notes || rCase.actualResult || '') : '');
+
+            const origDetails = {
+                status: origStatus,
+                actualResult: oCase?.actualResult || oExec?.actualResult || '',
+                notes: oCase?.notes || oExec?.notes || '',
+                errorMessage: origError,
+                stackTrace: oExec?.stackTrace || '',
+                durationMs: oCase?.durationMs || oExec?.durationMs || 0,
+                executedAt: oCase?.executedAt || oExec?.createdAt || null,
+                executedBy: oCase?.executedBy || oExec?.executedBy || 'Tester',
+                artifacts: origArtifactsMap.get(String(oCase?.id || '')) || [],
+                stepOutcomes: oExec?.stepOutcomes || {},
+                stepObservations: oExec?.stepObservations || {}
+            };
+
+            const rerunDetails = {
+                status: rerunStatus,
+                actualResult: rCase.actualResult || rExec?.actualResult || '',
+                notes: rCase.notes || rExec?.notes || '',
+                errorMessage: rerunError,
+                stackTrace: rExec?.stackTrace || '',
+                durationMs: rCase.durationMs || rExec?.durationMs || 0,
+                executedAt: rCase.executedAt || rExec?.createdAt || null,
+                executedBy: rCase.executedBy || rExec?.executedBy || 'Tester',
+                artifacts: rerunArtifactsMap.get(String(rCase.id)) || [],
+                stepOutcomes: rExec?.stepOutcomes || {},
+                stepObservations: rExec?.stepObservations || {}
+            };
+
+            const isErrorDifferent = Boolean(
+                origError && rerunError && origError.trim().toLowerCase() !== rerunError.trim().toLowerCase()
+            );
+
+            const durationDiffMs = (rerunDetails.durationMs || 0) - (origDetails.durationMs || 0);
+
+            // Construct honest diagnostic comparison notes
+            let diagnosticSummary = '';
+            if (transition === 'fixed') {
+                diagnosticSummary = 'Resolved: Test failed in original execution, but passed cleanly on rerun.';
+            } else if (transition === 'regression') {
+                diagnosticSummary = 'Regression: Test passed in original run, but failed upon rerun.';
+            } else if (transition === 'still_failing') {
+                if (isErrorDifferent) {
+                    diagnosticSummary = `Failure unresolved: Error signature changed on rerun: "${rerunError.slice(0, 80)}" vs "${origError.slice(0, 80)}"`;
+                } else {
+                    diagnosticSummary = 'Persistent failure: Reproduced with identical error signature and assertions.';
+                }
+            } else if (transition === 'blocked') {
+                diagnosticSummary = 'Blocked: Execution prevented by unresolved environmental or prerequisite barrier.';
+            } else if (transition === 'skipped') {
+                diagnosticSummary = 'Skipped: Execution was intentionally bypassed or excluded during this run.';
+            } else if (transition === 'pending') {
+                diagnosticSummary = 'Pending: Rerun execution has not yet concluded for this test case.';
+            } else if (transition === 'added') {
+                diagnosticSummary = 'New test case added to rerun that was not evaluated in the original execution.';
+            } else {
+                diagnosticSummary = `Status shifted from ${origStatus} to ${rerunStatus}.`;
+            }
+
             return {
                 testCaseId: tcId,
-                title: rCase.caseSnapshot?.title || oCase?.caseSnapshot?.title || 'Untitled',
-                executionType: rCase.executionType,
+                title: rCase.caseSnapshot?.title || oCase?.caseSnapshot?.title || 'Untitled Test Case',
+                category: rCase.caseSnapshot?.category || rCase.caseSnapshot?.type || oCase?.caseSnapshot?.category || 'Functional',
+                priority: rCase.caseSnapshot?.priority || oCase?.caseSnapshot?.priority || 'Medium',
+                executionType: rCase.executionType || 'manual',
                 originalStatus: origStatus,
                 rerunStatus: rerunStatus,
-                originalDurationMs: oCase?.durationMs || 0,
-                rerunDurationMs: rCase.durationMs || 0,
-                durationDiffMs: (rCase.durationMs || 0) - (oCase?.durationMs || 0),
+                originalDurationMs: origDetails.durationMs,
+                rerunDurationMs: rerunDetails.durationMs,
+                durationDiffMs,
                 transition,
                 transitionLabel,
                 isFixed: transition === 'fixed',
-                actualResult: rCase.actualResult || '',
-                notes: rCase.notes || ''
+                isRegression: transition === 'regression',
+                isStillFailing: transition === 'still_failing',
+                isPending: transition === 'pending',
+                originalDetails: origDetails,
+                rerunDetails: rerunDetails,
+                diagnosticDifferences: {
+                    isErrorDifferent,
+                    isDurationDifferent: Math.abs(durationDiffMs) > 200,
+                    summary: diagnosticSummary
+                }
             };
         });
 
+        // Also identify cases that were in original run but omitted from the rerun
+        origCases.forEach(oCase => {
+            const tcId = String(oCase.testCaseId || oCase.caseSnapshot?.id);
+            if (!rerunSeenCaseIds.has(tcId)) {
+                omittedCount++;
+                const oExec = origExecMap.get(String(oCase.id));
+                const origStatus = (oCase.status || 'not_run').toLowerCase();
+
+                comparisons.push({
+                    testCaseId: tcId,
+                    title: oCase.caseSnapshot?.title || 'Untitled Test Case',
+                    category: oCase.caseSnapshot?.category || 'Functional',
+                    priority: oCase.caseSnapshot?.priority || 'Medium',
+                    executionType: oCase.executionType || 'manual',
+                    originalStatus: origStatus,
+                    rerunStatus: 'omitted',
+                    originalDurationMs: oCase.durationMs || 0,
+                    rerunDurationMs: 0,
+                    durationDiffMs: -(oCase.durationMs || 0),
+                    transition: 'omitted',
+                    transitionLabel: 'Omitted from Rerun',
+                    isFixed: false,
+                    isRegression: false,
+                    isStillFailing: false,
+                    isPending: false,
+                    originalDetails: {
+                        status: origStatus,
+                        actualResult: oCase.actualResult || '',
+                        notes: oCase.notes || '',
+                        errorMessage: oExec?.errorMessage || '',
+                        stackTrace: oExec?.stackTrace || '',
+                        durationMs: oCase.durationMs || 0,
+                        executedAt: oCase.executedAt || null,
+                        executedBy: oCase.executedBy || 'Tester',
+                        artifacts: origArtifactsMap.get(String(oCase.id)) || [],
+                        stepOutcomes: oExec?.stepOutcomes || {},
+                        stepObservations: oExec?.stepObservations || {}
+                    },
+                    rerunDetails: {
+                        status: 'omitted',
+                        actualResult: '',
+                        notes: 'Test case was omitted from this rerun scope.',
+                        errorMessage: '',
+                        stackTrace: '',
+                        durationMs: 0,
+                        executedAt: null,
+                        executedBy: null,
+                        artifacts: [],
+                        stepOutcomes: {},
+                        stepObservations: {}
+                    },
+                    diagnosticDifferences: {
+                        isErrorDifferent: false,
+                        isDurationDifferent: false,
+                        summary: 'Test case was part of the original execution but excluded from this rerun.'
+                    }
+                });
+            }
+        });
+
+        // Compute overall verdict
         let verdict = 'IN_PROGRESS';
         if (isRerunTerminal) {
-            if (fixedCount === rerunCases.length && rerunCases.length > 0) {
+            if (regressionCount > 0) {
+                verdict = 'REGRESSIONS_DETECTED';
+            } else if (stillFailingCount === 0 && fixedCount > 0) {
                 verdict = 'ALL_FIXED';
-            } else if (fixedCount > 0) {
+            } else if (fixedCount > 0 && stillFailingCount > 0) {
                 verdict = 'PARTIALLY_FIXED';
             } else if (stillFailingCount > 0) {
                 verdict = 'UNRESOLVED';
@@ -393,17 +656,30 @@ class RerunExecutionService {
             originalRunId: originalRun.id,
             rerunName: rerunRun.name,
             originalName: originalRun.name,
-            rerunType: rerunRun.rerunType,
+            suiteId: rerunRun.suiteId || originalRun.suiteId,
+            suiteName: rerunRun.suiteName || originalRun.suiteName || rerunRun.name,
+            targetEnvironment: rerunRun.targetEnvironment || originalRun.targetEnvironment || {},
+            executionType: rerunRun.executionType || originalRun.executionType || 'manual',
+            rerunType: rerunRun.rerunType || 'failed',
             rerunStatus: rerunRun.status,
             originalStatus: originalRun.status,
+            rerunStartedAt: rerunRun.startedAt || rerunRun.createdAt,
+            rerunCompletedAt: rerunRun.completedAt,
+            originalStartedAt: originalRun.startedAt || originalRun.createdAt,
+            originalCompletedAt: originalRun.completedAt,
             terminalStateReached: isRerunTerminal,
             summary: {
-                totalCompared: comparisons.length,
+                totalCompared: rerunCases.length,
+                totalSuiteCases: origCases.length,
                 fixedCount,
                 stillFailingCount,
+                regressionCount,
+                stillPassingCount,
                 blockedCount,
                 skippedCount,
-                missingResultCount,
+                pendingCount,
+                addedCount,
+                omittedCount,
                 verdict
             },
             comparisons

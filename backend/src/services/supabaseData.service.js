@@ -2415,7 +2415,7 @@ class SupabaseDataService {
         const createdBy = params.createdBy || params.created_by || null;
         const assignedTo = params.assignedTo || params.assigned_to || null;
         const selectedCaseIds = params.selectedCaseIds || params.selected_case_ids || [];
-        const customCases = params.customCases || params.custom_cases || null;
+        const customCases = params.customCases || params.custom_cases || params.cases || null;
         const datasetId = params.datasetId || params.dataset_id || null;
         const datasetVersion = params.datasetVersion || params.dataset_version || null;
         const datasetName = params.datasetName || params.dataset_name || null;
@@ -3432,6 +3432,33 @@ class SupabaseDataService {
         if (rows.length === 0) {
             rows = Array.from(this.inMemoryTestExecutions.values())
                 .filter(e => e.run_case_id === runCaseId)
+                .sort((a, b) => (a.attempt_number || 1) - (b.attempt_number || 1));
+        }
+
+        return rows.map(r => this._formatTestExecution(r));
+    }
+
+    /**
+     * Get all execution attempts for an entire test run
+     */
+    async getRunExecutions(runId) {
+        if (!runId) return [];
+
+        let rows = [];
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('test_executions')
+                    .select('*')
+                    .eq('run_id', runId)
+                    .order('attempt_number', { ascending: true });
+                if (!error && data) rows = data;
+            } catch (err) {}
+        }
+
+        if (rows.length === 0) {
+            rows = Array.from(this.inMemoryTestExecutions.values())
+                .filter(e => e.run_id === runId)
                 .sort((a, b) => (a.attempt_number || 1) - (b.attempt_number || 1));
         }
 

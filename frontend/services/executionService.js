@@ -508,5 +508,72 @@ export const executionService = {
         }
 
         return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Rerun selected test cases specifically
+     */
+    rerunSelected: async ({ runId, caseIds = [], workspaceId = null }) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/rerun-selected${query}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ caseIds })
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Rerun a single test case
+     */
+    rerunSingleCase: async ({ runId, caseId, workspaceId = null }) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/rerun-case/${caseId}${query}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({})
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get rerun lineage history for an execution run
+     */
+    getRerunHistory: async (runId, workspaceId = null) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/reruns${query}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get hierarchical relationships (parent, original, children)
+     */
+    getRerunRelationships: async (runId, workspaceId = null) => {
+        const query = workspaceId ? `?workspaceId=${workspaceId}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/rerun-relationships${query}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get terminal state comparison between a rerun execution and its original run
+     */
+    getRerunComparison: async (runId, rerunId = null) => {
+        const query = rerunId ? `?rerunId=${encodeURIComponent(rerunId)}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/rerun-comparison${query}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
     }
 };

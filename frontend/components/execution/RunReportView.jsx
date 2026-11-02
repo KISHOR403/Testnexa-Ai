@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
     AlertTriangle, Clock, Download, Printer, RefreshCw,
     ChevronDown, ChevronUp, Check, AlertCircle, Copy,
-    Camera, Video, Network, Terminal, FileText
+    Camera, Video, Network, Terminal, FileText, GitCompare
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../loading';
@@ -439,6 +439,16 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                         <RefreshCw size={12} className={isRerunning ? 'animate-spin' : ''} />
                         <span>Rerun Suite</span>
                     </button>
+
+                    <NavLink
+                        to={`/app/runs/${runId}/compare`}
+                        className="er-btn"
+                        title="Compare original execution outcomes with rerun"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}
+                    >
+                        <GitCompare size={12} />
+                        <span>Compare Reruns</span>
+                    </NavLink>
 
                     <div className="er-btn-divider" />
 

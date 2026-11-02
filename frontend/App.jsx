@@ -34,6 +34,7 @@ const TraceabilityPage = lazy(() => import('./pages/app/TraceabilityPage'));
 const TestRunsPage = lazy(() => import('./pages/app/TestRunsPage'));
 const TestCasesPage = lazy(() => import('./pages/app/TestCasesPage'));
 const RunExecutionPage = lazy(() => import('./pages/app/RunExecutionPage'));
+const RunComparisonPage = lazy(() => import('./pages/app/RunComparisonPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
 // Dynamic discovery for Admin Console (active locally/privately; gracefully absent in public repo)
@@ -177,6 +178,7 @@ function AppContent() {
             <Route path="test-cases" element={<TestCasesPage />} />
             <Route path="runs" element={<TestRunsPage />} />
             <Route path="runs/:runId" element={<RunExecutionPage />} />
+            <Route path="runs/:runId/compare/:rerunId?" element={<RunComparisonPage />} />
             <Route path="coverage" element={<CoveragePage />} />
             <Route path="risks" element={<RisksPage />} />
             <Route path="traceability" element={<TraceabilityPage />} />

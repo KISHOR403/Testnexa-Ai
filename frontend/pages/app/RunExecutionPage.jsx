@@ -1,20 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useLocation, NavLink } from 'react-router-dom';
+import { useParams, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import {
     ArrowLeft, Play, RefreshCw, CheckCircle2, XCircle,
     AlertTriangle, MinusCircle, Clock, Shield, User, Bot,
     Terminal, FileText, Camera, Upload, Trash2,
     ChevronRight, ChevronDown, Check, AlertCircle, StopCircle, Eye, Download, Copy,
-    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare, Search
+    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare, Search, History
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
 import Modal from '../../components/ui/Modal';
 import RunReportView from '../../components/execution/RunReportView';
 import RunComparisonView from '../../components/execution/RunComparisonView';
+import RerunResultComparisonView from '../../components/execution/RerunResultComparisonView';
+import RerunModal from '../../components/execution/RerunModal';
+import RerunHistoryDrawer from '../../components/execution/RerunHistoryDrawer';
 import '../../styles/app/WorkspaceDesignSystem.css';
 import '../../styles/app/RunWorkspace.css';
 import '../../styles/app/ArtifactEvidence.css';
+import '../../styles/app/RerunWorkspace.css';
 
 const SCRIPT_TEMPLATES = {
     smoke: `async (page, expect) => {
@@ -197,10 +201,13 @@ const RunExecutionPage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
 
+    const navigate = useNavigate();
     // Active Automation Job Polling state
     const [activeJob, setActiveJob] = useState(null);
     const [isTriggeringAuto, setIsTriggeringAuto] = useState(false);
     const [activeTab, setActiveTab] = useState(initialTab); // 'cases' | 'report' | 'compare' | 'artifacts'
+    const [isRerunModalOpen, setIsRerunModalOpen] = useState(false);
+    const [isRerunHistoryOpen, setIsRerunHistoryOpen] = useState(false);
     const [artifacts, setArtifacts] = useState([]);
     const [isArtifactsLoading, setIsArtifactsLoading] = useState(true);
     const [artifactsError, setArtifactsError] = useState('');
@@ -861,6 +868,43 @@ const RunExecutionPage = () => {
 
 return (
         <div className="qa-workspace">
+            {/* Rerun Lineage Banner */}
+            {(run.originalRunId || run.isRerun) && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.65rem 1.15rem',
+                    background: '#0D1310',
+                    border: '1px solid #1E2922',
+                    borderRadius: '6px',
+                    marginBottom: '1rem',
+                    fontSize: '0.78rem',
+                    color: '#BAC5BE',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#8BAF9A', fontWeight: 700 }}>⚡ RERUN EXECUTION:</span>
+                        <span>Ancestry linked to original</span>
+                        <NavLink to={`/app/runs/${run.originalRunId}`} style={{ color: '#8BAF9A', fontFamily: 'ui-monospace, monospace', textDecoration: 'underline', fontWeight: 600 }}>
+                            Run #{String(run.originalRunId).slice(-8)}
+                        </NavLink>
+                        <span style={{ color: '#727D75' }}>({run.rerunType || 'failed'} tests scope)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <NavLink
+                            to={`/app/runs/${run.id}/compare`}
+                            className="ws-btn-secondary"
+                            style={{ height: '28px', padding: '0 0.75rem', fontSize: '0.74rem', color: '#8BAF9A', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                        >
+                            <GitCompare size={12} />
+                            <span>Compare with Original</span>
+                        </NavLink>
+                    </div>
+                </div>
+            )}
+
             {/* ─── 1. TOP HEADER & BREADCRUMBS ─── */}
             <div className="qa-top-header">
                 <div>
@@ -1025,7 +1069,7 @@ return (
                     {sum.failed > 0 && (!activeJob || (activeJob.status !== 'queued' && activeJob.status !== 'running')) && (
                         <button
                             type="button"
-                            onClick={handleRerunFailed}
+                            onClick={() => setIsRerunModalOpen(true)}
                             disabled={isRerunningFailed}
                             className="ws-btn-secondary"
                             style={{
@@ -1036,12 +1080,35 @@ return (
                                 fontSize: '0.82rem',
                                 gap: '6px'
                             }}
-                            title="Rerun only failed test cases with Playwright"
+                            title="Open Rerun Failed Tests focused selection modal"
                         >
                             <RotateCcw size={14} className={isRerunningFailed ? 'animate-spin' : ''} />
                             <span>{isRerunningFailed ? 'Rerunning...' : `Rerun Failed (${sum.failed})`}</span>
                         </button>
                     )}
+
+                    {/* Rerun History & Lineage Button */}
+                    <button
+                        type="button"
+                        onClick={() => setIsRerunHistoryOpen(true)}
+                        className="ws-btn-secondary"
+                        style={{ height: '34px', padding: '0 0.85rem', gap: '6px', fontSize: '0.82rem' }}
+                        title="View rerun ancestry and execution history"
+                    >
+                        <History size={14} />
+                        <span>Reruns</span>
+                    </button>
+
+                    {/* Compare Button */}
+                    <NavLink
+                        to={`/app/runs/${run.id}/compare`}
+                        className="ws-btn-secondary"
+                        style={{ height: '34px', padding: '0 0.85rem', gap: '6px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', color: '#8BAF9A', textDecoration: 'none' }}
+                        title="Compare execution outcomes with rerun"
+                    >
+                        <GitCompare size={14} />
+                        <span>Compare</span>
+                    </NavLink>
 
                     {/* Toggle Live Runner Logs */}
                     <button
@@ -1174,9 +1241,10 @@ return (
                 />
             ) : activeTab === 'compare' ? (
                 /* TAB: RUN COMPARISON */
-                <RunComparisonView
+                <RerunResultComparisonView
                     runId={runId}
-                    currentRun={run}
+                    initialRerunId={run?.originalRunId ? run.id : null}
+                    onSelectRun={(id) => navigate(`/app/runs/${id}`)}
                 />
             ) : activeTab === 'artifacts' ? (
                 /* TAB: ARTIFACTS & LOGS */
@@ -2501,6 +2569,30 @@ return (
                         )}
                     </div>
                 </div>
+            )}
+            {isRerunModalOpen && (
+                <RerunModal
+                    isOpen={isRerunModalOpen}
+                    originalRun={run}
+                    runCases={cases}
+                    onClose={() => setIsRerunModalOpen(false)}
+                    onRerunCreated={(newRunData) => {
+                        setIsRerunModalOpen(false);
+                        navigate(`/app/runs/${newRunData.newRunId}`);
+                    }}
+                />
+            )}
+
+            {isRerunHistoryOpen && (
+                <RerunHistoryDrawer
+                    isOpen={isRerunHistoryOpen}
+                    runId={runId}
+                    onClose={() => setIsRerunHistoryOpen(false)}
+                    onOpenComparison={(targetRerunId) => {
+                        setIsRerunHistoryOpen(false);
+                        navigate(`/app/runs/${targetRerunId}/compare`);
+                    }}
+                />
             )}
         </div>
     );

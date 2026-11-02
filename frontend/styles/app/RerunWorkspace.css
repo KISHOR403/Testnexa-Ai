@@ -1,0 +1,586 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — PHASE 2 RERUN FAILED TESTS WORKSPACE STYLES
+   Near-black theme (#080A09, #0D110F), muted jade-green accent (#8BAF9A),
+   compact failure ledger, lineage history, and terminal state comparison.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── MODAL OVERLAYS & BACKDROPS ─── */
+.rerun-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 5, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    box-sizing: border-box;
+    animation: rerunFadeIn 0.18s ease-out;
+}
+
+@keyframes rerunFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.rerun-modal {
+    width: min(880px, 95vw);
+    max-height: 90vh;
+    background: #0B0E0C;
+    border: 1px solid #1E2521;
+    border-radius: 8px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #F2F3F3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+/* ─── 1. FIXED HEADER ─── */
+.rerun-header {
+    flex-shrink: 0;
+    background: #0E1310;
+    border-bottom: 1px solid #1A211D;
+    padding: 16px 22px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rerun-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rerun-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8BAF9A;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rerun-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rerun-title-row h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 650;
+    color: #FFFFFF;
+    letter-spacing: -0.015em;
+}
+
+.rerun-run-pill {
+    padding: 2px 8px;
+    background: #141A16;
+    border: 1px solid #28332B;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #C0CFC5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.rerun-close-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #222B25;
+    border-radius: 4px;
+    color: #87928B;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.rerun-close-btn:hover:not(:disabled) {
+    background: #1A211D;
+    color: #FFFFFF;
+    border-color: #38483E;
+}
+
+/* ─── 2. CONTEXT & METADATA STRIP ─── */
+.rerun-context-strip {
+    flex-shrink: 0;
+    background: #090C0A;
+    border-bottom: 1px solid #161C19;
+    padding: 10px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.74rem;
+    color: #87928B;
+}
+
+.rerun-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.rerun-meta-item strong {
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+/* ─── 3. NOTICE BANNER ─── */
+.rerun-notice {
+    flex-shrink: 0;
+    margin: 14px 22px 0;
+    padding: 10px 14px;
+    background: rgba(139, 175, 154, 0.08);
+    border: 1px solid rgba(139, 175, 154, 0.25);
+    border-radius: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: #CBD5E1;
+}
+
+.rerun-notice.warning {
+    background: rgba(229, 192, 123, 0.08);
+    border-color: rgba(229, 192, 123, 0.3);
+    color: #E5C07B;
+}
+
+.rerun-notice.error {
+    background: rgba(224, 108, 117, 0.1);
+    border-color: rgba(224, 108, 117, 0.35);
+    color: #E06C75;
+}
+
+/* ─── 4. CONTROLS & SELECTION BAR ─── */
+.rerun-controls-bar {
+    flex-shrink: 0;
+    padding: 12px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border-bottom: 1px solid #161C19;
+}
+
+.rerun-scope-selector {
+    display: inline-flex;
+    background: #080A09;
+    border: 1px solid #202823;
+    border-radius: 5px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.rerun-scope-btn {
+    padding: 5px 12px;
+    border: 0;
+    background: transparent;
+    border-radius: 4px;
+    color: #87928B;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rerun-scope-btn.active {
+    background: #18201B;
+    color: #8BAF9A;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.rerun-selection-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.74rem;
+}
+
+.rerun-count-badge {
+    color: #CBD5E1;
+}
+
+.rerun-count-badge strong {
+    color: #8BAF9A;
+}
+
+.rerun-link-btn {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: #8BAF9A;
+    font-size: 0.74rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.rerun-link-btn:hover {
+    color: #FFFFFF;
+}
+
+/* ─── 5. SCROLLABLE TEST CASE TABLE ─── */
+.rerun-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 22px 14px;
+}
+
+.rerun-table-wrap {
+    margin-top: 10px;
+    border: 1px solid #1B221E;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.rerun-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.76rem;
+    text-align: left;
+}
+
+.rerun-table th {
+    background: #0E1310;
+    padding: 9px 12px;
+    color: #87928B;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.68rem;
+    border-bottom: 1px solid #1B221E;
+}
+
+.rerun-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #141A16;
+    color: #CBD5E1;
+    vertical-align: middle;
+}
+
+.rerun-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.rerun-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.rerun-table tr.selected td {
+    background: rgba(139, 175, 154, 0.04);
+}
+
+.rerun-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: #8BAF9A;
+    cursor: pointer;
+}
+
+.rerun-case-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 600;
+    color: #8BAF9A;
+}
+
+.rerun-case-title {
+    color: #FFFFFF;
+    font-weight: 500;
+    display: block;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rerun-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.rerun-badge.failed {
+    background: rgba(224, 108, 117, 0.15);
+    border: 1px solid rgba(224, 108, 117, 0.35);
+    color: #E06C75;
+}
+
+.rerun-badge.blocked {
+    background: rgba(229, 192, 123, 0.15);
+    border: 1px solid rgba(229, 192, 123, 0.35);
+    color: #E5C07B;
+}
+
+.rerun-badge.automated {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38BDF8;
+}
+
+.rerun-badge.manual {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #C0CFC5;
+}
+
+.rerun-badge.ready {
+    background: rgba(139, 175, 154, 0.15);
+    border: 1px solid rgba(139, 175, 154, 0.35);
+    color: #8BAF9A;
+}
+
+.rerun-badge.unmapped {
+    background: rgba(229, 192, 123, 0.12);
+    border: 1px solid rgba(229, 192, 123, 0.3);
+    color: #E5C07B;
+}
+
+.rerun-action-btn-cell {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.rerun-single-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid #28332B;
+    border-radius: 4px;
+    color: #8BAF9A;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rerun-single-btn:hover:not(:disabled) {
+    background: #141A16;
+    border-color: #8BAF9A;
+    color: #FFFFFF;
+}
+
+/* ─── 6. FIXED FOOTER ─── */
+.rerun-footer {
+    flex-shrink: 0;
+    background: #0E1310;
+    border-top: 1px solid #1A211D;
+    padding: 14px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rerun-footer-notice {
+    font-size: 0.72rem;
+    color: #87928B;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rerun-footer-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.rerun-btn-secondary {
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid #242D27;
+    border-radius: 5px;
+    color: #C0CFC5;
+    font-size: 0.78rem;
+    font-weight: 550;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rerun-btn-secondary:hover:not(:disabled) {
+    background: #151C18;
+    color: #FFFFFF;
+    border-color: #38483E;
+}
+
+.rerun-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    background: #8BAF9A;
+    border: 1px solid #8BAF9A;
+    border-radius: 5px;
+    color: #080A09;
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rerun-btn-primary:hover:not(:disabled) {
+    background: #9DBFA9;
+    border-color: #9DBFA9;
+}
+
+.rerun-btn-primary:disabled,
+.rerun-btn-secondary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ─── 7. LINEAGE BANNER IN TEST RUN WORKSPACE ─── */
+.rerun-lineage-banner {
+    background: #0E1411;
+    border-bottom: 1px solid #1E2722;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 0.74rem;
+    color: #C0CFC5;
+}
+
+.rerun-lineage-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rerun-lineage-badge {
+    background: rgba(139, 175, 154, 0.15);
+    border: 1px solid rgba(139, 175, 154, 0.35);
+    color: #8BAF9A;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.rerun-lineage-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rerun-lineage-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: 1px solid #28332B;
+    border-radius: 4px;
+    padding: 4px 9px;
+    color: #8BAF9A;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.rerun-lineage-btn:hover {
+    background: #141A16;
+    border-color: #8BAF9A;
+    color: #FFFFFF;
+}
+
+/* ─── 8. RERUN COMPARISON VIEW ─── */
+.rerun-comp-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 14px 0 18px;
+}
+
+.rerun-comp-card {
+    background: #0E1310;
+    border: 1px solid #1E2521;
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rerun-comp-card-label {
+    font-size: 0.7rem;
+    color: #87928B;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.rerun-comp-card-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.rerun-comp-card.fixed .rerun-comp-card-val { color: #8BAF9A; }
+.rerun-comp-card.failing .rerun-comp-card-val { color: #E06C75; }
+.rerun-comp-card.blocked .rerun-comp-card-val { color: #E5C07B; }
+.rerun-comp-card.skipped .rerun-comp-card-val { color: #777E7E; }
+
+.rerun-shift-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.rerun-shift-tag.fixed {
+    background: rgba(139, 175, 154, 0.15);
+    border: 1px solid rgba(139, 175, 154, 0.35);
+    color: #8BAF9A;
+}
+
+.rerun-shift-tag.still_failing {
+    background: rgba(224, 108, 117, 0.15);
+    border: 1px solid rgba(224, 108, 117, 0.35);
+    color: #E06C75;
+}
+
+.rerun-shift-tag.blocked {
+    background: rgba(229, 192, 123, 0.15);
+    border: 1px solid rgba(229, 192, 123, 0.35);
+    color: #E5C07B;
+}
+
+.rerun-shift-tag.missing_result {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #87928B;
+}
+

@@ -465,11 +465,11 @@ const TestRunsPage = () => {
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigate(`/app/runs/${run.id}?tab=compare`);
+                                                navigate(run.originalRunId ? `/app/runs/${run.id}/compare` : `/app/runs/${run.id}?tab=compare`);
                                             }}
                                             className="ws-btn-secondary"
                                             style={{ height: '26px', padding: '0 8px', fontSize: '0.72rem' }}
-                                            title="Compare with previous run"
+                                            title="Compare execution outcomes with rerun"
                                         >
                                             <GitCompare size={11} />
                                             <span>Compare</span>

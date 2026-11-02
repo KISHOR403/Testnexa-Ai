@@ -1467,7 +1467,8 @@ exports.getRerunComparison = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, run.workspaceId);
         if (!isAllowed) return;
 
-        const comparison = await rerunExecution.compareRerun(id, run.workspaceId);
+        const { rerunId } = req.query;
+        const comparison = await rerunExecution.compareRerun(id, run.workspaceId, rerunId);
         res.json({
             success: true,
             data: comparison

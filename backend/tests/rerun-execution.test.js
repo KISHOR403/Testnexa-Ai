@@ -698,4 +698,286 @@ describe('Phase 2: Rerun Execution Engine & Traceable Lineage Suite', () => {
         assert.equal(comp2.transition, 'still_failing');
         assert.equal(comp2.isFixed, false);
     });
+
+    it('15. Comprehensive Classification: Regression (Passed -> Failed), Blocked, Skipped, and Still Passing', async () => {
+        // Setup original run with 4 cases: 1 passed, 1 failed, 1 failed, 1 passed
+        const origRun = await supabaseService.createTestRun({
+            workspaceId: primaryWorkspaceId,
+            suiteId: parentSuite.id,
+            name: 'Original Multi-State Run',
+            executionType: 'manual',
+            cases: [
+                { id: 'TC-STATE-1', title: 'State Test 1', priority: 'High', executionType: 'manual' },
+                { id: 'TC-STATE-2', title: 'State Test 2', priority: 'High', executionType: 'manual' },
+                { id: 'TC-STATE-3', title: 'State Test 3', priority: 'Medium', executionType: 'manual' },
+                { id: 'TC-STATE-4', title: 'State Test 4', priority: 'Low', executionType: 'manual' }
+            ]
+        });
+        const origCases = await supabaseService.getRunCases(origRun.id);
+
+        // Record original: TC-STATE-1 passed, TC-STATE-2 failed, TC-STATE-3 failed, TC-STATE-4 passed
+        await supabaseService.recordTestExecution({
+            runId: origRun.id,
+            runCaseId: origCases[0].id,
+            status: 'passed',
+            actualResult: 'Passed initial check',
+            durationMs: 500
+        });
+        await supabaseService.recordTestExecution({
+            runId: origRun.id,
+            runCaseId: origCases[1].id,
+            status: 'failed',
+            actualResult: 'Original error: element not found',
+            errorMessage: 'NoSuchElementError: #submit-btn',
+            durationMs: 1200
+        });
+        await supabaseService.recordTestExecution({
+            runId: origRun.id,
+            runCaseId: origCases[2].id,
+            status: 'failed',
+            actualResult: 'Original timeout',
+            errorMessage: 'TimeoutError: 30000ms exceeded',
+            durationMs: 30000
+        });
+        await supabaseService.recordTestExecution({
+            runId: origRun.id,
+            runCaseId: origCases[3].id,
+            status: 'passed',
+            actualResult: 'Passed initially',
+            durationMs: 800
+        });
+
+        await supabaseService.updateTestRun(origRun.id, { status: 'completed' });
+
+        // Save an artifact for original TC-STATE-2
+        await supabaseService.saveArtifact({
+            runId: origRun.id,
+            runCaseId: origCases[1].id,
+            name: 'orig-failure.png',
+            storagePath: 'runs/orig-failure.png',
+            artifactType: 'screenshot',
+            mimeType: 'image/png'
+        });
+
+        // Create rerun for selected cases (TC-STATE-1, TC-STATE-2, TC-STATE-3, TC-STATE-4)
+        const rerunResult = await rerunExecutionService.createRerunExecution({
+            runId: origRun.id,
+            workspaceId: primaryWorkspaceId,
+            scope: 'selected',
+            caseIds: ['TC-STATE-1', 'TC-STATE-2', 'TC-STATE-3', 'TC-STATE-4']
+        });
+
+        const rerunCases = await supabaseService.getRunCases(rerunResult.newRunId);
+
+        // Record rerun:
+        // TC-STATE-1: was passed -> now failed (REGRESSION!)
+        await supabaseService.recordTestExecution({
+            runId: rerunResult.newRunId,
+            runCaseId: rerunCases.find(c => c.testCaseId === 'TC-STATE-1').id,
+            status: 'failed',
+            actualResult: 'Regression: unexpected 500 error',
+            errorMessage: 'InternalServerError: Database deadlock',
+            durationMs: 1500
+        });
+        // TC-STATE-2: was failed -> now blocked
+        await supabaseService.recordTestExecution({
+            runId: rerunResult.newRunId,
+            runCaseId: rerunCases.find(c => c.testCaseId === 'TC-STATE-2').id,
+            status: 'blocked',
+            actualResult: 'Blocked by downstream auth API outage',
+            durationMs: 200
+        });
+        // TC-STATE-3: was failed -> now skipped
+        await supabaseService.recordTestExecution({
+            runId: rerunResult.newRunId,
+            runCaseId: rerunCases.find(c => c.testCaseId === 'TC-STATE-3').id,
+            status: 'skipped',
+            notes: 'Skipped due to test environment maintenance',
+            durationMs: 0
+        });
+        // TC-STATE-4: was passed -> now passed (STILL PASSING)
+        await supabaseService.recordTestExecution({
+            runId: rerunResult.newRunId,
+            runCaseId: rerunCases.find(c => c.testCaseId === 'TC-STATE-4').id,
+            status: 'passed',
+            actualResult: 'Passed check again smoothly',
+            durationMs: 750
+        });
+
+        await supabaseService.updateTestRun(rerunResult.newRunId, { status: 'completed' });
+
+        // Compare from original run providing ?rerunId=
+        const comp = await rerunExecutionService.compareRerun(origRun.id, primaryWorkspaceId, rerunResult.newRunId);
+
+        assert.ok(comp);
+        assert.equal(comp.terminalStateReached, true);
+        assert.equal(comp.summary.regressionCount, 1, 'TC-STATE-1 must be classified as Regression');
+        assert.equal(comp.summary.blockedCount, 1, 'TC-STATE-2 must be classified as Blocked');
+        assert.equal(comp.summary.skippedCount, 1, 'TC-STATE-3 must be classified as Skipped');
+        assert.equal(comp.summary.stillPassingCount, 1, 'TC-STATE-4 must be classified as Still Passing');
+        assert.equal(comp.summary.verdict, 'REGRESSIONS_DETECTED');
+
+        const regCase = comp.comparisons.find(c => c.testCaseId === 'TC-STATE-1');
+        assert.equal(regCase.transition, 'regression');
+        assert.equal(regCase.isRegression, true);
+
+        // Verify diagnostic details preserved
+        const blockedCase = comp.comparisons.find(c => c.testCaseId === 'TC-STATE-2');
+        assert.equal(blockedCase.transition, 'blocked');
+        assert.ok(blockedCase.originalDetails.artifacts.length > 0, 'Original artifact should be linked in diagnostics');
+
+        // Verify original execution remains immutable
+        const originalRunAfter = await supabaseService.getTestRunById(origRun.id);
+        const originalCasesAfter = await supabaseService.getRunCases(origRun.id);
+        assert.ok(['completed', 'failed'].includes(originalRunAfter.status), 'Original run status should remain intact');
+        assert.equal(originalCasesAfter.find(c => c.testCaseId === 'TC-STATE-1').status, 'passed', 'Original run case must stay immutable');
+    });
+
+    it('16. In-Progress/Pending State & Relationship Enforcement', async () => {
+        // Original run with 2 failed cases
+        const origRun = await supabaseService.createTestRun({
+            workspaceId: primaryWorkspaceId,
+            suiteId: parentSuite.id,
+            name: 'Original Run For Pending Test',
+            executionType: 'manual',
+            cases: [
+                { id: 'TC-PEND-1', title: 'Pending Case 1', priority: 'High', executionType: 'manual' },
+                { id: 'TC-PEND-2', title: 'Pending Case 2', priority: 'Low', executionType: 'manual' }
+            ]
+        });
+        const origCases = await supabaseService.getRunCases(origRun.id);
+
+        for (const c of origCases) {
+            await supabaseService.recordTestExecution({
+                runId: origRun.id,
+                runCaseId: c.id,
+                status: 'failed',
+                actualResult: 'Failed initially',
+                durationMs: 500
+            });
+        }
+        await supabaseService.updateTestRun(origRun.id, { status: 'completed' });
+
+        // Create rerun but leave in-progress
+        const rerunResult = await rerunExecutionService.createRerunExecution({
+            runId: origRun.id,
+            workspaceId: primaryWorkspaceId,
+            scope: 'failed'
+        });
+
+        // Comparison while rerun is active
+        const pendingComp = await rerunExecutionService.compareRerun(rerunResult.newRunId, primaryWorkspaceId);
+        assert.equal(pendingComp.terminalStateReached, false);
+        assert.equal(pendingComp.summary.verdict, 'IN_PROGRESS');
+        assert.equal(pendingComp.summary.pendingCount, 2);
+
+        // Cross-workspace comparison should throw 403
+        await assert.rejects(
+            async () => {
+                await rerunExecutionService.compareRerun(rerunResult.newRunId, unauthorizedWorkspaceId);
+            },
+            { statusCode: 403 }
+        );
+
+        // Comparing completely unrelated runs should throw 400
+        const unrelatedRun = await supabaseService.createTestRun({
+            workspaceId: primaryWorkspaceId,
+            suiteId: parentSuite.id,
+            name: 'Unrelated Standalone Run',
+            executionType: 'manual',
+            cases: [{ id: 'TC-UNRELATED-1', title: 'Unrelated', priority: 'Medium' }]
+        });
+
+        await assert.rejects(
+            async () => {
+                await rerunExecutionService.compareRerun(origRun.id, primaryWorkspaceId, unrelatedRun.id);
+            },
+            { statusCode: 400 }
+        );
+
+        // Mark rerun completed to clean up
+        await supabaseService.updateTestRun(rerunResult.newRunId, { status: 'completed' });
+    });
+
+    it('17. Added and Omitted Test Cases Classification & Duration Deltas', async () => {
+        // Original run with TC-BASE-1, TC-BASE-2, TC-BASE-3
+        const origRun = await supabaseService.createTestRun({
+            workspaceId: primaryWorkspaceId,
+            suiteId: parentSuite.id,
+            name: 'Original Run for Added/Omitted Test',
+            executionType: 'manual',
+            cases: [
+                { id: 'TC-BASE-1', title: 'Base Test 1', priority: 'High', executionType: 'manual' },
+                { id: 'TC-BASE-2', title: 'Base Test 2', priority: 'Medium', executionType: 'manual' },
+                { id: 'TC-BASE-3', title: 'Base Test 3', priority: 'Low', executionType: 'manual' }
+            ]
+        });
+        const origCases = await supabaseService.getRunCases(origRun.id);
+        for (const c of origCases) {
+            await supabaseService.recordTestExecution({
+                runId: origRun.id,
+                runCaseId: c.id,
+                status: 'failed',
+                actualResult: 'Failed initially',
+                durationMs: 1000
+            });
+        }
+        await supabaseService.updateTestRun(origRun.id, { status: 'completed' });
+
+        // Create rerun targeting only TC-BASE-1 (omitting TC-BASE-2 and TC-BASE-3)
+        const rerunResult = await rerunExecutionService.createRerunExecution({
+            runId: origRun.id,
+            workspaceId: primaryWorkspaceId,
+            scope: 'selected',
+            caseIds: ['TC-BASE-1']
+        });
+
+        // Add a new synthetic case directly to rerun to test `added` classification
+        const newRunCaseId = 'trc_added_' + Date.now();
+        supabaseService.inMemoryTestRunCases.set(newRunCaseId, {
+            id: newRunCaseId,
+            run_id: rerunResult.newRunId,
+            test_case_id: 'TC-NEW-ADDED',
+            case_snapshot: { id: 'TC-NEW-ADDED', title: 'Newly Added Scenario', priority: 'High' },
+            execution_type: 'manual',
+            status: 'passed',
+            actual_result: 'Passed cleanly',
+            duration_ms: 1200
+        });
+
+        const rerunCases = await supabaseService.getRunCases(rerunResult.newRunId);
+        // Execute TC-BASE-1 to passed
+        await supabaseService.recordTestExecution({
+            runId: rerunResult.newRunId,
+            runCaseId: rerunCases.find(c => c.testCaseId === 'TC-BASE-1').id,
+            status: 'passed',
+            actualResult: 'Passed on rerun in 400ms',
+            durationMs: 400
+        });
+        await supabaseService.updateTestRun(rerunResult.newRunId, { status: 'completed' });
+
+        const comparison = await rerunExecutionService.compareRerun(rerunResult.newRunId, primaryWorkspaceId);
+        assert.ok(comparison);
+
+        // Check omitted cases: TC-BASE-2 and TC-BASE-3
+        const omitted2 = comparison.comparisons.find(c => c.testCaseId === 'TC-BASE-2');
+        assert.ok(omitted2, 'TC-BASE-2 should be present in comparison as omitted');
+        assert.equal(omitted2.transition, 'omitted');
+        assert.equal(omitted2.rerunStatus, 'omitted');
+
+        const omitted3 = comparison.comparisons.find(c => c.testCaseId === 'TC-BASE-3');
+        assert.ok(omitted3, 'TC-BASE-3 should be present in comparison as omitted');
+        assert.equal(omitted3.transition, 'omitted');
+
+        // Check added case: TC-NEW-ADDED
+        const added = comparison.comparisons.find(c => c.testCaseId === 'TC-NEW-ADDED');
+        assert.ok(added, 'TC-NEW-ADDED should be present in comparison as added');
+        assert.equal(added.transition, 'added');
+        assert.equal(added.transitionLabel, 'New Test');
+
+        // Check duration delta on TC-BASE-1 (400ms - 1000ms = -600ms)
+        const base1 = comparison.comparisons.find(c => c.testCaseId === 'TC-BASE-1');
+        assert.equal(base1.transition, 'fixed');
+        assert.equal(base1.durationDiffMs, -600);
+    });
 });
