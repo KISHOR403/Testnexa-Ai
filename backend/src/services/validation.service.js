@@ -49,6 +49,30 @@ const generateRequestSchema = Joi.object({
     language: Joi.string()
         .optional()
         .default('en-US'),
+
+    requirementId: Joi.string()
+        .allow('', null)
+        .optional(),
+
+    acceptanceCriteria: Joi.string()
+        .allow('', null)
+        .optional(),
+
+    additionalContext: Joi.string()
+        .allow('', null)
+        .optional(),
+
+    selectedCategories: Joi.array()
+        .items(Joi.string())
+        .optional(),
+
+    sessionId: Joi.string()
+        .allow('', null)
+        .optional(),
+
+    workspaceId: Joi.string()
+        .allow('', null)
+        .optional(),
 });
 
 /**

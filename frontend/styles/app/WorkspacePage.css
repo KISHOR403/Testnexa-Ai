@@ -929,3 +929,392 @@
     font-size: 0.72rem;
     color: #777E7E;
 }
+
+
+/* ==========================================================================
+   AI WORKSPACE 4-STAGE PIPELINE & REVIEW EXPANSION
+   Stage 1 Category Toggles, Stage 2 Analysis, Stage 4 Review Workspace
+   ========================================================================== */
+
+/* ─── Genuine Selectable Deliverables ─── */
+.app-workspace-categories-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+
+.app-workspace-category-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.55rem;
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    color: #A0A5A5;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.12s ease;
+}
+
+.app-workspace-category-toggle:hover {
+    border-color: #383D3D;
+    color: #F2F3F3;
+}
+
+.app-workspace-category-toggle.is-checked {
+    background: rgba(139, 175, 154, 0.1);
+    border-color: #8BAF9A;
+    color: #8BAF9A;
+    font-weight: 600;
+}
+
+.app-workspace-category-checkbox {
+    accent-color: #8BAF9A;
+    cursor: pointer;
+}
+
+/* ─── Expandable Optional Fields ─── */
+.app-workspace-expandable-section {
+    border-top: 1px dashed #232727;
+    padding-top: 0.65rem;
+    margin-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.app-workspace-expandable-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 0;
+    color: #8BAF9A;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.app-workspace-expandable-btn:hover {
+    text-decoration: underline;
+}
+
+.app-workspace-secondary-textarea {
+    width: 100%;
+    background: #0C0E0D;
+    border: 1px solid #292D2D;
+    border-radius: 4px;
+    padding: 0.5rem 0.65rem;
+    color: #F2F3F3;
+    font-size: 0.78rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.app-workspace-secondary-textarea:focus {
+    border-color: #8BAF9A;
+}
+
+/* ─── Stage 2: Requirement Analysis ─── */
+.app-workspace-analysis-panel {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.app-workspace-analysis-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #232727;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.app-workspace-analysis-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.app-workspace-ambiguity-badge {
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.app-workspace-ambiguity-badge.low {
+    background: rgba(139, 175, 154, 0.15);
+    border: 1px solid rgba(139, 175, 154, 0.3);
+    color: #8BAF9A;
+}
+
+.app-workspace-ambiguity-badge.medium {
+    background: rgba(229, 192, 123, 0.15);
+    border: 1px solid rgba(229, 192, 123, 0.3);
+    color: #E5C07B;
+}
+
+.app-workspace-ambiguity-badge.high {
+    background: rgba(224, 108, 117, 0.15);
+    border: 1px solid rgba(224, 108, 117, 0.3);
+    color: #E06C75;
+}
+
+.app-workspace-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.app-workspace-analysis-card {
+    background: #151817;
+    border: 1px solid #232727;
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.app-workspace-analysis-card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8BAF9A;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.app-workspace-analysis-list {
+    margin: 0;
+    padding-left: 1.15rem;
+    font-size: 0.78rem;
+    color: #BAC5BE;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    line-height: 1.45;
+}
+
+.app-workspace-analysis-list.warn {
+    color: #E5C07B;
+}
+
+.app-workspace-analysis-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid #232727;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* ─── Stage 4: Test Case Review ─── */
+.app-workspace-review-panel {
+    background: #101112;
+    border: 1px solid #292D2D;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.app-workspace-review-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #232727;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.app-workspace-review-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.app-workspace-review-stat-pill {
+    padding: 0.25rem 0.6rem;
+    background: #151817;
+    border: 1px solid #232727;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    color: #BAC5BE;
+}
+
+.app-workspace-review-stat-pill.active {
+    border-color: #8BAF9A;
+    color: #8BAF9A;
+}
+
+.app-workspace-review-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+}
+
+.app-workspace-filter-btn {
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    background: #151817;
+    border: 1px solid #232727;
+    color: #A0A5A5;
+    font-size: 0.74rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.12s ease;
+}
+
+.app-workspace-filter-btn:hover {
+    color: #F2F3F3;
+    border-color: #383D3D;
+}
+
+.app-workspace-filter-btn.is-active {
+    background: rgba(139, 175, 154, 0.15);
+    border-color: #8BAF9A;
+    color: #8BAF9A;
+    font-weight: 600;
+}
+
+.app-workspace-cases-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.app-workspace-case-review-card {
+    background: #141715;
+    border: 1px solid #222924;
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.15s ease;
+}
+
+.app-workspace-case-review-card.approved {
+    border-left: 3px solid #8BAF9A;
+}
+
+.app-workspace-case-review-card.rejected {
+    border-left: 3px solid #E06C75;
+    opacity: 0.75;
+}
+
+.app-workspace-case-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.app-workspace-case-title-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.app-workspace-case-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.app-workspace-case-id {
+    background: rgba(139, 175, 154, 0.12);
+    border: 1px solid rgba(139, 175, 154, 0.25);
+    color: #8BAF9A;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-family: ui-monospace, monospace;
+}
+
+.app-workspace-case-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.app-workspace-btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 4px;
+    border: 1px solid #29332C;
+    background: #0E1210;
+    color: #BAC5BE;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.app-workspace-btn-action.approve {
+    border-color: rgba(139, 175, 154, 0.4);
+    color: #8BAF9A;
+}
+
+.app-workspace-btn-action.approve.is-active {
+    background: rgba(139, 175, 154, 0.22);
+    border-color: #8BAF9A;
+    color: #8BAF9A;
+}
+
+.app-workspace-btn-action.reject {
+    border-color: rgba(224, 108, 117, 0.4);
+    color: #E06C75;
+}
+
+.app-workspace-btn-action.reject.is-active {
+    background: rgba(224, 108, 117, 0.22);
+    border-color: #E06C75;
+    color: #E06C75;
+}
+
+.app-workspace-review-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid #232727;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+@media (max-width: 820px) {
+    .app-workspace-analysis-grid {
+        grid-template-columns: 1fr;
+    }
+}

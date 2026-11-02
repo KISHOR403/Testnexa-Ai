@@ -194,5 +194,51 @@ export const apiService = {
             console.error('History fetch error:', error);
             throw error;
         }
+    },
+
+    /**
+     * Analyze requirement structure, rules, ambiguities and scope prior to generation
+     */
+    analyzeRequirement: async (payload) => {
+        const token = localStorage.getItem('testnexa_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const response = await fetch(`${API_BASE_URL}/generate/analyze`, {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Requirement analysis failed.');
+        }
+
+        return await response.json();
+    },
+
+    /**
+     * Regenerate an individual test case while preserving others in the review suite
+     */
+    regenerateTestCase: async (payload) => {
+        const token = localStorage.getItem('testnexa_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const response = await fetch(`${API_BASE_URL}/generate/regenerate-case`, {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Test case regeneration failed.');
+        }
+
+        return await response.json();
     }
 };

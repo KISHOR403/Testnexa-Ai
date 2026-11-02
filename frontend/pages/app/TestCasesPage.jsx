@@ -1906,7 +1906,11 @@ const TestCasesPage = () => {
                                     type="button"
                                     className="tc-execute tc-manual-btn"
                                     title="Open manual execution workspace"
-                                    onClick={() => setManualExecOpen(true)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setManualExecOpen(true);
+                                    }}
                                 >
                                     <Clock size={14} />
                                     <span>Execute Manually</span>
@@ -1918,7 +1922,11 @@ const TestCasesPage = () => {
                                             type="button"
                                             className="tc-execute tc-auto-btn"
                                             title="Run automated Playwright scenario in headless Chromium"
-                                            onClick={() => setAutoExecOpen(true)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setAutoExecOpen(true);
+                                            }}
                                         >
                                             <Play size={14} />
                                             <span>Run Playwright</span>
@@ -1940,7 +1948,11 @@ const TestCasesPage = () => {
                                                 gap: '5px'
                                             }}
                                             title="Edit Playwright mapping and execution settings"
-                                            onClick={() => setPwDrawerOpen(true)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setPwDrawerOpen(true);
+                                            }}
                                         >
                                             <Code size={13} />
                                             <span>Edit Mapping</span>
@@ -1951,7 +1963,11 @@ const TestCasesPage = () => {
                                         type="button"
                                         className="tc-execute tc-auto-btn"
                                         title="Configure Playwright automation mapping for this test case"
-                                        onClick={() => setPwDrawerOpen(true)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setPwDrawerOpen(true);
+                                        }}
                                     >
                                         <Play size={14} />
                                         <span>Configure Playwright</span>
