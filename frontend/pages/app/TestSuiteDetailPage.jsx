@@ -103,6 +103,28 @@ const TestSuiteDetailPage = () => {
     const [caseMappingSaving, setCaseMappingSaving] = useState(false);
     const [caseSourceLoading, setCaseSourceLoading] = useState(false);
 
+    const loadCaseSources = useCallback(async () => {
+        setCaseSourceLoading(true);
+        setCaseMappingError('');
+        try {
+            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt' });
+            if (!first?.success) throw new Error(first?.message || 'Available test cases could not be loaded.');
+            const sources = [...(first.data || [])];
+            for (let currentPage = 2; currentPage <= Number(first.pagination?.totalPages || 1); currentPage += 1) {
+                const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt' });
+                if (!response?.success) throw new Error(response?.message || 'Additional test cases could not be loaded.');
+                sources.push(...(response.data || []));
+            }
+            setCaseSourceSessions(sources);
+            return sources;
+        } catch (error) {
+            setCaseMappingError(error.message || 'Available test cases could not be loaded.');
+            return null;
+        } finally {
+            setCaseSourceLoading(false);
+        }
+    }, []);
+
     // Extract potential share token from query parameters (?token=... or ?share=...)
     const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
     const shareToken = searchParams.get('token') || searchParams.get('share');
@@ -339,26 +361,6 @@ const TestSuiteDetailPage = () => {
         const text = caseMappingSearch.trim().toLowerCase();
         return caseCandidates.filter(testCase => !text || `${testCase.testCaseId} ${testCase.title} ${testCase.sourceSuiteName} ${testCase.type}`.toLowerCase().includes(text));
     }, [caseCandidates, caseMappingSearch]);
-
-    const loadCaseSources = useCallback(async () => {
-        setCaseSourceLoading(true);
-        setCaseMappingError('');
-        try {
-            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt' });
-            if (!first?.success) throw new Error(first?.message || 'Available test cases could not be loaded.');
-            const sources = [...(first.data || [])];
-            for (let currentPage = 2; currentPage <= Number(first.pagination?.totalPages || 1); currentPage += 1) {
-                const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt' });
-                if (!response?.success) throw new Error(response?.message || 'Additional test cases could not be loaded.');
-                sources.push(...(response.data || []));
-            }
-            setCaseSourceSessions(sources);
-            return sources;
-        } catch (error) {
-            setCaseMappingError(error.message || 'Available test cases could not be loaded.');
-            return null;
-        } finally { setCaseSourceLoading(false); }
-    }, []);
 
     const saveCaseMappings = async () => {
         const candidatesByKey = new Map(caseCandidates.map(candidate => [candidate.key, candidate]));
