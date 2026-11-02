@@ -31,6 +31,11 @@ router.get('/:id/job', executionController.getRunJob);
 router.get('/:id/report', executionController.getRunReport);
 router.get('/:id/compare/:baselineRunId', executionController.compareRuns);
 router.post('/:id/rerun', executionController.rerun);
+router.post('/:id/rerun-selected', executionController.rerunSelected);
+router.post('/:id/rerun-case/:caseId', executionController.rerunSingleCase);
+router.get('/:id/reruns', executionController.getRerunHistory);
+router.get('/:id/rerun-relationships', executionController.getRerunRelationships);
+router.get('/:id/rerun-comparison', executionController.getRerunComparison);
 router.get('/:id/coverage', executionController.getRunCoverage);
 router.get('/:id/export/:format', executionController.exportReport);
 

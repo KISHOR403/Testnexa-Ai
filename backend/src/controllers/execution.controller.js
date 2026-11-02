@@ -8,6 +8,7 @@ const scriptValidator = require('../services/runner/scriptValidator.service');
 const templateGenerator = require('../services/runner/templateGenerator.service');
 const { executeSinglePlaywrightTest } = require('../services/runner/playwrightRunner.worker');
 const executionReport = require('../services/runner/executionReport.service');
+const rerunExecution = require('../services/runner/rerunExecution.service');
 
 /**
  * Resolves the target workspace ID for the request
@@ -1140,8 +1141,24 @@ exports.rerunFailed = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, run.workspaceId);
         if (!isAllowed) return;
 
+        // If explicitly requested to create a new execution record
+        const shouldCreateNewRun = req.body?.createNewRun === true || req.body?.mode === 'new_run' || req.query?.mode === 'new_run';
+        if (shouldCreateNewRun) {
+            const result = await rerunExecution.createRerunExecution({
+                runId: id,
+                workspaceId: run.workspaceId,
+                userId,
+                scope: 'failed'
+            });
+            return res.status(202).json({
+                success: true,
+                data: result,
+                message: result.message
+            });
+        }
+
         const allCases = await supabaseService.getRunCases(id);
-        const failedCases = allCases.filter(c => c.status === 'failed');
+        const failedCases = allCases.filter(c => c.status === 'failed' || c.status === 'blocked');
 
         if (failedCases.length === 0) {
             return res.status(400).json({ success: false, message: 'No failed test cases to rerun' });
@@ -1176,7 +1193,8 @@ exports.rerunFailed = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error rerunning failed cases:', err);
-        res.status(400).json({ success: false, message: err.message });
+        const status = err.statusCode || 400;
+        res.status(status).json({ success: false, message: err.message, data: err.data || null });
     }
 };
 
@@ -1252,14 +1270,15 @@ exports.compareRuns = async (req, res) => {
 };
 
 /**
- * Phase 2: POST rerun with scope ('failed' | 'selected' | 'all')
+ * Phase 2: POST rerun with scope ('failed' | 'selected' | 'single' | 'all')
+ * Creates a traceable new execution run record linked to the original run.
  * POST /api/v1/runs/:id/rerun
  */
 exports.rerun = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user._id || req.user.id;
-        const { scope = 'failed', caseIds = [] } = req.body;
+        const { scope = 'failed', caseIds = [], caseId = null, mode = 'new_run' } = req.body || {};
 
         const run = await supabaseService.getTestRunById(id);
         if (!run) {
@@ -1269,12 +1288,29 @@ exports.rerun = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, run.workspaceId);
         if (!isAllowed) return;
 
-        const result = await executionReport.executeRerun({
+        if (mode === 'in_place') {
+            const result = await executionReport.executeRerun({
+                runId: id,
+                workspaceId: run.workspaceId,
+                userId,
+                scope,
+                caseIds
+            });
+            return res.status(202).json({
+                success: true,
+                data: result,
+                message: result.message
+            });
+        }
+
+        const result = await rerunExecution.createRerunExecution({
             runId: id,
             workspaceId: run.workspaceId,
             userId,
             scope,
-            caseIds
+            caseIds,
+            caseId,
+            mode
         });
 
         res.status(202).json({
@@ -1284,7 +1320,162 @@ exports.rerun = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error executing rerun:', err);
-        res.status(400).json({ success: false, message: err.message });
+        const status = err.statusCode || 400;
+        res.status(status).json({ success: false, message: err.message, data: err.data || null });
+    }
+};
+
+/**
+ * Phase 2: POST rerun selected test cases
+ * POST /api/v1/runs/:id/rerun-selected
+ */
+exports.rerunSelected = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user._id || req.user.id;
+        const { caseIds = [] } = req.body || {};
+
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const result = await rerunExecution.createRerunExecution({
+            runId: id,
+            workspaceId: run.workspaceId,
+            userId,
+            scope: 'selected',
+            caseIds
+        });
+
+        res.status(202).json({
+            success: true,
+            data: result,
+            message: result.message
+        });
+    } catch (err) {
+        logger.error('Error rerunning selected cases:', err);
+        const status = err.statusCode || 400;
+        res.status(status).json({ success: false, message: err.message, data: err.data || null });
+    }
+};
+
+/**
+ * Phase 2: POST rerun a single test case
+ * POST /api/v1/runs/:id/rerun-case/:caseId
+ */
+exports.rerunSingleCase = async (req, res) => {
+    try {
+        const { id, caseId } = req.params;
+        const userId = req.user._id || req.user.id;
+
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const result = await rerunExecution.createRerunExecution({
+            runId: id,
+            workspaceId: run.workspaceId,
+            userId,
+            scope: 'single',
+            caseId
+        });
+
+        res.status(202).json({
+            success: true,
+            data: result,
+            message: result.message
+        });
+    } catch (err) {
+        logger.error('Error rerunning single case:', err);
+        const status = err.statusCode || 400;
+        res.status(status).json({ success: false, message: err.message, data: err.data || null });
+    }
+};
+
+/**
+ * Phase 2: GET rerun lineage history for an execution run
+ * GET /api/v1/runs/:id/reruns
+ */
+exports.getRerunHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const history = await rerunExecution.getRerunHistory(id, run.workspaceId);
+        res.json({
+            success: true,
+            data: history
+        });
+    } catch (err) {
+        logger.error('Error getting rerun history:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: GET hierarchical relationships (parent, original, children)
+ * GET /api/v1/runs/:id/rerun-relationships
+ */
+exports.getRerunRelationships = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const relationships = await rerunExecution.getRerunRelationships(id, run.workspaceId);
+        res.json({
+            success: true,
+            data: relationships
+        });
+    } catch (err) {
+        logger.error('Error getting rerun relationships:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Phase 2: GET comparison between a rerun execution and its original run
+ * GET /api/v1/runs/:id/rerun-comparison
+ */
+exports.getRerunComparison = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const comparison = await rerunExecution.compareRerun(id, run.workspaceId);
+        res.json({
+            success: true,
+            data: comparison
+        });
+    } catch (err) {
+        logger.error('Error getting rerun comparison:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message });
     }
 };
 

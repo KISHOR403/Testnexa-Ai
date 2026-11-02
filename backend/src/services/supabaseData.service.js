@@ -2218,6 +2218,12 @@ class SupabaseDataService {
             workspaceId: row.workspace_id || row.workspaceId,
             suiteId: row.suite_id || row.suiteId,
             suiteVersion: row.suite_version || row.suiteVersion || 1,
+            originalRunId: row.original_run_id || row.originalRunId || null,
+            parentRunId: row.parent_run_id || row.parentRunId || null,
+            rerunType: row.rerun_type || row.rerunType || null,
+            rerunScope: row.rerun_scope || row.rerunScope || row.rerun_type || row.rerunType || null,
+            selectedCaseIds: row.selected_case_ids || row.selectedCaseIds || [],
+            isRerun: Boolean(row.is_rerun !== undefined ? row.is_rerun : (row.isRerun || row.original_run_id || row.originalRunId)),
             name: row.name || 'Untitled Run',
             description: row.description || '',
             executionType: row.execution_type || row.executionType || 'manual',
@@ -2413,6 +2419,11 @@ class SupabaseDataService {
         const datasetId = params.datasetId || params.dataset_id || null;
         const datasetVersion = params.datasetVersion || params.dataset_version || null;
         const datasetName = params.datasetName || params.dataset_name || null;
+        const originalRunId = params.originalRunId || params.original_run_id || null;
+        const parentRunId = params.parentRunId || params.parent_run_id || originalRunId || null;
+        const rerunType = params.rerunType || params.rerun_type || null;
+        const rerunScope = params.rerunScope || params.rerun_scope || rerunType || null;
+        const isRerun = Boolean(params.isRerun !== undefined ? params.isRerun : (originalRunId || rerunType));
 
         if (!workspaceId) throw new Error('workspaceId is required to create a TestRun');
         if (!name || !name.trim()) throw new Error('Run name is required');
@@ -2497,6 +2508,12 @@ class SupabaseDataService {
             workspace_id: workspaceId,
             suite_id: suiteId || null,
             suite_version: suiteVersion,
+            original_run_id: originalRunId,
+            parent_run_id: parentRunId,
+            rerun_type: rerunType,
+            rerun_scope: rerunScope,
+            selected_case_ids: Array.isArray(selectedCaseIds) ? selectedCaseIds : [],
+            is_rerun: isRerun,
             name: name.trim(),
             description: description || '',
             execution_type: cleanType,
@@ -2760,7 +2777,7 @@ class SupabaseDataService {
             };
 
             // Reconcile lifecycle status consistency
-            if (formattedRun.status !== 'cancelled' && formattedRun.status !== 'queued' && formattedRun.status !== 'running') {
+            if (formattedRun.status !== 'cancelled' && formattedRun.status !== 'queued' && formattedRun.status !== 'running' && formattedRun.status !== 'failed') {
                 if (nr === cases.length) {
                     formattedRun.status = 'pending';
                 } else if (nr === 0) {
@@ -2848,6 +2865,128 @@ class SupabaseDataService {
 
         this._saveDiskWorkspacesStore();
         return await this.getTestRunById(runId, workspaceId);
+    }
+
+    /**
+     * Retrieve all rerun executions linked to a test run (historical chain)
+     */
+    async getRerunHistory(runId, workspaceId) {
+        if (!runId || !workspaceId) return [];
+
+        const targetRun = await this.getTestRunById(runId, workspaceId);
+        if (!targetRun) return [];
+
+        // Root of the lineage is either originalRunId or targetRun.id
+        const rootId = targetRun.originalRunId || targetRun.id;
+
+        let allRuns = [];
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('test_runs')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .or(`id.eq.${rootId},original_run_id.eq.${rootId},parent_run_id.eq.${rootId}`)
+                    .order('created_at', { ascending: true });
+                if (!error && Array.isArray(data)) {
+                    allRuns = data.map(r => this._formatTestRun(r));
+                }
+            } catch (err) {}
+        }
+
+        if (allRuns.length === 0) {
+            allRuns = Array.from(this.inMemoryTestRuns.values())
+                .filter(r => {
+                    const wsMatch = String(r.workspace_id || r.workspaceId) === String(workspaceId);
+                    const linkMatch = String(r.id) === String(rootId) ||
+                        String(r.original_run_id || r.originalRunId) === String(rootId) ||
+                        String(r.parent_run_id || r.parentRunId) === String(rootId);
+                    return wsMatch && linkMatch;
+                })
+                .sort((a, b) => new Date(a.created_at || a.createdAt) - new Date(b.created_at || b.createdAt))
+                .map(r => this._formatTestRun(r));
+        }
+
+        return allRuns;
+    }
+
+    /**
+     * Retrieve relationships (parent, original, direct children reruns) for a test run
+     */
+    async getRerunRelationships(runId, workspaceId) {
+        const targetRun = await this.getTestRunById(runId, workspaceId);
+        if (!targetRun) return null;
+
+        let originalRun = null;
+        let parentRun = null;
+
+        if (targetRun.originalRunId && targetRun.originalRunId !== targetRun.id) {
+            originalRun = await this.getTestRunById(targetRun.originalRunId, workspaceId);
+        }
+
+        if (targetRun.parentRunId && targetRun.parentRunId !== targetRun.id) {
+            parentRun = (targetRun.parentRunId === targetRun.originalRunId && originalRun)
+                ? originalRun
+                : await this.getTestRunById(targetRun.parentRunId, workspaceId);
+        }
+
+        // Find child reruns of this run
+        let childReruns = [];
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('test_runs')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .or(`parent_run_id.eq.${runId},original_run_id.eq.${runId}`)
+                    .neq('id', runId)
+                    .order('created_at', { ascending: true });
+                if (!error && Array.isArray(data)) {
+                    childReruns = data.map(r => this._formatTestRun(r));
+                }
+            } catch (err) {}
+        }
+
+        if (childReruns.length === 0) {
+            childReruns = Array.from(this.inMemoryTestRuns.values())
+                .filter(r => {
+                    const wsMatch = String(r.workspace_id || r.workspaceId) === String(workspaceId);
+                    const isChild = (String(r.parent_run_id || r.parentRunId) === String(runId) ||
+                                     String(r.original_run_id || r.originalRunId) === String(runId)) &&
+                                     String(r.id) !== String(runId);
+                    return wsMatch && isChild;
+                })
+                .sort((a, b) => new Date(a.created_at || a.createdAt) - new Date(b.created_at || b.createdAt))
+                .map(r => this._formatTestRun(r));
+        }
+
+        return {
+            currentRun: targetRun,
+            originalRun,
+            parentRun,
+            childReruns,
+            isRerun: Boolean(targetRun.originalRunId || targetRun.isRerun),
+            totalRerunDescendants: childReruns.length
+        };
+    }
+
+    /**
+     * Check if an active rerun is already in flight for an original run
+     */
+    async findActiveRerun(originalRunId, rerunType = null) {
+        if (!originalRunId) return null;
+
+        const activeStatuses = ['pending', 'queued', 'running'];
+        for (const r of this.inMemoryTestRuns.values()) {
+            const isOrig = String(r.original_run_id || r.originalRunId) === String(originalRunId) ||
+                           String(r.parent_run_id || r.parentRunId) === String(originalRunId);
+            const isActive = activeStatuses.includes(String(r.status || '').toLowerCase());
+            const typeMatch = rerunType ? String(r.rerun_type || r.rerunType) === String(rerunType) : true;
+            if (isOrig && isActive && typeMatch) {
+                return this._formatTestRun(r);
+            }
+        }
+        return null;
     }
 
     /**
