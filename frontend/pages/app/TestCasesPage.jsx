@@ -955,6 +955,7 @@ const TestCasesPage = () => {
                 notes: payload.notes,
                 durationMs: payload.durationMs || 1200,
                 stepOutcomes: payload.stepOutcomes || {},
+                stepObservations: payload.stepObservations || {},
                 environment: payload.environment || {},
                 executedBy: payload.executedBy || 'Tester',
                 artifact: payload.artifact || (payload.screenshotData ? {
@@ -965,6 +966,10 @@ const TestCasesPage = () => {
             });
 
             if (!recordRes.success) throw new Error(recordRes.message || 'Could not save execution result.');
+
+            try {
+                localStorage.removeItem(`testnexa_draft_${selectedCase.suiteId}_${selectedCase.id}`);
+            } catch {}
 
             setLatestExecutionMap(prev => ({
                 ...prev,
@@ -984,6 +989,40 @@ const TestCasesPage = () => {
             alert(`Execution recording failed: ${err.message}`);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Save manual execution draft
+    const handleManualExecutionDraft = async (payload) => {
+        if (!selectedCase) return;
+        try {
+            let activeRun = runs.find(r => String(r.suiteId || r.suite_id || '') === selectedCase.suiteId && ['in_progress', 'pending'].includes(r.status));
+
+            if (!activeRun) {
+                const createRes = await executionService.createRun({
+                    suiteId: selectedCase.suiteId,
+                    name: `Manual Verification - ${selectedSuite?.name || 'Suite'}`,
+                    executionType: 'manual',
+                    selectedCaseIds: [selectedCase.id]
+                });
+                if (createRes?.success) {
+                    activeRun = createRes.data;
+                    setRuns(prev => [activeRun, ...prev]);
+                }
+            }
+
+            if (activeRun) {
+                const runCases = activeRun.cases || [];
+                const targetRunCase = runCases.find(c => String(c.testCaseId || c.caseSnapshot?.id) === String(selectedCase.id));
+                const targetCaseParam = targetRunCase?.id || selectedCase.id;
+
+                await executionService.saveExecutionDraft(activeRun.id, targetCaseParam, payload);
+            }
+
+            return { success: true };
+        } catch (err) {
+            console.warn('Could not persist draft to backend run:', err.message);
+            return { success: true, localOnly: true };
         }
     };
 
@@ -2304,6 +2343,7 @@ const TestCasesPage = () => {
                     testCase={selectedCase}
                     onRecord={handleManualExecutionSave}
                     onSave={handleManualExecutionSave}
+                    onSaveDraft={handleManualExecutionDraft}
                     onClose={() => setManualExecOpen(false)}
                     isRecording={isSaving}
                 />

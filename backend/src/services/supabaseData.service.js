@@ -2946,6 +2946,34 @@ class SupabaseDataService {
     }
 
     /**
+     * Save a manual execution draft for a run case
+     */
+    async saveCaseDraft(runCaseId, draftData = {}) {
+        const trc = await this.getRunCaseById(runCaseId);
+        if (!trc) throw new Error(`Run case not found (${runCaseId})`);
+
+        const snapshot = trc.caseSnapshot || {};
+        const updatedSnapshot = {
+            ...snapshot,
+            draftState: {
+                ...draftData,
+                savedAt: new Date().toISOString()
+            }
+        };
+
+        const patch = {
+            case_snapshot: updatedSnapshot
+        };
+
+        // If the case hasn't been executed yet, mark in_progress
+        if (!trc.status || trc.status === 'not_run') {
+            patch.status = 'in_progress';
+        }
+
+        return await this.updateRunCase(runCaseId, patch);
+    }
+
+    /**
      * Explicitly update the Playwright automation mapping for a test case
      */
     async updateCaseAutomationMapping(runCaseId, mappingData = {}) {
@@ -3104,7 +3132,10 @@ class SupabaseDataService {
         stackTrace = '',
         durationMs = 0,
         executedBy = null,
-        executorType = 'manual'
+        executorType = 'manual',
+        stepOutcomes = {},
+        stepObservations = {},
+        environment = null
     }) {
         if (!runId || !runCaseId) throw new Error('runId and runCaseId are required');
 
@@ -3138,7 +3169,10 @@ class SupabaseDataService {
             executed_by: executedBy,
             executor_type: executorType,
             executed_at: now,
-            created_at: now
+            created_at: now,
+            step_outcomes: stepOutcomes,
+            step_observations: stepObservations,
+            environment: environment
         };
 
         // 1. Insert immutable execution record
@@ -3149,9 +3183,15 @@ class SupabaseDataService {
         }
         this.inMemoryTestExecutions.set(execId, executionRecord);
 
-        // 2. Update the parent run case with latest status, attempt count, and duration
+        // 2. Clear draftState on successful completion and update snapshot
+        const snapshot = runCase.caseSnapshot || {};
+        const cleanedSnapshot = { ...snapshot };
+        delete cleanedSnapshot.draftState;
+
+        // 3. Update the parent run case with latest status, attempt count, and duration
         const updatedDuration = (runCase.durationMs || 0) + executionRecord.duration_ms;
         const casePatch = {
+            case_snapshot: cleanedSnapshot,
             status: cleanStatus,
             actual_result: actualResult,
             notes: notes,

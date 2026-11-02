@@ -236,5 +236,69 @@ test('Milestone 3: Manual Execution Engine, Retest Attempts & Evidence Suite', a
         assert.equal(res.data.data.execution.status, 'blocked');
         assert.equal(res.data.data.runSummary.blocked, 1);
     });
+
+    await t.test('6. Save and retrieve manual execution draft for a case', async () => {
+        const draftReq = {
+            user: testerUser,
+            params: { id: runId, caseId: case1.id },
+            body: {
+                stepOutcomes: { 0: 'passed', 1: 'in_progress' },
+                stepObservations: { 0: 'Profile edit modal opened smoothly' },
+                actualResult: 'Partially validated step 1',
+                notes: 'Paused verification for standup meeting',
+                durationMs: 1500
+            }
+        };
+        const draftRes = createMockRes();
+        await executionController.saveCaseDraft(draftReq, draftRes);
+
+        assert.equal(draftRes.statusCode, 200);
+        assert.equal(draftRes.data.success, true);
+        assert.equal(draftRes.data.data.stepOutcomes['0'], 'passed');
+
+        // Fetch draft
+        const getDraftReq = {
+            user: testerUser,
+            params: { id: runId, caseId: case1.id }
+        };
+        const getDraftRes = createMockRes();
+        await executionController.getCaseDraft(getDraftReq, getDraftRes);
+
+        assert.equal(getDraftRes.statusCode, 200);
+        assert.equal(getDraftRes.data.success, true);
+        assert.equal(getDraftRes.data.data.actualResult, 'Partially validated step 1');
+        assert.equal(getDraftRes.data.data.notes, 'Paused verification for standup meeting');
+    });
+
+    await t.test('7. Complete execution with stepOutcomes clears draft state', async () => {
+        const completeReq = {
+            user: testerUser,
+            params: { id: runId, caseId: case1.id },
+            body: {
+                status: 'passed',
+                actualResult: 'All 3 steps passed seamlessly after resuming draft',
+                notes: 'Resumed and finished',
+                durationMs: 2500,
+                stepOutcomes: { 0: 'passed', 1: 'passed', 2: 'passed' },
+                stepObservations: { 0: 'Opened modal', 1: 'Entered name', 2: 'Saved' }
+            }
+        };
+        const completeRes = createMockRes();
+        await executionController.recordExecution(completeReq, completeRes);
+
+        assert.equal(completeRes.statusCode, 200);
+        assert.equal(completeRes.data.success, true);
+
+        // Verify draft is cleared
+        const checkDraftReq = {
+            user: testerUser,
+            params: { id: runId, caseId: case1.id }
+        };
+        const checkDraftRes = createMockRes();
+        await executionController.getCaseDraft(checkDraftReq, checkDraftRes);
+
+        assert.equal(checkDraftRes.statusCode, 200);
+        assert.equal(checkDraftRes.data.data, null, 'Draft must be cleared after completion');
+    });
 });
 

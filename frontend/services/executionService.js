@@ -159,6 +159,9 @@ export const executionService = {
         stackTrace,
         durationMs,
         executorType = 'manual',
+        stepOutcomes = {},
+        stepObservations = {},
+        environment = null,
         artifact = null
     }) => {
         const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/execute`, {
@@ -173,8 +176,36 @@ export const executionService = {
                 stackTrace,
                 durationMs,
                 executorType,
+                stepOutcomes,
+                stepObservations,
+                environment,
                 artifact
             })
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Save manual execution draft for a run case
+     */
+    saveExecutionDraft: async (runId, caseId, draftData) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/draft`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(draftData)
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Get saved manual execution draft for a run case
+     */
+    getExecutionDraft: async (runId, caseId) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/draft`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
         });
         return handleResponse(response);
     },

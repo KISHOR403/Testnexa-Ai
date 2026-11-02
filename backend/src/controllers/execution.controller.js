@@ -359,7 +359,10 @@ exports.recordExecution = async (req, res) => {
             errorMessage,
             stackTrace,
             durationMs,
-            executorType = 'manual'
+            executorType = 'manual',
+            stepOutcomes = {},
+            stepObservations = {},
+            environment = null
         } = req.body;
 
         if (!status) {
@@ -377,7 +380,10 @@ exports.recordExecution = async (req, res) => {
             stackTrace: stackTrace || '',
             durationMs: durationMs || 0,
             executedBy: userId,
-            executorType
+            executorType,
+            stepOutcomes,
+            stepObservations,
+            environment
         });
 
         // If evidence screenshot or artifact was uploaded in same payload
@@ -439,6 +445,90 @@ exports.getCaseHistory = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error fetching case history:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * SAVE manual execution draft for a case
+ * POST /api/v1/runs/:id/cases/:caseId/draft
+ */
+exports.saveCaseDraft = async (req, res) => {
+    try {
+        const { id, caseId } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        let runCase = await supabaseService.getRunCaseById(caseId);
+        if (!runCase || runCase.runId !== id) {
+            const allRunCases = await supabaseService.getRunCases(id);
+            runCase = allRunCases.find(rc => rc.id === caseId || rc.testCaseId === caseId);
+        }
+        if (!runCase) {
+            return res.status(404).json({ success: false, message: 'Test run case not found' });
+        }
+
+        const draftData = {
+            stepOutcomes: req.body.stepOutcomes || {},
+            stepObservations: req.body.stepObservations || {},
+            actualResult: req.body.actualResult || '',
+            notes: req.body.notes || '',
+            durationMs: req.body.durationMs || 0,
+            environmentId: req.body.environmentId || '',
+            environment: req.body.environment || null,
+            evidence: req.body.evidence || null,
+            savedBy: req.user._id || req.user.id
+        };
+
+        const updated = await supabaseService.saveCaseDraft(runCase.id, draftData);
+
+        res.json({
+            success: true,
+            message: 'Manual execution draft saved',
+            data: updated?.caseSnapshot?.draftState || draftData
+        });
+    } catch (err) {
+        logger.error('Error saving execution draft:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET manual execution draft for a case
+ * GET /api/v1/runs/:id/cases/:caseId/draft
+ */
+exports.getCaseDraft = async (req, res) => {
+    try {
+        const { id, caseId } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        let runCase = await supabaseService.getRunCaseById(caseId);
+        if (!runCase || runCase.runId !== id) {
+            const allRunCases = await supabaseService.getRunCases(id);
+            runCase = allRunCases.find(rc => rc.id === caseId || rc.testCaseId === caseId);
+        }
+        if (!runCase) {
+            return res.status(404).json({ success: false, message: 'Test run case not found' });
+        }
+
+        const draft = runCase.caseSnapshot?.draftState || null;
+        res.json({
+            success: true,
+            data: draft
+        });
+    } catch (err) {
+        logger.error('Error fetching execution draft:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

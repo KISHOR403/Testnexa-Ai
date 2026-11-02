@@ -42,6 +42,8 @@ router.post('/:id/cases/:caseId/validate-script', executionController.validateCa
 router.post('/:id/cases/:caseId/test-script', executionController.testCaseScript);
 router.post('/:id/cases/:caseId/suggest-template', executionController.suggestCaseTemplate);
 router.post('/:id/cases/:caseId/execute', executionController.recordExecution);
+router.post('/:id/cases/:caseId/draft', executionController.saveCaseDraft);
+router.get('/:id/cases/:caseId/draft', executionController.getCaseDraft);
 router.get('/:id/cases/:caseId/executions', executionController.getCaseHistory);
 
 // Artifacts
