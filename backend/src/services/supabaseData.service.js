@@ -28,6 +28,8 @@ class SupabaseDataService {
         this.inMemoryExecutionArtifacts = new Map();
         this.inMemoryAutomationJobs = new Map();
         this.inMemoryFailureAnalyses = new Map();
+        this.inMemoryRecommendations = new Map();
+        this.inMemoryRecommendationSessions = new Map();
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -101,6 +103,16 @@ class SupabaseDataService {
                         this.inMemoryFailureAnalyses.set(k, v);
                     }
                 }
+                if (data.recommendations && typeof data.recommendations === 'object') {
+                    for (const [k, v] of Object.entries(data.recommendations)) {
+                        this.inMemoryRecommendations.set(k, v);
+                    }
+                }
+                if (data.recommendationSessions && typeof data.recommendationSessions === 'object') {
+                    for (const [k, v] of Object.entries(data.recommendationSessions)) {
+                        this.inMemoryRecommendationSessions.set(k, v);
+                    }
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -125,7 +137,9 @@ class SupabaseDataService {
                 testExecutions: Object.fromEntries(this.inMemoryTestExecutions),
                 executionArtifacts: Object.fromEntries(this.inMemoryExecutionArtifacts),
                 automationJobs: Object.fromEntries(this.inMemoryAutomationJobs),
-                failureAnalyses: Object.fromEntries(this.inMemoryFailureAnalyses)
+                failureAnalyses: Object.fromEntries(this.inMemoryFailureAnalyses),
+                recommendations: Object.fromEntries(this.inMemoryRecommendations),
+                recommendationSessions: Object.fromEntries(this.inMemoryRecommendationSessions)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -3888,6 +3902,101 @@ class SupabaseDataService {
             return this._formatFailureAnalysis(updated);
         }
         return null;
+    }
+
+    // ============================================
+    // SMART TEST RECOMMENDATIONS PERSISTENCE
+    // ============================================
+
+    async saveRecommendationSession(sessionData) {
+        if (!sessionData || !sessionData.id) throw new Error('Valid recommendation sessionData is required');
+        const now = new Date().toISOString();
+        const record = {
+            ...sessionData,
+            created_at: sessionData.created_at || now,
+            updated_at: sessionData.updated_at || now
+        };
+
+        // Cache session
+        this.inMemoryRecommendationSessions.set(sessionData.id, record);
+
+        // Cache each individual recommendation
+        if (Array.isArray(sessionData.recommendations)) {
+            sessionData.recommendations.forEach(rec => {
+                if (rec && rec.id) {
+                    this.inMemoryRecommendations.set(rec.id, {
+                        ...rec,
+                        sessionId: sessionData.id,
+                        suiteId: sessionData.suiteId,
+                        userId: sessionData.userId
+                    });
+                }
+            });
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getRecommendationSessionBySuite(suiteId, userId) {
+        if (!suiteId) return null;
+        // Find latest session for this suite and user
+        const sessions = Array.from(this.inMemoryRecommendationSessions.values())
+            .filter(s => String(s.suiteId) === String(suiteId) && (!userId || String(s.userId) === String(userId)))
+            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        if (sessions.length > 0) {
+            const latest = sessions[0];
+            // Re-hydrate latest recommendation status from inMemoryRecommendations
+            const rehydrated = (latest.recommendations || []).map(r => {
+                return this.inMemoryRecommendations.get(r.id) || r;
+            });
+            return { ...latest, recommendations: rehydrated };
+        }
+        return null;
+    }
+
+    async getRecommendation(recommendationId, userId) {
+        if (!recommendationId) return null;
+        const rec = this.inMemoryRecommendations.get(recommendationId);
+        if (!rec) return null;
+        if (userId && String(rec.userId) !== String(userId)) return null;
+        return rec;
+    }
+
+    async updateRecommendation(recommendationId, userId, { status, editedFields, convertedTestCaseId } = {}) {
+        if (!recommendationId) throw new Error('recommendationId is required');
+        const existing = this.inMemoryRecommendations.get(recommendationId);
+        if (!existing) return null;
+        if (userId && String(existing.userId) !== String(userId)) {
+            const err = new Error('Access denied to recommendation');
+            err.statusCode = 403;
+            throw err;
+        }
+
+        const now = new Date().toISOString();
+        const updated = {
+            ...existing,
+            ...(status ? { status } : {}),
+            ...(convertedTestCaseId ? { convertedTestCaseId } : {}),
+            ...(editedFields && typeof editedFields === 'object' ? editedFields : {}),
+            updatedAt: now,
+            updated_at: now
+        };
+
+        this.inMemoryRecommendations.set(recommendationId, updated);
+
+        // Also update recommendation in session if present
+        if (existing.sessionId && this.inMemoryRecommendationSessions.has(existing.sessionId)) {
+            const sess = this.inMemoryRecommendationSessions.get(existing.sessionId);
+            if (Array.isArray(sess.recommendations)) {
+                sess.recommendations = sess.recommendations.map(r => r.id === recommendationId ? updated : r);
+                this.inMemoryRecommendationSessions.set(existing.sessionId, sess);
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return updated;
     }
 }
 

@@ -4,7 +4,7 @@ import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
-    PlayCircle, Activity, BarChart3
+    PlayCircle, Activity, BarChart3, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -304,6 +304,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     >
                         <Activity size={17} className="app-sidebar__item-icon" />
                         <span>Failure Trends</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/app/recommendations"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/recommendations') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Smart Recommendations"
+                    >
+                        <Sparkles size={17} className="app-sidebar__item-icon" />
+                        <span>Recommendations</span>
                     </NavLink>
                 </div>
 

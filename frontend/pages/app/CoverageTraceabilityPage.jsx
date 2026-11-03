@@ -421,6 +421,7 @@ const CoverageTraceabilityPage = ({ view = 'coverage' }) => {
                 <nav className="ct-view-tabs" aria-label="Coverage views">
                     <NavLink to="/app/coverage" className={view === 'coverage' ? 'active' : ''}>Coverage</NavLink>
                     <NavLink to="/app/traceability" className={view === 'traceability' ? 'active' : ''}>Traceability</NavLink>
+                    <NavLink to={`/app/recommendations${effectiveSuiteId ? `?suiteId=${encodeURIComponent(effectiveSuiteId)}` : ''}`}>Recommendations</NavLink>
                 </nav>
             </header>
 
