@@ -781,3 +781,4 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
 };
 
 export default RerunResultComparisonView;
+

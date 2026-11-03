@@ -4,7 +4,7 @@ import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
-    PlayCircle
+    PlayCircle, Activity
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -284,6 +284,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     >
                         <GitBranch size={17} className="app-sidebar__item-icon" />
                         <span>Traceability</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/app/failure-trends"
+                        className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Failure Trends"
+                    >
+                        <Activity size={17} className="app-sidebar__item-icon" />
+                        <span>Failure Trends</span>
                     </NavLink>
                 </div>
 

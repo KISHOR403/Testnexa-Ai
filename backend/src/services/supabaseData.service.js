@@ -2800,13 +2800,20 @@ class SupabaseDataService {
     async updateTestRun(runId, workspaceId, updates) {
         if (!runId) throw new Error('runId is required');
 
+        let actualWorkspaceId = workspaceId;
+        let actualUpdates = updates;
+        if (typeof workspaceId === 'object' && updates === undefined) {
+            actualUpdates = workspaceId;
+            actualWorkspaceId = null;
+        }
+
         const now = new Date().toISOString();
-        const patch = { ...updates, updated_at: now };
+        const patch = { ...actualUpdates, updated_at: now };
 
         if (this.isAvailable && this.executionTablesAvailable !== false) {
             try {
                 let query = supabase.from('test_runs').update(patch).eq('id', runId);
-                if (workspaceId) query = query.eq('workspace_id', workspaceId);
+                if (actualWorkspaceId) query = query.eq('workspace_id', actualWorkspaceId);
                 const { data, error } = await query.select().maybeSingle();
                 if (!error && data) {
                     this.inMemoryTestRuns.set(runId, data);
@@ -3463,6 +3470,58 @@ class SupabaseDataService {
         }
 
         return rows.map(r => this._formatTestExecution(r));
+    }
+
+    /**
+     * Phase 2: Get completed runs and their cases for Flaky Detection in a workspace
+     */
+    async getWorkspaceRunsWithCases(workspaceId, options = {}) {
+        if (!workspaceId) return [];
+        const { suiteId = null, environmentId = null, limit = 100 } = options;
+
+        let runs = [];
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                let query = supabase
+                    .from('test_runs')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .neq('status', 'cancelled');
+
+                if (suiteId) query = query.eq('suite_id', suiteId);
+                if (environmentId) query = query.eq('environment_id', environmentId);
+
+                const { data, error } = await query
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+
+                if (!error && data) {
+                    runs = data.map(r => this._formatTestRun(r));
+                }
+            } catch (err) {}
+        }
+
+        if (runs.length === 0) {
+            runs = Array.from(this.inMemoryTestRuns.values())
+                .filter(r => r.workspace_id === workspaceId && r.status !== 'cancelled')
+                .filter(r => !suiteId || r.suite_id === suiteId || r.suiteId === suiteId)
+                .filter(r => !environmentId || r.environment_id === environmentId || r.environmentId === environmentId)
+                .sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0))
+                .slice(0, limit)
+                .map(r => this._formatTestRun(r));
+        }
+
+        // For each run, load cases
+        const result = [];
+        for (const run of runs) {
+            const cases = await this.getRunCases(run.id);
+            result.push({
+                ...run,
+                cases
+            });
+        }
+
+        return result;
     }
 
     /**

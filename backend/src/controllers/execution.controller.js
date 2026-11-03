@@ -9,6 +9,7 @@ const templateGenerator = require('../services/runner/templateGenerator.service'
 const { executeSinglePlaywrightTest } = require('../services/runner/playwrightRunner.worker');
 const executionReport = require('../services/runner/executionReport.service');
 const rerunExecution = require('../services/runner/rerunExecution.service');
+const failureTrendsService = require('../services/runner/failureTrends.service');
 
 /**
  * Resolves the target workspace ID for the request
@@ -413,6 +414,9 @@ exports.recordExecution = async (req, res) => {
                 logger.warn('Failed to save execution artifact:', artErr.message);
             }
         }
+
+        // Invalidate failure trends cache for workspace
+        failureTrendsService.invalidateCache(run.workspaceId);
 
         res.json({
             success: true,
@@ -1529,5 +1533,223 @@ exports.exportReport = async (req, res) => {
     } catch (err) {
         logger.error('Error exporting report:', err);
         res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+// ==========================================
+// FAILURE TREND ANALYSIS CONTROLLER METHODS
+// ==========================================
+
+const parseTrendFilters = (req, workspaceId) => {
+    return {
+        workspaceId,
+        suiteId: req.query.suiteId || null,
+        interval: req.query.interval === 'weekly' ? 'weekly' : 'daily',
+        startDate: req.query.startDate || null,
+        endDate: req.query.endDate || null,
+        browser: req.query.browser || 'all',
+        environment: req.query.environment || 'all',
+        executionMethod: req.query.executionMethod || 'all'
+    };
+};
+
+/**
+ * GET full failure trends analysis payload
+ * GET /api/v1/runs/trends/full
+ */
+exports.getFullFailureTrends = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = parseTrendFilters(req, workspaceId);
+        const result = await failureTrendsService.analyzeFailureTrends(workspaceId, filters);
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (err) {
+        logger.error('Error fetching full failure trends:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET failure trends summary metrics
+ * GET /api/v1/runs/trends/summary
+ */
+exports.getFailureTrendsSummary = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = parseTrendFilters(req, workspaceId);
+        const result = await failureTrendsService.analyzeFailureTrends(workspaceId, filters);
+
+        res.json({
+            success: true,
+            data: result.summary,
+            filters: result.filters
+        });
+    } catch (err) {
+        logger.error('Error fetching failure trends summary:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET failure trends time-series data (daily or weekly)
+ * GET /api/v1/runs/trends/time-series
+ */
+exports.getFailureTrendsTimeSeries = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = parseTrendFilters(req, workspaceId);
+        const result = await failureTrendsService.analyzeFailureTrends(workspaceId, filters);
+
+        res.json({
+            success: true,
+            data: result.timeSeries,
+            filters: result.filters
+        });
+    } catch (err) {
+        logger.error('Error fetching failure trends time series:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET recurring and classified failure signatures with pagination & search
+ * GET /api/v1/runs/trends/signatures
+ */
+exports.getFailureSignatures = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = parseTrendFilters(req, workspaceId);
+        const result = await failureTrendsService.analyzeFailureTrends(workspaceId, filters);
+
+        let signatures = result.signatures || [];
+
+        // Optional filtering by classification (new_failure, recurring, resolved, still_failing)
+        if (req.query.classification && req.query.classification !== 'all') {
+            signatures = signatures.filter(s => s.classification === req.query.classification);
+        }
+
+        // Optional filtering by errorType
+        if (req.query.errorType && req.query.errorType !== 'all') {
+            signatures = signatures.filter(s => s.errorType.toLowerCase() === req.query.errorType.toLowerCase());
+        }
+
+        // Optional search query
+        if (req.query.search && req.query.search.trim()) {
+            const q = req.query.search.trim().toLowerCase();
+            signatures = signatures.filter(s =>
+                s.normalizedMessage.toLowerCase().includes(q) ||
+                s.sampleRawMessage.toLowerCase().includes(q) ||
+                s.errorType.toLowerCase().includes(q) ||
+                (s.affectedCases || []).some(c => (c.testCaseId || '').toLowerCase().includes(q) || (c.title || '').toLowerCase().includes(q))
+            );
+        }
+
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
+        const total = signatures.length;
+        const totalPages = Math.ceil(total / limit) || 1;
+        const paginated = signatures.slice((page - 1) * limit, page * limit);
+
+        res.json({
+            success: true,
+            data: paginated,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages
+            }
+        });
+    } catch (err) {
+        logger.error('Error fetching failure signatures:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET failure signature detail by ID
+ * GET /api/v1/runs/trends/signatures/:signatureId
+ */
+exports.getFailureSignatureDetail = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const { signatureId } = req.params;
+        const filters = parseTrendFilters(req, workspaceId);
+        const detail = await failureTrendsService.getSignatureDetails(workspaceId, signatureId, filters);
+
+        if (!detail.success) {
+            return res.status(404).json(detail);
+        }
+
+        res.json(detail);
+    } catch (err) {
+        logger.error('Error fetching signature detail:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET failure classifications (New, Recurring, Resolved, Still Failing, Insufficient History)
+ * GET /api/v1/runs/trends/classifications
+ */
+exports.getFailureClassifications = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = parseTrendFilters(req, workspaceId);
+        const result = await failureTrendsService.analyzeFailureTrends(workspaceId, filters);
+
+        res.json({
+            success: true,
+            data: result.classifications
+        });
+    } catch (err) {
+        logger.error('Error fetching failure classifications:', err);
+        res.status(500).json({ success: false, message: err.message });
     }
 };

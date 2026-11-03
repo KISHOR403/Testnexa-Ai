@@ -1,0 +1,764 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — FAILURE TREND ANALYSIS & ERROR FINGERPRINTING STYLES
+   Visual Identity: Near-black (#080A09, #0D110F), Muted Jade-Green (#8BAF9A)
+   Responsive developer-tool QA analytics interface
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --fta-bg: #080A09;
+    --fta-surface: #0D110F;
+    --fta-surface-raised: #131815;
+    --fta-surface-hover: #19201C;
+    --fta-border: #1E2521;
+    --fta-border-light: #2A332E;
+    --fta-text: #F2F3F3;
+    --fta-text-muted: #8F9E95;
+    --fta-text-subtle: #5B6B61;
+    --fta-jade: #8BAF9A;
+    --fta-jade-glow: rgba(139, 175, 154, 0.15);
+    --fta-fail: #E57373;
+    --fta-fail-bg: rgba(229, 115, 115, 0.12);
+    --fta-fail-border: rgba(229, 115, 115, 0.3);
+    --fta-pass: #81C784;
+    --fta-pass-bg: rgba(129, 199, 132, 0.12);
+    --fta-warn: #FFB74D;
+    --fta-warn-bg: rgba(255, 183, 77, 0.12);
+    --fta-info: #64B5F6;
+    --fta-info-bg: rgba(100, 181, 246, 0.12);
+}
+
+.fta-container {
+    padding: 1.5rem 2rem;
+    max-width: 1500px;
+    margin: 0 auto;
+    color: var(--fta-text);
+    background: var(--fta-bg);
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ─── 1. Header & Controls ─── */
+.fta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--fta-border);
+}
+
+.fta-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fta-badge-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fta-jade);
+}
+
+.fta-title {
+    font-size: 1.5rem;
+    font-weight: 650;
+    color: var(--fta-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.fta-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--fta-text-muted);
+    max-width: 700px;
+}
+
+.fta-header-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fta-select {
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    color: var(--fta-text);
+    padding: 0.45rem 0.75rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.fta-select:focus, .fta-select:hover {
+    border-color: var(--fta-jade);
+}
+
+.fta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 550;
+    cursor: pointer;
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    color: var(--fta-text);
+    transition: all 0.15s ease;
+}
+
+.fta-btn:hover:not(:disabled) {
+    background: var(--fta-surface-raised);
+    border-color: var(--fta-jade);
+    color: #fff;
+}
+
+.fta-btn-primary {
+    background: var(--fta-jade);
+    border-color: var(--fta-jade);
+    color: #080A09;
+}
+
+.fta-btn-primary:hover:not(:disabled) {
+    background: #9FC1AE;
+    border-color: #9FC1AE;
+    color: #080A09;
+}
+
+/* ─── 2. Compact Metric Indicators Strip ─── */
+.fta-metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.fta-metric-tile {
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    transition: border-color 0.15s ease;
+}
+
+.fta-metric-tile:hover {
+    border-color: var(--fta-border-light);
+}
+
+.fta-metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--fta-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.fta-metric-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.fta-metric-value {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--fta-text);
+    line-height: 1.1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.fta-metric-subtext {
+    font-size: 0.75rem;
+    color: var(--fta-text-subtle);
+}
+
+/* Trajectory Badge */
+.fta-trajectory-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.fta-trajectory-increasing {
+    background: var(--fta-fail-bg);
+    color: var(--fta-fail);
+    border: 1px solid var(--fta-fail-border);
+}
+
+.fta-trajectory-decreasing {
+    background: var(--fta-pass-bg);
+    color: var(--fta-pass);
+    border: 1px solid rgba(129, 199, 132, 0.3);
+}
+
+.fta-trajectory-stable {
+    background: var(--fta-surface-raised);
+    color: var(--fta-text-muted);
+    border: 1px solid var(--fta-border);
+}
+
+/* ─── 3. Activity Chart Card ─── */
+.fta-chart-card {
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fta-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.fta-chart-title-block {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.fta-chart-title {
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: var(--fta-text);
+    margin: 0;
+}
+
+.fta-chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-size: 0.75rem;
+    color: var(--fta-text-muted);
+}
+
+.fta-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.fta-legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.fta-interval-toggle {
+    display: inline-flex;
+    background: var(--fta-surface-raised);
+    border: 1px solid var(--fta-border);
+    border-radius: 5px;
+    padding: 2px;
+}
+
+.fta-interval-btn {
+    background: transparent;
+    border: none;
+    color: var(--fta-text-muted);
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.fta-interval-btn.active {
+    background: var(--fta-border);
+    color: #fff;
+}
+
+.fta-chart-canvas-wrap {
+    width: 100%;
+    height: 240px;
+    position: relative;
+    user-select: none;
+}
+
+.fta-chart-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.fta-chart-tooltip {
+    position: absolute;
+    background: #111613;
+    border: 1px solid var(--fta-border-light);
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    z-index: 10;
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 160px;
+    transform: translate(-50%, -100%);
+    margin-top: -10px;
+}
+
+.fta-tooltip-title {
+    font-weight: 650;
+    color: var(--fta-text);
+    border-bottom: 1px solid var(--fta-border);
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.fta-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--fta-text-muted);
+}
+
+.fta-tooltip-row strong {
+    color: var(--fta-text);
+}
+
+/* ─── 4. Signatures Section ─── */
+.fta-signatures-section {
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.fta-signatures-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--fta-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: var(--fta-surface-raised);
+}
+
+.fta-signatures-tabs {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.fta-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--fta-text-muted);
+    padding: 0.35rem 0.75rem;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: 550;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease;
+}
+
+.fta-tab-btn:hover {
+    color: var(--fta-text);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.fta-tab-btn.active {
+    background: var(--fta-surface);
+    border-color: var(--fta-border);
+    color: var(--fta-jade);
+}
+
+.fta-tab-count {
+    background: var(--fta-border);
+    color: var(--fta-text-muted);
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+}
+
+.fta-signatures-search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fta-search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    border-radius: 5px;
+    padding: 0.4rem 0.65rem;
+    color: var(--fta-text);
+    width: 240px;
+}
+
+.fta-search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--fta-text);
+    font-size: 0.8rem;
+    width: 100%;
+}
+
+.fta-search-input::placeholder {
+    color: var(--fta-text-subtle);
+}
+
+/* Signatures Table */
+.fta-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.fta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    text-align: left;
+}
+
+.fta-table th {
+    background: var(--fta-surface);
+    color: var(--fta-text-subtle);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--fta-border);
+}
+
+.fta-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--fta-border);
+    vertical-align: middle;
+}
+
+.fta-table tr:hover td {
+    background: var(--fta-surface-raised);
+}
+
+.fta-sig-col-message {
+    max-width: 480px;
+}
+
+.fta-sig-title {
+    font-weight: 600;
+    color: var(--fta-text);
+    margin-bottom: 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.fta-sig-preview {
+    font-size: 0.75rem;
+    color: var(--fta-text-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Classification Badges */
+.fta-class-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.fta-class-new {
+    background: rgba(255, 183, 77, 0.12);
+    color: #FFB74D;
+    border: 1px solid rgba(255, 183, 77, 0.3);
+}
+
+.fta-class-recurring {
+    background: rgba(229, 115, 115, 0.12);
+    color: #E57373;
+    border: 1px solid rgba(229, 115, 115, 0.3);
+}
+
+.fta-class-resolved {
+    background: rgba(129, 199, 132, 0.12);
+    color: #81C784;
+    border: 1px solid rgba(129, 199, 132, 0.3);
+}
+
+.fta-class-still-failing {
+    background: rgba(239, 83, 80, 0.16);
+    color: #EF5350;
+    border: 1px solid rgba(239, 83, 80, 0.4);
+}
+
+.fta-class-insufficient {
+    background: rgba(144, 164, 174, 0.12);
+    color: #B0BEC5;
+    border: 1px solid rgba(144, 164, 174, 0.25);
+}
+
+/* Error Type Pills */
+.fta-type-pill {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: var(--fta-surface-raised);
+    border: 1px solid var(--fta-border);
+    color: var(--fta-jade);
+}
+
+.fta-type-TimeoutError { color: #FFA726; border-color: rgba(255, 167, 38, 0.3); }
+.fta-type-AssertionError { color: #EF5350; border-color: rgba(239, 83, 80, 0.3); }
+.fta-type-ElementNotFoundError { color: #AB47BC; border-color: rgba(171, 71, 188, 0.3); }
+.fta-type-NetworkError { color: #29B6F6; border-color: rgba(41, 182, 246, 0.3); }
+.fta-type-StepFailure { color: #8BAF9A; border-color: rgba(139, 175, 154, 0.3); }
+
+/* Context Pills */
+.fta-context-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    color: var(--fta-text-muted);
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    margin-right: 0.3rem;
+}
+
+/* Empty / Loading States */
+.fta-empty-state {
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.75rem;
+    color: var(--fta-text-muted);
+}
+
+.fta-empty-icon {
+    color: var(--fta-text-subtle);
+}
+
+.fta-empty-title {
+    font-size: 1rem;
+    font-weight: 650;
+    color: var(--fta-text);
+    margin: 0;
+}
+
+.fta-empty-desc {
+    font-size: 0.8rem;
+    max-width: 440px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ─── 5. Failure Detail Modal ─── */
+.fta-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 7, 5, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.fta-modal {
+    width: min(880px, 95vw);
+    max-height: 90vh;
+    background: #0B0E0C;
+    border: 1px solid var(--fta-border);
+    border-radius: 8px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.fta-modal-header {
+    padding: 1.15rem 1.5rem;
+    background: var(--fta-surface);
+    border-bottom: 1px solid var(--fta-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.fta-modal-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.fta-modal-title {
+    font-size: 1.1rem;
+    font-weight: 650;
+    color: var(--fta-text);
+    margin: 0;
+}
+
+.fta-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--fta-text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fta-modal-close-btn:hover {
+    color: #fff;
+    background: var(--fta-surface-raised);
+}
+
+.fta-modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.fta-code-box {
+    background: #070908;
+    border: 1px solid var(--fta-border);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.78rem;
+    color: #E2E8E4;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.fta-section-title {
+    font-size: 0.75rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fta-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+/* Timeline in Modal */
+.fta-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fta-timeline-item {
+    background: var(--fta-surface);
+    border: 1px solid var(--fta-border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fta-timeline-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.fta-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.fta-status-dot.passed { background: #81C784; }
+.fta-status-dot.failed { background: #E57373; }
+.fta-status-dot.timed_out { background: #FFB74D; }
+
+.fta-timeline-meta {
+    font-size: 0.75rem;
+    color: var(--fta-text-muted);
+}
+
+.fta-link {
+    color: var(--fta-jade);
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 550;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.fta-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .fta-container {
+        padding: 1rem;
+    }
+    .fta-metrics-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .fta-search-box {
+        width: 100%;
+    }
+}

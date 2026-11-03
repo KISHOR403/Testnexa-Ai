@@ -16,6 +16,14 @@ router.get('/automation/sources', executionController.listAutomationSources);
 router.post('/automation/validate', executionController.validateAutomationConfig);
 router.post('/automation/execute-single', executionController.executeSingleTest);
 
+// Phase 2: Failure Trend Analysis & Error Fingerprinting
+router.get('/trends/full', executionController.getFullFailureTrends);
+router.get('/trends/summary', executionController.getFailureTrendsSummary);
+router.get('/trends/time-series', executionController.getFailureTrendsTimeSeries);
+router.get('/trends/signatures', executionController.getFailureSignatures);
+router.get('/trends/signatures/:signatureId', executionController.getFailureSignatureDetail);
+router.get('/trends/classifications', executionController.getFailureClassifications);
+
 // Test Run CRUD
 router.get('/', executionController.listRuns);
 router.post('/', executionController.createRun);

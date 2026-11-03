@@ -575,5 +575,103 @@ export const executionService = {
             credentials: 'include'
         });
         return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get full failure trends analysis payload
+     */
+    getFullFailureTrends: async ({ workspaceId, suiteId, interval = 'daily', startDate, endDate, browser, environment, executionMethod } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        if (suiteId && suiteId !== 'all') params.set('suiteId', suiteId);
+        if (interval) params.set('interval', interval);
+        if (startDate) params.set('startDate', startDate);
+        if (endDate) params.set('endDate', endDate);
+        if (browser && browser !== 'all') params.set('browser', browser);
+        if (environment && environment !== 'all') params.set('environment', environment);
+        if (executionMethod && executionMethod !== 'all') params.set('executionMethod', executionMethod);
+
+        const response = await fetch(`${API_BASE_URL}/runs/trends/full?${params.toString()}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get failure trends summary metrics
+     */
+    getFailureTrendsSummary: async (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        const response = await fetch(`${API_BASE_URL}/runs/trends/summary?${qs}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get failure trends time-series data
+     */
+    getFailureTrendsTimeSeries: async (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        const response = await fetch(`${API_BASE_URL}/runs/trends/time-series?${qs}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get failure signatures list with search & pagination
+     */
+    getFailureSignatures: async ({ workspaceId, suiteId, classification, errorType, search, page = 1, limit = 20 } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        if (suiteId && suiteId !== 'all') params.set('suiteId', suiteId);
+        if (classification && classification !== 'all') params.set('classification', classification);
+        if (errorType && errorType !== 'all') params.set('errorType', errorType);
+        if (search) params.set('search', search);
+        if (page) params.set('page', page);
+        if (limit) params.set('limit', limit);
+
+        const response = await fetch(`${API_BASE_URL}/runs/trends/signatures?${params.toString()}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get signature details by ID
+     */
+    getFailureSignatureDetail: async (signatureId, { workspaceId, suiteId } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        if (suiteId && suiteId !== 'all') params.set('suiteId', suiteId);
+
+        const response = await fetch(`${API_BASE_URL}/runs/trends/signatures/${signatureId}?${params.toString()}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get failure classifications breakdown
+     */
+    getFailureClassifications: async (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        const response = await fetch(`${API_BASE_URL}/runs/trends/classifications?${qs}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
     }
 };
