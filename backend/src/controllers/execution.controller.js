@@ -10,6 +10,7 @@ const { executeSinglePlaywrightTest } = require('../services/runner/playwrightRu
 const executionReport = require('../services/runner/executionReport.service');
 const rerunExecution = require('../services/runner/rerunExecution.service');
 const failureTrendsService = require('../services/runner/failureTrends.service');
+const executionIntelligenceService = require('../services/runner/executionIntelligence.service');
 
 /**
  * Resolves the target workspace ID for the request
@@ -415,8 +416,9 @@ exports.recordExecution = async (req, res) => {
             }
         }
 
-        // Invalidate failure trends cache for workspace
+        // Invalidate failure trends and intelligence cache for workspace
         failureTrendsService.invalidateCache(run.workspaceId);
+        executionIntelligenceService.invalidateCache(run.workspaceId);
 
         res.json({
             success: true,
@@ -1750,6 +1752,107 @@ exports.getFailureClassifications = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error fetching failure classifications:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ==========================================
+// EXECUTION INTELLIGENCE DASHBOARD METHODS
+// ==========================================
+
+/**
+ * GET unified execution intelligence dashboard payload
+ * GET /api/v1/runs/intelligence/dashboard
+ */
+exports.getIntelligenceDashboard = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = {
+            suiteId: req.query.suiteId || null,
+            interval: req.query.interval === 'weekly' ? 'weekly' : 'daily',
+            startDate: req.query.startDate || null,
+            endDate: req.query.endDate || null,
+            browser: req.query.browser || 'all',
+            environment: req.query.environment || 'all',
+            executionMethod: req.query.executionMethod || 'all'
+        };
+
+        const dashboardData = await executionIntelligenceService.getDashboardOverview(workspaceId, filters);
+
+        res.json({
+            success: true,
+            data: dashboardData
+        });
+    } catch (err) {
+        logger.error('Error getting intelligence dashboard:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET prioritized needs attention queue
+ * GET /api/v1/runs/intelligence/attention
+ */
+exports.getIntelligenceAttentionQueue = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const filters = {
+            suiteId: req.query.suiteId || null,
+            startDate: req.query.startDate || null,
+            endDate: req.query.endDate || null,
+            browser: req.query.browser || 'all',
+            environment: req.query.environment || 'all'
+        };
+
+        const dashboardData = await executionIntelligenceService.getDashboardOverview(workspaceId, filters);
+
+        res.json({
+            success: true,
+            data: dashboardData.attentionQueue || []
+        });
+    } catch (err) {
+        logger.error('Error getting intelligence attention queue:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET workspace requirement coverage overview
+ * GET /api/v1/runs/intelligence/coverage
+ */
+exports.getIntelligenceCoverageOverview = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const suiteId = req.query.suiteId || null;
+        const coverage = await executionIntelligenceService._aggregateWorkspaceCoverage(workspaceId, suiteId);
+
+        res.json({
+            success: true,
+            data: coverage
+        });
+    } catch (err) {
+        logger.error('Error getting intelligence coverage overview:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

@@ -529,3 +529,4 @@ export const FailureTrendAnalysisPage = () => {
     );
 };
 export default FailureTrendAnalysisPage;
+

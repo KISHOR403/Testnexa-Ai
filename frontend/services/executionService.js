@@ -673,5 +673,53 @@ export const executionService = {
             credentials: 'include'
         });
         return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get unified execution intelligence dashboard payload
+     */
+    getIntelligenceDashboard: async ({ workspaceId, suiteId, interval = 'daily', startDate, endDate, browser, environment, executionMethod } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        if (suiteId && suiteId !== 'all') params.set('suiteId', suiteId);
+        if (interval) params.set('interval', interval);
+        if (startDate) params.set('startDate', startDate);
+        if (endDate) params.set('endDate', endDate);
+        if (browser && browser !== 'all') params.set('browser', browser);
+        if (environment && environment !== 'all') params.set('environment', environment);
+        if (executionMethod && executionMethod !== 'all') params.set('executionMethod', executionMethod);
+
+        const response = await fetch(`${API_BASE_URL}/runs/intelligence/dashboard?${params.toString()}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get prioritized needs attention queue
+     */
+    getIntelligenceAttention: async (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        const response = await fetch(`${API_BASE_URL}/runs/intelligence/attention?${qs}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Phase 2: Get requirement coverage overview
+     */
+    getIntelligenceCoverage: async (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        const response = await fetch(`${API_BASE_URL}/runs/intelligence/coverage?${qs}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
     }
 };

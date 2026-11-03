@@ -1,0 +1,686 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — EXECUTION INTELLIGENCE DASHBOARD STYLES
+   Visual Identity: Deep near-black (#080A09, #0D110F), Muted Jade-Green (#8BAF9A)
+   Professional Developer-Tool QA Analytics & Health Console
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --eid-bg: #080A09;
+    --eid-surface: #0D110F;
+    --eid-surface-raised: #131815;
+    --eid-surface-hover: #19201C;
+    --eid-border: #1E2521;
+    --eid-border-light: #2A332E;
+    --eid-text: #F2F3F3;
+    --eid-text-muted: #8F9E95;
+    --eid-text-subtle: #5B6B61;
+    --eid-jade: #8BAF9A;
+    --eid-jade-glow: rgba(139, 175, 154, 0.15);
+    --eid-fail: #E57373;
+    --eid-fail-bg: rgba(229, 115, 115, 0.12);
+    --eid-fail-border: rgba(229, 115, 115, 0.28);
+    --eid-pass: #81C784;
+    --eid-pass-bg: rgba(129, 199, 132, 0.12);
+    --eid-pass-border: rgba(129, 199, 132, 0.28);
+    --eid-warn: #FFB74D;
+    --eid-warn-bg: rgba(255, 183, 77, 0.12);
+    --eid-warn-border: rgba(255, 183, 77, 0.28);
+    --eid-info: #64B5F6;
+    --eid-info-bg: rgba(100, 181, 246, 0.12);
+    --eid-info-border: rgba(100, 181, 246, 0.28);
+    --eid-radius-sm: 6px;
+    --eid-radius-md: 10px;
+    --eid-radius-lg: 14px;
+}
+
+.eid-container {
+    padding: 1.5rem 2rem;
+    max-width: 1540px;
+    margin: 0 auto;
+    color: var(--eid-text);
+    background: var(--eid-bg);
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ─── 1. Header & Filters ─── */
+.eid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--eid-border);
+}
+
+.eid-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.eid-badge-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--eid-jade);
+}
+
+.eid-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: #FFFFFF;
+}
+
+.eid-subtitle {
+    font-size: 0.85rem;
+    color: var(--eid-text-muted);
+    margin: 0;
+}
+
+.eid-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    background: var(--eid-surface);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-md);
+    padding: 0.6rem 0.85rem;
+}
+
+.eid-select {
+    background: var(--eid-surface-raised);
+    color: var(--eid-text);
+    border: 1px solid var(--eid-border-light);
+    border-radius: var(--eid-radius-sm);
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.eid-select:focus {
+    border-color: var(--eid-jade);
+}
+
+.eid-preset-tabs {
+    display: inline-flex;
+    background: var(--eid-surface-raised);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-sm);
+    padding: 2px;
+}
+
+.eid-preset-btn {
+    background: transparent;
+    border: none;
+    color: var(--eid-text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.eid-preset-btn:hover {
+    color: var(--eid-text);
+}
+
+.eid-preset-btn.active {
+    background: var(--eid-jade);
+    color: #080A09;
+}
+
+.eid-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--eid-surface-raised);
+    border: 1px solid var(--eid-border-light);
+    color: var(--eid-text);
+    border-radius: var(--eid-radius-sm);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.eid-action-btn:hover:not(:disabled) {
+    background: var(--eid-surface-hover);
+    border-color: var(--eid-jade);
+}
+
+.eid-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── 2. Compact Execution Health Summary Bar ─── */
+.eid-health-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    background: var(--eid-surface);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-md);
+    padding: 0.85rem 1.25rem;
+    gap: 1.25rem;
+}
+
+.eid-health-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.eid-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.eid-stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--eid-text-subtle);
+}
+
+.eid-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #FFFFFF;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.eid-stat-value.pass {
+    color: var(--eid-pass);
+}
+
+.eid-stat-value.fail {
+    color: var(--eid-fail);
+}
+
+.eid-stat-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--eid-border);
+}
+
+.eid-trajectory-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.eid-trajectory-badge.improving {
+    background: var(--eid-pass-bg);
+    color: var(--eid-pass);
+    border: 1px solid var(--eid-pass-border);
+}
+
+.eid-trajectory-badge.declining {
+    background: var(--eid-fail-bg);
+    color: var(--eid-fail);
+    border: 1px solid var(--eid-fail-border);
+}
+
+.eid-trajectory-badge.steady {
+    background: var(--eid-surface-raised);
+    color: var(--eid-text-muted);
+    border: 1px solid var(--eid-border-light);
+}
+
+/* ─── 3. Quality Signals Strip ─── */
+.eid-signals-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.75rem;
+}
+
+.eid-signal-card {
+    background: var(--eid-surface);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-sm);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s ease;
+}
+
+.eid-signal-card:hover {
+    background: var(--eid-surface-raised);
+    border-color: var(--eid-border-light);
+    transform: translateY(-1px);
+}
+
+.eid-signal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.eid-signal-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--eid-text-muted);
+}
+
+.eid-signal-count {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.eid-signal-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ─── 4. Main Two-Column Layout ─── */
+.eid-main-grid {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+    .eid-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─── 5. Panels & Containers ─── */
+.eid-panel {
+    background: var(--eid-surface);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.eid-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--eid-border);
+    background: rgba(13, 17, 15, 0.6);
+}
+
+.eid-panel-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.eid-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.eid-panel-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ─── 6. Activity Chart SVG Styles ─── */
+.eid-chart-container {
+    width: 100%;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.eid-chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-size: 0.76rem;
+    color: var(--eid-text-muted);
+}
+
+.eid-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.eid-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.eid-chart-svg {
+    width: 100%;
+    height: 190px;
+    overflow: visible;
+}
+
+.eid-chart-bar-group {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.eid-chart-bar-group:hover {
+    opacity: 0.85;
+}
+
+.eid-chart-tooltip {
+    font-size: 0.75rem;
+    background: var(--eid-surface-raised);
+    border: 1px solid var(--eid-border-light);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    color: var(--eid-text);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── 7. Needs Attention Triage Queue ─── */
+.eid-attention-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.eid-attention-item {
+    background: var(--eid-surface-raised);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-sm);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.85rem;
+    transition: border-color 0.15s ease;
+}
+
+.eid-attention-item:hover {
+    border-color: var(--eid-border-light);
+}
+
+.eid-attention-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.eid-attention-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.eid-badge-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.eid-badge-pill.recurring {
+    background: var(--eid-fail-bg);
+    color: var(--eid-fail);
+    border: 1px solid var(--eid-fail-border);
+}
+
+.eid-badge-pill.flake {
+    background: var(--eid-warn-bg);
+    color: var(--eid-warn);
+    border: 1px solid var(--eid-warn-border);
+}
+
+.eid-badge-pill.coverage {
+    background: var(--eid-info-bg);
+    color: var(--eid-info);
+    border: 1px solid var(--eid-info-border);
+}
+
+.eid-badge-pill.new {
+    background: rgba(255, 152, 0, 0.15);
+    color: #FFA726;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.eid-attention-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eid-attention-desc {
+    font-size: 0.78rem;
+    color: var(--eid-text-muted);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.eid-attention-meta {
+    font-size: 0.72rem;
+    color: var(--eid-text-subtle);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.eid-attention-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: 1px solid var(--eid-border-light);
+    color: var(--eid-text);
+    border-radius: 4px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.eid-attention-action:hover {
+    background: var(--eid-surface-hover);
+    border-color: var(--eid-jade);
+    color: var(--eid-jade);
+}
+
+/* ─── 8. Recent Execution Activity List ─── */
+.eid-runs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.eid-runs-table th {
+    text-align: left;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--eid-text-subtle);
+    border-bottom: 1px solid var(--eid-border);
+}
+
+.eid-runs-table td {
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid rgba(30, 37, 33, 0.6);
+    vertical-align: middle;
+}
+
+.eid-runs-table tr:hover td {
+    background: var(--eid-surface-raised);
+}
+
+.eid-run-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+.eid-run-status-badge.completed {
+    background: var(--eid-pass-bg);
+    color: var(--eid-pass);
+}
+
+.eid-run-status-badge.in_progress {
+    background: var(--eid-info-bg);
+    color: var(--eid-info);
+    animation: eid-pulse 2s infinite;
+}
+
+@keyframes eid-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.eid-run-status-badge.failed {
+    background: var(--eid-fail-bg);
+    color: var(--eid-fail);
+}
+
+.eid-run-status-badge.cancelled {
+    background: var(--eid-surface-hover);
+    color: var(--eid-text-subtle);
+}
+
+/* ─── 9. Requirement Coverage Overview ─── */
+.eid-coverage-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--eid-border);
+}
+
+.eid-coverage-card {
+    background: var(--eid-surface-raised);
+    border: 1px solid var(--eid-border);
+    border-radius: var(--eid-radius-sm);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.eid-coverage-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--eid-text-muted);
+}
+
+.eid-coverage-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.eid-progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--eid-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.eid-progress-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.eid-coverage-subtext {
+    font-size: 0.72rem;
+    color: var(--eid-text-subtle);
+}
+
+/* ─── 10. Empty & Loading States ─── */
+.eid-empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.eid-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--eid-surface-raised);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--eid-text-muted);
+}
+
+.eid-empty-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.eid-empty-desc {
+    font-size: 0.8rem;
+    color: var(--eid-text-muted);
+    max-width: 380px;
+    margin: 0;
+}

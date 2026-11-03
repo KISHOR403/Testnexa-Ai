@@ -8,7 +8,7 @@
         "start": "node src/server.js",
         "dev": "node --watch-path=src src/server.js",
         "build": "npx playwright install chromium",
-        "test": "node --test tests/playwright-configuration-modal.test.js tests/real-playwright-execution.test.js tests/test-run-creation.test.js tests/manual-execution.test.js tests/execution-intelligence-reporting.test.js tests/test-cases-workspace.test.js tests/rerun-execution.test.js tests/failure-trend-analysis.test.js",
+        "test": "node --test tests/playwright-configuration-modal.test.js tests/real-playwright-execution.test.js tests/test-run-creation.test.js tests/manual-execution.test.js tests/execution-intelligence-reporting.test.js tests/test-cases-workspace.test.js tests/rerun-execution.test.js tests/failure-trend-analysis.test.js tests/execution-intelligence-dashboard.test.js",
         "postinstall": "npx playwright install chromium || true"
     },
     "keywords": [

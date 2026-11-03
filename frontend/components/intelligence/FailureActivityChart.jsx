@@ -309,3 +309,4 @@ export const FailureActivityChart = ({
     );
 };
 export default FailureActivityChart;
+

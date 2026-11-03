@@ -24,6 +24,11 @@ router.get('/trends/signatures', executionController.getFailureSignatures);
 router.get('/trends/signatures/:signatureId', executionController.getFailureSignatureDetail);
 router.get('/trends/classifications', executionController.getFailureClassifications);
 
+// Phase 2: Execution Intelligence & Unified QA Health Dashboard
+router.get('/intelligence/dashboard', executionController.getIntelligenceDashboard);
+router.get('/intelligence/attention', executionController.getIntelligenceAttentionQueue);
+router.get('/intelligence/coverage', executionController.getIntelligenceCoverageOverview);
+
 // Test Run CRUD
 router.get('/', executionController.listRuns);
 router.post('/', executionController.createRun);

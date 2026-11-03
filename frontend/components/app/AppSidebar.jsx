@@ -4,7 +4,7 @@ import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
-    PlayCircle, Activity
+    PlayCircle, Activity, BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -255,6 +255,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                 {/* ANALYSIS GROUP */}
                 <div className="app-sidebar__group">
                     <span className="app-sidebar__group-label">ANALYSIS</span>
+
+                    <NavLink
+                        to="/app/intelligence"
+                        className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Execution Intelligence"
+                    >
+                        <BarChart3 size={17} className="app-sidebar__item-icon" />
+                        <span>Intelligence</span>
+                    </NavLink>
 
                     <NavLink
                         to="/app/coverage"

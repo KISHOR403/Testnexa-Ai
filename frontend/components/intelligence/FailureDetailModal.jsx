@@ -220,3 +220,4 @@ export const FailureDetailModal = ({
     );
 };
 export default FailureDetailModal;
+

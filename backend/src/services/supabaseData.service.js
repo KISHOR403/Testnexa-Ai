@@ -2810,6 +2810,22 @@ class SupabaseDataService {
         const now = new Date().toISOString();
         const patch = { ...actualUpdates, updated_at: now };
 
+        if (actualUpdates.completedAt !== undefined) {
+            patch.completed_at = actualUpdates.completedAt;
+            patch.completedAt = actualUpdates.completedAt;
+        } else if (actualUpdates.completed_at !== undefined) {
+            patch.completed_at = actualUpdates.completed_at;
+            patch.completedAt = actualUpdates.completed_at;
+        }
+
+        if (actualUpdates.startedAt !== undefined) {
+            patch.started_at = actualUpdates.startedAt;
+            patch.startedAt = actualUpdates.startedAt;
+        } else if (actualUpdates.started_at !== undefined) {
+            patch.started_at = actualUpdates.started_at;
+            patch.startedAt = actualUpdates.started_at;
+        }
+
         if (this.isAvailable && this.executionTablesAvailable !== false) {
             try {
                 let query = supabase.from('test_runs').update(patch).eq('id', runId);
