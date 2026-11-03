@@ -720,3 +720,4 @@ module.exports = {
     extractSuiteRequirements,
     extractSuiteTestCases
 };
+

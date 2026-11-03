@@ -959,3 +959,4 @@ const SmartRecommendationsPage = () => {
 };
 
 export default SmartRecommendationsPage;
+
