@@ -11,6 +11,7 @@ const executionReport = require('../services/runner/executionReport.service');
 const rerunExecution = require('../services/runner/rerunExecution.service');
 const failureTrendsService = require('../services/runner/failureTrends.service');
 const executionIntelligenceService = require('../services/runner/executionIntelligence.service');
+const rootCauseAnalysisService = require('../services/runner/rootCauseAnalysis.service');
 
 /**
  * Resolves the target workspace ID for the request
@@ -1854,5 +1855,104 @@ exports.getIntelligenceCoverageOverview = async (req, res) => {
     } catch (err) {
         logger.error('Error getting intelligence coverage overview:', err);
         res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * POST trigger AI failure root cause analysis for a test execution
+ * POST /api/v1/runs/:runId/cases/:runCaseId/analyze-root-cause
+ */
+exports.analyzeFailureRootCause = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const runId = req.params.runId || req.params.id;
+        const runCaseId = req.params.runCaseId || req.params.caseId;
+        const { forceFresh } = req.body || {};
+        const userId = req.user._id || req.user.id;
+
+        const analysisRecord = await rootCauseAnalysisService.analyzeFailure(workspaceId, runId, runCaseId, {
+            forceFresh: Boolean(forceFresh),
+            userId
+        });
+
+        res.json({
+            success: true,
+            data: analysisRecord
+        });
+    } catch (err) {
+        logger.error('Error analyzing failure root cause:', err);
+        const statusCode = err.statusCode || (err.message?.includes('not found') ? 404 : 500);
+        res.status(statusCode).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET failure root cause analysis history for a test case
+ * GET /api/v1/runs/:runId/cases/:runCaseId/root-cause-analyses
+ */
+exports.getFailureRootCauseAnalyses = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const runId = req.params.runId || req.params.id;
+        const runCaseId = req.params.runCaseId || req.params.caseId;
+        const history = await rootCauseAnalysisService.getAnalysesHistory(workspaceId, runId, runCaseId);
+
+        res.json({
+            success: true,
+            data: history
+        });
+    } catch (err) {
+        logger.error('Error fetching root cause analysis history:', err);
+        const statusCode = err.statusCode || (err.message?.includes('not found') ? 404 : 500);
+        res.status(statusCode).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * POST submit user feedback for an AI root cause analysis
+ * POST /api/v1/runs/root-cause-analyses/:analysisId/feedback
+ */
+exports.submitFailureAnalysisFeedback = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace ID required' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, workspaceId);
+        if (!isAllowed) return;
+
+        const { analysisId } = req.params;
+        const { rating, comment } = req.body || {};
+        const userId = req.user._id || req.user.id;
+
+        const updated = await rootCauseAnalysisService.submitFeedback(workspaceId, analysisId, {
+            rating,
+            comment,
+            userId
+        });
+
+        res.json({
+            success: true,
+            data: updated
+        });
+    } catch (err) {
+        logger.error('Error submitting analysis feedback:', err);
+        const statusCode = err.statusCode || (err.message?.includes('not found') ? 404 : 500);
+        res.status(statusCode).json({ success: false, message: err.message });
     }
 };

@@ -721,5 +721,46 @@ export const executionService = {
             credentials: 'include'
         });
         return handleResponse(response);
+    },
+
+    /**
+     * AI Failure Root Cause Analysis
+     */
+    analyzeFailureRootCause: async (runId, runCaseId, { forceFresh = false, workspaceId } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        const qs = params.toString() ? `?${params.toString()}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${runCaseId}/analyze-root-cause${qs}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ forceFresh })
+        });
+        return handleResponse(response);
+    },
+
+    getFailureRootCauseAnalyses: async (runId, runCaseId, { workspaceId } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        const qs = params.toString() ? `?${params.toString()}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${runCaseId}/root-cause-analyses${qs}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    submitFailureAnalysisFeedback: async (analysisId, { rating, comment, workspaceId } = {}) => {
+        const params = new URLSearchParams();
+        if (workspaceId) params.set('workspaceId', workspaceId);
+        const qs = params.toString() ? `?${params.toString()}` : '';
+        const response = await fetch(`${API_BASE_URL}/runs/root-cause-analyses/${analysisId}/feedback${qs}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ rating, comment })
+        });
+        return handleResponse(response);
     }
 };

@@ -69,4 +69,9 @@ router.post('/:id/cases/:caseId/artifacts', executionController.uploadArtifact);
 router.get('/:id/artifacts', executionController.listRunArtifacts);
 router.get('/:id/artifacts/:artifactId/file', executionController.serveArtifactFile);
 
+// AI Failure Root Cause Analysis
+router.post('/:id/cases/:caseId/analyze-root-cause', executionController.analyzeFailureRootCause);
+router.get('/:id/cases/:caseId/root-cause-analyses', executionController.getFailureRootCauseAnalyses);
+router.post('/root-cause-analyses/:analysisId/feedback', executionController.submitFailureAnalysisFeedback);
+
 module.exports = router;

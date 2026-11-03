@@ -314,3 +314,4 @@ describe('Phase 2: Execution Intelligence & Unified QA Health Dashboard', () => 
         assert.equal(executionIntelligenceService.cache.has(`${workspaceA.id}:dummy`), false);
     });
 });
+

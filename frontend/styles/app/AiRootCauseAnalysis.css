@@ -1,0 +1,341 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — AI FAILURE ROOT CAUSE ANALYSIS STYLES
+   Visual Identity: Deep near-black (#080A09, #0D110F), Muted Jade-Green (#8BAF9A)
+   Developer-tool diagnostic analysis container
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --rca-bg: #0D110F;
+    --rca-surface: #131815;
+    --rca-surface-raised: #18201B;
+    --rca-surface-hover: #1E2722;
+    --rca-border: #222C25;
+    --rca-border-light: #2D3A31;
+    --rca-text: #F2F3F3;
+    --rca-text-muted: #8F9E95;
+    --rca-text-subtle: #5B6B61;
+    --rca-jade: #8BAF9A;
+    --rca-jade-glow: rgba(139, 175, 154, 0.15);
+    --rca-fail: #E57373;
+    --rca-fail-bg: rgba(229, 115, 115, 0.1);
+    --rca-fail-border: rgba(229, 115, 115, 0.25);
+    --rca-warn: #FFB74D;
+    --rca-warn-bg: rgba(255, 183, 77, 0.1);
+    --rca-warn-border: rgba(255, 183, 77, 0.25);
+    --rca-info: #64B5F6;
+    --rca-pass: #81C784;
+}
+
+.rca-card {
+    background: var(--rca-bg);
+    border: 1px solid var(--rca-border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    color: var(--rca-text);
+}
+
+.rca-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--rca-border);
+}
+
+.rca-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rca-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+}
+
+.rca-model-badge {
+    font-size: 0.68rem;
+    font-family: ui-monospace, monospace;
+    color: var(--rca-jade);
+    background: rgba(139, 175, 154, 0.1);
+    border: 1px solid rgba(139, 175, 154, 0.25);
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+    text-transform: uppercase;
+}
+
+.rca-confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+}
+
+.rca-confidence-badge.high {
+    background: rgba(129, 199, 132, 0.12);
+    color: var(--rca-pass);
+    border: 1px solid rgba(129, 199, 132, 0.3);
+}
+
+.rca-confidence-badge.medium {
+    background: var(--rca-warn-bg);
+    color: var(--rca-warn);
+    border: 1px solid var(--rca-warn-border);
+}
+
+.rca-confidence-badge.low {
+    background: var(--rca-fail-bg);
+    color: var(--rca-fail);
+    border: 1px solid var(--rca-fail-border);
+}
+
+.rca-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.rca-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--rca-surface);
+    border: 1px solid var(--rca-border-light);
+    color: var(--rca-text);
+    border-radius: 5px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rca-btn:hover:not(:disabled) {
+    background: var(--rca-surface-hover);
+    border-color: var(--rca-jade);
+    color: var(--rca-jade);
+}
+
+.rca-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rca-btn-primary {
+    background: var(--rca-jade);
+    color: #080A09;
+    border-color: var(--rca-jade);
+}
+
+.rca-btn-primary:hover:not(:disabled) {
+    background: #9ebb9a;
+    color: #080A09;
+}
+
+/* ─── Hypothesis Advisory Banner ─── */
+.rca-hypothesis-banner {
+    background: rgba(255, 183, 77, 0.08);
+    border-left: 3px solid var(--rca-warn);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.74rem;
+    color: var(--rca-warn);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 0 4px 4px 0;
+}
+
+/* ─── Structured Analysis Content ─── */
+.rca-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.rca-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.rca-section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--rca-text-subtle);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.rca-root-cause-box {
+    background: var(--rca-surface);
+    border: 1px solid var(--rca-border);
+    border-left: 3px solid var(--rca-jade);
+    border-radius: 0 6px 6px 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: #FFFFFF;
+}
+
+.rca-observed-text {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--rca-text);
+}
+
+.rca-evidence-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--rca-text-muted);
+    font-family: ui-monospace, monospace;
+}
+
+.rca-evidence-item {
+    word-break: break-word;
+}
+
+.rca-step-card {
+    background: var(--rca-surface);
+    border: 1px solid var(--rca-border);
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+}
+
+.rca-step-header {
+    font-weight: 600;
+    color: var(--rca-fail);
+}
+
+.rca-step-body {
+    color: var(--rca-text-muted);
+}
+
+.rca-investigation-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--rca-text);
+}
+
+.rca-fix-box {
+    background: #080A09;
+    border: 1px solid var(--rca-border);
+    border-radius: 6px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.78rem;
+    font-family: ui-monospace, monospace;
+    color: var(--rca-pass);
+    overflow-x: auto;
+    position: relative;
+}
+
+.rca-limitations-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.74rem;
+    color: var(--rca-text-subtle);
+}
+
+/* ─── Feedback & History Bar ─── */
+.rca-feedback-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rca-border);
+    font-size: 0.76rem;
+    color: var(--rca-text-muted);
+}
+
+.rca-feedback-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.rca-feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: 1px solid var(--rca-border-light);
+    color: var(--rca-text-muted);
+    border-radius: 4px;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rca-feedback-btn:hover {
+    color: var(--rca-text);
+    border-color: var(--rca-text-muted);
+}
+
+.rca-feedback-btn.active-helpful {
+    background: rgba(129, 199, 132, 0.15);
+    color: var(--rca-pass);
+    border-color: var(--rca-pass);
+}
+
+.rca-feedback-btn.active-unhelpful {
+    background: rgba(229, 115, 115, 0.15);
+    color: var(--rca-fail);
+    border-color: var(--rca-fail);
+}
+
+.rca-history-select {
+    background: var(--rca-surface);
+    color: var(--rca-text);
+    border: 1px solid var(--rca-border-light);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+
+/* ─── Loading State ─── */
+.rca-loading-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    color: var(--rca-text-muted);
+    font-size: 0.82rem;
+}

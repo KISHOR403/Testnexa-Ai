@@ -27,6 +27,7 @@ class SupabaseDataService {
         this.inMemoryTestExecutions = new Map();
         this.inMemoryExecutionArtifacts = new Map();
         this.inMemoryAutomationJobs = new Map();
+        this.inMemoryFailureAnalyses = new Map();
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -95,6 +96,11 @@ class SupabaseDataService {
                         this.inMemoryAutomationJobs.set(k, v);
                     }
                 }
+                if (data.failureAnalyses && typeof data.failureAnalyses === 'object') {
+                    for (const [k, v] of Object.entries(data.failureAnalyses)) {
+                        this.inMemoryFailureAnalyses.set(k, v);
+                    }
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -118,7 +124,8 @@ class SupabaseDataService {
                 testRunCases: Object.fromEntries(this.inMemoryTestRunCases),
                 testExecutions: Object.fromEntries(this.inMemoryTestExecutions),
                 executionArtifacts: Object.fromEntries(this.inMemoryExecutionArtifacts),
-                automationJobs: Object.fromEntries(this.inMemoryAutomationJobs)
+                automationJobs: Object.fromEntries(this.inMemoryAutomationJobs),
+                failureAnalyses: Object.fromEntries(this.inMemoryFailureAnalyses)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -2314,6 +2321,39 @@ class SupabaseDataService {
         };
     }
 
+    _formatFailureAnalysis(row) {
+        if (!row) return null;
+        let analysis = row.analysis || {};
+        if (typeof analysis === 'string') {
+            try { analysis = JSON.parse(analysis); } catch (_) {}
+        }
+        let evidenceSnapshot = row.evidence_snapshot || row.evidenceSnapshot || {};
+        if (typeof evidenceSnapshot === 'string') {
+            try { evidenceSnapshot = JSON.parse(evidenceSnapshot); } catch (_) {}
+        }
+        let feedback = row.feedback || null;
+        if (typeof feedback === 'string') {
+            try { feedback = JSON.parse(feedback); } catch (_) {}
+        }
+
+        return {
+            id: row.id,
+            runId: row.run_id || row.runId,
+            runCaseId: row.run_case_id || row.runCaseId,
+            testCaseId: row.test_case_id || row.testCaseId,
+            executionId: row.execution_id || row.executionId || null,
+            workspaceId: row.workspace_id || row.workspaceId,
+            createdBy: row.created_by || row.createdBy || null,
+            provider: row.provider || 'gemini',
+            model: row.model || 'gemini-1.5-flash',
+            analysis,
+            evidenceSnapshot,
+            feedback,
+            createdAt: row.created_at || row.createdAt,
+            updatedAt: row.updated_at || row.updatedAt
+        };
+    }
+
     _formatAutomationJob(row) {
         if (!row) return null;
         return {
@@ -3739,6 +3779,113 @@ class SupabaseDataService {
                     .maybeSingle();
                 if (!error && data) return this._formatAutomationJob(data);
             } catch (e) {}
+        }
+        return null;
+    }
+
+    /**
+     * AI Failure Root Cause Analysis Persistence
+     */
+    async saveFailureAnalysis(data) {
+        if (!data.runId || !data.runCaseId) {
+            throw new Error('runId and runCaseId are required to save failure analysis');
+        }
+        const now = new Date().toISOString();
+        const id = 'fa_' + crypto.randomBytes(8).toString('hex');
+        const record = {
+            id,
+            run_id: data.runId,
+            run_case_id: data.runCaseId,
+            test_case_id: data.testCaseId,
+            execution_id: data.executionId || null,
+            workspace_id: data.workspaceId,
+            created_by: data.createdBy || null,
+            provider: data.provider || 'gemini',
+            model: data.model || 'gemini-1.5-flash',
+            analysis: data.analysis,
+            evidence_snapshot: data.evidenceSnapshot || {},
+            feedback: null,
+            created_at: now,
+            updated_at: now
+        };
+
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                await supabase.from('test_failure_analyses').insert(record);
+            } catch (err) {}
+        }
+
+        this.inMemoryFailureAnalyses.set(id, record);
+        this._saveDiskWorkspacesStore();
+        return this._formatFailureAnalysis(record);
+    }
+
+    async getFailureAnalyses(runId, runCaseId = null) {
+        let rows = [];
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                let query = supabase.from('test_failure_analyses').select('*');
+                if (runId) query = query.eq('run_id', runId);
+                if (runCaseId) query = query.eq('run_case_id', runCaseId);
+                const { data, error } = await query.order('created_at', { ascending: false });
+                if (!error && data) rows = data;
+            } catch (err) {}
+        }
+
+        if (rows.length === 0) {
+            rows = Array.from(this.inMemoryFailureAnalyses.values()).filter(a => {
+                if (runId && (a.run_id !== runId && a.runId !== runId)) return false;
+                if (runCaseId && (a.run_case_id !== runCaseId && a.runCaseId !== runCaseId)) return false;
+                return true;
+            }).sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
+        }
+
+        return rows.map(r => this._formatFailureAnalysis(r));
+    }
+
+    async getFailureAnalysisById(analysisId) {
+        if (!analysisId) return null;
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('test_failure_analyses')
+                    .select('*')
+                    .eq('id', analysisId)
+                    .maybeSingle();
+                if (!error && data) return this._formatFailureAnalysis(data);
+            } catch (err) {}
+        }
+        const mem = this.inMemoryFailureAnalyses.get(analysisId);
+        return mem ? this._formatFailureAnalysis(mem) : null;
+    }
+
+    async updateFailureAnalysisFeedback(analysisId, feedback) {
+        if (!analysisId) throw new Error('analysisId is required');
+        const now = new Date().toISOString();
+        const patch = { feedback, updated_at: now };
+
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('test_failure_analyses')
+                    .update(patch)
+                    .eq('id', analysisId)
+                    .select()
+                    .maybeSingle();
+                if (!error && data) {
+                    this.inMemoryFailureAnalyses.set(analysisId, data);
+                    this._saveDiskWorkspacesStore();
+                    return this._formatFailureAnalysis(data);
+                }
+            } catch (err) {}
+        }
+
+        const existing = this.inMemoryFailureAnalyses.get(analysisId);
+        if (existing) {
+            const updated = { ...existing, feedback, updated_at: now };
+            this.inMemoryFailureAnalyses.set(analysisId, updated);
+            this._saveDiskWorkspacesStore();
+            return this._formatFailureAnalysis(updated);
         }
         return null;
     }

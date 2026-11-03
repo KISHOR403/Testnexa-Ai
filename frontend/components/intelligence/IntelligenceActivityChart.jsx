@@ -194,3 +194,4 @@ export const IntelligenceActivityChart = ({
 };
 
 export default IntelligenceActivityChart;
+

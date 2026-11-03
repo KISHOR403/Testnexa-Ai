@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../loading';
+import AiRootCauseAnalysisPanel from '../intelligence/AiRootCauseAnalysisPanel';
 import '../../styles/app/WorkspaceDesignSystem.css';
 import '../../styles/app/ExecutionReport.css';
 import '../../styles/app/ExecutionDiagnostics.css';
@@ -874,6 +875,16 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                                 <span>Browser <strong>{formatDisplayValue(selectedFailure.browserInfo, 'Not recorded')}</strong></span>
                                 <span>Duration <strong>{selectedFailure.durationMs ? formatDuration(selectedFailure.durationMs) : 'Not recorded'}</strong></span>
                             </div>
+
+                            {/* ─── AI FAILURE ROOT CAUSE ANALYSIS ─── */}
+                            {selectedFailure.runCaseId && (
+                                <AiRootCauseAnalysisPanel
+                                    runId={runId}
+                                    runCaseId={selectedFailure.runCaseId}
+                                    testCaseId={selectedFailure.testCaseId}
+                                    status={selectedFailure.status}
+                                />
+                            )}
 
                             <section className="diagnostics-subsection">
                                 <div className="diagnostics-subheading"><h5>Failure timeline</h5><span>Attempt and evidence events recorded by this run</span></div>
