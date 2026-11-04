@@ -66,3 +66,4 @@ router.patch('/:id/workspaces/:workspaceId/archive', protect, requireOrgAccess, 
 router.get('/:id/activity', protect, requireOrgAccess, requireOrgRole(['owner', 'admin', 'qa_manager']), getActivity);
 
 module.exports = router;
+

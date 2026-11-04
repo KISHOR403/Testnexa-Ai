@@ -162,3 +162,4 @@ module.exports = {
     isValidRole,
     getRoleMeta
 };
+
