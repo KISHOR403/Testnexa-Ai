@@ -3,6 +3,7 @@
  */
 
 const supabaseService = require('../services/supabaseData.service');
+const auditService = require('../services/auditService');
 const { isValidRole, getRoleMeta, ROLES } = require('../utils/rbac');
 const logger = require('../utils/logger');
 
@@ -105,6 +106,17 @@ exports.updateOrganization = async (req, res) => {
             targetType: 'organization',
             targetId: orgId,
             details: { name: updated.name }
+        });
+
+        await auditService.logFromRequest(req, {
+            orgId,
+            action: 'organization.updated',
+            resourceType: 'organization',
+            resourceId: orgId,
+            resourceDisplayName: updated.name,
+            before: { name: req.org.name, description: req.org.description },
+            after: { name: updated.name, description: updated.description },
+            metadata: { settingsUpdated: Boolean(settings) }
         });
 
         res.json({
@@ -219,6 +231,15 @@ exports.updateMemberRole = async (req, res) => {
             details: { newRole: role }
         });
 
+        await auditService.logFromRequest(req, {
+            orgId,
+            action: 'member.role_changed',
+            resourceType: 'member',
+            resourceId: targetUserId,
+            resourceDisplayName: member.name || member.email || targetUserId,
+            metadata: { newRole: role }
+        });
+
         res.json({
             success: true,
             data: member,
@@ -247,6 +268,14 @@ exports.removeMember = async (req, res) => {
             action: 'member.removed',
             targetType: 'user',
             targetId: targetUserId
+        });
+
+        await auditService.logFromRequest(req, {
+            orgId,
+            action: 'member.removed',
+            resourceType: 'member',
+            resourceId: targetUserId,
+            resourceDisplayName: targetUserId
         });
 
         res.json({
@@ -456,6 +485,16 @@ exports.createWorkspace = async (req, res) => {
             visibility
         });
 
+        await auditService.logFromRequest(req, {
+            orgId,
+            workspaceId: workspace.id,
+            action: 'workspace.created',
+            resourceType: 'workspace',
+            resourceId: workspace.id,
+            resourceDisplayName: workspace.name,
+            metadata: { visibility: workspace.visibility }
+        });
+
         res.status(201).json({
             success: true,
             data: workspace,
@@ -481,6 +520,16 @@ exports.archiveWorkspace = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Workspace not found' });
         }
 
+        await auditService.logFromRequest(req, {
+            orgId: req.org.id,
+            workspaceId,
+            action: isArchived ? 'workspace.archived' : 'workspace.restored',
+            resourceType: 'workspace',
+            resourceId: workspaceId,
+            resourceDisplayName: updated.name,
+            metadata: { isArchived }
+        });
+
         res.json({
             success: true,
             data: updated,
@@ -494,7 +543,7 @@ exports.archiveWorkspace = async (req, res) => {
 
 /**
  * GET /api/v1/organizations/:id/activity
- * Get organization activity & audit log
+ * Get organization activity & audit log (legacy simple view)
  */
 exports.getActivity = async (req, res) => {
     try {
@@ -508,6 +557,142 @@ exports.getActivity = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error listing organization activity:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/organizations/:id/audit-logs
+ * List audit events with server-side filters, search, and pagination
+ */
+exports.listAuditLogs = async (req, res) => {
+    try {
+        const orgId = req.org.id;
+        const {
+            workspaceId,
+            projectId,
+            actorId,
+            action,
+            resourceType,
+            outcome,
+            source,
+            search,
+            startDate,
+            endDate,
+            page = 1,
+            limit = 20
+        } = req.query;
+
+        const result = await auditService.getEvents(orgId, {
+            workspaceId,
+            projectId,
+            actorId,
+            action,
+            resourceType,
+            outcome,
+            source,
+            search,
+            startDate,
+            endDate,
+            page: parseInt(page, 10) || 1,
+            limit: Math.min(parseInt(limit, 10) || 20, 200)
+        });
+
+        res.json({
+            success: true,
+            data: result.events,
+            pagination: {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: result.totalPages
+            }
+        });
+    } catch (err) {
+        logger.error('Error listing audit logs:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/organizations/:id/audit-logs/:eventId
+ * Retrieve single audit event detail with full diffs and metadata
+ */
+exports.getAuditLogDetails = async (req, res) => {
+    try {
+        const orgId = req.org.id;
+        const { eventId } = req.params;
+
+        const event = await auditService.getEventById(orgId, eventId);
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                code: 'EVENT_NOT_FOUND',
+                message: 'Audit event not found or belongs to another organization'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: event
+        });
+    } catch (err) {
+        logger.error('Error getting audit event details:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/organizations/:id/audit-logs/export
+ * Export filtered audit logs to CSV with formula injection defense
+ */
+exports.exportAuditLogs = async (req, res) => {
+    try {
+        const orgId = req.org.id;
+        const {
+            workspaceId,
+            projectId,
+            actorId,
+            action,
+            resourceType,
+            outcome,
+            source,
+            search,
+            startDate,
+            endDate
+        } = req.query;
+
+        const csvContent = await auditService.exportToCsv(orgId, {
+            workspaceId,
+            projectId,
+            actorId,
+            action,
+            resourceType,
+            outcome,
+            source,
+            search,
+            startDate,
+            endDate
+        });
+
+        // Audit the export action itself!
+        await auditService.logFromRequest(req, {
+            orgId,
+            action: 'audit.exported',
+            resourceType: 'audit',
+            resourceDisplayName: 'Organization Audit Log CSV Export',
+            outcome: 'Success',
+            metadata: {
+                hasFilters: Boolean(workspaceId || action || outcome || source || search || startDate || endDate)
+            }
+        });
+
+        const filename = `testnexa-audit-${orgId}-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.status(200).send(csvContent);
+    } catch (err) {
+        logger.error('Error exporting audit logs:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

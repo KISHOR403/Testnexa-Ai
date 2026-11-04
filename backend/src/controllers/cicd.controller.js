@@ -7,6 +7,7 @@
 const cicdService = require('../services/integrations/cicdIntegration.service');
 const { listProviders } = require('../services/integrations/providers');
 const supabaseService = require('../services/supabaseData.service');
+const auditService = require('../services/auditService');
 const logger = require('../utils/logger');
 
 const resolveWorkspaceId = async (req) => {
@@ -80,6 +81,17 @@ exports.connectProvider = async (req, res) => {
             actorId: req.user._id || req.user.id
         });
 
+        const ws = await supabaseService.getWorkspace(workspaceId);
+        await auditService.logFromRequest(req, {
+            orgId: ws?.orgId || 'default_org',
+            workspaceId,
+            action: 'integration.connected',
+            resourceType: 'integration',
+            resourceId: provider,
+            resourceDisplayName: `${provider} (${accountLogin || 'OAuth/PAT'})`,
+            metadata: { provider, accountLogin }
+        });
+
         res.status(200).json({
             success: true,
             data: connection,
@@ -131,6 +143,16 @@ exports.disconnectProvider = async (req, res) => {
         if (!isAllowed) return;
 
         const success = await cicdService.disconnectProvider(workspaceId, provider, req.user._id || req.user.id);
+        
+        const discWs = await supabaseService.getWorkspace(workspaceId);
+        await auditService.logFromRequest(req, {
+            orgId: discWs?.orgId || 'default_org',
+            workspaceId,
+            action: 'integration.disconnected',
+            resourceType: 'integration',
+            resourceId: provider,
+            resourceDisplayName: provider
+        });
         res.json({
             success: true,
             message: success ? `${provider} disconnected` : 'No active connection found'
@@ -227,6 +249,17 @@ exports.createPipeline = async (req, res) => {
         const pipeline = await cicdService.createPipeline(workspaceId, {
             ...req.body,
             createdBy: req.user._id || req.user.id
+        });
+
+        const pipeWs = await supabaseService.getWorkspace(workspaceId);
+        await auditService.logFromRequest(req, {
+            orgId: pipeWs?.orgId || 'default_org',
+            workspaceId,
+            action: 'integration.pipeline_created',
+            resourceType: 'integration',
+            resourceId: pipeline.id,
+            resourceDisplayName: pipeline.name,
+            metadata: { provider: pipeline.provider, repository: pipeline.repository, branch: pipeline.branch }
         });
 
         res.status(201).json({

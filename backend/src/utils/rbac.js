@@ -43,7 +43,11 @@ const PERMISSIONS = {
     // Execution & Reports
     EXECUTION_TRIGGER: 'execution:trigger',
     EXECUTION_VIEW: 'execution:view',
-    REPORT_VIEW: 'report:view'
+    REPORT_VIEW: 'report:view',
+
+    // Audit Logs & Activity
+    AUDIT_VIEW: 'audit.view',
+    AUDIT_EXPORT: 'audit.export'
 };
 
 const ROLE_PERMISSIONS = {
@@ -56,6 +60,8 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.ORG_MANAGE_WORKSPACES,
         PERMISSIONS.ORG_MANAGE_INTEGRATIONS,
         PERMISSIONS.ORG_VIEW_ACTIVITY,
+        PERMISSIONS.AUDIT_VIEW,
+        PERMISSIONS.AUDIT_EXPORT,
         PERMISSIONS.WORKSPACE_CREATE,
         PERMISSIONS.WORKSPACE_MANAGE,
         PERMISSIONS.WORKSPACE_ARCHIVE,
@@ -71,6 +77,8 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.ORG_MANAGE_WORKSPACES,
         PERMISSIONS.ORG_MANAGE_INTEGRATIONS,
         PERMISSIONS.ORG_VIEW_ACTIVITY,
+        PERMISSIONS.AUDIT_VIEW,
+        PERMISSIONS.AUDIT_EXPORT,
         PERMISSIONS.WORKSPACE_CREATE,
         PERMISSIONS.WORKSPACE_MANAGE,
         PERMISSIONS.WORKSPACE_ARCHIVE,
@@ -83,6 +91,7 @@ const ROLE_PERMISSIONS = {
     ],
     [ROLES.QA_MANAGER]: [
         PERMISSIONS.ORG_VIEW_ACTIVITY,
+        PERMISSIONS.AUDIT_VIEW,
         PERMISSIONS.SUITE_MANAGE,
         PERMISSIONS.TESTCASE_CREATE_EDIT,
         PERMISSIONS.TESTCASE_DELETE,
@@ -103,6 +112,17 @@ const ROLE_PERMISSIONS = {
 };
 
 /**
+ * Permission aliases mapping (legacy and alternative notations)
+ */
+const PERMISSION_ALIASES = {
+    'org:view_activity': ['org:view_activity', 'audit.view', 'audit:view'],
+    'audit.view': ['audit.view', 'audit:view', 'org:view_activity'],
+    'audit:view': ['audit.view', 'audit:view', 'org:view_activity'],
+    'audit.export': ['audit.export', 'audit:export'],
+    'audit:export': ['audit.export', 'audit:export']
+};
+
+/**
  * Checks whether a given role has a specific permission
  */
 function hasOrgPermission(role, permission) {
@@ -110,7 +130,16 @@ function hasOrgPermission(role, permission) {
     const normalizedRole = role.toLowerCase().trim();
     const permissions = ROLE_PERMISSIONS[normalizedRole];
     if (!permissions) return false;
-    return permissions.includes(permission);
+
+    if (permissions.includes(permission)) return true;
+
+    // Check alias variants if any
+    const aliases = PERMISSION_ALIASES[permission];
+    if (aliases && aliases.some(alias => permissions.includes(alias))) {
+        return true;
+    }
+
+    return false;
 }
 
 /**

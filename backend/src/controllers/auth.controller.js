@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
 const { parseUserAgent, parseClientIp, getLocationFromIp } = require('../utils/deviceParser');
 const supabaseService = require('../services/supabaseData.service');
+const auditService = require('../services/auditService');
 const logger = require('../utils/logger');
 
 // Helper to check DB connection
@@ -246,6 +247,22 @@ exports.login = async (req, res) => {
         // Fetch or provision user's primary personal workspace
         const workspace = await supabaseService.getUserPrimaryWorkspace(user.id, user.name || user.display_name, user.email);
 
+        auditService.log({
+            orgId: workspace?.orgId || workspace?.id || 'default_org',
+            workspaceId: workspace?.id,
+            actorId: user.id,
+            actorDisplayName: enrichedUser.name || enrichedUser.email,
+            actorEmail: enrichedUser.email,
+            actorType: 'User',
+            action: 'user.login',
+            resourceType: 'auth',
+            resourceId: user.id,
+            resourceDisplayName: enrichedUser.email,
+            outcome: 'Success',
+            source: 'Web App',
+            metadata: { provider: enrichedUser.provider }
+        }).catch(() => {});
+
         return res.json({
             success: true,
             user: {
@@ -338,6 +355,21 @@ exports.logout = async (req, res) => {
             });
         } else if (req.session) {
             try { req.session.destroy(() => {}); } catch (e) {}
+        }
+
+        if (userId) {
+            auditService.log({
+                orgId: 'default_org',
+                actorId: userId,
+                actorDisplayName: req.user?.displayName || req.user?.name || req.user?.email || 'User',
+                actorEmail: req.user?.email || null,
+                actorType: 'User',
+                action: 'user.logout',
+                resourceType: 'auth',
+                resourceId: userId,
+                outcome: 'Success',
+                source: 'Web App'
+            }).catch(() => {});
         }
 
         // 3. Clear auth cookie

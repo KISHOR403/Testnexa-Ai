@@ -6,7 +6,8 @@ const express = require('express');
 const { protect } = require('../middleware/auth.middleware');
 const {
     requireOrgAccess,
-    requireOrgRole
+    requireOrgRole,
+    requireOrgPermission
 } = require('../middleware/orgAuth.middleware');
 const {
     getUserOrganizations,
@@ -27,7 +28,10 @@ const {
     listWorkspaces,
     createWorkspace,
     archiveWorkspace,
-    getActivity
+    getActivity,
+    listAuditLogs,
+    getAuditLogDetails,
+    exportAuditLogs
 } = require('../controllers/organization.controller');
 
 const router = express.Router();
@@ -64,6 +68,9 @@ router.patch('/:id/workspaces/:workspaceId/archive', protect, requireOrgAccess, 
 
 // Organization Audit Trail
 router.get('/:id/activity', protect, requireOrgAccess, requireOrgRole(['owner', 'admin', 'qa_manager']), getActivity);
+router.get('/:id/audit-logs', protect, requireOrgAccess, requireOrgPermission('audit.view'), listAuditLogs);
+router.get('/:id/audit-logs/export', protect, requireOrgAccess, requireOrgPermission('audit.export'), exportAuditLogs);
+router.get('/:id/audit-logs/:eventId', protect, requireOrgAccess, requireOrgPermission('audit.view'), getAuditLogDetails);
 
 module.exports = router;
 

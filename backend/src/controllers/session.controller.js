@@ -1,4 +1,5 @@
 const supabaseService = require('../services/supabaseData.service');
+const auditService = require('../services/auditService');
 const logger = require('../utils/logger');
 const { validateTestCaseMutation } = require('../utils/testCaseManagement.validation');
 
@@ -106,6 +107,14 @@ const createSession = async (req, res) => {
                 ? [{ role: 'user', content: requirement, timestamp: new Date().toISOString() }]
                 : []
         });
+
+        auditService.logFromRequest(req, {
+            action: 'suite.created',
+            resourceType: 'suite',
+            resourceId: session.id,
+            resourceDisplayName: session.title,
+            metadata: { context: session.context, depth: session.depth }
+        }).catch(() => {});
 
         return res.status(201).json({
             success: true,

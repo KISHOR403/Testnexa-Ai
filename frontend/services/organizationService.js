@@ -173,6 +173,59 @@ export const organizationService = {
             headers: getAuthHeaders()
         });
         return handleResponse(res);
+    },
+
+    async getAuditLogs(orgId, filters = {}) {
+        const params = new URLSearchParams();
+        for (const [k, v] of Object.entries(filters)) {
+            if (v !== undefined && v !== null && v !== '' && v !== 'all') {
+                params.append(k, v);
+            }
+        }
+        const qs = params.toString();
+        const url = `${API_BASE}/${orgId}/audit-logs${qs ? `?${qs}` : ''}`;
+        const res = await fetch(url, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(res);
+    },
+
+    async getAuditLogDetails(orgId, eventId) {
+        const res = await fetch(`${API_BASE}/${orgId}/audit-logs/${eventId}`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(res);
+    },
+
+    async exportAuditLogs(orgId, filters = {}) {
+        const params = new URLSearchParams();
+        for (const [k, v] of Object.entries(filters)) {
+            if (v !== undefined && v !== null && v !== '' && v !== 'all') {
+                params.append(k, v);
+            }
+        }
+        const qs = params.toString();
+        const url = `${API_BASE}/${orgId}/audit-logs/export${qs ? `?${qs}` : ''}`;
+        const res = await fetch(url, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Failed to export audit logs');
+        }
+        const blob = await res.blob();
+        return blob;
+    },
+
+    async getResourceActivity(resourceType, resourceId, options = {}) {
+        const params = new URLSearchParams();
+        if (options.limit) params.append('limit', options.limit);
+        if (options.orgId) params.append('orgId', options.orgId);
+        const qs = params.toString();
+        const res = await fetch(`/api/v1/audit/resource/${resourceType}/${resourceId}${qs ? `?${qs}` : ''}`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(res);
     }
 };
 

@@ -455,3 +455,37 @@ CREATE INDEX IF NOT EXISTS idx_automation_jobs_ws ON public.automation_jobs(work
 
 
 
+
+-- ==============================================================================
+-- Phase 4 Step 3: Centralized Audit Logs & Activity History Schema
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.audit_events (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    workspace_id TEXT,
+    project_id TEXT,
+    actor_id TEXT NOT NULL,
+    actor_display_name TEXT NOT NULL,
+    actor_email TEXT,
+    actor_type TEXT NOT NULL DEFAULT 'User',
+    action TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT,
+    resource_display_name TEXT,
+    outcome TEXT NOT NULL DEFAULT 'Success',
+    source TEXT NOT NULL DEFAULT 'Web App',
+    correlation_id TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    changes JSONB,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_events_org_timestamp ON public.audit_events(org_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_workspace_id ON public.audit_events(workspace_id) WHERE workspace_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_events_project_id ON public.audit_events(project_id) WHERE project_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_events_actor_id ON public.audit_events(actor_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_action ON public.audit_events(action);
+CREATE INDEX IF NOT EXISTS idx_audit_events_resource ON public.audit_events(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_outcome ON public.audit_events(outcome);
+CREATE INDEX IF NOT EXISTS idx_audit_events_correlation ON public.audit_events(correlation_id) WHERE correlation_id IS NOT NULL;

@@ -4,6 +4,7 @@
 
 const smartRecommendationsService = require('../services/recommendations/smartRecommendations.service');
 const supabaseService = require('../services/supabaseData.service');
+const auditService = require('../services/auditService');
 const logger = require('../utils/logger');
 
 /**
@@ -41,6 +42,14 @@ const generateRecommendations = async (req, res, next) => {
             focusArea: focusArea || null,
             limit: limit ? parseInt(limit, 10) : 6
         });
+
+        auditService.logFromRequest(req, {
+            action: 'ai.recommendations_generated',
+            resourceType: 'ai',
+            resourceId: suiteId,
+            resourceDisplayName: `Suite ${suiteId} Recommendations`,
+            metadata: { count: result.recommendations?.length || 0, focusArea }
+        }).catch(() => {});
 
         return res.status(200).json({
             success: true,
@@ -173,6 +182,14 @@ const convertToDrafts = async (req, res, next) => {
             userId,
             recommendationIds
         });
+
+        auditService.logFromRequest(req, {
+            action: 'ai.recommendations_accepted',
+            resourceType: 'ai',
+            resourceId: suiteId,
+            resourceDisplayName: `Suite ${suiteId} Draft Cases Converted`,
+            metadata: { convertedCount: result.convertedCount || recommendationIds.length }
+        }).catch(() => {});
 
         return res.status(200).json({
             success: true,

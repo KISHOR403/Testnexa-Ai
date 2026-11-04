@@ -12,6 +12,7 @@ const rerunExecution = require('../services/runner/rerunExecution.service');
 const failureTrendsService = require('../services/runner/failureTrends.service');
 const executionIntelligenceService = require('../services/runner/executionIntelligence.service');
 const rootCauseAnalysisService = require('../services/runner/rootCauseAnalysis.service');
+const auditService = require('../services/auditService');
 
 /**
  * Resolves the target workspace ID for the request
@@ -103,6 +104,17 @@ exports.createRun = async (req, res) => {
             changes: { runId: run.id, name: run.name, executionType: run.executionType },
             ipAddress: req.ip,
             userAgent: req.get('user-agent')
+        });
+
+        const ws = await supabaseService.getWorkspace(workspaceId);
+        await auditService.logFromRequest(req, {
+            orgId: ws?.orgId || 'default_org',
+            workspaceId,
+            action: 'execution.started',
+            resourceType: 'execution',
+            resourceId: run.id,
+            resourceDisplayName: run.name,
+            metadata: { executionType: run.executionType, totalTests: run.totalTests }
         });
 
         res.status(201).json({
@@ -249,6 +261,17 @@ exports.cancelRun = async (req, res) => {
             changes: { runId: id },
             ipAddress: req.ip,
             userAgent: typeof req.get === 'function' ? req.get('user-agent') : 'unknown'
+        });
+
+        const cancelWs = await supabaseService.getWorkspace(run.workspaceId);
+        await auditService.logFromRequest(req, {
+            orgId: cancelWs?.orgId || 'default_org',
+            workspaceId: run.workspaceId,
+            action: 'execution.cancelled',
+            resourceType: 'execution',
+            resourceId: id,
+            resourceDisplayName: run.name || id,
+            metadata: { previousStatus: run.status }
         });
 
         res.json({

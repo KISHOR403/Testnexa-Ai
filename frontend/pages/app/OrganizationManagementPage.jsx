@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { organizationService } from '../../services/organizationService';
+import { AuditLogView } from '../../components/organization/AuditLogView';
 import '../../styles/app/OrganizationManagement.css';
 
 const ROLES_LIST = [
@@ -402,7 +403,7 @@ const OrganizationManagementPage = () => {
                     onClick={() => setActiveTab('activity')}
                 >
                     <Clock size={16} />
-                    Activity Log
+                    Audit Logs
                 </button>
                 <button
                     className={`org-tab ${activeTab === 'settings' ? 'active' : ''}`}
@@ -666,53 +667,12 @@ const OrganizationManagementPage = () => {
                 </div>
             )}
 
-            {/* TAB 4: ACTIVITY LOG */}
+            {/* TAB 4: AUDIT LOGS */}
             {activeTab === 'activity' && (
-                <div className="org-card">
-                    <div className="org-card__header">
-                        <h3 className="org-card__title">Organization Audit Trail</h3>
-                    </div>
-
-                    {activity.length === 0 ? (
-                        <div className="cicd-empty">
-                            <Clock size={40} className="cicd-empty__icon" />
-                            <h4 className="cicd-empty__title">No activity logged yet</h4>
-                        </div>
-                    ) : (
-                        <table className="org-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Action</th>
-                                    <th>Target</th>
-                                    <th>Actor</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {activity.map(log => (
-                                    <tr key={log.id}>
-                                        <td>{new Date(log.timestamp).toLocaleString()}</td>
-                                        <td>
-                                            <code>{log.action}</code>
-                                        </td>
-                                        <td style={{ textTransform: 'capitalize' }}>
-                                            {log.targetType} ({log.targetId ? log.targetId.substring(0, 8) : '-'})
-                                        </td>
-                                        <td><code>{log.actorId ? log.actorId.substring(0, 10) : 'system'}</code></td>
-                                        <td>
-                                            {log.details ? (
-                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                                                    {JSON.stringify(log.details)}
-                                                </span>
-                                            ) : '-'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                <AuditLogView
+                    activeOrg={activeOrg}
+                    workspaces={workspaces}
+                />
             )}
 
             {/* TAB 5: PROFILE & SETTINGS */}

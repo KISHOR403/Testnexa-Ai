@@ -41,6 +41,7 @@ class SupabaseDataService {
         this.inMemoryOrgMembers = new Map();
         this.inMemoryOrgInvitations = new Map();
         this.inMemoryOrgAuditLogs = [];
+        this.inMemoryAuditEvents = new Map();
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -167,6 +168,11 @@ class SupabaseDataService {
                 if (Array.isArray(data.orgAuditLogs)) {
                     this.inMemoryOrgAuditLogs = data.orgAuditLogs;
                 }
+                if (data.auditEvents && typeof data.auditEvents === 'object') {
+                    for (const [k, v] of Object.entries(data.auditEvents)) {
+                        this.inMemoryAuditEvents.set(k, v);
+                    }
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -202,7 +208,8 @@ class SupabaseDataService {
                 organizations: Object.fromEntries(this.inMemoryOrganizations),
                 orgMembers: Object.fromEntries(this.inMemoryOrgMembers),
                 orgInvitations: Object.fromEntries(this.inMemoryOrgInvitations),
-                orgAuditLogs: this.inMemoryOrgAuditLogs.slice(-500)
+                orgAuditLogs: this.inMemoryOrgAuditLogs.slice(-500),
+                auditEvents: Object.fromEntries(Array.from(this.inMemoryAuditEvents.entries()).slice(-2000))
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -4987,6 +4994,173 @@ class SupabaseDataService {
             .filter(l => l.orgId === orgId)
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
             .slice(0, Number(limit) || 50);
+    }
+    /**
+     * Save a centralized audit event
+     */
+    async saveAuditEvent(event) {
+        if (!event || !event.id || !event.orgId) return null;
+
+        // Save in-memory
+        this.inMemoryAuditEvents.set(event.id, event);
+
+        // Keep memory bounded to latest 5000 events
+        if (this.inMemoryAuditEvents.size > 5000) {
+            const keysToDelete = Array.from(this.inMemoryAuditEvents.keys()).slice(0, 1000);
+            for (const k of keysToDelete) {
+                this.inMemoryAuditEvents.delete(k);
+            }
+        }
+
+        // Also append to inMemoryOrgAuditLogs for backwards compatibility
+        this.inMemoryOrgAuditLogs.push({
+            id: event.id,
+            orgId: event.orgId,
+            actorId: event.actorId,
+            action: event.action,
+            targetType: event.resourceType,
+            targetId: event.resourceId,
+            details: event.metadata || {},
+            timestamp: event.timestamp
+        });
+
+        // Save to disk store
+        this._saveDiskWorkspacesStore();
+
+        // Save to Supabase PostgreSQL table if available
+        if (this.isAvailable) {
+            try {
+                await supabase
+                    .from('audit_events')
+                    .insert({
+                        id: event.id,
+                        org_id: event.orgId,
+                        workspace_id: event.workspaceId,
+                        project_id: event.projectId,
+                        actor_id: event.actorId,
+                        actor_display_name: event.actorDisplayName,
+                        actor_type: event.actorType,
+                        action: event.action,
+                        resource_type: event.resourceType,
+                        resource_id: event.resourceId,
+                        resource_display_name: event.resourceDisplayName,
+                        outcome: event.outcome,
+                        source: event.source,
+                        correlation_id: event.correlationId,
+                        metadata: event.metadata,
+                        changes: event.changes,
+                        timestamp: event.timestamp
+                    });
+            } catch (err) {
+                // Table might not exist or network unavailable; in-memory + disk already saved
+            }
+        }
+
+        return event;
+    }
+
+    /**
+     * Query audit events with server-side filtering, searching, and pagination
+     */
+    async getAuditEvents({
+        orgId,
+        workspaceId = null,
+        projectId = null,
+        actorId = null,
+        action = null,
+        resourceType = null,
+        outcome = null,
+        source = null,
+        search = null,
+        startDate = null,
+        endDate = null,
+        page = 1,
+        limit = 20
+    } = {}) {
+        if (!orgId) return { events: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+
+        const allEvents = Array.from(this.inMemoryAuditEvents.values())
+            .filter(e => e.orgId === orgId);
+
+        let filtered = allEvents.filter(e => {
+            if (workspaceId && e.workspaceId !== workspaceId) return false;
+            if (projectId && e.projectId !== projectId) return false;
+            if (actorId && e.actorId !== actorId) return false;
+            if (action && e.action !== action && !e.action.startsWith(action)) return false;
+            if (resourceType && e.resourceType !== resourceType) return false;
+            if (outcome && e.outcome?.toLowerCase() !== outcome.toLowerCase()) return false;
+            if (source && e.source?.toLowerCase() !== source.toLowerCase()) return false;
+
+            if (startDate) {
+                const start = new Date(startDate).getTime();
+                if (!isNaN(start) && new Date(e.timestamp).getTime() < start) return false;
+            }
+
+            if (endDate) {
+                const end = new Date(endDate).getTime();
+                if (!isNaN(end) && new Date(e.timestamp).getTime() > end) return false;
+            }
+
+            if (search && search.trim()) {
+                const query = search.trim().toLowerCase();
+                const matchActor = (e.actorDisplayName || '').toLowerCase().includes(query) ||
+                                   (e.actorEmail || '').toLowerCase().includes(query);
+                const matchAction = (e.action || '').toLowerCase().includes(query);
+                const matchResource = (e.resourceDisplayName || '').toLowerCase().includes(query) ||
+                                      (e.resourceId || '').toLowerCase().includes(query);
+                const matchId = (e.id || '').toLowerCase().includes(query);
+                if (!matchActor && !matchAction && !matchResource && !matchId) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // Sort by timestamp descending (newest first)
+        filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        const total = filtered.length;
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const pageSize = Math.min(Math.max(1, parseInt(limit, 10) || 20), 5000);
+        const totalPages = Math.ceil(total / pageSize);
+        const offset = (pageNum - 1) * pageSize;
+        const paginated = filtered.slice(offset, offset + pageSize);
+
+        return {
+            events: paginated,
+            total,
+            page: pageNum,
+            limit: pageSize,
+            totalPages
+        };
+    }
+
+    /**
+     * Get a single audit event by ID within an organization
+     */
+    async getAuditEventById(orgId, eventId) {
+        if (!orgId || !eventId) return null;
+        const event = this.inMemoryAuditEvents.get(eventId);
+        if (!event || event.orgId !== orgId) return null;
+        return event;
+    }
+
+    /**
+     * Get activity history for a specific resource
+     */
+    async getResourceActivityHistory(resourceType, resourceId, { orgId = null, limit = 20 } = {}) {
+        if (!resourceType || !resourceId) return [];
+
+        let matches = Array.from(this.inMemoryAuditEvents.values())
+            .filter(e => e.resourceType === resourceType && e.resourceId === resourceId);
+
+        if (orgId) {
+            matches = matches.filter(e => e.orgId === orgId);
+        }
+
+        matches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        return matches.slice(0, Math.min(Math.max(1, parseInt(limit, 10) || 20), 100));
     }
 }
 
