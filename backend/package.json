@@ -8,7 +8,7 @@
         "start": "node src/server.js",
         "dev": "node --watch-path=src src/server.js",
         "build": "npx playwright install chromium",
-        "test": "node --test --test-concurrency=1 tests/playwright-configuration-modal.test.js tests/real-playwright-execution.test.js tests/test-run-creation.test.js tests/manual-execution.test.js tests/execution-intelligence-reporting.test.js tests/test-cases-workspace.test.js tests/rerun-execution.test.js tests/failure-trend-analysis.test.js tests/execution-intelligence-dashboard.test.js tests/root-cause-analysis.test.js tests/smart-recommendations.test.js tests/maintenance-intelligence.test.js tests/cicd-integrations.test.js tests/organization-management.test.js tests/audit-logs.test.js",
+        "test": "node --test --test-concurrency=1 tests/playwright-configuration-modal.test.js tests/real-playwright-execution.test.js tests/test-run-creation.test.js tests/manual-execution.test.js tests/execution-intelligence-reporting.test.js tests/test-cases-workspace.test.js tests/rerun-execution.test.js tests/failure-trend-analysis.test.js tests/execution-intelligence-dashboard.test.js tests/root-cause-analysis.test.js tests/smart-recommendations.test.js tests/maintenance-intelligence.test.js tests/cicd-integrations.test.js tests/organization-management.test.js tests/audit-logs.test.js tests/usage-limits.test.js",
         "postinstall": "npx playwright install chromium || true"
     },
     "keywords": [

@@ -42,6 +42,9 @@ class SupabaseDataService {
         this.inMemoryOrgInvitations = new Map();
         this.inMemoryOrgAuditLogs = [];
         this.inMemoryAuditEvents = new Map();
+        this.inMemoryUsageEvents = new Map();
+        this.inMemoryOrgStorage = new Map();
+        this.inMemoryPlanQuotas = null;
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -173,6 +176,19 @@ class SupabaseDataService {
                         this.inMemoryAuditEvents.set(k, v);
                     }
                 }
+                if (data.usageEvents && typeof data.usageEvents === 'object') {
+                    for (const [k, v] of Object.entries(data.usageEvents)) {
+                        this.inMemoryUsageEvents.set(k, v);
+                    }
+                }
+                if (data.orgStorage && typeof data.orgStorage === 'object') {
+                    for (const [k, v] of Object.entries(data.orgStorage)) {
+                        this.inMemoryOrgStorage.set(k, v);
+                    }
+                }
+                if (data.planQuotas && typeof data.planQuotas === 'object') {
+                    this.inMemoryPlanQuotas = data.planQuotas;
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -209,7 +225,10 @@ class SupabaseDataService {
                 orgMembers: Object.fromEntries(this.inMemoryOrgMembers),
                 orgInvitations: Object.fromEntries(this.inMemoryOrgInvitations),
                 orgAuditLogs: this.inMemoryOrgAuditLogs.slice(-500),
-                auditEvents: Object.fromEntries(Array.from(this.inMemoryAuditEvents.entries()).slice(-2000))
+                auditEvents: Object.fromEntries(Array.from(this.inMemoryAuditEvents.entries()).slice(-2000)),
+                usageEvents: Object.fromEntries(Array.from(this.inMemoryUsageEvents.entries()).slice(-5000)),
+                orgStorage: Object.fromEntries(this.inMemoryOrgStorage),
+                planQuotas: this.inMemoryPlanQuotas || undefined
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -4437,6 +4456,42 @@ class SupabaseDataService {
     }
 
     /**
+     * Set or update organization record
+     */
+    async saveOrganization(org) {
+        if (!org || !org.id) throw new Error('Valid organization with id is required');
+        const existing = this.inMemoryOrganizations.get(org.id) || {};
+        const merged = {
+            status: 'active',
+            plan: 'free',
+            settings: { allowMemberInvites: true },
+            createdAt: new Date().toISOString(),
+            ...existing,
+            ...org,
+            updatedAt: new Date().toISOString()
+        };
+        this.inMemoryOrganizations.set(org.id, merged);
+
+        if (merged.ownerId) {
+            const memberKey = `${org.id}:${merged.ownerId}`;
+            if (!this.inMemoryOrgMembers.has(memberKey)) {
+                this.inMemoryOrgMembers.set(memberKey, {
+                    id: `mem_${crypto.randomBytes(6).toString('hex')}`,
+                    orgId: org.id,
+                    userId: merged.ownerId,
+                    role: 'owner',
+                    status: 'active',
+                    joinedAt: merged.createdAt,
+                    updatedAt: merged.updatedAt
+                });
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return merged;
+    }
+
+    /**
      * Get organization by ID
      */
     async getOrganization(orgId) {
@@ -5161,6 +5216,145 @@ class SupabaseDataService {
 
         matches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         return matches.slice(0, Math.min(Math.max(1, parseInt(limit, 10) || 20), 100));
+    }
+
+    /**
+     * Persist an authoritative usage event
+     */
+    async saveUsageEvent(event) {
+        if (!event || !event.id) {
+            throw new Error('Valid usage event with unique ID is required');
+        }
+
+        const record = {
+            id: String(event.id),
+            org_id: String(event.orgId),
+            workspace_id: event.workspaceId ? String(event.workspaceId) : null,
+            user_id: event.userId ? String(event.userId) : null,
+            resource_type: String(event.resourceType || 'general'),
+            metric: String(event.metric),
+            quantity: Math.max(0, Number(event.quantity) || 1),
+            unit: String(event.unit || 'count'),
+            operation_id: event.operationId ? String(event.operationId) : null,
+            idempotency_key: event.idempotencyKey ? String(event.idempotencyKey) : null,
+            source: String(event.source || 'Web App'),
+            metadata: event.metadata || {},
+            billing_period_start: event.billingPeriodStart || null,
+            billing_period_end: event.billingPeriodEnd || null,
+            status: event.status || 'committed',
+            timestamp: event.timestamp || new Date().toISOString()
+        };
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('usage_events').insert(record);
+            } catch (err) {
+                // Table might not exist yet, fallback to disk
+            }
+        }
+
+        this.inMemoryUsageEvents.set(record.id, {
+            ...record,
+            orgId: record.org_id,
+            workspaceId: record.workspace_id,
+            userId: record.user_id,
+            resourceType: record.resource_type,
+            operationId: record.operation_id,
+            idempotencyKey: record.idempotency_key,
+            billingPeriodStart: record.billing_period_start,
+            billingPeriodEnd: record.billing_period_end
+        });
+
+        this._saveDiskWorkspacesStore();
+        return this.inMemoryUsageEvents.get(record.id);
+    }
+
+    /**
+     * Retrieve usage events for an organization within a date range or filter
+     */
+    async getUsageEvents(orgId, { metric = null, startDate = null, endDate = null, limit = 500, offset = 0 } = {}) {
+        if (!orgId) return [];
+
+        let events = Array.from(this.inMemoryUsageEvents.values()).filter(e => e.orgId === orgId);
+
+        if (metric) {
+            events = events.filter(e => e.metric === metric);
+        }
+
+        if (startDate) {
+            const startMs = new Date(startDate).getTime();
+            events = events.filter(e => new Date(e.timestamp).getTime() >= startMs);
+        }
+
+        if (endDate) {
+            const endMs = new Date(endDate).getTime();
+            events = events.filter(e => new Date(e.timestamp).getTime() <= endMs);
+        }
+
+        events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        const parsedOffset = Math.max(0, parseInt(offset, 10) || 0);
+        const parsedLimit = Math.min(Math.max(1, parseInt(limit, 10) || 500), 5000);
+
+        return events.slice(parsedOffset, parsedOffset + parsedLimit);
+    }
+
+    /**
+     * Retrieves the measured artifact storage bytes for an organization
+     */
+    async getOrgStorageBytes(orgId) {
+        if (!orgId) return 0;
+
+        if (this.inMemoryOrgStorage.has(orgId)) {
+            return this.inMemoryOrgStorage.get(orgId);
+        }
+
+        // Calculate from existing artifact records
+        try {
+            const orgWorkspaces = await this.getOrgWorkspaces(orgId, true);
+            const wsIds = new Set(orgWorkspaces.map(w => w.id));
+
+            let totalBytes = 0;
+            for (const art of this.inMemoryExecutionArtifacts.values()) {
+                const run = this.inMemoryTestRuns.get(art.run_id || art.runId);
+                if (run && (wsIds.has(run.workspace_id) || wsIds.has(run.workspaceId))) {
+                    totalBytes += Number(art.size_bytes || art.sizeBytes || 0);
+                }
+            }
+
+            this.inMemoryOrgStorage.set(orgId, totalBytes);
+            return totalBytes;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Adjusts the measured artifact storage bytes by delta
+     */
+    async recordOrgStorageDelta(orgId, bytesDelta, operationId = null) {
+        if (!orgId) return 0;
+        const current = await this.getOrgStorageBytes(orgId);
+        const updated = Math.max(0, current + Number(bytesDelta || 0));
+        this.inMemoryOrgStorage.set(orgId, updated);
+        this._saveDiskWorkspacesStore();
+        return updated;
+    }
+
+    /**
+     * Platform Admin: Custom plan quota persistence
+     */
+    async savePlanQuotas(quotas) {
+        this.inMemoryPlanQuotas = quotas;
+        this._saveDiskWorkspacesStore();
+        return this.inMemoryPlanQuotas;
+    }
+
+    /**
+     * Platform Admin: Get custom plan quotas
+     */
+    async getPlanQuotas() {
+        return this.inMemoryPlanQuotas || null;
     }
 }
 

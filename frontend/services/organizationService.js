@@ -226,6 +226,34 @@ export const organizationService = {
             headers: getAuthHeaders()
         });
         return handleResponse(res);
+    },
+
+    async getUsage(orgId) {
+        const res = await fetch(`${API_BASE}/${orgId}/usage`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(res);
+    },
+
+    async getUsageHistory(orgId, filters = {}) {
+        const params = new URLSearchParams();
+        for (const [k, v] of Object.entries(filters)) {
+            if (v !== undefined && v !== null && v !== '' && v !== 'all') {
+                params.append(k, v);
+            }
+        }
+        const qs = params.toString();
+        const res = await fetch(`${API_BASE}/${orgId}/usage/history${qs ? `?${qs}` : ''}`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(res);
+    },
+
+    async getUsageWarnings(orgId) {
+        const res = await fetch(`${API_BASE}/${orgId}/usage/warnings`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(res);
     }
 };
 

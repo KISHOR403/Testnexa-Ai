@@ -4,6 +4,7 @@
 
 const supabaseService = require('../services/supabaseData.service');
 const auditService = require('../services/auditService');
+const usageMeteringService = require('../services/usageMetering.service');
 const { isValidRole, getRoleMeta, ROLES } = require('../utils/rbac');
 const logger = require('../utils/logger');
 
@@ -325,6 +326,26 @@ exports.createInvitation = async (req, res) => {
             return res.status(400).json({ success: false, message: `Invalid role: ${role}` });
         }
 
+        // Enforce active members quota
+        const members = await supabaseService.getOrgMembers(orgId);
+        const activeCount = members.filter(m => m.status === 'active').length;
+        const planId = (req.org.plan || 'free').toLowerCase();
+        const memberAllowance = usageMeteringService.getAllowance(planId, 'members.active');
+
+        if (activeCount >= memberAllowance) {
+            return res.status(403).json({
+                success: false,
+                code: 'QUOTA_EXCEEDED',
+                message: `Member seat limit reached (${activeCount}/${memberAllowance} on ${planId.toUpperCase()} plan). Upgrade your plan to invite more team members.`,
+                data: {
+                    metric: 'members.active',
+                    plan: planId,
+                    currentUsage: activeCount,
+                    allowance: memberAllowance
+                }
+            });
+        }
+
         const invitation = await supabaseService.createOrgInvitation({
             orgId,
             email,
@@ -476,6 +497,26 @@ exports.createWorkspace = async (req, res) => {
 
         if (!name || !name.trim()) {
             return res.status(400).json({ success: false, message: 'Workspace name is required' });
+        }
+
+        // Enforce active workspace quota
+        const currentWorkspaces = await supabaseService.getOrgWorkspaces(orgId, false);
+        const activeWsCount = currentWorkspaces.filter(w => !w.isArchived).length;
+        const planId = (req.org.plan || 'free').toLowerCase();
+        const wsAllowance = usageMeteringService.getAllowance(planId, 'workspaces.active');
+
+        if (activeWsCount >= wsAllowance) {
+            return res.status(403).json({
+                success: false,
+                code: 'QUOTA_EXCEEDED',
+                message: `Active workspace limit reached (${activeWsCount}/${wsAllowance} on ${planId.toUpperCase()} plan). Upgrade your plan to create additional workspaces.`,
+                data: {
+                    metric: 'workspaces.active',
+                    plan: planId,
+                    currentUsage: activeWsCount,
+                    allowance: wsAllowance
+                }
+            });
         }
 
         const workspace = await supabaseService.createOrgWorkspace(orgId, {
@@ -696,4 +737,67 @@ exports.exportAuditLogs = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+/**
+ * GET /api/v1/organizations/:id/usage
+ * Get current organization usage, allowances, percentages, and warning states
+ */
+exports.getOrganizationUsage = async (req, res) => {
+    try {
+        const orgId = req.org.id;
+        const usage = await usageMeteringService.getOrganizationUsage(orgId);
+        res.json({
+            success: true,
+            data: usage
+        });
+    } catch (err) {
+        logger.error('Error fetching organization usage:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/organizations/:id/usage/history
+ * Get granular usage events for auditing and billing reconciliation
+ */
+exports.getUsageHistory = async (req, res) => {
+    try {
+        const orgId = req.org.id;
+        const { metric, startDate, endDate, page, limit } = req.query;
+        const offset = ((parseInt(page, 10) || 1) - 1) * (parseInt(limit, 10) || 50);
+        const events = await supabaseService.getUsageEvents(orgId, {
+            metric: metric || null,
+            startDate: startDate || null,
+            endDate: endDate || null,
+            limit: parseInt(limit, 10) || 50,
+            offset
+        });
+        res.json({
+            success: true,
+            data: events
+        });
+    } catch (err) {
+        logger.error('Error fetching organization usage history:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/organizations/:id/usage/warnings
+ * Get active quota warning thresholds currently reached by this organization
+ */
+exports.getUsageWarnings = async (req, res) => {
+    try {
+        const orgId = req.org.id;
+        const usage = await usageMeteringService.getOrganizationUsage(orgId);
+        res.json({
+            success: true,
+            data: usage.warnings || []
+        });
+    } catch (err) {
+        logger.error('Error fetching organization usage warnings:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 

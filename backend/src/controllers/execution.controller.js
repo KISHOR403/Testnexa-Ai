@@ -13,6 +13,7 @@ const failureTrendsService = require('../services/runner/failureTrends.service')
 const executionIntelligenceService = require('../services/runner/executionIntelligence.service');
 const rootCauseAnalysisService = require('../services/runner/rootCauseAnalysis.service');
 const auditService = require('../services/auditService');
+const usageMeteringService = require('../services/usageMetering.service');
 
 /**
  * Resolves the target workspace ID for the request
@@ -81,6 +82,34 @@ exports.createRun = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Test run name is required' });
         }
 
+        // Enforce execution quota
+        const execMetric = (executionType || 'manual') === 'automated' ? 'execution.automated' : 'execution.manual';
+        const orgId = await usageMeteringService.resolveOrgForRequest(req, userId);
+        let quotaReservation = null;
+
+        if (orgId) {
+            try {
+                quotaReservation = await usageMeteringService.reserveQuota({
+                    orgId,
+                    workspaceId,
+                    userId,
+                    metric: execMetric,
+                    quantity: 1,
+                    operationId: `run_${Date.now()}`
+                });
+            } catch (qErr) {
+                if (qErr.code === 'QUOTA_EXCEEDED') {
+                    return res.status(403).json({
+                        success: false,
+                        code: 'QUOTA_EXCEEDED',
+                        message: qErr.message,
+                        data: qErr.data
+                    });
+                }
+                throw qErr;
+            }
+        }
+
         const run = await supabaseService.createTestRun({
             workspaceId,
             suiteId: suiteId || null,
@@ -95,6 +124,22 @@ exports.createRun = async (req, res) => {
             selectedCaseIds: selectedCaseIds || [],
             customCases: customCases || null
         });
+
+        // Commit usage allowance for newly created run
+        if (quotaReservation) {
+            await usageMeteringService.commitUsage({
+                reservationId: quotaReservation.id,
+                orgId,
+                workspaceId,
+                userId,
+                resourceType: 'execution',
+                metric: execMetric,
+                quantity: 1,
+                operationId: run.id,
+                source: 'Web App',
+                metadata: { runId: run.id, name: run.name, executionType: run.executionType }
+            }).catch(e => logger.warn('Failed to commit execution quota:', e.message));
+        }
 
         // Audit log
         await supabaseService.recordWorkspaceAuditLog({
@@ -435,6 +480,13 @@ exports.recordExecution = async (req, res) => {
                     storagePath: saved.storagePath,
                     metadata: { source: 'manual_execution_evidence' }
                 });
+
+                if (saved.sizeBytes) {
+                    const orgId = await usageMeteringService.resolveOrgForRequest(req, userId);
+                    if (orgId) {
+                        await usageMeteringService.recordStorageDelta(orgId, saved.sizeBytes, `evidence_${runCase.id}`);
+                    }
+                }
             } catch (artErr) {
                 logger.warn('Failed to save execution artifact:', artErr.message);
             }
@@ -584,6 +636,31 @@ exports.uploadArtifact = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Artifact name and data are required' });
         }
 
+        const orgId = await usageMeteringService.resolveOrgForRequest(req, userId);
+        if (orgId) {
+            const approxBytes = Buffer.isBuffer(data) ? data.length : (typeof data === 'string' ? Math.round(data.length * 0.75) : 1024);
+            try {
+                await usageMeteringService.reserveQuota({
+                    orgId,
+                    workspaceId: run.workspaceId,
+                    userId,
+                    metric: 'storage.bytes',
+                    quantity: approxBytes,
+                    operationId: `art_${Date.now()}`
+                });
+            } catch (qErr) {
+                if (qErr.code === 'QUOTA_EXCEEDED') {
+                    return res.status(403).json({
+                        success: false,
+                        code: 'QUOTA_EXCEEDED',
+                        message: qErr.message,
+                        data: qErr.data
+                    });
+                }
+                throw qErr;
+            }
+        }
+
         const saved = await saveArtifactBuffer({
             workspaceId: run.workspaceId,
             runId: id,
@@ -603,6 +680,10 @@ exports.uploadArtifact = async (req, res) => {
             storagePath: saved.storagePath,
             metadata: req.body.metadata || {}
         });
+
+        if (orgId && saved.sizeBytes) {
+            await usageMeteringService.recordStorageDelta(orgId, saved.sizeBytes, artifactRecord.id);
+        }
 
         res.status(201).json({
             success: true,
@@ -1886,6 +1967,9 @@ exports.getIntelligenceCoverageOverview = async (req, res) => {
  * POST /api/v1/runs/:runId/cases/:runCaseId/analyze-root-cause
  */
 exports.analyzeFailureRootCause = async (req, res) => {
+    let quotaReservation = null;
+    let targetOrgId = null;
+
     try {
         const workspaceId = await resolveWorkspaceId(req);
         if (!workspaceId) {
@@ -1900,16 +1984,60 @@ exports.analyzeFailureRootCause = async (req, res) => {
         const { forceFresh } = req.body || {};
         const userId = req.user._id || req.user.id;
 
+        // Quota check and reservation for AI failure analysis
+        targetOrgId = await usageMeteringService.resolveOrgForRequest(req, userId);
+        if (targetOrgId) {
+            try {
+                quotaReservation = await usageMeteringService.reserveQuota({
+                    orgId: targetOrgId,
+                    workspaceId,
+                    userId,
+                    metric: 'ai.failure_analysis',
+                    quantity: 1,
+                    operationId: `fail_analysis_${runCaseId}_${Date.now()}`
+                });
+            } catch (qErr) {
+                if (qErr.code === 'QUOTA_EXCEEDED') {
+                    return res.status(403).json({
+                        success: false,
+                        code: 'QUOTA_EXCEEDED',
+                        message: qErr.message,
+                        data: qErr.data
+                    });
+                }
+                throw qErr;
+            }
+        }
+
         const analysisRecord = await rootCauseAnalysisService.analyzeFailure(workspaceId, runId, runCaseId, {
             forceFresh: Boolean(forceFresh),
             userId
         });
+
+        if (quotaReservation) {
+            await usageMeteringService.commitUsage({
+                reservationId: quotaReservation.id,
+                orgId: targetOrgId,
+                workspaceId,
+                userId,
+                resourceType: 'analysis',
+                metric: 'ai.failure_analysis',
+                quantity: 1,
+                operationId: analysisRecord.id,
+                metadata: { runId, runCaseId }
+            }).catch(() => {});
+            quotaReservation = null;
+        }
 
         res.json({
             success: true,
             data: analysisRecord
         });
     } catch (err) {
+        if (quotaReservation) {
+            usageMeteringService.releaseReservation(quotaReservation.id);
+            quotaReservation = null;
+        }
         logger.error('Error analyzing failure root cause:', err);
         const statusCode = err.statusCode || (err.message?.includes('not found') ? 404 : 500);
         res.status(statusCode).json({ success: false, message: err.message });

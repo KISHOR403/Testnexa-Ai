@@ -8,6 +8,7 @@ const cicdService = require('../services/integrations/cicdIntegration.service');
 const { listProviders } = require('../services/integrations/providers');
 const supabaseService = require('../services/supabaseData.service');
 const auditService = require('../services/auditService');
+const usageMeteringService = require('../services/usageMetering.service');
 const logger = require('../utils/logger');
 
 const resolveWorkspaceId = async (req) => {
@@ -353,6 +354,9 @@ exports.deletePipeline = async (req, res) => {
  * Dispatches a real test execution for this pipeline
  */
 exports.triggerPipeline = async (req, res) => {
+    let quotaReservation = null;
+    let targetOrgId = null;
+
     try {
         const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
@@ -362,13 +366,54 @@ exports.triggerPipeline = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, workspaceId);
         if (!isAllowed) return;
 
+        const userId = req.user?._id || req.user?.id;
+        targetOrgId = await usageMeteringService.resolveOrgForRequest(req, userId);
+        if (targetOrgId) {
+            try {
+                quotaReservation = await usageMeteringService.reserveQuota({
+                    orgId: targetOrgId,
+                    workspaceId,
+                    userId,
+                    metric: 'execution.cicd',
+                    quantity: 1,
+                    operationId: `cicd_${id}_${Date.now()}`
+                });
+            } catch (qErr) {
+                if (qErr.code === 'QUOTA_EXCEEDED') {
+                    return res.status(403).json({
+                        success: false,
+                        code: 'QUOTA_EXCEEDED',
+                        message: qErr.message,
+                        data: qErr.data
+                    });
+                }
+                throw qErr;
+            }
+        }
+
         const result = await cicdService.triggerPipelineManually(workspaceId, id, {
             branch: req.body?.branch,
             commitSha: req.body?.commitSha,
             commitMessage: req.body?.commitMessage,
             triggeredBy: req.user?.name || req.user?.email || 'User',
-            userId: req.user?._id || req.user?.id
+            userId
         });
+
+        if (quotaReservation) {
+            await usageMeteringService.commitUsage({
+                reservationId: quotaReservation.id,
+                orgId: targetOrgId,
+                workspaceId,
+                userId,
+                resourceType: 'pipeline',
+                metric: 'execution.cicd',
+                quantity: 1,
+                operationId: result?.runId || id,
+                source: 'CI/CD Pipeline',
+                metadata: { pipelineId: id, branch: req.body?.branch }
+            }).catch(() => {});
+            quotaReservation = null;
+        }
 
         res.status(202).json({
             success: true,
@@ -376,6 +421,10 @@ exports.triggerPipeline = async (req, res) => {
             message: 'CI execution dispatched successfully'
         });
     } catch (err) {
+        if (quotaReservation) {
+            usageMeteringService.releaseReservation(quotaReservation.id);
+            quotaReservation = null;
+        }
         logger.error('Error triggering pipeline:', err);
         res.status(400).json({ success: false, message: err.message });
     }

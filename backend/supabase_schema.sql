@@ -489,3 +489,39 @@ CREATE INDEX IF NOT EXISTS idx_audit_events_action ON public.audit_events(action
 CREATE INDEX IF NOT EXISTS idx_audit_events_resource ON public.audit_events(resource_type, resource_id);
 CREATE INDEX IF NOT EXISTS idx_audit_events_outcome ON public.audit_events(outcome);
 CREATE INDEX IF NOT EXISTS idx_audit_events_correlation ON public.audit_events(correlation_id) WHERE correlation_id IS NOT NULL;
+
+-- ==============================================================================
+-- Phase 4 Step 5: Centralized Usage Metering & Quotas Management Schema
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.usage_events (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    workspace_id TEXT,
+    user_id TEXT,
+    resource_type TEXT NOT NULL DEFAULT 'general',
+    metric TEXT NOT NULL,
+    quantity NUMERIC NOT NULL DEFAULT 1,
+    unit TEXT NOT NULL DEFAULT 'count',
+    operation_id TEXT,
+    idempotency_key TEXT,
+    source TEXT NOT NULL DEFAULT 'Web App',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    billing_period_start TIMESTAMPTZ,
+    billing_period_end TIMESTAMPTZ,
+    status TEXT NOT NULL DEFAULT 'committed',
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_events_org_metric_period ON public.usage_events(org_id, metric, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_events_org_period ON public.usage_events(org_id, billing_period_start, billing_period_end);
+CREATE INDEX IF NOT EXISTS idx_usage_events_workspace_id ON public.usage_events(workspace_id) WHERE workspace_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_usage_events_operation_id ON public.usage_events(operation_id) WHERE operation_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS public.plan_quotas (
+    plan_id TEXT PRIMARY KEY,
+    allowances JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_by TEXT
+);
+

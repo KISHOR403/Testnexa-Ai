@@ -186,9 +186,12 @@ class AuditService {
             if (idempotencyKey) {
                 this.recentIdempotencyKeys.set(idempotencyKey, event.id);
                 // Purge key after 10 minutes
-                setTimeout(() => {
+                const timer = setTimeout(() => {
                     this.recentIdempotencyKeys.delete(idempotencyKey);
                 }, 10 * 60 * 1000);
+                if (typeof timer.unref === 'function') {
+                    timer.unref();
+                }
             }
 
             return saved;

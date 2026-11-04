@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Users, Plus, Building2, Shield, Settings, Mail, Check,
     Clock, Trash2, ArrowRight, UserPlus, RefreshCw, AlertTriangle,
-    Layers, ChevronDown, CheckCircle2, XCircle, LogOut, Key
+    Layers, ChevronDown, CheckCircle2, XCircle, LogOut, Key, Gauge
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { organizationService } from '../../services/organizationService';
 import { AuditLogView } from '../../components/organization/AuditLogView';
+import { UsageLimitsView } from '../../components/organization/UsageLimitsView';
 import '../../styles/app/OrganizationManagement.css';
 
 const ROLES_LIST = [
@@ -406,6 +407,13 @@ const OrganizationManagementPage = () => {
                     Audit Logs
                 </button>
                 <button
+                    className={`org-tab ${activeTab === 'usage' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('usage')}
+                >
+                    <Gauge size={16} />
+                    Usage & Limits
+                </button>
+                <button
                     className={`org-tab ${activeTab === 'settings' ? 'active' : ''}`}
                     onClick={() => setActiveTab('settings')}
                 >
@@ -675,7 +683,15 @@ const OrganizationManagementPage = () => {
                 />
             )}
 
-            {/* TAB 5: PROFILE & SETTINGS */}
+            {/* TAB 5: USAGE & LIMITS */}
+            {activeTab === 'usage' && (
+                <UsageLimitsView
+                    activeOrg={activeOrg}
+                    onUpgradeClick={() => setActiveTab('settings')}
+                />
+            )}
+
+            {/* TAB 6: PROFILE & SETTINGS */}
             {activeTab === 'settings' && (
                 <div>
                     <div className="org-card">

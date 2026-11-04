@@ -7,6 +7,7 @@ const supabaseService = require('../services/supabaseData.service');
 const ambiguityAnalyzer = require('../services/ambiguity.service');
 const domainDetector = require('../services/domain.service');
 const { callAI } = require('../services/ai.service');
+const usageMeteringService = require('../services/usageMetering.service');
 
 /**
  * Enhanced Test Case Generation Controller
@@ -15,6 +16,8 @@ const { callAI } = require('../services/ai.service');
  */
 const generateTestCases = async (req, res) => {
     const startTime = Date.now();
+    let quotaReservation = null;
+    let targetOrgId = null;
 
     try {
         const aiConfig = require('../config/ai.config');
@@ -49,25 +52,49 @@ const generateTestCases = async (req, res) => {
         }
 
         // Step 1.5: Enforce Subscription Plan Generation Quota for Authenticated Users
-        try {
-            const primaryWs = await supabaseService.getUserPrimaryWorkspace(targetUserId, req.user.name || '');
-            if (primaryWs) {
-                const billing = await supabaseService.getWorkspaceBilling(primaryWs.id, targetUserId);
-                if (billing && billing.quota && billing.usedGenerations >= billing.quota) {
-                    return res.status(429).json({
+        targetOrgId = await usageMeteringService.resolveOrgForRequest(req, targetUserId);
+        if (targetOrgId) {
+            try {
+                quotaReservation = await usageMeteringService.reserveQuota({
+                    orgId: targetOrgId,
+                    workspaceId: req.body.workspaceId || null,
+                    userId: targetUserId,
+                    metric: 'ai.generations',
+                    quantity: 1,
+                    operationId: `gen_${Date.now()}`
+                });
+            } catch (qErr) {
+                if (qErr.code === 'QUOTA_EXCEEDED') {
+                    return res.status(403).json({
                         success: false,
-                        code: 'GENERATION_QUOTA_EXCEEDED',
-                        message: `Monthly generation quota reached (${billing.usedGenerations}/${billing.quota} suites on ${billing.plan.toUpperCase()} tier). Upgrade in Billing & Usage to unlock additional capacity.`,
-                        data: {
-                            plan: billing.plan,
-                            quota: billing.quota,
-                            used: billing.usedGenerations
-                        }
+                        code: 'QUOTA_EXCEEDED',
+                        message: qErr.message,
+                        data: qErr.data
                     });
                 }
+                throw qErr;
             }
-        } catch (quotaErr) {
-            logger.warn('Quota verification check notice:', quotaErr.message);
+        } else {
+            try {
+                const primaryWs = await supabaseService.getUserPrimaryWorkspace(targetUserId, req.user.name || '');
+                if (primaryWs) {
+                    const billing = await supabaseService.getWorkspaceBilling(primaryWs.id, targetUserId);
+                    if (billing && billing.quota && billing.usedGenerations >= billing.quota) {
+                        return res.status(429).json({
+                            success: false,
+                            code: 'GENERATION_QUOTA_EXCEEDED',
+                            message: `Monthly generation quota reached (${billing.usedGenerations}/${billing.quota} suites on ${billing.plan.toUpperCase()} tier). Upgrade in Billing & Usage to unlock additional capacity.`,
+                            data: {
+                                plan: billing.plan,
+                                quota: billing.quota,
+                                used: billing.usedGenerations
+                            }
+                        });
+                    }
+                }
+            } catch (quotaErr) {
+                logger.warn('Quota verification check notice:', quotaErr.message);
+            }
         }
 
         // Step 2: Use Two-Step Orchestration for Enhanced Accuracy
@@ -282,6 +309,26 @@ const generateTestCases = async (req, res) => {
             }
         }
 
+        // Commit usage allowance for successful generation
+        if (quotaReservation) {
+            await usageMeteringService.commitUsage({
+                reservationId: quotaReservation.id,
+                orgId: targetOrgId,
+                workspaceId: req.body.workspaceId || null,
+                userId: targetUserId,
+                resourceType: 'suite',
+                metric: 'ai.generations',
+                quantity: 1,
+                operationId: generationId,
+                source: 'Web App',
+                metadata: {
+                    appType,
+                    totalTests: result?.functional?.length || 0
+                }
+            }).catch(e => logger.warn('Failed to commit generation usage:', e.message));
+            quotaReservation = null;
+        }
+
         // Return generated data with saved sessionId and generationId
         return res.status(200).json({
             ...response,
@@ -302,6 +349,11 @@ const generateTestCases = async (req, res) => {
         });
 
     } catch (error) {
+        if (quotaReservation) {
+            usageMeteringService.releaseReservation(quotaReservation.id);
+            quotaReservation = null;
+        }
+
         logger.error('Error in enhanced test generation', error);
 
         // Record failed generation telemetry event

@@ -31,7 +31,10 @@ const {
     getActivity,
     listAuditLogs,
     getAuditLogDetails,
-    exportAuditLogs
+    exportAuditLogs,
+    getOrganizationUsage,
+    getUsageHistory,
+    getUsageWarnings
 } = require('../controllers/organization.controller');
 
 const router = express.Router();
@@ -71,6 +74,11 @@ router.get('/:id/activity', protect, requireOrgAccess, requireOrgRole(['owner', 
 router.get('/:id/audit-logs', protect, requireOrgAccess, requireOrgPermission('audit.view'), listAuditLogs);
 router.get('/:id/audit-logs/export', protect, requireOrgAccess, requireOrgPermission('audit.export'), exportAuditLogs);
 router.get('/:id/audit-logs/:eventId', protect, requireOrgAccess, requireOrgPermission('audit.view'), getAuditLogDetails);
+
+// Organization Usage & Quotas
+router.get('/:id/usage', protect, requireOrgAccess, getOrganizationUsage);
+router.get('/:id/usage/history', protect, requireOrgAccess, getUsageHistory);
+router.get('/:id/usage/warnings', protect, requireOrgAccess, getUsageWarnings);
 
 module.exports = router;
 
