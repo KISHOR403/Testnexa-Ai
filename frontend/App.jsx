@@ -37,6 +37,7 @@ const RunExecutionPage = lazy(() => import('./pages/app/RunExecutionPage'));
 const RunComparisonPage = lazy(() => import('./pages/app/RunComparisonPage'));
 const FailureTrendAnalysisPage = lazy(() => import('./pages/app/FailureTrendAnalysisPage'));
 const ExecutionIntelligenceDashboardPage = lazy(() => import('./pages/app/ExecutionIntelligenceDashboardPage'));
+const TestMaintenanceIntelligencePage = lazy(() => import('./pages/app/TestMaintenanceIntelligencePage'));
 const SmartRecommendationsPage = lazy(() => import('./pages/app/SmartRecommendationsPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
@@ -187,6 +188,7 @@ function AppContent() {
             <Route path="traceability" element={<TraceabilityPage />} />
             <Route path="failure-trends" element={<FailureTrendAnalysisPage />} />
             <Route path="intelligence" element={<ExecutionIntelligenceDashboardPage />} />
+            <Route path="maintenance" element={<TestMaintenanceIntelligencePage />} />
             <Route path="recommendations" element={<SmartRecommendationsPage />} />
             <Route path="recommendations/:suiteId" element={<SmartRecommendationsPage />} />
             <Route path="settings" element={<AppSettingsPage />} />

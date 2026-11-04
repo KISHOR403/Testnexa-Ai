@@ -4,7 +4,7 @@ import {
     Activity, RefreshCw, Layers, AlertTriangle, CheckCircle2,
     XCircle, Clock, Monitor, Globe, ChevronRight, ArrowUpRight,
     AlertCircle, TrendingDown, TrendingUp, Minus, ShieldCheck,
-    GitBranch, Play, ExternalLink, Filter, HelpCircle
+    GitBranch, Play, ExternalLink, Filter, HelpCircle, Wrench
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { sessionService } from '../../services/sessionService';
@@ -381,6 +381,18 @@ export const ExecutionIntelligenceDashboardPage = () => {
                     </div>
                     <div className="eid-signal-icon-box" style={{ background: 'var(--eid-info-bg)', color: 'var(--eid-info)' }}>
                         <ShieldCheck size={18} />
+                    </div>
+                </Link>
+
+                <Link to="/app/maintenance" className="eid-signal-card">
+                    <div className="eid-signal-info">
+                        <span className="eid-signal-title">Test Maintenance</span>
+                        <span className="eid-signal-count" style={{ color: 'var(--eid-jade)' }}>
+                            Active
+                        </span>
+                    </div>
+                    <div className="eid-signal-icon-box" style={{ background: 'var(--eid-jade-glow)', color: 'var(--eid-jade)' }}>
+                        <Wrench size={18} />
                     </div>
                 </Link>
             </section>

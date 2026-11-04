@@ -4,7 +4,7 @@ import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
-    PlayCircle, Activity, BarChart3, Sparkles
+    PlayCircle, Activity, BarChart3, Sparkles, Wrench
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -314,6 +314,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     >
                         <Sparkles size={17} className="app-sidebar__item-icon" />
                         <span>Recommendations</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/app/maintenance"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/maintenance') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Test Maintenance Intelligence"
+                    >
+                        <Wrench size={17} className="app-sidebar__item-icon" />
+                        <span>Maintenance</span>
                     </NavLink>
                 </div>
 

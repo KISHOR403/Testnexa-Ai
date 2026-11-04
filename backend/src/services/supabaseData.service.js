@@ -30,6 +30,7 @@ class SupabaseDataService {
         this.inMemoryFailureAnalyses = new Map();
         this.inMemoryRecommendations = new Map();
         this.inMemoryRecommendationSessions = new Map();
+        this.inMemoryMaintenanceFindings = new Map();
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -113,6 +114,11 @@ class SupabaseDataService {
                         this.inMemoryRecommendationSessions.set(k, v);
                     }
                 }
+                if (data.maintenanceFindings && typeof data.maintenanceFindings === 'object') {
+                    for (const [k, v] of Object.entries(data.maintenanceFindings)) {
+                        this.inMemoryMaintenanceFindings.set(k, v);
+                    }
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -139,7 +145,8 @@ class SupabaseDataService {
                 automationJobs: Object.fromEntries(this.inMemoryAutomationJobs),
                 failureAnalyses: Object.fromEntries(this.inMemoryFailureAnalyses),
                 recommendations: Object.fromEntries(this.inMemoryRecommendations),
-                recommendationSessions: Object.fromEntries(this.inMemoryRecommendationSessions)
+                recommendationSessions: Object.fromEntries(this.inMemoryRecommendationSessions),
+                maintenanceFindings: Object.fromEntries(this.inMemoryMaintenanceFindings)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -3995,6 +4002,98 @@ class SupabaseDataService {
             }
         }
 
+        this._saveDiskWorkspacesStore();
+        return updated;
+    }
+
+    // ============================================
+    // TEST MAINTENANCE INTELLIGENCE PERSISTENCE
+    // ============================================
+
+    async saveMaintenanceFindings(workspaceId, findings = []) {
+        if (!workspaceId) return [];
+        const now = new Date().toISOString();
+
+        for (const finding of findings) {
+            if (!finding || !finding.id) continue;
+            const existing = this.inMemoryMaintenanceFindings.get(finding.id);
+            const record = {
+                ...(existing || {}),
+                ...finding,
+                workspaceId,
+                workspace_id: workspaceId,
+                updatedAt: now,
+                updated_at: now
+            };
+            this.inMemoryMaintenanceFindings.set(finding.id, record);
+        }
+
+        this._saveDiskWorkspacesStore();
+        return this.getMaintenanceFindings(workspaceId);
+    }
+
+    async getMaintenanceFindings(workspaceId, filters = {}) {
+        if (!workspaceId) return [];
+        const {
+            suiteId = null,
+            issueType = null,
+            classification = null,
+            status = null,
+            search = null
+        } = filters;
+
+        let rows = Array.from(this.inMemoryMaintenanceFindings.values())
+            .filter(f => (f.workspaceId === workspaceId || f.workspace_id === workspaceId));
+
+        if (suiteId && suiteId !== 'all') {
+            rows = rows.filter(f => f.suiteId === suiteId || f.suite_id === suiteId);
+        }
+        if (issueType && issueType !== 'all') {
+            rows = rows.filter(f => (f.issueType || '').toLowerCase() === issueType.toLowerCase());
+        }
+        if (classification && classification !== 'all') {
+            rows = rows.filter(f => (f.classification || '').toLowerCase() === classification.toLowerCase());
+        }
+        if (status && status !== 'all') {
+            rows = rows.filter(f => (f.status || '').toLowerCase() === status.toLowerCase());
+        }
+        if (search && search.trim()) {
+            const s = search.toLowerCase();
+            rows = rows.filter(f =>
+                (f.testCaseTitle || '').toLowerCase().includes(s) ||
+                (f.testCaseId || '').toLowerCase().includes(s) ||
+                (f.locator || '').toLowerCase().includes(s) ||
+                (f.errorMessage || '').toLowerCase().includes(s)
+            );
+        }
+
+        return rows.sort((a, b) => new Date(b.lastDetectedAt || b.updatedAt || 0) - new Date(a.lastDetectedAt || a.updatedAt || 0));
+    }
+
+    async getMaintenanceFindingById(workspaceId, findingId) {
+        if (!findingId) return null;
+        const finding = this.inMemoryMaintenanceFindings.get(findingId);
+        if (!finding) return null;
+        if (workspaceId && finding.workspaceId !== workspaceId && finding.workspace_id !== workspaceId) {
+            return null;
+        }
+        return finding;
+    }
+
+    async updateMaintenanceFinding(workspaceId, findingId, updates = {}) {
+        if (!findingId) throw new Error('findingId is required');
+        const existing = await this.getMaintenanceFindingById(workspaceId, findingId);
+        if (!existing) return null;
+
+        const now = new Date().toISOString();
+        const updated = {
+            ...existing,
+            ...updates,
+            updatedAt: now,
+            updated_at: now
+        };
+
+        this.inMemoryMaintenanceFindings.set(findingId, updated);
         this._saveDiskWorkspacesStore();
         return updated;
     }
