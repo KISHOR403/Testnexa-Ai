@@ -74,3 +74,4 @@ class BaseCiProvider {
 }
 
 module.exports = BaseCiProvider;
+

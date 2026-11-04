@@ -649,3 +649,4 @@ class CiCdIntegrationService {
 }
 
 module.exports = new CiCdIntegrationService();
+

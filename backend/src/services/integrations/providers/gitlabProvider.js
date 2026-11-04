@@ -40,3 +40,4 @@ class GitLabProvider extends BaseCiProvider {
 }
 
 module.exports = new GitLabProvider();
+

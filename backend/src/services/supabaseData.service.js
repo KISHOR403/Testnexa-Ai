@@ -37,6 +37,10 @@ class SupabaseDataService {
         this.inMemoryCiPipelines = new Map();
         this.inMemoryCiActivity = new Map();
         this.inMemoryCiDeliveries = new Set();
+        this.inMemoryOrganizations = new Map();
+        this.inMemoryOrgMembers = new Map();
+        this.inMemoryOrgInvitations = new Map();
+        this.inMemoryOrgAuditLogs = [];
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -145,6 +149,24 @@ class SupabaseDataService {
                         this.inMemoryCiDeliveries.add(d);
                     }
                 }
+                if (data.organizations && typeof data.organizations === 'object') {
+                    for (const [k, v] of Object.entries(data.organizations)) {
+                        this.inMemoryOrganizations.set(k, v);
+                    }
+                }
+                if (data.orgMembers && typeof data.orgMembers === 'object') {
+                    for (const [k, v] of Object.entries(data.orgMembers)) {
+                        this.inMemoryOrgMembers.set(k, v);
+                    }
+                }
+                if (data.orgInvitations && typeof data.orgInvitations === 'object') {
+                    for (const [k, v] of Object.entries(data.orgInvitations)) {
+                        this.inMemoryOrgInvitations.set(k, v);
+                    }
+                }
+                if (Array.isArray(data.orgAuditLogs)) {
+                    this.inMemoryOrgAuditLogs = data.orgAuditLogs;
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -176,7 +198,11 @@ class SupabaseDataService {
                 ciConnections: Object.fromEntries(this.inMemoryCiConnections),
                 ciPipelines: Object.fromEntries(this.inMemoryCiPipelines),
                 ciActivity: Object.fromEntries(this.inMemoryCiActivity),
-                ciDeliveries: Array.from(this.inMemoryCiDeliveries).slice(-500)
+                ciDeliveries: Array.from(this.inMemoryCiDeliveries).slice(-500),
+                organizations: Object.fromEntries(this.inMemoryOrganizations),
+                orgMembers: Object.fromEntries(this.inMemoryOrgMembers),
+                orgInvitations: Object.fromEntries(this.inMemoryOrgInvitations),
+                orgAuditLogs: this.inMemoryOrgAuditLogs.slice(-500)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -4341,6 +4367,626 @@ class SupabaseDataService {
             this.inMemoryCiDeliveries.delete(first);
         }
         this._saveDiskWorkspacesStore();
+    }
+
+    // ==========================================
+    // TEAM WORKSPACES & ORGANIZATION MANAGEMENT
+    // ==========================================
+
+    /**
+     * Create a new organization
+     */
+    async createOrganization({ name, description = '', ownerId }) {
+        if (!name || !name.trim()) throw new Error('Organization name is required');
+        if (!ownerId) throw new Error('Owner ID is required to create an organization');
+
+        const orgId = 'org_' + crypto.randomBytes(6).toString('hex');
+        const now = new Date().toISOString();
+        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'team';
+
+        const organization = {
+            id: orgId,
+            name: name.trim(),
+            slug: `${slug}-${crypto.randomBytes(2).toString('hex')}`,
+            description: description ? description.trim() : '',
+            ownerId,
+            status: 'active',
+            settings: {
+                allowMemberInvites: true,
+                defaultWorkspaceVisibility: 'organization',
+                enforceMfa: false
+            },
+            createdAt: now,
+            updatedAt: now
+        };
+
+        this.inMemoryOrganizations.set(orgId, organization);
+
+        // Add owner to members table
+        const memberKey = `${orgId}:${ownerId}`;
+        const memberRecord = {
+            id: `mem_${crypto.randomBytes(6).toString('hex')}`,
+            orgId,
+            userId: ownerId,
+            role: 'owner',
+            status: 'active',
+            joinedAt: now,
+            updatedAt: now
+        };
+        this.inMemoryOrgMembers.set(memberKey, memberRecord);
+
+        // Record audit event
+        this.recordOrgAuditLog({
+            orgId,
+            actorId: ownerId,
+            action: 'organization.created',
+            targetType: 'organization',
+            targetId: orgId,
+            details: { name: organization.name }
+        });
+
+        this._saveDiskWorkspacesStore();
+        return organization;
+    }
+
+    /**
+     * Get organization by ID
+     */
+    async getOrganization(orgId) {
+        if (!orgId) return null;
+        return this.inMemoryOrganizations.get(orgId) || null;
+    }
+
+    /**
+     * Auto-migrate existing user/workspaces into an organization if not already assigned
+     */
+    async ensureUserOrganization(userId, userName = '') {
+        if (!userId) return null;
+
+        // Check if user is already a member of any organization
+        for (const m of this.inMemoryOrgMembers.values()) {
+            if (m.userId === userId && m.status === 'active') {
+                const org = this.inMemoryOrganizations.get(m.orgId);
+                if (org && org.status === 'active') {
+                    return org;
+                }
+            }
+        }
+
+        // Backward compatibility: Create default organization for existing user
+        const cleanName = (userName || '').trim() || 'Personal';
+        const defaultOrg = await this.createOrganization({
+            name: `${cleanName}'s Organization`,
+            description: 'Primary Team Organization',
+            ownerId: userId
+        });
+
+        // Link any user workspaces to this organization
+        for (const ws of this.inMemoryWorkspaces.values()) {
+            if (ws.ownerId === userId && !ws.organizationId) {
+                ws.organizationId = defaultOrg.id;
+                this.inMemoryWorkspaces.set(ws.id, ws);
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return defaultOrg;
+    }
+
+    /**
+     * List all organizations a user belongs to
+     */
+    async getUserOrganizations(userId, userName = '') {
+        if (!userId) return [];
+        await this.ensureUserOrganization(userId, userName);
+
+        const userOrgs = [];
+        for (const m of this.inMemoryOrgMembers.values()) {
+            if (m.userId === userId && m.status === 'active') {
+                const org = this.inMemoryOrganizations.get(m.orgId);
+                if (org && org.status === 'active') {
+                    userOrgs.push({
+                        ...org,
+                        userRole: m.role,
+                        joinedAt: m.joinedAt
+                    });
+                }
+            }
+        }
+
+        return userOrgs.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    }
+
+    /**
+     * Update organization profile / settings
+     */
+    async updateOrganization(orgId, updates = {}) {
+        const org = await this.getOrganization(orgId);
+        if (!org) return null;
+
+        const updated = {
+            ...org,
+            name: updates.name ? updates.name.trim() : org.name,
+            description: updates.description !== undefined ? updates.description.trim() : org.description,
+            settings: {
+                ...(org.settings || {}),
+                ...(updates.settings || {})
+            },
+            updatedAt: new Date().toISOString()
+        };
+
+        this.inMemoryOrganizations.set(orgId, updated);
+        this._saveDiskWorkspacesStore();
+        return updated;
+    }
+
+    /**
+     * Delete organization (with safety checks)
+     */
+    async deleteOrganization(orgId, actorId) {
+        const org = await this.getOrganization(orgId);
+        if (!org) return false;
+        if (org.ownerId !== actorId) {
+            throw new Error('Only the organization owner can delete the organization');
+        }
+
+        this.inMemoryOrganizations.delete(orgId);
+
+        // Remove members, invitations, and link workspaces
+        for (const [k, m] of this.inMemoryOrgMembers.entries()) {
+            if (m.orgId === orgId) this.inMemoryOrgMembers.delete(k);
+        }
+        for (const [k, inv] of this.inMemoryOrgInvitations.entries()) {
+            if (inv.orgId === orgId) this.inMemoryOrgInvitations.delete(k);
+        }
+
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    /**
+     * Transfer organization ownership
+     */
+    async transferOrgOwnership(orgId, newOwnerId, currentOwnerId) {
+        const org = await this.getOrganization(orgId);
+        if (!org) throw new Error('Organization not found');
+        if (org.ownerId !== currentOwnerId) {
+            throw new Error('Only the current organization owner can transfer ownership');
+        }
+        if (newOwnerId === currentOwnerId) {
+            throw new Error('Cannot transfer ownership to yourself');
+        }
+
+        // Verify target user is an active member
+        const targetMember = await this.getOrgMember(orgId, newOwnerId);
+        if (!targetMember || targetMember.status !== 'active') {
+            throw new Error('Target user must be an active member of this organization');
+        }
+
+        // Update org owner
+        org.ownerId = newOwnerId;
+        org.updatedAt = new Date().toISOString();
+        this.inMemoryOrganizations.set(orgId, org);
+
+        // Promote new owner to owner role first
+        await this.updateOrgMemberRole(orgId, newOwnerId, 'owner');
+
+        // Demote current owner to admin
+        await this.updateOrgMemberRole(orgId, currentOwnerId, 'admin');
+
+        this.recordOrgAuditLog({
+            orgId,
+            actorId: currentOwnerId,
+            action: 'organization.ownership_transferred',
+            targetType: 'user',
+            targetId: newOwnerId,
+            details: { previousOwner: currentOwnerId, newOwner: newOwnerId }
+        });
+
+        this._saveDiskWorkspacesStore();
+        return org;
+    }
+
+    /**
+     * Get member record in an organization
+     */
+    async getOrgMember(orgId, userId) {
+        if (!orgId || !userId) return null;
+        const key = `${orgId}:${userId}`;
+        return this.inMemoryOrgMembers.get(key) || null;
+    }
+
+    /**
+     * List all members of an organization with user metadata
+     */
+    async getOrgMembers(orgId) {
+        if (!orgId) return [];
+        const members = [];
+        for (const m of this.inMemoryOrgMembers.values()) {
+            if (m.orgId === orgId) {
+                // Enrich with user name & email if available
+                let name = m.userName || '';
+                let email = m.userEmail || '';
+                for (const u of this.inMemorySessions.values()) {
+                    if (u.userId === m.userId && u.userEmail) {
+                        email = u.userEmail;
+                        name = u.userName || name;
+                        break;
+                    }
+                }
+                members.push({
+                    ...m,
+                    name: name || `Member (${m.userId.substring(0, 6)})`,
+                    email: email || m.email || ''
+                });
+            }
+        }
+        return members.sort((a, b) => new Date(a.joinedAt || a.createdAt) - new Date(b.joinedAt || b.createdAt));
+    }
+
+    /**
+     * Add member to organization
+     */
+    async addOrgMember({ orgId, userId, email = '', role = 'viewer', status = 'active' }) {
+        if (!orgId || !userId) throw new Error('orgId and userId are required');
+        const key = `${orgId}:${userId}`;
+        const now = new Date().toISOString();
+
+        const record = {
+            id: `mem_${crypto.randomBytes(6).toString('hex')}`,
+            orgId,
+            userId,
+            email,
+            role: role.toLowerCase(),
+            status,
+            joinedAt: now,
+            updatedAt: now
+        };
+
+        this.inMemoryOrgMembers.set(key, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    /**
+     * Update member role with last-owner protection
+     */
+    async updateOrgMemberRole(orgId, userId, newRole) {
+        const member = await this.getOrgMember(orgId, userId);
+        if (!member) throw new Error('Member not found in organization');
+
+        // Last owner protection
+        if (member.role === 'owner' && newRole !== 'owner') {
+            const owners = Array.from(this.inMemoryOrgMembers.values())
+                .filter(m => m.orgId === orgId && m.role === 'owner' && m.status === 'active');
+            if (owners.length <= 1) {
+                throw new Error('Cannot demote the last organization owner. Transfer ownership first.');
+            }
+        }
+
+        member.role = newRole.toLowerCase();
+        member.updatedAt = new Date().toISOString();
+        this.inMemoryOrgMembers.set(`${orgId}:${userId}`, member);
+        this._saveDiskWorkspacesStore();
+        return member;
+    }
+
+    /**
+     * Remove member from organization with last-owner protection
+     */
+    async removeOrgMember(orgId, userId) {
+        const member = await this.getOrgMember(orgId, userId);
+        if (!member) return false;
+
+        // Last owner protection
+        if (member.role === 'owner') {
+            const owners = Array.from(this.inMemoryOrgMembers.values())
+                .filter(m => m.orgId === orgId && m.role === 'owner' && m.status === 'active');
+            if (owners.length <= 1) {
+                throw new Error('Cannot remove the last organization owner. Transfer ownership first.');
+            }
+        }
+
+        const deleted = this.inMemoryOrgMembers.delete(`${orgId}:${userId}`);
+        this._saveDiskWorkspacesStore();
+        return deleted;
+    }
+
+    /**
+     * Create secure organization invitation
+     */
+    async createOrgInvitation({ orgId, email, role = 'qa_engineer', invitedBy, message = '' }) {
+        if (!orgId || !email) throw new Error('orgId and email are required');
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Check for duplicate pending invitation
+        for (const inv of this.inMemoryOrgInvitations.values()) {
+            if (inv.orgId === orgId && inv.email === normalizedEmail && inv.status === 'pending') {
+                if (new Date(inv.expiresAt) > new Date()) {
+                    throw new Error(`An active pending invitation for ${email} already exists`);
+                }
+            }
+        }
+
+        // Check if user is already an active member
+        for (const mem of this.inMemoryOrgMembers.values()) {
+            if (mem.orgId === orgId && (mem.email || '').toLowerCase() === normalizedEmail && mem.status === 'active') {
+                throw new Error(`${email} is already an active member of this organization`);
+            }
+        }
+
+        const invitationId = `inv_${crypto.randomBytes(6).toString('hex')}`;
+        const token = crypto.randomBytes(32).toString('hex');
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+
+        const invitation = {
+            id: invitationId,
+            orgId,
+            email: normalizedEmail,
+            role: role.toLowerCase(),
+            token,
+            invitedBy,
+            message: message ? message.trim() : '',
+            status: 'pending',
+            createdAt: now.toISOString(),
+            expiresAt
+        };
+
+        this.inMemoryOrgInvitations.set(invitationId, invitation);
+
+        this.recordOrgAuditLog({
+            orgId,
+            actorId: invitedBy,
+            action: 'member.invited',
+            targetType: 'invitation',
+            targetId: invitationId,
+            details: { email: normalizedEmail, role }
+        });
+
+        this._saveDiskWorkspacesStore();
+        return invitation;
+    }
+
+    /**
+     * Get pending or filtered invitations for an organization
+     */
+    async getOrgInvitations(orgId, status = 'pending') {
+        if (!orgId) return [];
+        const now = new Date();
+        const list = [];
+
+        for (const inv of this.inMemoryOrgInvitations.values()) {
+            if (inv.orgId === orgId) {
+                // Auto-expire
+                if (inv.status === 'pending' && new Date(inv.expiresAt) < now) {
+                    inv.status = 'expired';
+                }
+                if (!status || status === 'all' || inv.status === status) {
+                    // Do NOT expose raw token in general member listing
+                    const { token, ...safeInv } = inv;
+                    list.push(safeInv);
+                }
+            }
+        }
+
+        return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    /**
+     * Retrieve invitation by secure token
+     */
+    async getInvitationByToken(token) {
+        if (!token) return null;
+        for (const inv of this.inMemoryOrgInvitations.values()) {
+            if (inv.token === token) {
+                if (inv.status === 'pending' && new Date(inv.expiresAt) < new Date()) {
+                    inv.status = 'expired';
+                    this._saveDiskWorkspacesStore();
+                }
+                return inv;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Accept invitation
+     */
+    async acceptOrgInvitation(token, userId, userEmail = '') {
+        const inv = await this.getInvitationByToken(token);
+        if (!inv) throw new Error('Invalid invitation token');
+        if (inv.status !== 'pending') throw new Error(`Invitation is ${inv.status}`);
+        if (new Date(inv.expiresAt) < new Date()) throw new Error('Invitation has expired');
+
+        // Add user as organization member
+        const member = await this.addOrgMember({
+            orgId: inv.orgId,
+            userId,
+            email: userEmail || inv.email,
+            role: inv.role,
+            status: 'active'
+        });
+
+        // Mark invitation accepted
+        inv.status = 'accepted';
+        inv.acceptedAt = new Date().toISOString();
+        inv.acceptedBy = userId;
+        this.inMemoryOrgInvitations.set(inv.id, inv);
+
+        this.recordOrgAuditLog({
+            orgId: inv.orgId,
+            actorId: userId,
+            action: 'invitation.accepted',
+            targetType: 'invitation',
+            targetId: inv.id,
+            details: { email: inv.email, role: inv.role }
+        });
+
+        this._saveDiskWorkspacesStore();
+        return member;
+    }
+
+    /**
+     * Reject invitation
+     */
+    async rejectOrgInvitation(token) {
+        const inv = await this.getInvitationByToken(token);
+        if (!inv) throw new Error('Invalid invitation token');
+        inv.status = 'rejected';
+        inv.updatedAt = new Date().toISOString();
+        this.inMemoryOrgInvitations.set(inv.id, inv);
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    /**
+     * Cancel pending invitation
+     */
+    async cancelOrgInvitation(orgId, invitationId) {
+        const inv = this.inMemoryOrgInvitations.get(invitationId);
+        if (!inv || inv.orgId !== orgId) return false;
+        inv.status = 'cancelled';
+        inv.updatedAt = new Date().toISOString();
+        this.inMemoryOrgInvitations.set(invitationId, inv);
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    /**
+     * Resend invitation (refreshes expiration)
+     */
+    async resendOrgInvitation(orgId, invitationId) {
+        const inv = this.inMemoryOrgInvitations.get(invitationId);
+        if (!inv || inv.orgId !== orgId) throw new Error('Invitation not found');
+        const now = new Date();
+        inv.status = 'pending';
+        inv.expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        inv.token = crypto.randomBytes(32).toString('hex');
+        inv.updatedAt = now.toISOString();
+
+        this.inMemoryOrgInvitations.set(invitationId, inv);
+        this._saveDiskWorkspacesStore();
+        return inv;
+    }
+
+    /**
+     * List all workspaces belonging to an organization
+     */
+    async getOrgWorkspaces(orgId, includeArchived = false) {
+        if (!orgId) return [];
+        const workspaces = [];
+        for (const ws of this.inMemoryWorkspaces.values()) {
+            if (ws.organizationId === orgId) {
+                if (includeArchived || !ws.isArchived) {
+                    workspaces.push(ws);
+                }
+            }
+        }
+        return workspaces.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    }
+
+    /**
+     * Create a workspace within an organization
+     */
+    async createOrgWorkspace(orgId, { name, description = '', ownerId, visibility = 'organization' }) {
+        if (!orgId) throw new Error('Organization ID is required');
+        if (!name || !name.trim()) throw new Error('Workspace name is required');
+
+        const org = await this.getOrganization(orgId);
+        if (!org) throw new Error(`Organization ${orgId} not found`);
+
+        const wsId = 'ws_' + crypto.randomBytes(8).toString('hex');
+        const now = new Date().toISOString();
+        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'workspace';
+
+        const workspace = {
+            id: wsId,
+            organizationId: orgId,
+            name: name.trim(),
+            slug: `${slug}-${crypto.randomBytes(2).toString('hex')}`,
+            description: description ? description.trim() : '',
+            ownerId,
+            visibility: visibility || 'organization',
+            isArchived: false,
+            defaultEnvironmentId: null,
+            version: 1,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        this.inMemoryWorkspaces.set(wsId, workspace);
+        this.inMemoryEnvironments.set(wsId, []);
+
+        // Add owner as workspace member
+        this.inMemoryWorkspaceMembers.set(`${wsId}_${ownerId}`, {
+            id: crypto.randomUUID(),
+            workspaceId: wsId,
+            userId: ownerId,
+            role: 'owner',
+            status: 'active',
+            createdAt: now,
+            updatedAt: now
+        });
+
+        this.recordOrgAuditLog({
+            orgId,
+            actorId: ownerId,
+            action: 'workspace.created',
+            targetType: 'workspace',
+            targetId: wsId,
+            details: { name: workspace.name }
+        });
+
+        this._saveDiskWorkspacesStore();
+        return workspace;
+    }
+
+    /**
+     * Archive or unarchive a workspace
+     */
+    async archiveWorkspace(workspaceId, isArchived = true) {
+        const ws = this.inMemoryWorkspaces.get(workspaceId);
+        if (!ws) return null;
+        ws.isArchived = Boolean(isArchived);
+        ws.updatedAt = new Date().toISOString();
+        this.inMemoryWorkspaces.set(workspaceId, ws);
+        this._saveDiskWorkspacesStore();
+        return ws;
+    }
+
+    /**
+     * Record an audit log entry for organization events
+     */
+    recordOrgAuditLog({ orgId, actorId, action, targetType = 'general', targetId = null, details = {} }) {
+        if (!orgId || !action) return;
+        const entry = {
+            id: `oaud_${crypto.randomBytes(6).toString('hex')}`,
+            orgId,
+            actorId: actorId || 'system',
+            action,
+            targetType,
+            targetId,
+            details: details || {},
+            timestamp: new Date().toISOString()
+        };
+        this.inMemoryOrgAuditLogs.push(entry);
+        if (this.inMemoryOrgAuditLogs.length > 2000) {
+            this.inMemoryOrgAuditLogs = this.inMemoryOrgAuditLogs.slice(-1000);
+        }
+        this._saveDiskWorkspacesStore();
+        return entry;
+    }
+
+    /**
+     * Get organization activity logs
+     */
+    async getOrgAuditLogs(orgId, limit = 50) {
+        if (!orgId) return [];
+        return this.inMemoryOrgAuditLogs
+            .filter(l => l.orgId === orgId)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .slice(0, Number(limit) || 50);
     }
 }
 

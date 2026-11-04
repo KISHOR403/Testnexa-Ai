@@ -40,6 +40,8 @@ const ExecutionIntelligenceDashboardPage = lazy(() => import('./pages/app/Execut
 const TestMaintenanceIntelligencePage = lazy(() => import('./pages/app/TestMaintenanceIntelligencePage'));
 const SmartRecommendationsPage = lazy(() => import('./pages/app/SmartRecommendationsPage'));
 const CiCdIntegrationsPage = lazy(() => import('./pages/app/CiCdIntegrationsPage'));
+const OrganizationManagementPage = lazy(() => import('./pages/app/OrganizationManagementPage'));
+const InvitationAcceptancePage = lazy(() => import('./pages/app/InvitationAcceptancePage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
 // Dynamic discovery for Admin Console (active locally/privately; gracefully absent in public repo)
@@ -194,12 +196,17 @@ function AppContent() {
             <Route path="recommendations/:suiteId" element={<SmartRecommendationsPage />} />
             <Route path="integrations" element={<CiCdIntegrationsPage />} />
             <Route path="integrations/cicd" element={<CiCdIntegrationsPage />} />
+            <Route path="organization" element={<OrganizationManagementPage />} />
+            <Route path="settings/organization" element={<OrganizationManagementPage />} />
             <Route path="settings" element={<AppSettingsPage />} />
             <Route path="billing" element={<Navigate to="/app/settings?tab=billing" replace />} />
           </Route>
 
           {/* ─── DEDICATED ADMINISTRATOR LOGIN ─── */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
+
+          {/* ─── INVITATION ACCEPTANCE ─── */}
+          <Route path="/invitations/:token" element={<InvitationAcceptancePage />} />
 
           {/* ─── SECURE PLATFORM ADMIN CONSOLE ─── */}
           <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>

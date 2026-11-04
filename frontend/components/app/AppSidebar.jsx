@@ -4,7 +4,7 @@ import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
-    PlayCircle, Activity, BarChart3, Sparkles, Wrench
+    PlayCircle, Activity, BarChart3, Sparkles, Wrench, Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -340,6 +340,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                 {/* SYSTEM GROUP */}
                 <div className="app-sidebar__group" style={{ marginTop: 'auto' }}>
                     <span className="app-sidebar__group-label">System</span>
+
+                    <NavLink
+                        to="/app/organization"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/organization') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Team & Organization"
+                    >
+                        <Users size={17} className="app-sidebar__item-icon" />
+                        <span>Team & Org</span>
+                    </NavLink>
 
                     <NavLink
                         to="/app/settings"

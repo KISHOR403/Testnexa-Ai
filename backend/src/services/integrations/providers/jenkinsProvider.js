@@ -40,3 +40,4 @@ class JenkinsProvider extends BaseCiProvider {
 }
 
 module.exports = new JenkinsProvider();
+

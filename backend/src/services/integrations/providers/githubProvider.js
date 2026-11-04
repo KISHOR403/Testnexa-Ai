@@ -379,3 +379,4 @@ jobs:
 }
 
 module.exports = new GitHubProvider();
+

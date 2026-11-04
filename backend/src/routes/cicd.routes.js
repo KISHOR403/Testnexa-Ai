@@ -48,3 +48,4 @@ router.get('/activity', protect, getActivity);
 router.get('/instructions/:provider', protect, getSetupInstructions);
 
 module.exports = router;
+

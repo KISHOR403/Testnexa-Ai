@@ -1,0 +1,413 @@
+/* ==========================================================================
+   TestNexa AI — Organization & Team Workspace Management Styles
+   Mineral dark aesthetic (#0B0F12 canvas, #8BAF9A jade green accent)
+   ========================================================================== */
+
+.org-page {
+    padding: 1.5rem 2rem 3rem;
+    max-width: 1380px;
+    margin: 0 auto;
+    color: #E2E8F0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Header */
+.org-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid #1E293B;
+}
+
+.org-header__title-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.org-header__title-area h1 {
+    font-size: 1.625rem;
+    font-weight: 600;
+    color: #F8FAFC;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.org-header__switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #13191E;
+    border: 1px solid #232D36;
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    color: #E2E8F0;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    margin-top: 0.35rem;
+    width: fit-content;
+}
+
+.org-header__switcher:hover {
+    border-color: #8BAF9A;
+}
+
+.org-header__subtitle {
+    font-size: 0.875rem;
+    color: #94A3B8;
+    margin: 0;
+}
+
+.org-header__actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Tabs */
+.org-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid #1E293B;
+    margin-bottom: 1.5rem;
+}
+
+.org-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #94A3B8;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.org-tab:hover {
+    color: #E2E8F0;
+}
+
+.org-tab.active {
+    color: #8BAF9A;
+    border-bottom-color: #8BAF9A;
+}
+
+/* Cards & Sections */
+.org-card {
+    background-color: #13191E;
+    border: 1px solid #232D36;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.org-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #1A2228;
+}
+
+.org-card__title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: #F8FAFC;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Grid summary */
+.org-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.org-stat-box {
+    background-color: #161D23;
+    border: 1px solid #232D36;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.org-stat-box__label {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+}
+
+.org-stat-box__value {
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: #F8FAFC;
+}
+
+/* Tables */
+.org-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.org-table th {
+    background-color: #161D23;
+    padding: 0.75rem 1rem;
+    color: #94A3B8;
+    font-weight: 500;
+    text-align: left;
+    border-bottom: 1px solid #232D36;
+}
+
+.org-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #1A2228;
+    color: #CBD5E1;
+}
+
+.org-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.org-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Role Badges */
+.org-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    text-transform: capitalize;
+}
+
+.org-role-badge--owner {
+    background-color: rgba(167, 139, 250, 0.15);
+    color: #C4B5FD;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
+.org-role-badge--admin {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93C5FD;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.org-role-badge--qa_manager {
+    background-color: rgba(139, 175, 154, 0.15);
+    color: #8BAF9A;
+    border: 1px solid rgba(139, 175, 154, 0.3);
+}
+
+.org-role-badge--qa_engineer {
+    background-color: rgba(52, 211, 153, 0.15);
+    color: #6EE7B7;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.org-role-badge--viewer {
+    background-color: rgba(148, 163, 184, 0.15);
+    color: #CBD5E1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Danger Zone */
+.org-danger-zone {
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.03);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.org-danger-zone h4 {
+    color: #F87171;
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.org-danger-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.org-danger-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.org-danger-item__text h5 {
+    margin: 0 0 0.25rem;
+    color: #F8FAFC;
+    font-size: 0.875rem;
+}
+
+.org-danger-item__text p {
+    margin: 0;
+    color: #94A3B8;
+    font-size: 0.8125rem;
+}
+
+/* Modals */
+.org-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.org-modal {
+    background-color: #13191E;
+    border: 1px solid #232D36;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 540px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.org-modal__header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #1E293B;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.org-modal__header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #F8FAFC;
+}
+
+.org-modal__close {
+    background: none;
+    border: none;
+    color: #94A3B8;
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+
+.org-modal__close:hover {
+    color: #F8FAFC;
+}
+
+.org-modal__body {
+    padding: 1.5rem;
+}
+
+.org-modal__footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #1E293B;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Form inputs */
+.org-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.org-form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #CBD5E1;
+    margin-bottom: 0.35rem;
+}
+
+.org-input,
+.org-select,
+.org-textarea {
+    width: 100%;
+    background-color: #0A0D10;
+    border: 1px solid #2D3748;
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    color: #F8FAFC;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+}
+
+.org-input:focus,
+.org-select:focus,
+.org-textarea:focus {
+    border-color: #8BAF9A;
+}
+
+.org-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Switcher Dropdown */
+.org-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background-color: #161D23;
+    border: 1px solid #2D3748;
+    border-radius: 6px;
+    width: 260px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    z-index: 50;
+    padding: 0.5rem 0;
+}
+
+.org-dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    color: #E2E8F0;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.org-dropdown-item:hover {
+    background-color: #1F2830;
+    color: #F8FAFC;
+}
+
+.org-dropdown-item.active {
+    color: #8BAF9A;
+    font-weight: 600;
+}
+
+.org-dropdown-divider {
+    height: 1px;
+    background-color: #232D36;
+    margin: 0.35rem 0;
+}
