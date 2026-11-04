@@ -64,3 +64,4 @@ const requireQuota = (metric, quantityResolver = 1) => {
 module.exports = {
     requireQuota
 };
+
