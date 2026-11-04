@@ -52,22 +52,51 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState('');
     const [historyFilter, setHistoryFilter] = useState('all');
+    const [resolvedOrg, setResolvedOrg] = useState(activeOrg);
 
     useEffect(() => {
         if (activeOrg?.id) {
-            loadUsageData();
+            setResolvedOrg(activeOrg);
+            loadUsageData(activeOrg.id);
+        } else {
+            resolveFallbackOrg();
         }
     }, [activeOrg?.id]);
 
-    const loadUsageData = async (refresh = false) => {
+    const resolveFallbackOrg = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const res = await organizationService.getUserOrganizations();
+            const orgs = res.data || [];
+            if (orgs.length > 0) {
+                const target = orgs[0];
+                setResolvedOrg(target);
+                await loadUsageData(target.id);
+            } else {
+                setIsLoading(false);
+            }
+        } catch (err) {
+            setError(err.message || 'Unable to connect to organization service');
+            setIsLoading(false);
+        }
+    };
+
+    const loadUsageData = async (orgId = null, refresh = false) => {
+        const targetId = orgId || resolvedOrg?.id || activeOrg?.id;
+        if (!targetId) {
+            setIsLoading(false);
+            return;
+        }
+
         if (refresh) setIsRefreshing(true);
         else setIsLoading(true);
         setError('');
 
         try {
             const [usageRes, historyRes] = await Promise.all([
-                organizationService.getUsage(activeOrg.id),
-                organizationService.getUsageHistory(activeOrg.id, { limit: 20 })
+                organizationService.getUsage(targetId),
+                organizationService.getUsageHistory(targetId, { limit: 20 })
             ]);
 
             if (usageRes?.success) {
@@ -104,7 +133,27 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
         );
     }
 
-    const plan = (usageData?.plan || activeOrg?.plan || 'free').toUpperCase();
+    if (!usageData && !isLoading) {
+        return (
+            <div className="org-card usage-history-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+                <AlertCircle size={36} style={{ color: '#F59E0B', margin: '0 auto 1rem auto' }} />
+                <h3 className="org-card__title" style={{ marginBottom: '0.5rem' }}>Usage Information Unavailable</h3>
+                <p className="org-card__subtitle" style={{ maxWidth: '500px', margin: '0 auto 1.5rem auto' }}>
+                    {error || 'Unable to retrieve usage quotas for the active organization. Please verify your connection or try again.'}
+                </p>
+                <button
+                    className="org-btn org-btn--primary"
+                    onClick={() => resolveFallbackOrg()}
+                >
+                    <RefreshCw size={14} />
+                    Retry Connection
+                </button>
+            </div>
+        );
+    }
+
+    const currentOrg = resolvedOrg || activeOrg;
+    const plan = (usageData?.plan || currentOrg?.plan || 'free').toUpperCase();
     const billingPeriod = usageData?.billingPeriod;
     const warnings = usageData?.warnings || [];
     const metrics = usageData?.metrics || {};

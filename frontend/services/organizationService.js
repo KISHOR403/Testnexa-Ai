@@ -2,11 +2,12 @@
  * TestNexa AI — Organization & Team Management Frontend Service
  */
 
-const API_BASE = '/api/v1/organizations';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const API_BASE = `${API_BASE_URL}/organizations`;
 
 const getAuthHeaders = () => {
     const headers = { 'Content-Type': 'application/json' };
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('testnexa_token');
+    const token = localStorage.getItem('testnexa_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
@@ -222,8 +223,9 @@ export const organizationService = {
         if (options.limit) params.append('limit', options.limit);
         if (options.orgId) params.append('orgId', options.orgId);
         const qs = params.toString();
-        const res = await fetch(`/api/v1/audit/resource/${resourceType}/${resourceId}${qs ? `?${qs}` : ''}`, {
-            headers: getAuthHeaders()
+        const res = await fetch(`${API_BASE_URL}/audit/resource/${resourceType}/${resourceId}${qs ? `?${qs}` : ''}`, {
+            headers: getAuthHeaders(),
+            credentials: 'include'
         });
         return handleResponse(res);
     },

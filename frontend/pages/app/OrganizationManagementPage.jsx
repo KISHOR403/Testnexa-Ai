@@ -296,7 +296,7 @@ const OrganizationManagementPage = () => {
                             className="org-header__switcher"
                             onClick={() => setShowOrgDropdown(!showOrgDropdown)}
                         >
-                            <span>Org: <strong>{activeOrg?.name || 'Loading...'}</strong></span>
+                            <span>Org: <strong>{activeOrg?.name || (isLoading ? 'Loading...' : 'Select Organization')}</strong></span>
                             <span className={`org-role-badge org-role-badge--${activeOrg?.userRole || 'viewer'}`}>
                                 {activeOrg?.userRole || 'viewer'}
                             </span>
@@ -364,9 +364,18 @@ const OrganizationManagementPage = () => {
 
             {/* Notification Banners */}
             {errorMessage && (
-                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-                    <AlertTriangle size={16} />
-                    <span>{errorMessage}</span>
+                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.875rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <AlertTriangle size={16} />
+                        <span>{errorMessage}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={loadOrganizations}
+                        style={{ background: 'transparent', border: '1px solid #F87171', color: '#F87171', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                    >
+                        Retry
+                    </button>
                 </div>
             )}
             {successMessage && (

@@ -2,13 +2,14 @@
  * TestNexa AI — CI/CD Integrations Frontend Service
  */
 
-const API_BASE = '/api/v1/integrations/cicd';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const API_BASE = `${API_BASE_URL}/integrations/cicd`;
 
 const getAuthHeaders = () => {
     const headers = {
         'Content-Type': 'application/json',
     };
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    const token = localStorage.getItem('testnexa_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
