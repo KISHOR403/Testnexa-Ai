@@ -15,3 +15,4 @@ router.patch('/findings/:id', protect, updateFinding);
 router.post('/findings/:id/ai-analyze', protect, analyzeFindingWithAI);
 
 module.exports = router;
+

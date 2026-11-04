@@ -625,3 +625,4 @@ JSON SCHEMA:
 }
 
 module.exports = new MaintenanceIntelligenceService();
+

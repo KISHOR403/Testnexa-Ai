@@ -1,0 +1,518 @@
+/* ==========================================================================
+   TestNexa AI — CI/CD Integrations Styles
+   Mineral dark aesthetic (#0B0F12, #8BAF9A jade green accent)
+   ========================================================================== */
+
+.cicd-page {
+    padding: 1.5rem 2rem 3rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    color: #E2E8F0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Header */
+.cicd-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid #1E293B;
+}
+
+.cicd-header__title-area h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #F8FAFC;
+    margin: 0 0 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.cicd-header__subtitle {
+    font-size: 0.875rem;
+    color: #94A3B8;
+    margin: 0;
+}
+
+.cicd-header__actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Buttons */
+.cicd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cicd-btn--primary {
+    background-color: #8BAF9A;
+    color: #0B0F12;
+    border-color: #8BAF9A;
+}
+
+.cicd-btn--primary:hover {
+    background-color: #7a9e89;
+    border-color: #7a9e89;
+}
+
+.cicd-btn--secondary {
+    background-color: #1A2228;
+    color: #E2E8F0;
+    border-color: #2D3748;
+}
+
+.cicd-btn--secondary:hover {
+    background-color: #242E36;
+    border-color: #4A5568;
+}
+
+.cicd-btn--danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #F87171;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.cicd-btn--danger:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.cicd-btn--sm {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+}
+
+/* Tabs */
+.cicd-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid #1E293B;
+    margin-bottom: 1.5rem;
+}
+
+.cicd-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #94A3B8;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cicd-tab:hover {
+    color: #E2E8F0;
+}
+
+.cicd-tab.active {
+    color: #8BAF9A;
+    border-bottom-color: #8BAF9A;
+}
+
+/* Provider Cards Grid */
+.cicd-providers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.cicd-provider-card {
+    background-color: #13191E;
+    border: 1px solid #232D36;
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cicd-provider-card__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.cicd-provider-card__identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.cicd-provider-card__icon {
+    width: 38px;
+    height: 38px;
+    background-color: #1A2228;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #E2E8F0;
+}
+
+.cicd-provider-card__name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #F8FAFC;
+    margin: 0;
+}
+
+.cicd-provider-card__desc {
+    font-size: 0.8125rem;
+    color: #94A3B8;
+    margin: 0 0 1rem;
+    line-height: 1.45;
+}
+
+.cicd-provider-card__meta {
+    background-color: #161D23;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.75rem;
+    color: #94A3B8;
+    margin-bottom: 1rem;
+}
+
+.cicd-provider-card__meta-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+
+.cicd-provider-card__meta-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Badges */
+.cicd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+}
+
+.cicd-badge--active {
+    background-color: rgba(139, 175, 154, 0.15);
+    color: #8BAF9A;
+    border: 1px solid rgba(139, 175, 154, 0.3);
+}
+
+.cicd-badge--disconnected {
+    background-color: rgba(148, 163, 184, 0.1);
+    color: #94A3B8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.cicd-badge--coming-soon {
+    background-color: rgba(234, 179, 8, 0.1);
+    color: #FACC15;
+    border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.cicd-badge--running {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #60A5FA;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.cicd-badge--passed {
+    background-color: rgba(139, 175, 154, 0.15);
+    color: #8BAF9A;
+    border: 1px solid rgba(139, 175, 154, 0.3);
+}
+
+.cicd-badge--failed {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Tables */
+.cicd-table-card {
+    background-color: #13191E;
+    border: 1px solid #232D36;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cicd-table-toolbar {
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1E293B;
+}
+
+.cicd-table-toolbar__title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #F8FAFC;
+    margin: 0;
+}
+
+.cicd-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.8125rem;
+}
+
+.cicd-table th {
+    background-color: #161D23;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    color: #94A3B8;
+    border-bottom: 1px solid #232D36;
+}
+
+.cicd-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #1A2228;
+    color: #CBD5E1;
+}
+
+.cicd-table tr:hover td {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.cicd-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Empty State */
+.cicd-empty {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #94A3B8;
+}
+
+.cicd-empty__icon {
+    margin: 0 auto 1rem;
+    opacity: 0.5;
+}
+
+.cicd-empty__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #E2E8F0;
+    margin: 0 0 0.5rem;
+}
+
+.cicd-empty__desc {
+    font-size: 0.8125rem;
+    margin: 0 0 1.25rem;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Code & Instructions */
+.cicd-code-box {
+    background-color: #0A0D10;
+    border: 1px solid #1E293B;
+    border-radius: 6px;
+    padding: 1rem;
+    position: relative;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #E2E8F0;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.cicd-code-box__copy-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background-color: #1A2228;
+    color: #CBD5E1;
+    border: 1px solid #2D3748;
+    border-radius: 4px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.cicd-code-box__copy-btn:hover {
+    background-color: #242E36;
+    color: #F8FAFC;
+}
+
+.cicd-instruction-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.cicd-step-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: rgba(139, 175, 154, 0.15);
+    color: #8BAF9A;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.8125rem;
+}
+
+.cicd-step-body h4 {
+    margin: 0 0 0.35rem;
+    color: #F8FAFC;
+    font-size: 0.9375rem;
+}
+
+.cicd-step-body p {
+    margin: 0;
+    color: #94A3B8;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+/* Modals */
+.cicd-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.cicd-modal {
+    background-color: #13191E;
+    border: 1px solid #232D36;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 580px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.cicd-modal__header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #1E293B;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cicd-modal__header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #F8FAFC;
+    font-weight: 600;
+}
+
+.cicd-modal__close {
+    background: none;
+    border: none;
+    color: #94A3B8;
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0;
+}
+
+.cicd-modal__close:hover {
+    color: #F8FAFC;
+}
+
+.cicd-modal__body {
+    padding: 1.5rem;
+}
+
+.cicd-modal__footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #1E293B;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Form Groups */
+.cicd-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.cicd-form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #CBD5E1;
+    margin-bottom: 0.35rem;
+}
+
+.cicd-input,
+.cicd-select {
+    width: 100%;
+    background-color: #0A0D10;
+    border: 1px solid #2D3748;
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    color: #F8FAFC;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+}
+
+.cicd-input:focus,
+.cicd-select:focus {
+    border-color: #8BAF9A;
+}
+
+.cicd-checkbox-group {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.cicd-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #CBD5E1;
+    cursor: pointer;
+}
+
+.cicd-checkbox-label input {
+    accent-color: #8BAF9A;
+}
+
+.cicd-helper-text {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    margin-top: 0.35rem;
+}

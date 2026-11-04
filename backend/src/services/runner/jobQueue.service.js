@@ -10,13 +10,15 @@
 
 const crypto = require('crypto');
 const path = require('path');
+const { EventEmitter } = require('events');
 const supabaseService = require('../supabaseData.service');
 const { executePlaywrightJob } = require('./playwrightRunner.worker');
 const { saveArtifactBuffer } = require('../../utils/artifactStorage');
 const logger = require('../../utils/logger');
 
-class JobQueueService {
+class JobQueueService extends EventEmitter {
     constructor() {
+        super();
         this.workerId = 'worker_' + process.pid + '_' + crypto.randomBytes(4).toString('hex');
         this.activeJobs = new Map();
         this.isProcessing = false;
@@ -405,6 +407,23 @@ class JobQueueService {
             status: finalRunStatus,
             completed_at: completedAt
         });
+
+        // Notify CI/CD and listeners of execution completion
+        try {
+            this.emit('job_completed', {
+                jobId: job.id,
+                runId: job.runId,
+                workspaceId: job.workspaceId,
+                status: finalRunStatus,
+                passed,
+                failed,
+                completed,
+                total: automatedCases.length,
+                completedAt
+            });
+        } catch (emitErr) {
+            logger.warn('Error emitting job_completed event:', emitErr.message);
+        }
     }
 
     async _handleJobFailure(job, err) {
@@ -423,6 +442,20 @@ class JobQueueService {
                 error_message: err.message || 'Worker encountered unhandled crash',
                 completed_at: now
             });
+
+            // Notify CI/CD listeners of failure
+            try {
+                this.emit('job_failed', {
+                    jobId: job.id,
+                    runId: job.runId,
+                    workspaceId: job.workspaceId,
+                    status: 'error',
+                    error: err.message,
+                    completedAt: now
+                });
+            } catch (emitErr) {
+                logger.warn('Error emitting job_failed event:', emitErr.message);
+            }
         }
     }
 

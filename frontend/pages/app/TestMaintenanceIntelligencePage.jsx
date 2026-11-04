@@ -798,3 +798,4 @@ const TestMaintenanceIntelligencePage = () => {
 };
 
 export default TestMaintenanceIntelligencePage;
+

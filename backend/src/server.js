@@ -69,7 +69,11 @@ app.use(cors({
     },
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
@@ -109,6 +113,7 @@ app.use('/api/v1/runs', require('./routes/execution.routes'));
 app.use('/api/v1/test-data', require('./routes/testData.routes'));
 app.use('/api/v1/recommendations', require('./routes/recommendations.routes'));
 app.use('/api/v1/maintenance', require('./routes/maintenance.routes'));
+app.use('/api/v1/integrations/cicd', require('./routes/cicd.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)
 try {

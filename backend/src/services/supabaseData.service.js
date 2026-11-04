@@ -31,6 +31,12 @@ class SupabaseDataService {
         this.inMemoryRecommendations = new Map();
         this.inMemoryRecommendationSessions = new Map();
         this.inMemoryMaintenanceFindings = new Map();
+        this.inMemoryReleases = new Map();
+        this.inMemoryReadinessAssessments = new Map();
+        this.inMemoryCiConnections = new Map();
+        this.inMemoryCiPipelines = new Map();
+        this.inMemoryCiActivity = new Map();
+        this.inMemoryCiDeliveries = new Set();
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -119,6 +125,26 @@ class SupabaseDataService {
                         this.inMemoryMaintenanceFindings.set(k, v);
                     }
                 }
+                if (data.ciConnections && typeof data.ciConnections === 'object') {
+                    for (const [k, v] of Object.entries(data.ciConnections)) {
+                        this.inMemoryCiConnections.set(k, v);
+                    }
+                }
+                if (data.ciPipelines && typeof data.ciPipelines === 'object') {
+                    for (const [k, v] of Object.entries(data.ciPipelines)) {
+                        this.inMemoryCiPipelines.set(k, v);
+                    }
+                }
+                if (data.ciActivity && typeof data.ciActivity === 'object') {
+                    for (const [k, v] of Object.entries(data.ciActivity)) {
+                        this.inMemoryCiActivity.set(k, v);
+                    }
+                }
+                if (Array.isArray(data.ciDeliveries)) {
+                    for (const d of data.ciDeliveries) {
+                        this.inMemoryCiDeliveries.add(d);
+                    }
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -146,7 +172,11 @@ class SupabaseDataService {
                 failureAnalyses: Object.fromEntries(this.inMemoryFailureAnalyses),
                 recommendations: Object.fromEntries(this.inMemoryRecommendations),
                 recommendationSessions: Object.fromEntries(this.inMemoryRecommendationSessions),
-                maintenanceFindings: Object.fromEntries(this.inMemoryMaintenanceFindings)
+                maintenanceFindings: Object.fromEntries(this.inMemoryMaintenanceFindings),
+                ciConnections: Object.fromEntries(this.inMemoryCiConnections),
+                ciPipelines: Object.fromEntries(this.inMemoryCiPipelines),
+                ciActivity: Object.fromEntries(this.inMemoryCiActivity),
+                ciDeliveries: Array.from(this.inMemoryCiDeliveries).slice(-500)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -4096,6 +4126,221 @@ class SupabaseDataService {
         this.inMemoryMaintenanceFindings.set(findingId, updated);
         this._saveDiskWorkspacesStore();
         return updated;
+    }
+
+    // ==========================================
+    // CI/CD INTEGRATIONS & PIPELINES
+    // ==========================================
+
+    async saveCiConnection(connection) {
+        if (!connection || !connection.workspaceId || !connection.provider) {
+            throw new Error('workspaceId and provider are required to save CI connection');
+        }
+        const key = `${connection.workspaceId}:${connection.provider}`;
+        const record = {
+            id: connection.id || `conn_${crypto.randomBytes(6).toString('hex')}`,
+            ...connection,
+            updatedAt: new Date().toISOString()
+        };
+        this.inMemoryCiConnections.set(key, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getCiConnections(workspaceId) {
+        if (!workspaceId) return [];
+        return Array.from(this.inMemoryCiConnections.values())
+            .filter(c => c.workspaceId === workspaceId || c.workspace_id === workspaceId);
+    }
+
+    async getCiConnectionByProvider(workspaceId, provider) {
+        if (!workspaceId || !provider) return null;
+        const key = `${workspaceId}:${provider.toLowerCase()}`;
+        return this.inMemoryCiConnections.get(key) || null;
+    }
+
+    async deleteCiConnection(workspaceId, provider) {
+        if (!workspaceId || !provider) return false;
+        const key = `${workspaceId}:${provider.toLowerCase()}`;
+        const existed = this.inMemoryCiConnections.delete(key);
+        if (existed) {
+            this._saveDiskWorkspacesStore();
+        }
+        return existed;
+    }
+
+    async saveCiPipeline(pipeline) {
+        if (!pipeline || !pipeline.workspaceId) {
+            throw new Error('workspaceId is required to save pipeline');
+        }
+        const id = pipeline.id || `pipe_${crypto.randomBytes(6).toString('hex')}`;
+        const now = new Date().toISOString();
+        const record = {
+            id,
+            ...pipeline,
+            createdAt: pipeline.createdAt || now,
+            updatedAt: now
+        };
+        this.inMemoryCiPipelines.set(id, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getCiPipelines(workspaceId, filters = {}) {
+        if (!workspaceId) return [];
+        let rows = Array.from(this.inMemoryCiPipelines.values())
+            .filter(p => p.workspaceId === workspaceId || p.workspace_id === workspaceId);
+
+        if (filters.provider) {
+            rows = rows.filter(p => p.provider === filters.provider);
+        }
+        if (filters.repository) {
+            rows = rows.filter(p => (p.repository || '').toLowerCase() === filters.repository.toLowerCase());
+        }
+        if (filters.isActive !== undefined) {
+            rows = rows.filter(p => Boolean(p.isActive) === Boolean(filters.isActive));
+        }
+
+        return rows.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
+    }
+
+    async getCiPipelineById(workspaceId, pipelineId) {
+        if (!pipelineId) return null;
+        const pipe = this.inMemoryCiPipelines.get(pipelineId);
+        if (!pipe) return null;
+        if (workspaceId && pipe.workspaceId !== workspaceId && pipe.workspace_id !== workspaceId) {
+            return null;
+        }
+        return pipe;
+    }
+
+    async findMatchingPipelines({ repository, branch, eventType }) {
+        if (!repository) return [];
+        const normalizedRepo = repository.toLowerCase().trim();
+        const normalizedBranch = (branch || '').toLowerCase().trim();
+
+        return Array.from(this.inMemoryCiPipelines.values()).filter(p => {
+            if (!p.isActive) return false;
+            const pRepo = (p.repository || '').toLowerCase().trim();
+            if (pRepo !== normalizedRepo) return false;
+
+            // Check trigger events
+            if (eventType && Array.isArray(p.triggerEvents)) {
+                if (!p.triggerEvents.includes(eventType)) return false;
+            }
+
+            // Check branch match (supports exact, wildcard *, or comma-separated)
+            if (p.branch && normalizedBranch) {
+                const targetBranches = p.branch.split(',').map(b => b.trim().toLowerCase());
+                const matchesBranch = targetBranches.some(tb => {
+                    if (tb === '*' || tb === 'all') return true;
+                    if (tb.endsWith('/*')) {
+                        const prefix = tb.slice(0, -2);
+                        return normalizedBranch.startsWith(prefix);
+                    }
+                    return tb === normalizedBranch;
+                });
+                if (!matchesBranch) return false;
+            }
+
+            return true;
+        });
+    }
+
+    async updateCiPipeline(workspaceId, pipelineId, updates = {}) {
+        const pipe = await this.getCiPipelineById(workspaceId, pipelineId);
+        if (!pipe) return null;
+
+        const updated = {
+            ...pipe,
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        this.inMemoryCiPipelines.set(pipelineId, updated);
+        this._saveDiskWorkspacesStore();
+        return updated;
+    }
+
+    async deleteCiPipeline(workspaceId, pipelineId) {
+        const pipe = await this.getCiPipelineById(workspaceId, pipelineId);
+        if (!pipe) return false;
+
+        this.inMemoryCiPipelines.delete(pipelineId);
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    async saveCiActivity(activity) {
+        if (!activity || !activity.workspaceId) {
+            throw new Error('workspaceId is required for CI activity');
+        }
+        const id = activity.id || `act_${crypto.randomBytes(6).toString('hex')}`;
+        const record = {
+            id,
+            ...activity,
+            createdAt: activity.createdAt || new Date().toISOString()
+        };
+        this.inMemoryCiActivity.set(id, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async updateCiActivity(activityId, updates = {}) {
+        if (!activityId) return null;
+        const existing = this.inMemoryCiActivity.get(activityId);
+        if (!existing) return null;
+
+        const updated = {
+            ...existing,
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        this.inMemoryCiActivity.set(activityId, updated);
+        this._saveDiskWorkspacesStore();
+        return updated;
+    }
+
+    async getCiActivity(workspaceId, filters = {}) {
+        if (!workspaceId) return [];
+        let rows = Array.from(this.inMemoryCiActivity.values())
+            .filter(a => a.workspaceId === workspaceId || a.workspace_id === workspaceId);
+
+        if (filters.pipelineId) {
+            rows = rows.filter(a => a.pipelineId === filters.pipelineId);
+        }
+        if (filters.status) {
+            rows = rows.filter(a => a.status === filters.status);
+        }
+        if (filters.repository) {
+            rows = rows.filter(a => (a.repository || '').toLowerCase() === filters.repository.toLowerCase());
+        }
+
+        return rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    async getCiActivityById(workspaceId, activityId) {
+        if (!activityId) return null;
+        const act = this.inMemoryCiActivity.get(activityId);
+        if (!act) return null;
+        if (workspaceId && act.workspaceId !== workspaceId && act.workspace_id !== workspaceId) {
+            return null;
+        }
+        return act;
+    }
+
+    isCiDeliveryProcessed(deliveryId) {
+        if (!deliveryId) return false;
+        return this.inMemoryCiDeliveries.has(deliveryId);
+    }
+
+    recordCiDelivery(deliveryId) {
+        if (!deliveryId) return;
+        this.inMemoryCiDeliveries.add(deliveryId);
+        if (this.inMemoryCiDeliveries.size > 2000) {
+            const first = this.inMemoryCiDeliveries.values().next().value;
+            this.inMemoryCiDeliveries.delete(first);
+        }
+        this._saveDiskWorkspacesStore();
     }
 }
 

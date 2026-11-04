@@ -39,6 +39,7 @@ const FailureTrendAnalysisPage = lazy(() => import('./pages/app/FailureTrendAnal
 const ExecutionIntelligenceDashboardPage = lazy(() => import('./pages/app/ExecutionIntelligenceDashboardPage'));
 const TestMaintenanceIntelligencePage = lazy(() => import('./pages/app/TestMaintenanceIntelligencePage'));
 const SmartRecommendationsPage = lazy(() => import('./pages/app/SmartRecommendationsPage'));
+const CiCdIntegrationsPage = lazy(() => import('./pages/app/CiCdIntegrationsPage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
 // Dynamic discovery for Admin Console (active locally/privately; gracefully absent in public repo)
@@ -191,6 +192,8 @@ function AppContent() {
             <Route path="maintenance" element={<TestMaintenanceIntelligencePage />} />
             <Route path="recommendations" element={<SmartRecommendationsPage />} />
             <Route path="recommendations/:suiteId" element={<SmartRecommendationsPage />} />
+            <Route path="integrations" element={<CiCdIntegrationsPage />} />
+            <Route path="integrations/cicd" element={<CiCdIntegrationsPage />} />
             <Route path="settings" element={<AppSettingsPage />} />
             <Route path="billing" element={<Navigate to="/app/settings?tab=billing" replace />} />
           </Route>
