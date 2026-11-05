@@ -47,7 +47,17 @@ const PERMISSIONS = {
 
     // Audit Logs & Activity
     AUDIT_VIEW: 'audit.view',
-    AUDIT_EXPORT: 'audit.export'
+    AUDIT_EXPORT: 'audit.export',
+
+    // Enterprise Security & Administration
+    SECURITY_VIEW: 'security.view',
+    SECURITY_MANAGE: 'security.manage',
+    SECURITY_SSO_MANAGE: 'security.sso.manage',
+    SECURITY_MFA_MANAGE: 'security.mfa.manage',
+    SECURITY_SESSIONS_MANAGE: 'security.sessions.manage',
+    SECURITY_APIKEYS_MANAGE: 'security.apikeys.manage',
+    SECURITY_POLICIES_MANAGE: 'security.policies.manage',
+    SECURITY_AUDIT_VIEW: 'security.audit.view'
 };
 
 const ROLE_PERMISSIONS = {
@@ -62,6 +72,14 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.ORG_VIEW_ACTIVITY,
         PERMISSIONS.AUDIT_VIEW,
         PERMISSIONS.AUDIT_EXPORT,
+        PERMISSIONS.SECURITY_VIEW,
+        PERMISSIONS.SECURITY_MANAGE,
+        PERMISSIONS.SECURITY_SSO_MANAGE,
+        PERMISSIONS.SECURITY_MFA_MANAGE,
+        PERMISSIONS.SECURITY_SESSIONS_MANAGE,
+        PERMISSIONS.SECURITY_APIKEYS_MANAGE,
+        PERMISSIONS.SECURITY_POLICIES_MANAGE,
+        PERMISSIONS.SECURITY_AUDIT_VIEW,
         PERMISSIONS.WORKSPACE_CREATE,
         PERMISSIONS.WORKSPACE_MANAGE,
         PERMISSIONS.WORKSPACE_ARCHIVE,
@@ -79,6 +97,14 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.ORG_VIEW_ACTIVITY,
         PERMISSIONS.AUDIT_VIEW,
         PERMISSIONS.AUDIT_EXPORT,
+        PERMISSIONS.SECURITY_VIEW,
+        PERMISSIONS.SECURITY_MANAGE,
+        PERMISSIONS.SECURITY_SSO_MANAGE,
+        PERMISSIONS.SECURITY_MFA_MANAGE,
+        PERMISSIONS.SECURITY_SESSIONS_MANAGE,
+        PERMISSIONS.SECURITY_APIKEYS_MANAGE,
+        PERMISSIONS.SECURITY_POLICIES_MANAGE,
+        PERMISSIONS.SECURITY_AUDIT_VIEW,
         PERMISSIONS.WORKSPACE_CREATE,
         PERMISSIONS.WORKSPACE_MANAGE,
         PERMISSIONS.WORKSPACE_ARCHIVE,
@@ -92,6 +118,8 @@ const ROLE_PERMISSIONS = {
     [ROLES.QA_MANAGER]: [
         PERMISSIONS.ORG_VIEW_ACTIVITY,
         PERMISSIONS.AUDIT_VIEW,
+        PERMISSIONS.SECURITY_VIEW,
+        PERMISSIONS.SECURITY_AUDIT_VIEW,
         PERMISSIONS.SUITE_MANAGE,
         PERMISSIONS.TESTCASE_CREATE_EDIT,
         PERMISSIONS.TESTCASE_DELETE,
@@ -119,7 +147,16 @@ const PERMISSION_ALIASES = {
     'audit.view': ['audit.view', 'audit:view', 'org:view_activity'],
     'audit:view': ['audit.view', 'audit:view', 'org:view_activity'],
     'audit.export': ['audit.export', 'audit:export'],
-    'audit:export': ['audit.export', 'audit:export']
+    'audit:export': ['audit.export', 'audit:export'],
+    'security.view': ['security.view', 'security:view'],
+    'security:view': ['security.view', 'security:view'],
+    'security.manage': ['security.manage', 'security:manage'],
+    'security:manage': ['security.manage', 'security:manage'],
+    'security.sso.manage': ['security.sso.manage', 'security:sso_manage'],
+    'security.mfa.manage': ['security.mfa.manage', 'security:mfa_manage'],
+    'security.sessions.manage': ['security.sessions.manage', 'security:sessions_manage'],
+    'security.apikeys.manage': ['security.apikeys.manage', 'security:apikeys_manage'],
+    'security.policies.manage': ['security.policies.manage', 'security:policies_manage']
 };
 
 /**

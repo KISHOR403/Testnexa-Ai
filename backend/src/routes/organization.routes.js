@@ -80,5 +80,34 @@ router.get('/:id/usage', protect, requireOrgAccess, getOrganizationUsage);
 router.get('/:id/usage/history', protect, requireOrgAccess, getUsageHistory);
 router.get('/:id/usage/warnings', protect, requireOrgAccess, getUsageWarnings);
 
+// Organization Enterprise Security
+const securityController = require('../controllers/security.controller');
+
+// SSO Management
+router.get('/:id/security/sso', protect, requireOrgAccess, requireOrgPermission('security.view'), securityController.getSsoConfig);
+router.post('/:id/security/sso', protect, requireOrgAccess, requireOrgPermission('security.sso.manage'), securityController.configureSso);
+router.post('/:id/security/sso/test', protect, requireOrgAccess, requireOrgPermission('security.sso.manage'), securityController.testSsoConfig);
+router.patch('/:id/security/sso/enforce', protect, requireOrgAccess, requireOrgPermission('security.sso.manage'), securityController.toggleSsoEnforcement);
+router.delete('/:id/security/sso', protect, requireOrgAccess, requireOrgPermission('security.sso.manage'), securityController.deleteSsoConfig);
+
+// API Keys Management
+router.get('/:id/security/api-keys', protect, requireOrgAccess, requireOrgPermission('security.view'), securityController.listApiKeys);
+router.post('/:id/security/api-keys', protect, requireOrgAccess, requireOrgPermission('security.apikeys.manage'), securityController.createApiKey);
+router.post('/:id/security/api-keys/:keyId/rotate', protect, requireOrgAccess, requireOrgPermission('security.apikeys.manage'), securityController.rotateApiKey);
+router.delete('/:id/security/api-keys/:keyId', protect, requireOrgAccess, requireOrgPermission('security.apikeys.manage'), securityController.revokeApiKey);
+
+// Security Policies
+router.get('/:id/security/policies', protect, requireOrgAccess, requireOrgPermission('security.view'), securityController.getSecurityPolicy);
+router.put('/:id/security/policies', protect, requireOrgAccess, requireOrgPermission('security.policies.manage'), securityController.updateSecurityPolicy);
+
+// IP Allowlist
+router.get('/:id/security/ip-allowlist', protect, requireOrgAccess, requireOrgPermission('security.view'), securityController.listIpAllowlist);
+router.post('/:id/security/ip-allowlist', protect, requireOrgAccess, requireOrgPermission('security.policies.manage'), securityController.addIpAllowlistEntry);
+router.delete('/:id/security/ip-allowlist/:entryId', protect, requireOrgAccess, requireOrgPermission('security.policies.manage'), securityController.removeIpAllowlistEntry);
+router.get('/:id/security/ip-allowlist/my-ip', protect, requireOrgAccess, securityController.getClientIpContext);
+
+// Security Event History
+router.get('/:id/security/events', protect, requireOrgAccess, requireOrgPermission('security.audit.view'), securityController.listSecurityEvents);
+
 module.exports = router;
 

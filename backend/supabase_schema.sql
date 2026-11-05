@@ -525,3 +525,107 @@ CREATE TABLE IF NOT EXISTS public.plan_quotas (
     updated_by TEXT
 );
 
+-- ==============================================================================
+-- Phase 4 Step 6: Enterprise Security & Administration Schema
+-- ==============================================================================
+
+-- 1. Single Sign-On (SSO) Configurations (SAML 2.0 / OIDC)
+CREATE TABLE IF NOT EXISTS public.organization_sso_configs (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL UNIQUE,
+    provider_name TEXT NOT NULL,
+    protocol TEXT NOT NULL DEFAULT 'saml', -- 'saml' or 'oidc'
+    issuer TEXT NOT NULL,
+    entry_point TEXT NOT NULL, -- SSO URL
+    client_id TEXT,
+    client_secret_encrypted TEXT,
+    cert_or_public_key TEXT,
+    domains JSONB DEFAULT '[]'::jsonb, -- e.g. ["acme.com"]
+    enforced BOOLEAN DEFAULT false,
+    allow_password_fallback BOOLEAN DEFAULT true,
+    status TEXT NOT NULL DEFAULT 'configured', -- 'configured', 'verified', 'disabled'
+    tested_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_sso_configs_org ON public.organization_sso_configs(org_id);
+
+-- 2. Multi-Factor Authentication (MFA) Credentials
+CREATE TABLE IF NOT EXISTS public.user_mfa_credentials (
+    user_id TEXT PRIMARY KEY,
+    secret_encrypted TEXT NOT NULL,
+    backup_codes JSONB NOT NULL DEFAULT '[]'::jsonb, -- Array of { hash: string, usedAt: string|null }
+    enabled BOOLEAN DEFAULT false,
+    enrolled_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. Organization API Keys (Secure, Hashed, Scoped)
+CREATE TABLE IF NOT EXISTS public.organization_api_keys (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    key_prefix TEXT NOT NULL, -- First 10 chars for display (e.g. tnx_live_9a...)
+    key_hash TEXT NOT NULL UNIQUE, -- SHA-256 of the complete token
+    scopes JSONB NOT NULL DEFAULT '["projects:read", "testcases:read"]'::jsonb,
+    created_by TEXT NOT NULL,
+    expires_at TIMESTAMPTZ,
+    last_used_at TIMESTAMPTZ,
+    revoked_at TIMESTAMPTZ,
+    status TEXT NOT NULL DEFAULT 'active', -- 'active', 'revoked', 'expired'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_api_keys_org ON public.organization_api_keys(org_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON public.organization_api_keys(key_hash);
+
+-- 4. Organization Security Policies
+CREATE TABLE IF NOT EXISTS public.organization_security_policies (
+    org_id TEXT PRIMARY KEY,
+    require_mfa BOOLEAN DEFAULT false,
+    mfa_enforced_roles JSONB DEFAULT '["owner", "admin"]'::jsonb,
+    enforce_sso BOOLEAN DEFAULT false,
+    allow_password_auth BOOLEAN DEFAULT true,
+    approved_email_domains JSONB DEFAULT '[]'::jsonb,
+    min_password_length INTEGER DEFAULT 8,
+    require_password_complexity BOOLEAN DEFAULT false,
+    idle_timeout_minutes INTEGER DEFAULT 30,
+    max_session_hours INTEGER DEFAULT 24,
+    ip_allowlist_enabled BOOLEAN DEFAULT false,
+    artifact_retention_days INTEGER DEFAULT 90,
+    audit_log_retention_days INTEGER DEFAULT 365,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_by TEXT
+);
+
+-- 5. Organization IP Allowlists
+CREATE TABLE IF NOT EXISTS public.organization_ip_allowlists (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL,
+    cidr_or_ip TEXT NOT NULL,
+    description TEXT,
+    created_by TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_ip_allowlists_org ON public.organization_ip_allowlists(org_id);
+
+-- 6. Security Event Activity Stream
+CREATE TABLE IF NOT EXISTS public.security_events (
+    id TEXT PRIMARY KEY,
+    org_id TEXT,
+    user_id TEXT,
+    event_type TEXT NOT NULL,
+    severity TEXT NOT NULL DEFAULT 'info', -- 'info', 'warning', 'critical'
+    description TEXT NOT NULL,
+    ip_address TEXT,
+    user_agent TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_events_org ON public.security_events(org_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_security_events_user ON public.security_events(user_id, timestamp DESC);
+
+

@@ -45,6 +45,12 @@ class SupabaseDataService {
         this.inMemoryUsageEvents = new Map();
         this.inMemoryOrgStorage = new Map();
         this.inMemoryPlanQuotas = null;
+        this.inMemorySsoConfigs = new Map();
+        this.inMemoryUserMfa = new Map();
+        this.inMemoryApiKeys = new Map();
+        this.inMemoryOrgSecurityPolicies = new Map();
+        this.inMemoryIpAllowlists = new Map();
+        this.inMemorySecurityEvents = [];
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -189,6 +195,34 @@ class SupabaseDataService {
                 if (data.planQuotas && typeof data.planQuotas === 'object') {
                     this.inMemoryPlanQuotas = data.planQuotas;
                 }
+                if (data.ssoConfigs && typeof data.ssoConfigs === 'object') {
+                    for (const [k, v] of Object.entries(data.ssoConfigs)) {
+                        this.inMemorySsoConfigs.set(k, v);
+                    }
+                }
+                if (data.userMfa && typeof data.userMfa === 'object') {
+                    for (const [k, v] of Object.entries(data.userMfa)) {
+                        this.inMemoryUserMfa.set(k, v);
+                    }
+                }
+                if (data.apiKeys && typeof data.apiKeys === 'object') {
+                    for (const [k, v] of Object.entries(data.apiKeys)) {
+                        this.inMemoryApiKeys.set(k, v);
+                    }
+                }
+                if (data.orgSecurityPolicies && typeof data.orgSecurityPolicies === 'object') {
+                    for (const [k, v] of Object.entries(data.orgSecurityPolicies)) {
+                        this.inMemoryOrgSecurityPolicies.set(k, v);
+                    }
+                }
+                if (data.ipAllowlists && typeof data.ipAllowlists === 'object') {
+                    for (const [k, v] of Object.entries(data.ipAllowlists)) {
+                        this.inMemoryIpAllowlists.set(k, v);
+                    }
+                }
+                if (Array.isArray(data.securityEvents)) {
+                    this.inMemorySecurityEvents = data.securityEvents;
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -228,7 +262,13 @@ class SupabaseDataService {
                 auditEvents: Object.fromEntries(Array.from(this.inMemoryAuditEvents.entries()).slice(-2000)),
                 usageEvents: Object.fromEntries(Array.from(this.inMemoryUsageEvents.entries()).slice(-5000)),
                 orgStorage: Object.fromEntries(this.inMemoryOrgStorage),
-                planQuotas: this.inMemoryPlanQuotas || undefined
+                planQuotas: this.inMemoryPlanQuotas || undefined,
+                ssoConfigs: Object.fromEntries(this.inMemorySsoConfigs),
+                userMfa: Object.fromEntries(this.inMemoryUserMfa),
+                apiKeys: Object.fromEntries(this.inMemoryApiKeys),
+                orgSecurityPolicies: Object.fromEntries(this.inMemoryOrgSecurityPolicies),
+                ipAllowlists: Object.fromEntries(this.inMemoryIpAllowlists),
+                securityEvents: this.inMemorySecurityEvents.slice(-500)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -4505,7 +4545,7 @@ class SupabaseDataService {
     async ensureUserOrganization(userId, userName = '') {
         if (!userId) return null;
 
-        // Check if user is already a member of any organization
+        // 1. Check if user is already a member of any active organization
         for (const m of this.inMemoryOrgMembers.values()) {
             if (m.userId === userId && m.status === 'active') {
                 const org = this.inMemoryOrganizations.get(m.orgId);
@@ -4515,7 +4555,48 @@ class SupabaseDataService {
             }
         }
 
-        // Backward compatibility: Create default organization for existing user
+        // 2. Check if user directly owns an active organization
+        for (const org of this.inMemoryOrganizations.values()) {
+            if (org.ownerId === userId && org.status === 'active') {
+                const memberKey = `${org.id}:${userId}`;
+                if (!this.inMemoryOrgMembers.has(memberKey)) {
+                    this.inMemoryOrgMembers.set(memberKey, {
+                        id: `mem_${crypto.randomBytes(6).toString('hex')}`,
+                        orgId: org.id,
+                        userId,
+                        role: 'owner',
+                        status: 'active',
+                        joinedAt: org.createdAt || new Date().toISOString(),
+                        updatedAt: org.updatedAt || new Date().toISOString()
+                    });
+                }
+                return org;
+            }
+        }
+
+        // 3. Check if user's workspace is associated with an active organization
+        for (const ws of this.inMemoryWorkspaces.values()) {
+            if (ws.ownerId === userId && ws.organizationId) {
+                const org = this.inMemoryOrganizations.get(ws.organizationId);
+                if (org && org.status === 'active') {
+                    const memberKey = `${org.id}:${userId}`;
+                    if (!this.inMemoryOrgMembers.has(memberKey)) {
+                        this.inMemoryOrgMembers.set(memberKey, {
+                            id: `mem_${crypto.randomBytes(6).toString('hex')}`,
+                            orgId: org.id,
+                            userId,
+                            role: 'owner',
+                            status: 'active',
+                            joinedAt: org.createdAt || new Date().toISOString(),
+                            updatedAt: org.updatedAt || new Date().toISOString()
+                        });
+                    }
+                    return org;
+                }
+            }
+        }
+
+        // 4. Backward compatibility: Create default organization for user
         const cleanName = (userName || '').trim() || 'Personal';
         const defaultOrg = await this.createOrganization({
             name: `${cleanName}'s Organization`,
@@ -4543,14 +4624,31 @@ class SupabaseDataService {
         await this.ensureUserOrganization(userId, userName);
 
         const userOrgs = [];
+        const seenOrgIds = new Set();
+
         for (const m of this.inMemoryOrgMembers.values()) {
             if (m.userId === userId && m.status === 'active') {
                 const org = this.inMemoryOrganizations.get(m.orgId);
-                if (org && org.status === 'active') {
+                if (org && org.status === 'active' && !seenOrgIds.has(org.id)) {
+                    seenOrgIds.add(org.id);
                     userOrgs.push({
                         ...org,
-                        userRole: m.role,
+                        userRole: m.role || 'owner',
                         joinedAt: m.joinedAt
+                    });
+                }
+            }
+        }
+
+        // Fallback: If no membership mapped yet, check if user is recorded owner of any organization
+        if (userOrgs.length === 0) {
+            for (const org of this.inMemoryOrganizations.values()) {
+                if (org.ownerId === userId && org.status === 'active' && !seenOrgIds.has(org.id)) {
+                    seenOrgIds.add(org.id);
+                    userOrgs.push({
+                        ...org,
+                        userRole: 'owner',
+                        joinedAt: org.createdAt
                     });
                 }
             }
@@ -5355,6 +5453,492 @@ class SupabaseDataService {
      */
     async getPlanQuotas() {
         return this.inMemoryPlanQuotas || null;
+    }
+
+    // =========================================================================
+    // Enterprise Security: SSO Configurations
+    // =========================================================================
+
+    async saveSsoConfig(config) {
+        if (!config || !config.orgId) throw new Error('Organization ID is required');
+        const id = config.id || `sso_${crypto.randomBytes(6).toString('hex')}`;
+        const record = {
+            id,
+            orgId: String(config.orgId),
+            providerName: config.providerName || 'Enterprise SSO',
+            protocol: config.protocol || 'saml',
+            issuer: config.issuer,
+            entryPoint: config.entryPoint,
+            clientId: config.clientId || null,
+            clientSecretEncrypted: config.clientSecretEncrypted || null,
+            certOrPublicKey: config.certOrPublicKey || null,
+            domains: Array.isArray(config.domains) ? config.domains : [],
+            enforced: Boolean(config.enforced),
+            allowPasswordFallback: config.allowPasswordFallback !== false,
+            status: config.status || 'configured',
+            testedAt: config.testedAt || null,
+            createdAt: config.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_sso_configs').upsert({
+                    id: record.id,
+                    org_id: record.orgId,
+                    provider_name: record.providerName,
+                    protocol: record.protocol,
+                    issuer: record.issuer,
+                    entry_point: record.entryPoint,
+                    client_id: record.clientId,
+                    client_secret_encrypted: record.clientSecretEncrypted,
+                    cert_or_public_key: record.certOrPublicKey,
+                    domains: record.domains,
+                    enforced: record.enforced,
+                    allow_password_fallback: record.allowPasswordFallback,
+                    status: record.status,
+                    tested_at: record.testedAt,
+                    updated_at: record.updatedAt
+                });
+            } catch (e) {}
+        }
+
+        this.inMemorySsoConfigs.set(record.orgId, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getSsoConfig(orgId) {
+        if (!orgId) return null;
+        if (this.inMemorySsoConfigs.has(orgId)) {
+            return this.inMemorySsoConfigs.get(orgId);
+        }
+        if (this.isAvailable) {
+            try {
+                const { data } = await supabase
+                    .from('organization_sso_configs')
+                    .select('*')
+                    .eq('org_id', orgId)
+                    .maybeSingle();
+                if (data) {
+                    const mapped = {
+                        id: data.id,
+                        orgId: data.org_id,
+                        providerName: data.provider_name,
+                        protocol: data.protocol,
+                        issuer: data.issuer,
+                        entryPoint: data.entry_point,
+                        clientId: data.client_id,
+                        clientSecretEncrypted: data.client_secret_encrypted,
+                        certOrPublicKey: data.cert_or_public_key,
+                        domains: data.domains || [],
+                        enforced: data.enforced,
+                        allowPasswordFallback: data.allow_password_fallback,
+                        status: data.status,
+                        testedAt: data.tested_at,
+                        createdAt: data.created_at,
+                        updatedAt: data.updated_at
+                    };
+                    this.inMemorySsoConfigs.set(orgId, mapped);
+                    return mapped;
+                }
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    async deleteSsoConfig(orgId) {
+        if (!orgId) return false;
+        this.inMemorySsoConfigs.delete(orgId);
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_sso_configs').delete().eq('org_id', orgId);
+            } catch (e) {}
+        }
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    // =========================================================================
+    // Enterprise Security: MFA Credentials
+    // =========================================================================
+
+    async saveUserMfa(credentials) {
+        if (!credentials || !credentials.userId) throw new Error('User ID required for MFA');
+        const record = {
+            userId: String(credentials.userId),
+            secretEncrypted: credentials.secretEncrypted,
+            backupCodes: credentials.backupCodes || [],
+            enabled: Boolean(credentials.enabled),
+            enrolledAt: credentials.enrolledAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('user_mfa_credentials').upsert({
+                    user_id: record.userId,
+                    secret_encrypted: record.secretEncrypted,
+                    backup_codes: record.backupCodes,
+                    enabled: record.enabled,
+                    enrolled_at: record.enrolledAt,
+                    updated_at: record.updatedAt
+                });
+            } catch (e) {}
+        }
+
+        this.inMemoryUserMfa.set(record.userId, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getUserMfa(userId) {
+        if (!userId) return null;
+        if (this.inMemoryUserMfa.has(userId)) {
+            return this.inMemoryUserMfa.get(userId);
+        }
+        if (this.isAvailable) {
+            try {
+                const { data } = await supabase
+                    .from('user_mfa_credentials')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                if (data) {
+                    const mapped = {
+                        userId: data.user_id,
+                        secretEncrypted: data.secret_encrypted,
+                        backupCodes: data.backup_codes || [],
+                        enabled: data.enabled,
+                        enrolledAt: data.enrolled_at,
+                        updatedAt: data.updated_at
+                    };
+                    this.inMemoryUserMfa.set(userId, mapped);
+                    return mapped;
+                }
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    async deleteUserMfa(userId) {
+        if (!userId) return false;
+        this.inMemoryUserMfa.delete(userId);
+        if (this.isAvailable) {
+            try {
+                await supabase.from('user_mfa_credentials').delete().eq('user_id', userId);
+            } catch (e) {}
+        }
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    // =========================================================================
+    // Enterprise Security: Organization API Keys
+    // =========================================================================
+
+    async saveApiKey(keyRecord) {
+        if (!keyRecord || !keyRecord.id) throw new Error('API key record with ID is required');
+        const record = {
+            id: keyRecord.id,
+            orgId: String(keyRecord.orgId),
+            name: keyRecord.name,
+            keyPrefix: keyRecord.keyPrefix,
+            keyHash: keyRecord.keyHash,
+            scopes: keyRecord.scopes || ['projects:read'],
+            createdBy: keyRecord.createdBy,
+            expiresAt: keyRecord.expiresAt || null,
+            lastUsedAt: keyRecord.lastUsedAt || null,
+            revokedAt: keyRecord.revokedAt || null,
+            status: keyRecord.status || 'active',
+            createdAt: keyRecord.createdAt || new Date().toISOString()
+        };
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_api_keys').insert({
+                    id: record.id,
+                    org_id: record.orgId,
+                    name: record.name,
+                    key_prefix: record.keyPrefix,
+                    key_hash: record.keyHash,
+                    scopes: record.scopes,
+                    created_by: record.createdBy,
+                    expires_at: record.expiresAt,
+                    last_used_at: record.lastUsedAt,
+                    revoked_at: record.revokedAt,
+                    status: record.status,
+                    created_at: record.createdAt
+                });
+            } catch (e) {}
+        }
+
+        this.inMemoryApiKeys.set(record.id, record);
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getApiKeyById(keyId) {
+        if (!keyId) return null;
+        return this.inMemoryApiKeys.get(keyId) || null;
+    }
+
+    async getApiKeyByHash(keyHash) {
+        if (!keyHash) return null;
+        for (const k of this.inMemoryApiKeys.values()) {
+            if (k.keyHash === keyHash) {
+                return k;
+            }
+        }
+        if (this.isAvailable) {
+            try {
+                const { data } = await supabase
+                    .from('organization_api_keys')
+                    .select('*')
+                    .eq('key_hash', keyHash)
+                    .maybeSingle();
+                if (data) {
+                    const mapped = {
+                        id: data.id,
+                        orgId: data.org_id,
+                        name: data.name,
+                        keyPrefix: data.key_prefix,
+                        keyHash: data.key_hash,
+                        scopes: data.scopes || [],
+                        createdBy: data.created_by,
+                        expiresAt: data.expires_at,
+                        lastUsedAt: data.last_used_at,
+                        revokedAt: data.revoked_at,
+                        status: data.status,
+                        createdAt: data.created_at
+                    };
+                    this.inMemoryApiKeys.set(mapped.id, mapped);
+                    return mapped;
+                }
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    async listOrgApiKeys(orgId) {
+        if (!orgId) return [];
+        const keys = Array.from(this.inMemoryApiKeys.values())
+            .filter(k => k.orgId === orgId);
+        keys.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return keys;
+    }
+
+    async revokeApiKey(keyId, orgId) {
+        if (!keyId) return false;
+        const key = this.inMemoryApiKeys.get(keyId);
+        if (!key || (orgId && key.orgId !== orgId)) return false;
+
+        key.status = 'revoked';
+        key.revokedAt = new Date().toISOString();
+        this.inMemoryApiKeys.set(keyId, key);
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_api_keys')
+                    .update({ status: 'revoked', revoked_at: key.revokedAt })
+                    .eq('id', keyId);
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    async touchApiKey(keyId) {
+        if (!keyId) return;
+        const key = this.inMemoryApiKeys.get(keyId);
+        if (key) {
+            key.lastUsedAt = new Date().toISOString();
+            this.inMemoryApiKeys.set(keyId, key);
+        }
+    }
+
+    // =========================================================================
+    // Enterprise Security: Organization Policies
+    // =========================================================================
+
+    async saveOrgSecurityPolicy(orgId, policy = {}) {
+        if (!orgId) throw new Error('Organization ID is required');
+        const existing = await this.getOrgSecurityPolicy(orgId);
+        const merged = {
+            ...existing,
+            ...policy,
+            orgId: String(orgId),
+            updatedAt: new Date().toISOString()
+        };
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_security_policies').upsert({
+                    org_id: merged.orgId,
+                    require_mfa: merged.requireMfa,
+                    mfa_enforced_roles: merged.mfaEnforcedRoles,
+                    enforce_sso: merged.enforceSso,
+                    allow_password_auth: merged.allowPasswordAuth,
+                    approved_email_domains: merged.approvedEmailDomains,
+                    min_password_length: merged.minPasswordLength,
+                    require_password_complexity: merged.requirePasswordComplexity,
+                    idle_timeout_minutes: merged.idleTimeoutMinutes,
+                    max_session_hours: merged.maxSessionHours,
+                    ip_allowlist_enabled: merged.ipAllowlistEnabled,
+                    artifact_retention_days: merged.artifactRetentionDays,
+                    audit_log_retention_days: merged.auditLogRetentionDays,
+                    updated_at: merged.updatedAt,
+                    updated_by: merged.updatedBy || null
+                });
+            } catch (e) {}
+        }
+
+        this.inMemoryOrgSecurityPolicies.set(orgId, merged);
+        this._saveDiskWorkspacesStore();
+        return merged;
+    }
+
+    async getOrgSecurityPolicy(orgId) {
+        if (!orgId) return null;
+        if (this.inMemoryOrgSecurityPolicies.has(orgId)) {
+            return this.inMemoryOrgSecurityPolicies.get(orgId);
+        }
+
+        // Standard default enterprise policy defaults
+        const defaults = {
+            orgId: String(orgId),
+            requireMfa: false,
+            mfaEnforcedRoles: ['owner', 'admin'],
+            enforceSso: false,
+            allowPasswordAuth: true,
+            approvedEmailDomains: [],
+            minPasswordLength: 8,
+            requirePasswordComplexity: false,
+            idleTimeoutMinutes: 30,
+            maxSessionHours: 24,
+            ipAllowlistEnabled: false,
+            artifactRetentionDays: 90,
+            auditLogRetentionDays: 365,
+            updatedAt: new Date().toISOString()
+        };
+
+        this.inMemoryOrgSecurityPolicies.set(orgId, defaults);
+        return defaults;
+    }
+
+    // =========================================================================
+    // Enterprise Security: IP Allowlists
+    // =========================================================================
+
+    async addIpAllowlistEntry(entry) {
+        if (!entry || !entry.orgId || !entry.cidrOrIp) {
+            throw new Error('Valid allowlist entry with orgId and CIDR/IP required');
+        }
+        const record = {
+            id: entry.id || `ip_${crypto.randomBytes(6).toString('hex')}`,
+            orgId: String(entry.orgId),
+            cidrOrIp: String(entry.cidrOrIp).trim(),
+            description: entry.description || 'Corporate Network',
+            createdBy: entry.createdBy || 'admin',
+            createdAt: new Date().toISOString()
+        };
+
+        const existing = this.inMemoryIpAllowlists.get(record.orgId) || [];
+        existing.push(record);
+        this.inMemoryIpAllowlists.set(record.orgId, existing);
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_ip_allowlists').insert({
+                    id: record.id,
+                    org_id: record.orgId,
+                    cidr_or_ip: record.cidrOrIp,
+                    description: record.description,
+                    created_by: record.createdBy,
+                    created_at: record.createdAt
+                });
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getIpAllowlist(orgId) {
+        if (!orgId) return [];
+        return this.inMemoryIpAllowlists.get(orgId) || [];
+    }
+
+    async removeIpAllowlistEntry(orgId, entryId) {
+        if (!orgId || !entryId) return false;
+        const entries = this.inMemoryIpAllowlists.get(orgId) || [];
+        const filtered = entries.filter(e => e.id !== entryId);
+        this.inMemoryIpAllowlists.set(orgId, filtered);
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('organization_ip_allowlists')
+                    .delete()
+                    .eq('org_id', orgId)
+                    .eq('id', entryId);
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    // =========================================================================
+    // Enterprise Security: Security Event Stream
+    // =========================================================================
+
+    async recordSecurityEvent(event) {
+        const record = {
+            id: event.id || `secevt_${crypto.randomBytes(6).toString('hex')}`,
+            orgId: event.orgId || null,
+            userId: event.userId || null,
+            eventType: event.eventType || 'security.event',
+            severity: event.severity || 'info',
+            description: event.description || '',
+            ipAddress: event.ipAddress || null,
+            userAgent: event.userAgent || null,
+            metadata: event.metadata || {},
+            timestamp: event.timestamp || new Date().toISOString()
+        };
+
+        this.inMemorySecurityEvents.unshift(record);
+        if (this.inMemorySecurityEvents.length > 500) {
+            this.inMemorySecurityEvents.pop();
+        }
+
+        if (this.isAvailable) {
+            try {
+                await supabase.from('security_events').insert({
+                    id: record.id,
+                    org_id: record.orgId,
+                    user_id: record.userId,
+                    event_type: record.eventType,
+                    severity: record.severity,
+                    description: record.description,
+                    ip_address: record.ipAddress,
+                    user_agent: record.userAgent,
+                    metadata: record.metadata,
+                    timestamp: record.timestamp
+                });
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async listSecurityEvents(orgId, { limit = 50, offset = 0 } = {}) {
+        let events = this.inMemorySecurityEvents;
+        if (orgId) {
+            events = events.filter(e => e.orgId === orgId || !e.orgId);
+        }
+        return events.slice(offset, offset + limit);
     }
 }
 

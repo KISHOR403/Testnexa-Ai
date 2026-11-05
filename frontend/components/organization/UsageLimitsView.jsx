@@ -45,6 +45,20 @@ const getMetricIcon = (metric) => {
     }
 };
 
+/**
+ * Standard metric definitions for fallback & display guarantees
+ */
+const DEFAULT_METRIC_ENTRIES = {
+    'ai.generations': { metric: 'ai.generations', name: 'AI Test Generations', category: 'AI', unit: 'count', allowance: 20, used: 0, remaining: 20, percentage: 0 },
+    'ai.failure_analysis': { metric: 'ai.failure_analysis', name: 'AI Failure Analyses', category: 'AI', unit: 'count', allowance: 10, used: 0, remaining: 10, percentage: 0 },
+    'execution.manual': { metric: 'execution.manual', name: 'Manual Test Executions', category: 'Testing', unit: 'count', allowance: 50, used: 0, remaining: 50, percentage: 0 },
+    'execution.automated': { metric: 'execution.automated', name: 'Automated Playwright Executions', category: 'Testing', unit: 'count', allowance: 20, used: 0, remaining: 20, percentage: 0 },
+    'execution.cicd': { metric: 'execution.cicd', name: 'CI/CD Pipeline Executions', category: 'Testing', unit: 'count', allowance: 10, used: 0, remaining: 10, percentage: 0 },
+    'members.active': { metric: 'members.active', name: 'Active Team Members', category: 'Organization', unit: 'count', allowance: 1, used: 1, remaining: 0, percentage: 100 },
+    'workspaces.active': { metric: 'workspaces.active', name: 'Active Workspaces', category: 'Organization', unit: 'count', allowance: 1, used: 1, remaining: 0, percentage: 100 },
+    'storage.bytes': { metric: 'storage.bytes', name: 'Artifact Storage', category: 'Storage', unit: 'bytes', allowance: 1073741824, used: 0, remaining: 1073741824, percentage: 0 }
+};
+
 export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
     const [usageData, setUsageData] = useState(null);
     const [historyEvents, setHistoryEvents] = useState([]);
@@ -156,7 +170,8 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
     const plan = (usageData?.plan || currentOrg?.plan || 'free').toUpperCase();
     const billingPeriod = usageData?.billingPeriod;
     const warnings = usageData?.warnings || [];
-    const metrics = usageData?.metrics || {};
+    const serverMetrics = usageData?.metrics || {};
+    const metrics = { ...DEFAULT_METRIC_ENTRIES, ...serverMetrics };
 
     const filteredHistory = historyEvents.filter(evt => {
         if (historyFilter === 'all') return true;
@@ -186,7 +201,7 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
                     <div className="usage-header-actions">
                         <button
                             className="org-btn org-btn--secondary"
-                            onClick={() => loadUsageData(true)}
+                            onClick={() => loadUsageData(null, true)}
                             disabled={isRefreshing}
                             title="Refresh usage statistics"
                         >

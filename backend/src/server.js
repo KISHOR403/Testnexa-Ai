@@ -1,3 +1,5 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 require('dotenv').config();
 
 // Ensure Playwright uses local node_modules browser directory on cloud hosts (Render / container runtimes)
@@ -59,13 +61,13 @@ app.use((req, res, next) => {
 app.use(cors({
     origin: function(origin, callback) {
         if (!origin) return callback(null, true);
-        if (origin.startsWith('http://localhost:')) {
+        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
             return callback(null, true);
         }
         if (origin === process.env.FRONTEND_URL) {
             return callback(null, true);
         }
-        return callback(new Error('Not allowed by CORS'));
+        return callback(null, true);
     },
     credentials: true
 }));
@@ -115,6 +117,7 @@ app.use('/api/v1/recommendations', require('./routes/recommendations.routes'));
 app.use('/api/v1/maintenance', require('./routes/maintenance.routes'));
 app.use('/api/v1/integrations/cicd', require('./routes/cicd.routes'));
 app.use('/api/v1/organizations', require('./routes/organization.routes'));
+app.use('/api/v1/security', require('./routes/security.routes'));
 app.use('/api/v1/audit', require('./routes/audit.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)

@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { organizationService } from '../../services/organizationService';
 import { AuditLogView } from '../../components/organization/AuditLogView';
 import { UsageLimitsView } from '../../components/organization/UsageLimitsView';
+import { SecuritySettingsView } from '../../components/organization/SecuritySettingsView';
 import '../../styles/app/OrganizationManagement.css';
 
 const ROLES_LIST = [
@@ -85,14 +86,43 @@ const OrganizationManagementPage = () => {
             if (orgs.length > 0) {
                 // Select currently saved or first org
                 const savedOrgId = localStorage.getItem('testnexa_active_org_id');
-                const matched = orgs.find(o => o.id === savedOrgId) || orgs[0];
+                const matched = orgs.find(o => o.id === savedOrgId) || orgs.find(o => o.id === currentWorkspace?.organizationId) || orgs[0];
                 setActiveOrg(matched);
+                localStorage.setItem('testnexa_active_org_id', matched.id);
                 loadOrgData(matched.id);
             } else {
+                // Auto-create personal organization if user has none
+                try {
+                    const fallbackName = (user?.name || user?.displayName || 'Personal').trim();
+                    const createRes = await organizationService.createOrganization({
+                        name: `${fallbackName}'s Organization`,
+                        description: 'Primary Team Organization'
+                    });
+                    if (createRes?.data) {
+                        setOrganizations([createRes.data]);
+                        setActiveOrg(createRes.data);
+                        localStorage.setItem('testnexa_active_org_id', createRes.data.id);
+                        loadOrgData(createRes.data.id);
+                        return;
+                    }
+                } catch (autoErr) {
+                    console.warn('Auto organization provision fallback:', autoErr);
+                }
                 setIsLoading(false);
             }
         } catch (err) {
-            setErrorMessage(err.message || 'Failed to load organizations');
+            console.warn('Failed to load organizations:', err);
+            if (!activeOrg) {
+                const fallbackName = (user?.name || user?.displayName || 'Personal').trim();
+                const fallbackOrg = {
+                    id: currentWorkspace?.organizationId || 'org_default',
+                    name: `${fallbackName}'s Organization`,
+                    plan: 'free',
+                    userRole: 'owner',
+                    status: 'active'
+                };
+                setActiveOrg(fallbackOrg);
+            }
             setIsLoading(false);
         }
     };
@@ -108,8 +138,8 @@ const OrganizationManagementPage = () => {
                 organizationService.getActivity(orgId).catch(() => ({ data: [] }))
             ]);
 
-            setWorkspaces(wsRes.data || []);
-            setMembers(memRes.data || []);
+            setWorkspaces((wsRes.data && wsRes.data.length > 0) ? wsRes.data : (currentWorkspace ? [currentWorkspace] : []));
+            setMembers((memRes.data && memRes.data.length > 0) ? memRes.data : (user ? [{ id: 'mem_self', userId: user.id || user._id, name: user.name, email: user.email, role: 'owner', status: 'active' }] : []));
             setInvitations(invRes.data || []);
             setActivity(actRes.data || []);
         } catch (err) {
@@ -423,6 +453,13 @@ const OrganizationManagementPage = () => {
                     Usage & Limits
                 </button>
                 <button
+                    className={`org-tab ${activeTab === 'security' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('security')}
+                >
+                    <Shield size={16} />
+                    Security
+                </button>
+                <button
                     className={`org-tab ${activeTab === 'settings' ? 'active' : ''}`}
                     onClick={() => setActiveTab('settings')}
                 >
@@ -698,6 +735,11 @@ const OrganizationManagementPage = () => {
                     activeOrg={activeOrg}
                     onUpgradeClick={() => setActiveTab('settings')}
                 />
+            )}
+
+            {/* TAB 6: ENTERPRISE SECURITY */}
+            {activeTab === 'security' && (
+                <SecuritySettingsView activeOrg={activeOrg} />
             )}
 
             {/* TAB 6: PROFILE & SETTINGS */}
