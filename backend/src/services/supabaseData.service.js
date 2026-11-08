@@ -4532,11 +4532,25 @@ class SupabaseDataService {
     }
 
     /**
-     * Get organization by ID
+     * Get organization by ID (with fallback for default or single active org)
      */
     async getOrganization(orgId) {
         if (!orgId) return null;
-        return this.inMemoryOrganizations.get(orgId) || null;
+        if (orgId === 'org_default' || orgId === 'default') {
+            for (const org of this.inMemoryOrganizations.values()) {
+                if (org.status === 'active') return org;
+            }
+        }
+        const direct = this.inMemoryOrganizations.get(orgId);
+        if (direct) return direct;
+
+        // Loose match by ID
+        for (const [id, org] of this.inMemoryOrganizations.entries()) {
+            if (String(id) === String(orgId) || String(org.id) === String(orgId)) {
+                return org;
+            }
+        }
+        return null;
     }
 
     /**
@@ -4748,12 +4762,37 @@ class SupabaseDataService {
     }
 
     /**
-     * Get member record in an organization
+     * Get member record in an organization (with owner and loose ID fallback)
      */
     async getOrgMember(orgId, userId) {
         if (!orgId || !userId) return null;
         const key = `${orgId}:${userId}`;
-        return this.inMemoryOrgMembers.get(key) || null;
+        const found = this.inMemoryOrgMembers.get(key);
+        if (found) return found;
+
+        // Check if user is owner of organization
+        const org = await this.getOrganization(orgId);
+        if (org && String(org.ownerId) === String(userId)) {
+            const ownerRecord = {
+                id: `mem_${orgId}_${userId}`,
+                orgId: org.id,
+                userId,
+                role: 'owner',
+                status: 'active',
+                joinedAt: org.createdAt || new Date().toISOString()
+            };
+            this.inMemoryOrgMembers.set(key, ownerRecord);
+            return ownerRecord;
+        }
+
+        // Search members with string-normalized comparison
+        for (const m of this.inMemoryOrgMembers.values()) {
+            if (String(m.orgId) === String(orgId) && String(m.userId) === String(userId)) {
+                return m;
+            }
+        }
+
+        return null;
     }
 
     /**

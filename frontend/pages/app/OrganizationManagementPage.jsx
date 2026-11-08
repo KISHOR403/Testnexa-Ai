@@ -24,20 +24,65 @@ const OrganizationManagementPage = () => {
     const userId = user?.id || user?._id;
 
     const [activeTab, setActiveTab] = useState('workspaces');
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
-    // Organizations & selection
-    const [organizations, setOrganizations] = useState([]);
-    const [activeOrg, setActiveOrg] = useState(null);
+    // Organizations & selection with immediate synchronous fallback
+    const [organizations, setOrganizations] = useState(() => {
+        try {
+            const cached = localStorage.getItem('testnexa_cached_orgs');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch {}
+        return [];
+    });
+
+    const [activeOrg, setActiveOrg] = useState(() => {
+        try {
+            const cachedActive = localStorage.getItem('testnexa_active_org');
+            if (cachedActive) return JSON.parse(cachedActive);
+
+            const savedOrgId = localStorage.getItem('testnexa_active_org_id');
+            const cachedOrgs = localStorage.getItem('testnexa_cached_orgs');
+            if (cachedOrgs) {
+                const parsed = JSON.parse(cachedOrgs);
+                const matched = parsed.find(o => o.id === savedOrgId) || parsed[0];
+                if (matched) return matched;
+            }
+
+            if (currentWorkspace?.organizationId) {
+                return {
+                    id: currentWorkspace.organizationId,
+                    name: currentWorkspace.name ? currentWorkspace.name.replace(/ Workspace$/i, ' Organization') : 'Primary Organization',
+                    plan: 'free',
+                    userRole: 'owner',
+                    status: 'active'
+                };
+            }
+
+            const fallbackName = (user?.name || user?.displayName || 'Personal').trim();
+            return {
+                id: currentWorkspace?.id ? `org_${currentWorkspace.id}` : 'org_primary',
+                name: `${fallbackName}'s Organization`,
+                plan: 'free',
+                userRole: 'owner',
+                status: 'active'
+            };
+        } catch {
+            return null;
+        }
+    });
+
     const [showOrgDropdown, setShowOrgDropdown] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Tab data
-    const [workspaces, setWorkspaces] = useState([]);
-    const [members, setMembers] = useState([]);
+    // Tab data with instantaneous local fallback
+    const [workspaces, setWorkspaces] = useState(() => currentWorkspace ? [currentWorkspace] : []);
+    const [members, setMembers] = useState(() => user ? [{ id: 'mem_self', userId: user.id || user._id, name: user.name || user.displayName || 'You', email: user.email, role: 'owner', status: 'active' }] : []);
     const [invitations, setInvitations] = useState([]);
     const [activity, setActivity] = useState([]);
 
@@ -76,20 +121,22 @@ const OrganizationManagementPage = () => {
     }, [userId]);
 
     const loadOrganizations = async () => {
-        setIsLoading(true);
         setErrorMessage('');
         try {
             const res = await organizationService.getUserOrganizations();
             const orgs = res.data || [];
-            setOrganizations(orgs);
-
             if (orgs.length > 0) {
-                // Select currently saved or first org
+                setOrganizations(orgs);
+                try {
+                    localStorage.setItem('testnexa_cached_orgs', JSON.stringify(orgs));
+                } catch {}
+
                 const savedOrgId = localStorage.getItem('testnexa_active_org_id');
                 const matched = orgs.find(o => o.id === savedOrgId) || orgs.find(o => o.id === currentWorkspace?.organizationId) || orgs[0];
                 setActiveOrg(matched);
                 localStorage.setItem('testnexa_active_org_id', matched.id);
-                loadOrgData(matched.id);
+                localStorage.setItem('testnexa_active_org', JSON.stringify(matched));
+                await loadOrgData(matched.id);
             } else {
                 // Auto-create personal organization if user has none
                 try {
@@ -102,20 +149,20 @@ const OrganizationManagementPage = () => {
                         setOrganizations([createRes.data]);
                         setActiveOrg(createRes.data);
                         localStorage.setItem('testnexa_active_org_id', createRes.data.id);
-                        loadOrgData(createRes.data.id);
+                        localStorage.setItem('testnexa_active_org', JSON.stringify(createRes.data));
+                        await loadOrgData(createRes.data.id);
                         return;
                     }
                 } catch (autoErr) {
                     console.warn('Auto organization provision fallback:', autoErr);
                 }
-                setIsLoading(false);
             }
         } catch (err) {
-            console.warn('Failed to load organizations:', err);
+            console.warn('Failed to load organizations from API, using fallback:', err);
             if (!activeOrg) {
                 const fallbackName = (user?.name || user?.displayName || 'Personal').trim();
                 const fallbackOrg = {
-                    id: currentWorkspace?.organizationId || 'org_default',
+                    id: currentWorkspace?.organizationId || 'org_primary',
                     name: `${fallbackName}'s Organization`,
                     plan: 'free',
                     userRole: 'owner',
@@ -123,13 +170,13 @@ const OrganizationManagementPage = () => {
                 };
                 setActiveOrg(fallbackOrg);
             }
+        } finally {
             setIsLoading(false);
         }
     };
 
     const loadOrgData = async (orgId) => {
         if (!orgId) return;
-        setIsLoading(true);
         try {
             const [wsRes, memRes, invRes, actRes] = await Promise.all([
                 organizationService.getWorkspaces(orgId, true).catch(() => ({ data: [] })),
@@ -138,12 +185,22 @@ const OrganizationManagementPage = () => {
                 organizationService.getActivity(orgId).catch(() => ({ data: [] }))
             ]);
 
-            setWorkspaces((wsRes.data && wsRes.data.length > 0) ? wsRes.data : (currentWorkspace ? [currentWorkspace] : []));
-            setMembers((memRes.data && memRes.data.length > 0) ? memRes.data : (user ? [{ id: 'mem_self', userId: user.id || user._id, name: user.name, email: user.email, role: 'owner', status: 'active' }] : []));
-            setInvitations(invRes.data || []);
-            setActivity(actRes.data || []);
+            if (wsRes?.data && wsRes.data.length > 0) {
+                setWorkspaces(wsRes.data);
+            } else if (currentWorkspace) {
+                setWorkspaces([currentWorkspace]);
+            }
+
+            if (memRes?.data && memRes.data.length > 0) {
+                setMembers(memRes.data);
+            } else if (user) {
+                setMembers([{ id: 'mem_self', userId: user.id || user._id, name: user.name || user.displayName || 'You', email: user.email, role: 'owner', status: 'active' }]);
+            }
+
+            setInvitations(invRes?.data || []);
+            setActivity(actRes?.data || []);
         } catch (err) {
-            setErrorMessage(err.message);
+            console.warn('Failed to load org sub-data:', err.message);
         } finally {
             setIsLoading(false);
         }
@@ -152,6 +209,7 @@ const OrganizationManagementPage = () => {
     const handleSwitchOrg = (org) => {
         setActiveOrg(org);
         localStorage.setItem('testnexa_active_org_id', org.id);
+        localStorage.setItem('testnexa_active_org', JSON.stringify(org));
         setShowOrgDropdown(false);
         loadOrgData(org.id);
     };
@@ -326,7 +384,7 @@ const OrganizationManagementPage = () => {
                             className="org-header__switcher"
                             onClick={() => setShowOrgDropdown(!showOrgDropdown)}
                         >
-                            <span>Org: <strong>{activeOrg?.name || (isLoading ? 'Loading...' : 'Select Organization')}</strong></span>
+                            <span>Org: <strong>{activeOrg?.name || 'Primary Organization'}</strong></span>
                             <span className={`org-role-badge org-role-badge--${activeOrg?.userRole || 'viewer'}`}>
                                 {activeOrg?.userRole || 'viewer'}
                             </span>

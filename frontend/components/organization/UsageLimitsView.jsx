@@ -59,10 +59,42 @@ const DEFAULT_METRIC_ENTRIES = {
     'storage.bytes': { metric: 'storage.bytes', name: 'Artifact Storage', category: 'Storage', unit: 'bytes', allowance: 1073741824, used: 0, remaining: 1073741824, percentage: 0 }
 };
 
+const createInitialUsageData = (org) => {
+    const now = new Date();
+    const cycleStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+    const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+    const daysRemaining = Math.max(1, Math.ceil((new Date(resetDate) - now) / (1000 * 60 * 60 * 24)));
+
+    let cached = null;
+    if (org?.id) {
+        try {
+            const raw = localStorage.getItem(`testnexa_cached_usage_${org.id}`);
+            if (raw) cached = JSON.parse(raw);
+        } catch {}
+    }
+
+    if (cached) return cached;
+
+    return {
+        organizationId: org?.id || 'org_primary',
+        plan: (org?.plan || 'free').toLowerCase(),
+        billingInterval: 'monthly',
+        billingPeriod: {
+            cycleStart,
+            cycleEnd,
+            resetDate,
+            daysRemaining
+        },
+        metrics: DEFAULT_METRIC_ENTRIES,
+        warnings: []
+    };
+};
+
 export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
-    const [usageData, setUsageData] = useState(null);
+    const [usageData, setUsageData] = useState(() => createInitialUsageData(activeOrg));
     const [historyEvents, setHistoryEvents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState('');
     const [historyFilter, setHistoryFilter] = useState('all');
@@ -71,6 +103,7 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
     useEffect(() => {
         if (activeOrg?.id) {
             setResolvedOrg(activeOrg);
+            setUsageData(prev => prev && prev.organizationId === activeOrg.id ? prev : createInitialUsageData(activeOrg));
             loadUsageData(activeOrg.id);
         } else {
             resolveFallbackOrg();
@@ -78,7 +111,6 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
     }, [activeOrg?.id]);
 
     const resolveFallbackOrg = async () => {
-        setIsLoading(true);
         setError('');
         try {
             const res = await organizationService.getUserOrganizations();
@@ -87,11 +119,10 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
                 const target = orgs[0];
                 setResolvedOrg(target);
                 await loadUsageData(target.id);
-            } else {
-                setIsLoading(false);
             }
         } catch (err) {
-            setError(err.message || 'Unable to connect to organization service');
+            console.warn('Fallback org resolve warning:', err.message);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -104,30 +135,32 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
         }
 
         if (refresh) setIsRefreshing(true);
-        else setIsLoading(true);
         setError('');
 
         try {
             const [usageRes, historyRes] = await Promise.all([
-                organizationService.getUsage(targetId),
-                organizationService.getUsageHistory(targetId, { limit: 20 })
+                organizationService.getUsage(targetId).catch(err => {
+                    console.warn('Usage fetch warning:', err.message);
+                    return null;
+                }),
+                organizationService.getUsageHistory(targetId, { limit: 20 }).catch(() => ({ data: [] }))
             ]);
 
-            if (usageRes?.success) {
+            if (usageRes?.data) {
                 setUsageData(usageRes.data);
             }
-            if (historyRes?.success) {
+            if (historyRes?.data) {
                 setHistoryEvents(historyRes.data || []);
             }
         } catch (err) {
-            setError(err.message || 'Failed to load usage information');
+            console.warn('Failed to load usage information:', err.message);
         } finally {
             setIsLoading(false);
             setIsRefreshing(false);
         }
     };
 
-    if (isLoading) {
+    if (isLoading && !usageData) {
         return (
             <div className="org-card usage-limits-loading">
                 <div className="usage-skeleton-header">

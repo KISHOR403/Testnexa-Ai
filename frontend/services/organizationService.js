@@ -19,7 +19,7 @@ const getAuthHeaders = () => {
 /**
  * Fetch wrapper with timeout and credentials
  */
-const safeFetch = async (url, options = {}, timeoutMs = 12000) => {
+const safeFetch = async (url, options = {}, timeoutMs = 6000) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -57,8 +57,27 @@ export const organizationService = {
     // ORGANIZATIONS & MEMBERS
     // ==========================================
     async getUserOrganizations() {
-        const res = await safeFetch(`${API_BASE}`);
-        return handleResponse(res);
+        try {
+            const res = await safeFetch(`${API_BASE}`);
+            const data = await handleResponse(res);
+            if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
+                try {
+                    localStorage.setItem('testnexa_cached_orgs', JSON.stringify(data.data));
+                } catch {}
+            }
+            return data;
+        } catch (err) {
+            try {
+                const cached = localStorage.getItem('testnexa_cached_orgs');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (parsed.length > 0) {
+                        return { success: true, data: parsed, fromCache: true };
+                    }
+                }
+            } catch {}
+            throw err;
+        }
     },
 
     async getOrganization(orgId) {
@@ -224,8 +243,24 @@ export const organizationService = {
     // USAGE LIMITS & QUOTAS
     // ==========================================
     async getUsage(orgId) {
-        const res = await safeFetch(`${API_BASE}/${encodeURIComponent(orgId)}/usage`);
-        return handleResponse(res);
+        try {
+            const res = await safeFetch(`${API_BASE}/${encodeURIComponent(orgId)}/usage`);
+            const data = await handleResponse(res);
+            if (data?.data) {
+                try {
+                    localStorage.setItem(`testnexa_cached_usage_${orgId}`, JSON.stringify(data.data));
+                } catch {}
+            }
+            return data;
+        } catch (err) {
+            try {
+                const cached = localStorage.getItem(`testnexa_cached_usage_${orgId}`);
+                if (cached) {
+                    return { success: true, data: JSON.parse(cached), fromCache: true };
+                }
+            } catch {}
+            throw err;
+        }
     },
 
     async getUsageHistory(orgId, filters = {}) {
