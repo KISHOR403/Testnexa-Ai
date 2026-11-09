@@ -310,6 +310,19 @@ const RunExecutionPage = () => {
     const [lastSavedTime, setLastSavedTime] = useState('');
     const autosaveTimerRef = useRef(null);
 
+    // Filtered Test Cases list based on search, statusFilter, and methodFilter
+    const filteredCases = useMemo(() => {
+        return cases.filter(c => {
+            const title = c.caseSnapshot?.title || '';
+            const tcId = c.testCaseId || '';
+            const matchesSearch = title.toLowerCase().includes(search.toLowerCase()) ||
+                tcId.toLowerCase().includes(search.toLowerCase());
+            const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+            const matchesMethod = methodFilter === 'all' || c.executionType === methodFilter;
+            return matchesSearch && matchesStatus && matchesMethod;
+        });
+    }, [cases, search, statusFilter, methodFilter]);
+
     const loadRunDefects = useCallback(async () => {
         if (!runId) return;
         try {
@@ -1138,18 +1151,6 @@ const RunExecutionPage = () => {
             window.setTimeout(() => setCopyMessage(''), 2400);
         }
     };
-
-    const filteredCases = useMemo(() => {
-        return cases.filter(c => {
-            const title = c.caseSnapshot?.title || '';
-            const tcId = c.testCaseId || '';
-            const matchesSearch = title.toLowerCase().includes(search.toLowerCase()) ||
-                tcId.toLowerCase().includes(search.toLowerCase());
-            const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
-            const matchesMethod = methodFilter === 'all' || c.executionType === methodFilter;
-            return matchesSearch && matchesStatus && matchesMethod;
-        });
-    }, [cases, search, statusFilter, methodFilter]);
 
     const evidenceById = useMemo(() => new Map(cases.map(item => [item.id, item])), [cases]);
     const filteredArtifacts = useMemo(() => artifacts.filter(artifact => {
