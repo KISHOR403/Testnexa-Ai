@@ -77,10 +77,13 @@ const createInitialUsageData = (org) => {
     if (cached) return cached;
 
     return {
+        orgId: org?.id || 'org_primary',
         organizationId: org?.id || 'org_primary',
         plan: (org?.plan || 'free').toLowerCase(),
         billingInterval: 'monthly',
         billingPeriod: {
+            start: cycleStart,
+            end: cycleEnd,
             cycleStart,
             cycleEnd,
             resetDate,
@@ -103,7 +106,7 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
     useEffect(() => {
         if (activeOrg?.id) {
             setResolvedOrg(activeOrg);
-            setUsageData(prev => prev && prev.organizationId === activeOrg.id ? prev : createInitialUsageData(activeOrg));
+            setUsageData(prev => (prev && (prev.orgId === activeOrg.id || prev.organizationId === activeOrg.id)) ? prev : createInitialUsageData(activeOrg));
             loadUsageData(activeOrg.id);
         } else {
             resolveFallbackOrg();
@@ -160,50 +163,12 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
         }
     };
 
-    if (isLoading && !usageData) {
-        return (
-            <div className="org-card usage-limits-loading">
-                <div className="usage-skeleton-header">
-                    <div className="skeleton-bar" style={{ width: '220px', height: '24px' }} />
-                    <div className="skeleton-bar" style={{ width: '120px', height: '36px' }} />
-                </div>
-                <div className="usage-grid">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                        <div key={i} className="usage-metric-card skeleton-card">
-                            <div className="skeleton-bar" style={{ width: '60%', height: '18px', marginBottom: '12px' }} />
-                            <div className="skeleton-bar" style={{ width: '100%', height: '8px', marginBottom: '12px' }} />
-                            <div className="skeleton-bar" style={{ width: '40%', height: '14px' }} />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    if (!usageData && !isLoading) {
-        return (
-            <div className="org-card usage-history-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-                <AlertCircle size={36} style={{ color: '#F59E0B', margin: '0 auto 1rem auto' }} />
-                <h3 className="org-card__title" style={{ marginBottom: '0.5rem' }}>Usage Information Unavailable</h3>
-                <p className="org-card__subtitle" style={{ maxWidth: '500px', margin: '0 auto 1.5rem auto' }}>
-                    {error || 'Unable to retrieve usage quotas for the active organization. Please verify your connection or try again.'}
-                </p>
-                <button
-                    className="org-btn org-btn--primary"
-                    onClick={() => resolveFallbackOrg()}
-                >
-                    <RefreshCw size={14} />
-                    Retry Connection
-                </button>
-            </div>
-        );
-    }
-
+    const effectiveUsage = usageData || createInitialUsageData(activeOrg);
     const currentOrg = resolvedOrg || activeOrg;
-    const plan = (usageData?.plan || currentOrg?.plan || 'free').toUpperCase();
-    const billingPeriod = usageData?.billingPeriod;
-    const warnings = usageData?.warnings || [];
-    const serverMetrics = usageData?.metrics || {};
+    const plan = (effectiveUsage?.plan || currentOrg?.plan || 'free').toUpperCase();
+    const billingPeriod = effectiveUsage?.billingPeriod;
+    const warnings = effectiveUsage?.warnings || [];
+    const serverMetrics = effectiveUsage?.metrics || {};
     const metrics = { ...DEFAULT_METRIC_ENTRIES, ...serverMetrics };
 
     const filteredHistory = historyEvents.filter(evt => {
@@ -258,19 +223,19 @@ export const UsageLimitsView = ({ activeOrg, onUpgradeClick }) => {
                             <Clock size={15} className="usage-cycle-icon" />
                             <span className="usage-cycle-label">Billing Cycle:</span>
                             <span className="usage-cycle-value">
-                                {new Date(billingPeriod.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {new Date(billingPeriod.start || billingPeriod.cycleStart || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 {' — '}
-                                {new Date(billingPeriod.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {new Date(billingPeriod.end || billingPeriod.cycleEnd || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
                         </div>
 
                         <div className="usage-cycle-item">
                             <span className="usage-cycle-label">Reset In:</span>
                             <span className="usage-cycle-badge">
-                                {billingPeriod.daysRemaining} {billingPeriod.daysRemaining === 1 ? 'day' : 'days'}
+                                {billingPeriod.daysRemaining || 30} {(billingPeriod.daysRemaining === 1) ? 'day' : 'days'}
                             </span>
                             <span className="usage-cycle-subtext">
-                                (Resets {new Date(billingPeriod.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+                                (Resets {new Date(billingPeriod.resetDate || billingPeriod.end || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
                             </span>
                         </div>
                     </div>

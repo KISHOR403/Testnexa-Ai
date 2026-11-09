@@ -119,6 +119,8 @@ app.use('/api/v1/integrations/cicd', require('./routes/cicd.routes'));
 app.use('/api/v1/organizations', require('./routes/organization.routes'));
 app.use('/api/v1/security', require('./routes/security.routes'));
 app.use('/api/v1/audit', require('./routes/audit.routes'));
+app.use('/api/v1/analytics/quality-insights', require('./routes/qualityInsights.routes'));
+app.use('/api/v1/quality-insights', require('./routes/qualityInsights.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)
 try {

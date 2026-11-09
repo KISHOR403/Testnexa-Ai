@@ -267,6 +267,16 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     </NavLink>
 
                     <NavLink
+                        to="/app/quality-insights"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.includes('quality-insights') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="Quality Insights"
+                    >
+                        <Activity size={17} className="app-sidebar__item-icon" />
+                        <span>Quality Insights</span>
+                    </NavLink>
+
+                    <NavLink
                         to="/app/coverage"
                         className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
                         onClick={handleNavClick}

@@ -41,6 +41,7 @@ const TestMaintenanceIntelligencePage = lazy(() => import('./pages/app/TestMaint
 const SmartRecommendationsPage = lazy(() => import('./pages/app/SmartRecommendationsPage'));
 const CiCdIntegrationsPage = lazy(() => import('./pages/app/CiCdIntegrationsPage'));
 const OrganizationManagementPage = lazy(() => import('./pages/app/OrganizationManagementPage'));
+const QualityInsightsPage = lazy(() => import('./pages/app/QualityInsightsPage'));
 const InvitationAcceptancePage = lazy(() => import('./pages/app/InvitationAcceptancePage'));
 const AppSettingsPage = lazy(() => import('./pages/app/AppSettingsPage'));
 
@@ -191,6 +192,8 @@ function AppContent() {
             <Route path="traceability" element={<TraceabilityPage />} />
             <Route path="failure-trends" element={<FailureTrendAnalysisPage />} />
             <Route path="intelligence" element={<ExecutionIntelligenceDashboardPage />} />
+            <Route path="quality-insights" element={<QualityInsightsPage />} />
+            <Route path="analytics/quality-insights" element={<QualityInsightsPage />} />
             <Route path="maintenance" element={<TestMaintenanceIntelligencePage />} />
             <Route path="recommendations" element={<SmartRecommendationsPage />} />
             <Route path="recommendations/:suiteId" element={<SmartRecommendationsPage />} />

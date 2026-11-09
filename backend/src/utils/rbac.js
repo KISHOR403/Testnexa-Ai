@@ -49,6 +49,11 @@ const PERMISSIONS = {
     AUDIT_VIEW: 'audit.view',
     AUDIT_EXPORT: 'audit.export',
 
+    // Quality Insights & Advanced Analytics
+    ANALYTICS_VIEW: 'analytics.view',
+    ANALYTICS_EXPORT: 'analytics.export',
+    ANALYTICS_GENERATE_AI: 'analytics.generate_ai',
+
     // Enterprise Security & Administration
     SECURITY_VIEW: 'security.view',
     SECURITY_MANAGE: 'security.manage',
@@ -72,6 +77,9 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.ORG_VIEW_ACTIVITY,
         PERMISSIONS.AUDIT_VIEW,
         PERMISSIONS.AUDIT_EXPORT,
+        PERMISSIONS.ANALYTICS_VIEW,
+        PERMISSIONS.ANALYTICS_EXPORT,
+        PERMISSIONS.ANALYTICS_GENERATE_AI,
         PERMISSIONS.SECURITY_VIEW,
         PERMISSIONS.SECURITY_MANAGE,
         PERMISSIONS.SECURITY_SSO_MANAGE,
@@ -97,6 +105,9 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.ORG_VIEW_ACTIVITY,
         PERMISSIONS.AUDIT_VIEW,
         PERMISSIONS.AUDIT_EXPORT,
+        PERMISSIONS.ANALYTICS_VIEW,
+        PERMISSIONS.ANALYTICS_EXPORT,
+        PERMISSIONS.ANALYTICS_GENERATE_AI,
         PERMISSIONS.SECURITY_VIEW,
         PERMISSIONS.SECURITY_MANAGE,
         PERMISSIONS.SECURITY_SSO_MANAGE,
@@ -118,6 +129,9 @@ const ROLE_PERMISSIONS = {
     [ROLES.QA_MANAGER]: [
         PERMISSIONS.ORG_VIEW_ACTIVITY,
         PERMISSIONS.AUDIT_VIEW,
+        PERMISSIONS.ANALYTICS_VIEW,
+        PERMISSIONS.ANALYTICS_EXPORT,
+        PERMISSIONS.ANALYTICS_GENERATE_AI,
         PERMISSIONS.SECURITY_VIEW,
         PERMISSIONS.SECURITY_AUDIT_VIEW,
         PERMISSIONS.SUITE_MANAGE,
@@ -128,12 +142,15 @@ const ROLE_PERMISSIONS = {
         PERMISSIONS.REPORT_VIEW
     ],
     [ROLES.QA_ENGINEER]: [
+        PERMISSIONS.ANALYTICS_VIEW,
+        PERMISSIONS.ANALYTICS_GENERATE_AI,
         PERMISSIONS.TESTCASE_CREATE_EDIT,
         PERMISSIONS.EXECUTION_TRIGGER,
         PERMISSIONS.EXECUTION_VIEW,
         PERMISSIONS.REPORT_VIEW
     ],
     [ROLES.VIEWER]: [
+        PERMISSIONS.ANALYTICS_VIEW,
         PERMISSIONS.EXECUTION_VIEW,
         PERMISSIONS.REPORT_VIEW
     ]
@@ -148,6 +165,12 @@ const PERMISSION_ALIASES = {
     'audit:view': ['audit.view', 'audit:view', 'org:view_activity'],
     'audit.export': ['audit.export', 'audit:export'],
     'audit:export': ['audit.export', 'audit:export'],
+    'analytics.view': ['analytics.view', 'analytics:view'],
+    'analytics:view': ['analytics.view', 'analytics:view'],
+    'analytics.export': ['analytics.export', 'analytics:export'],
+    'analytics:export': ['analytics.export', 'analytics:export'],
+    'analytics.generate_ai': ['analytics.generate_ai', 'analytics:generate_ai'],
+    'analytics:generate_ai': ['analytics.generate_ai', 'analytics:generate_ai'],
     'security.view': ['security.view', 'security:view'],
     'security:view': ['security.view', 'security:view'],
     'security.manage': ['security.manage', 'security:manage'],

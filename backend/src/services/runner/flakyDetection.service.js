@@ -298,7 +298,7 @@ class FlakyDetectionService {
             },
             browserBreakdown: Array.from(browserMap.values()),
             environmentBreakdown: Array.from(envMap.values()),
-            methodBreakdown,
+            methodBreakdown: [],
             errorPatterns: Array.from(errorClusters.values()).sort((a, b) => b.count - a.count),
             policyUsed: {
                 version: policy.version,

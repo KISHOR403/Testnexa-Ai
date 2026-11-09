@@ -44,14 +44,21 @@ const OrganizationManagementPage = () => {
     const [activeOrg, setActiveOrg] = useState(() => {
         try {
             const cachedActive = localStorage.getItem('testnexa_active_org');
-            if (cachedActive) return JSON.parse(cachedActive);
+            if (cachedActive) {
+                const parsed = JSON.parse(cachedActive);
+                if (parsed && parsed.id && parsed.name && parsed.name !== 'Loading...') {
+                    return parsed;
+                }
+            }
 
             const savedOrgId = localStorage.getItem('testnexa_active_org_id');
             const cachedOrgs = localStorage.getItem('testnexa_cached_orgs');
             if (cachedOrgs) {
                 const parsed = JSON.parse(cachedOrgs);
-                const matched = parsed.find(o => o.id === savedOrgId) || parsed[0];
-                if (matched) return matched;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const matched = parsed.find(o => o.id === savedOrgId) || parsed[0];
+                    if (matched && matched.name && matched.name !== 'Loading...') return matched;
+                }
             }
 
             if (currentWorkspace?.organizationId) {
@@ -73,7 +80,13 @@ const OrganizationManagementPage = () => {
                 status: 'active'
             };
         } catch {
-            return null;
+            return {
+                id: 'org_primary',
+                name: 'Personal Organization',
+                plan: 'free',
+                userRole: 'owner',
+                status: 'active'
+            };
         }
     });
 
@@ -384,9 +397,9 @@ const OrganizationManagementPage = () => {
                             className="org-header__switcher"
                             onClick={() => setShowOrgDropdown(!showOrgDropdown)}
                         >
-                            <span>Org: <strong>{activeOrg?.name || 'Primary Organization'}</strong></span>
-                            <span className={`org-role-badge org-role-badge--${activeOrg?.userRole || 'viewer'}`}>
-                                {activeOrg?.userRole || 'viewer'}
+                            <span>Org: <strong>{activeOrg?.name && activeOrg.name !== 'Loading...' ? activeOrg.name : 'Personal Organization'}</strong></span>
+                            <span className={`org-role-badge org-role-badge--${activeOrg?.userRole || 'owner'}`}>
+                                {activeOrg?.userRole || 'owner'}
                             </span>
                             <ChevronDown size={14} />
                         </button>

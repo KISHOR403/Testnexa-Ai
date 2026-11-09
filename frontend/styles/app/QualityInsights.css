@@ -1,0 +1,561 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — QUALITY INSIGHTS & ADVANCED TEST ANALYTICS STYLES
+   Visual Direction: Dark Mineral Theme (#080A09, #0D110F), Muted Jade (#8BAF9A)
+   Zero Fake Decorative Elements, Clear Typography, Subtle Dividers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --qi-bg: #080A09;
+    --qi-surface: #0D110F;
+    --qi-surface-raised: #131815;
+    --qi-surface-hover: #19201C;
+    --qi-border: #1E2521;
+    --qi-border-light: #2A332E;
+    --qi-text: #F2F3F3;
+    --qi-text-muted: #8F9E95;
+    --qi-text-subtle: #5B6B61;
+    --qi-jade: #8BAF9A;
+    --qi-jade-glow: rgba(139, 175, 154, 0.15);
+    --qi-fail: #E57373;
+    --qi-fail-bg: rgba(229, 115, 115, 0.12);
+    --qi-fail-border: rgba(229, 115, 115, 0.28);
+    --qi-pass: #81C784;
+    --qi-pass-bg: rgba(129, 199, 132, 0.12);
+    --qi-pass-border: rgba(129, 199, 132, 0.28);
+    --qi-warn: #FFB74D;
+    --qi-warn-bg: rgba(255, 183, 77, 0.12);
+    --qi-warn-border: rgba(255, 183, 77, 0.28);
+    --qi-info: #64B5F6;
+    --qi-info-bg: rgba(100, 181, 246, 0.12);
+    --qi-info-border: rgba(100, 181, 246, 0.28);
+    --qi-radius-sm: 6px;
+    --qi-radius-md: 10px;
+    --qi-radius-lg: 14px;
+}
+
+.qi-container {
+    padding: 1.5rem 2rem;
+    max-width: 1540px;
+    margin: 0 auto;
+    color: var(--qi-text);
+    background: var(--qi-bg);
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ─── 1. Header & Filters ─── */
+.qi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--qi-border);
+}
+
+.qi-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.qi-header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.qi-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--qi-text);
+}
+
+.qi-header-badge {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: var(--qi-radius-sm);
+    background: var(--qi-jade-glow);
+    color: var(--qi-jade);
+    border: 1px solid rgba(139, 175, 154, 0.3);
+}
+
+.qi-header-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--qi-text-muted);
+}
+
+.qi-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.qi-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: var(--qi-radius-sm);
+    border: 1px solid var(--qi-border-light);
+    background: var(--qi-surface-raised);
+    color: var(--qi-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.qi-btn:hover:not(:disabled) {
+    background: var(--qi-surface-hover);
+    border-color: var(--qi-jade);
+}
+
+.qi-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.qi-btn--primary {
+    background: rgba(139, 175, 154, 0.15);
+    border-color: rgba(139, 175, 154, 0.4);
+    color: var(--qi-jade);
+}
+
+.qi-btn--primary:hover:not(:disabled) {
+    background: rgba(139, 175, 154, 0.25);
+    border-color: var(--qi-jade);
+}
+
+/* ─── Filter Bar ─── */
+.qi-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: var(--qi-surface);
+    border: 1px solid var(--qi-border);
+    padding: 0.75rem 1rem;
+    border-radius: var(--qi-radius-md);
+}
+
+.qi-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.qi-filter-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--qi-text-subtle);
+}
+
+.qi-select {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
+    background: var(--qi-surface-raised);
+    color: var(--qi-text);
+    border: 1px solid var(--qi-border-light);
+    border-radius: var(--qi-radius-sm);
+    outline: none;
+    cursor: pointer;
+}
+
+.qi-select:focus {
+    border-color: var(--qi-jade);
+}
+
+/* ─── 2. Execution Health KPI Cards ─── */
+.qi-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+}
+
+.qi-kpi-card {
+    background: var(--qi-surface);
+    border: 1px solid var(--qi-border);
+    border-radius: var(--qi-radius-md);
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+    transition: border-color 0.15s ease;
+}
+
+.qi-kpi-card:hover {
+    border-color: var(--qi-border-light);
+}
+
+.qi-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.qi-kpi-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--qi-text-muted);
+}
+
+.qi-kpi-info-icon {
+    color: var(--qi-text-subtle);
+    cursor: help;
+}
+
+.qi-kpi-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.qi-kpi-value {
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--qi-text);
+}
+
+.qi-kpi-value--pass {
+    color: var(--qi-pass);
+}
+
+.qi-kpi-value--fail {
+    color: var(--qi-fail);
+}
+
+.qi-kpi-subtext {
+    font-size: 0.75rem;
+    color: var(--qi-text-subtle);
+}
+
+.qi-tooltip-box {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 10px;
+    right: 10px;
+    background: #19201C;
+    border: 1px solid var(--qi-border-light);
+    border-radius: var(--qi-radius-sm);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--qi-text);
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    line-height: 1.35;
+}
+
+/* ─── 3. Trends Visualizer Chart ─── */
+.qi-card {
+    background: var(--qi-surface);
+    border: 1px solid var(--qi-border);
+    border-radius: var(--qi-radius-md);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.qi-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.qi-card-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--qi-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qi-trend-chart-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.qi-svg-chart {
+    width: 100%;
+    min-width: 650px;
+    height: 220px;
+}
+
+.qi-chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-size: 0.75rem;
+    color: var(--qi-text-muted);
+}
+
+.qi-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.qi-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.qi-legend-dot--pass {
+    background: var(--qi-pass);
+}
+
+.qi-legend-dot--fail {
+    background: var(--qi-fail);
+}
+
+.qi-legend-dot--vol {
+    background: var(--qi-jade);
+}
+
+/* ─── 4. Tabs Navigation ─── */
+.qi-tabs-bar {
+    display: flex;
+    border-bottom: 1px solid var(--qi-border);
+    gap: 0.5rem;
+    overflow-x: auto;
+}
+
+.qi-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--qi-text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.qi-tab-btn:hover {
+    color: var(--qi-text);
+}
+
+.qi-tab-btn.active {
+    color: var(--qi-jade);
+    border-bottom-color: var(--qi-jade);
+    font-weight: 600;
+}
+
+.qi-tab-badge {
+    padding: 0.1rem 0.45rem;
+    font-size: 0.7rem;
+    border-radius: 10px;
+    background: var(--qi-surface-raised);
+    color: var(--qi-text-muted);
+}
+
+/* ─── 5. Tables & Lists ─── */
+.qi-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--qi-border);
+    border-radius: var(--qi-radius-sm);
+}
+
+.qi-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    text-align: left;
+}
+
+.qi-table th {
+    background: var(--qi-surface-raised);
+    color: var(--qi-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--qi-border);
+    white-space: nowrap;
+}
+
+.qi-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--qi-border);
+    color: var(--qi-text);
+    vertical-align: middle;
+}
+
+.qi-table tr:last-child td {
+    border-bottom: none;
+}
+
+.qi-table tr:hover td {
+    background: var(--qi-surface-hover);
+}
+
+.qi-fingerprint-code {
+    font-family: monospace;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    background: var(--qi-surface-raised);
+    border-radius: var(--qi-radius-sm);
+    color: var(--qi-jade);
+}
+
+.qi-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 12px;
+}
+
+.qi-pill--critical {
+    background: var(--qi-fail-bg);
+    color: var(--qi-fail);
+    border: 1px solid var(--qi-fail-border);
+}
+
+.qi-pill--warning {
+    background: var(--qi-warn-bg);
+    color: var(--qi-warn);
+    border: 1px solid var(--qi-warn-border);
+}
+
+.qi-pill--info {
+    background: var(--qi-info-bg);
+    color: var(--qi-info);
+    border: 1px solid var(--qi-info-border);
+}
+
+.qi-pill--flaky {
+    background: rgba(255, 183, 77, 0.15);
+    color: #FFB74D;
+    border: 1px solid rgba(255, 183, 77, 0.3);
+}
+
+/* ─── 6. AI Quality Insights Cards ─── */
+.qi-ai-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 1rem;
+}
+
+.qi-insight-card {
+    background: var(--qi-surface-raised);
+    border: 1px solid var(--qi-border);
+    border-radius: var(--qi-radius-md);
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.qi-insight-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.qi-insight-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--qi-text);
+}
+
+.qi-insight-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.qi-insight-desc {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--qi-text-muted);
+    line-height: 1.45;
+}
+
+.qi-insight-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--qi-border);
+}
+
+.qi-insight-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.qi-insight-row-label {
+    font-weight: 600;
+    color: var(--qi-jade);
+    min-width: 90px;
+}
+
+.qi-insight-row-value {
+    color: var(--qi-text-muted);
+}
+
+/* ─── Empty & Loading States ─── */
+.qi-empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--qi-text-muted);
+}
+
+.qi-empty-state h3 {
+    margin: 0;
+    color: var(--qi-text);
+    font-size: 1.1rem;
+}
+
+.qi-empty-state p {
+    margin: 0;
+    font-size: 0.85rem;
+    max-width: 480px;
+}
+
+.qi-spin {
+    animation: qiSpin 1s linear infinite;
+}
+
+@keyframes qiSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
