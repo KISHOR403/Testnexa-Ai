@@ -2600,7 +2600,7 @@ class SupabaseDataService {
         const createdBy = params.createdBy || params.created_by || null;
         const assignedTo = params.assignedTo || params.assigned_to || null;
         const selectedCaseIds = params.selectedCaseIds || params.selected_case_ids || [];
-        const customCases = params.customCases || params.custom_cases || params.cases || null;
+        const customCases = params.customCases || params.custom_cases || params.cases || params.testCases || null;
         const datasetId = params.datasetId || params.dataset_id || null;
         const datasetVersion = params.datasetVersion || params.dataset_version || null;
         const datasetName = params.datasetName || params.dataset_name || null;
@@ -2613,7 +2613,7 @@ class SupabaseDataService {
         if (!workspaceId) throw new Error('workspaceId is required to create a TestRun');
         if (!name || !name.trim()) throw new Error('Run name is required');
 
-        const validExecutionTypes = ['manual', 'automated', 'mixed'];
+        const validExecutionTypes = ['manual', 'automated', 'mixed', 'api'];
         const cleanType = validExecutionTypes.includes(executionType?.toLowerCase())
             ? executionType.toLowerCase()
             : 'manual';
@@ -2721,7 +2721,7 @@ class SupabaseDataService {
         const runCaseRecords = [];
         for (let i = 0; i < casesToRun.length; i++) {
             const c = casesToRun[i];
-            const caseId = String(c.id || `TC_${i + 1}`);
+            const caseId = String(c.id || c.testCaseId || c.test_case_id || `TC_${i + 1}`);
 
             const existingMapping = c.automationMapping || c.playwrightBinding || null;
             const hasAutomation = Boolean(
@@ -3486,10 +3486,24 @@ class SupabaseDataService {
     }) {
         if (!runId || !runCaseId) throw new Error('runId and runCaseId are required');
 
-        const validStatuses = ['passed', 'failed', 'blocked', 'skipped'];
-        const cleanStatus = validStatuses.includes(status?.toLowerCase())
+        const validStatuses = ['passed', 'failed', 'blocked', 'skipped', 'error', 'timed_out', 'infrastructure_error'];
+        let cleanStatus = validStatuses.includes(status?.toLowerCase())
             ? status.toLowerCase()
             : 'failed';
+
+        // Derive status deterministically from step outcomes if step-by-step verification occurred
+        if (stepOutcomes && typeof stepOutcomes === 'object' && Object.keys(stepOutcomes).length > 0) {
+            const stepVals = Object.values(stepOutcomes).map(v => String(v || '').toLowerCase());
+            if (stepVals.some(v => v === 'failed')) {
+                cleanStatus = 'failed';
+            } else if (stepVals.some(v => v === 'blocked') && !stepVals.some(v => v === 'failed')) {
+                cleanStatus = 'blocked';
+            } else if (stepVals.some(v => v === 'error')) {
+                cleanStatus = 'error';
+            } else if (stepVals.length > 0 && stepVals.every(v => v === 'passed' || v === 'skipped')) {
+                cleanStatus = 'passed';
+            }
+        }
 
         const runCase = await this.getRunCaseById(runCaseId);
         if (!runCase) throw new Error(`Test run case not found (${runCaseId})`);
@@ -3505,7 +3519,7 @@ class SupabaseDataService {
             id: execId,
             run_id: runId,
             run_case_id: runCaseId,
-            test_case_id: testCaseId || runCase.testCaseId,
+            test_case_id: runCase.testCaseId || runCase.test_case_id,
             attempt_number: nextAttemptNumber,
             status: cleanStatus,
             actual_result: actualResult,
@@ -3553,7 +3567,7 @@ class SupabaseDataService {
 
         // 3. Atomically recalculate run summary and update run status
         const allCases = await this.getRunCases(runId);
-        let passed = 0, failed = 0, blocked = 0, skipped = 0, notRun = 0, inProgress = 0, totalDuration = 0;
+        let passed = 0, failed = 0, blocked = 0, skipped = 0, notRun = 0, inProgress = 0, errorCount = 0, totalDuration = 0;
 
         for (const c of allCases) {
             const st = (c.status || 'not_run').toLowerCase();
@@ -3561,6 +3575,7 @@ class SupabaseDataService {
             else if (st === 'failed') failed++;
             else if (st === 'blocked') blocked++;
             else if (st === 'skipped') skipped++;
+            else if (st === 'error' || st === 'timed_out' || st === 'infrastructure_error') errorCount++;
             else if (st === 'in_progress') inProgress++;
             else notRun++;
             totalDuration += (c.durationMs || 0);
@@ -3572,6 +3587,7 @@ class SupabaseDataService {
             failed,
             blocked,
             skipped,
+            error: errorCount,
             not_run: notRun,
             in_progress: inProgress,
             duration_ms: totalDuration
@@ -3641,6 +3657,33 @@ class SupabaseDataService {
             rows = Array.from(this.inMemoryTestExecutions.values())
                 .filter(e => e.run_case_id === runCaseId)
                 .sort((a, b) => (a.attempt_number || 1) - (b.attempt_number || 1));
+        }
+
+        return rows.map(r => this._formatTestExecution(r));
+    }
+
+    /**
+     * Get all execution history across runs for a specific test case ID
+     */
+    async getTestCaseAllExecutions(testCaseId) {
+        if (!testCaseId) return [];
+
+        let rows = [];
+        if (this.isAvailable && this.executionTablesAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('test_executions')
+                    .select('*')
+                    .eq('test_case_id', testCaseId)
+                    .order('created_at', { ascending: false });
+                if (!error && data) rows = data;
+            } catch (err) {}
+        }
+
+        if (rows.length === 0) {
+            rows = Array.from(this.inMemoryTestExecutions.values())
+                .filter(e => e.test_case_id === testCaseId)
+                .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         }
 
         return rows.map(r => this._formatTestExecution(r));

@@ -201,6 +201,28 @@ const RunExecutionPage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
 
+    // Step-level interactive verification state
+    const [stepOutcomes, setStepOutcomes] = useState({});
+
+    // API Testing execution state
+    const [executionStationMode, setExecutionStationMode] = useState('manual'); // 'manual' | 'api'
+    const [apiConfig, setApiConfig] = useState({
+        method: 'GET',
+        url: '',
+        headers: '{\n  "Accept": "application/json"\n}',
+        body: '',
+        expectedStatus: 200,
+        jsonPath: '',
+        expectedValue: ''
+    });
+    const [isExecutingApi, setIsExecutingApi] = useState(false);
+    const [apiResponse, setApiResponse] = useState(null);
+
+    // Multiple Execution History across runs state
+    const [historicalAttempts, setHistoricalAttempts] = useState([]);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+    const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+
     const navigate = useNavigate();
     // Active Automation Job Polling state
     const [activeJob, setActiveJob] = useState(null);
@@ -349,12 +371,85 @@ const RunExecutionPage = () => {
                     actualResult,
                     notes,
                     screenshotData,
-                    screenshotName
+                    screenshotName,
+                    stepOutcomes,
+                    executionStationMode,
+                    apiConfig
                 }
             }));
         }
         setActiveCaseId(newCaseId);
         setIsMobileDetailOpen(true);
+    };
+
+    // Helper: derive overall execution status from individual step evaluations
+    const deriveOverallStatusFromSteps = (stepsMap, stepCount) => {
+        if (!stepCount || stepCount === 0) return 'passed';
+        const values = Object.values(stepsMap);
+        if (values.length < stepCount) return 'in_progress';
+        const statuses = values.map(v => v.status);
+        if (statuses.some(s => s === 'pending')) return 'in_progress';
+        if (statuses.some(s => s === 'failed')) return 'failed';
+        if (statuses.some(s => s === 'blocked')) return 'blocked';
+        if (statuses.every(s => s === 'skipped')) return 'skipped';
+        return 'passed';
+    };
+
+    const handleStepStatusChange = (stepIdx, newStatus) => {
+        setStepOutcomes(prev => {
+            const next = {
+                ...prev,
+                [stepIdx]: {
+                    ...(prev[stepIdx] || {}),
+                    status: newStatus
+                }
+            };
+            const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || [];
+            const derived = deriveOverallStatusFromSteps(next, steps.length);
+            if (derived !== 'in_progress') {
+                setFormStatus(derived);
+            }
+            return next;
+        });
+    };
+
+    const handleStepActualChange = (stepIdx, text) => {
+        setStepOutcomes(prev => ({
+            ...prev,
+            [stepIdx]: {
+                ...(prev[stepIdx] || {}),
+                actual: text
+            }
+        }));
+    };
+
+    const handleMarkAllStepsPassed = () => {
+        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || [];
+        const next = {};
+        steps.forEach((_, idx) => {
+            next[idx] = {
+                ...(stepOutcomes[idx] || {}),
+                status: 'passed'
+            };
+        });
+        setStepOutcomes(next);
+        setFormStatus('passed');
+    };
+
+    // Load full historical attempts across all runs for active test case
+    const loadCaseHistory = async (targetCaseId) => {
+        if (!targetCaseId) return;
+        setIsHistoryLoading(true);
+        try {
+            const res = await executionService.getTestCaseHistory(targetCaseId);
+            if (res.success && res.data) {
+                setHistoricalAttempts(res.data);
+            }
+        } catch (err) {
+            console.warn('Historical executions fetch notice:', err.message);
+        } finally {
+            setIsHistoryLoading(false);
+        }
     };
 
     // Fetch active case details and attempt history when activeCaseId changes
@@ -366,22 +461,62 @@ const RunExecutionPage = () => {
             try {
                 const res = await executionService.getRunCase(runId, activeCaseId);
                 if (isCurrent && res.success && res.data) {
-                    setActiveCaseDetails(res.data);
+                    const caseData = res.data;
+                    setActiveCaseDetails(caseData);
+
                     const draft = caseDrafts[activeCaseId];
                     if (draft) {
-                        setFormStatus(draft.formStatus || (res.data.status !== 'not_run' ? res.data.status : 'passed'));
-                        setActualResult(draft.actualResult ?? res.data.actualResult ?? '');
-                        setNotes(draft.notes ?? res.data.notes ?? '');
+                        setFormStatus(draft.formStatus || (caseData.status !== 'not_run' ? caseData.status : 'passed'));
+                        setActualResult(draft.actualResult ?? caseData.actualResult ?? '');
+                        setNotes(draft.notes ?? caseData.notes ?? '');
                         setScreenshotData(draft.screenshotData || null);
                         setScreenshotName(draft.screenshotName || '');
+                        setStepOutcomes(draft.stepOutcomes || {});
+                        setExecutionStationMode(draft.executionStationMode || (caseData.executionType === 'api' ? 'api' : 'manual'));
+                        if (draft.apiConfig) setApiConfig(draft.apiConfig);
                     } else {
-                        setActualResult(res.data.actualResult || '');
-                        setNotes(res.data.notes || '');
-                        setFormStatus(res.data.status !== 'not_run' ? res.data.status : 'passed');
+                        setActualResult(caseData.actualResult || '');
+                        setNotes(caseData.notes || '');
+                        setFormStatus(caseData.status !== 'not_run' ? caseData.status : 'passed');
                         setScreenshotData(null);
                         setScreenshotName('');
+                        setExecutionStationMode(caseData.executionType === 'api' || run?.executionType === 'api' ? 'api' : 'manual');
+
+                        // Reconstruct stepOutcomes from past step executions or default to pending
+                        const steps = caseData.steps || caseData.snapshot?.steps || [];
+                        const initSteps = {};
+                        steps.forEach((st, idx) => {
+                            initSteps[idx] = {
+                                status: st.status || (caseData.status === 'passed' ? 'passed' : 'pending'),
+                                actual: st.actualResult || st.actual || '',
+                                notes: st.notes || ''
+                            };
+                        });
+                        setStepOutcomes(initSteps);
+
+                        if (caseData.apiConfig || caseData.snapshot?.apiConfig) {
+                            const cfg = caseData.apiConfig || caseData.snapshot?.apiConfig;
+                            setApiConfig({
+                                method: cfg.method || 'GET',
+                                url: cfg.url || run?.targetEnvironment || '',
+                                headers: cfg.headers ? (typeof cfg.headers === 'string' ? cfg.headers : JSON.stringify(cfg.headers, null, 2)) : '{\n  "Accept": "application/json"\n}',
+                                body: cfg.body ? (typeof cfg.body === 'string' ? cfg.body : JSON.stringify(cfg.body, null, 2)) : '',
+                                expectedStatus: cfg.expectedStatus || 200,
+                                jsonPath: cfg.jsonPath || '',
+                                expectedValue: cfg.expectedValue || ''
+                            });
+                        } else if (run?.targetEnvironment) {
+                            setApiConfig(prev => ({ ...prev, url: run.targetEnvironment }));
+                        }
                     }
                     setSaveMessage(null);
+                    setApiResponse(null);
+
+                    // Fetch multi-run historical executions
+                    const tcId = caseData.testCaseId || caseData.id;
+                    if (tcId) {
+                        loadCaseHistory(tcId);
+                    }
                 }
             } catch (err) {
                 console.error('Failed to fetch case details:', err);
@@ -432,19 +567,67 @@ const RunExecutionPage = () => {
         reader.readAsDataURL(file);
     };
 
-    // Save manual execution attempt
+    // Save manual execution attempt as a draft
+    const handleSaveDraft = () => {
+        if (!activeCaseId) return;
+        setCaseDrafts(prev => ({
+            ...prev,
+            [activeCaseId]: {
+                formStatus: 'in_progress',
+                actualResult,
+                notes,
+                screenshotData,
+                screenshotName,
+                stepOutcomes,
+                executionStationMode,
+                apiConfig
+            }
+        }));
+        setSaveMessage('Draft progress saved locally. You can resume verification at any time.');
+        setTimeout(() => setSaveMessage(null), 4000);
+    };
+
+    // Save & Complete manual execution attempt
     const handleSaveExecution = async () => {
         if (!activeCaseId) return;
+
+        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || [];
+        const stepsCount = steps.length;
+
+        // Completion validation: If tester selected Passed, all steps must be evaluated
+        if (formStatus === 'passed' && stepsCount > 0) {
+            const evaluatedCount = Object.values(stepOutcomes).filter(s => s && s.status && s.status !== 'pending').length;
+            if (evaluatedCount < stepsCount) {
+                const confirmSaveDraft = window.confirm(
+                    `Incomplete Step Verification: ${evaluatedCount} of ${stepsCount} steps evaluated.\n\nA test case cannot be completed as Passed while steps remain unverified. Would you like to mark all remaining steps Passed and complete, or Cancel to review?`
+                );
+                if (!confirmSaveDraft) {
+                    return;
+                }
+                // Mark all remaining passed
+                handleMarkAllStepsPassed();
+            }
+        }
 
         setIsSaving(true);
         setSaveMessage(null);
 
         try {
+            const formattedSteps = steps.map((st, idx) => ({
+                stepNumber: idx + 1,
+                action: typeof st === 'object' ? (st.action || st.step || st.description || st.text) : String(st),
+                expected: typeof st === 'object' ? st.expected : '',
+                actual: stepOutcomes[idx]?.actual || '',
+                status: stepOutcomes[idx]?.status || (formStatus === 'passed' ? 'passed' : 'pending'),
+                notes: stepOutcomes[idx]?.notes || ''
+            }));
+
             const payload = {
                 status: formStatus,
-                actualResult: actualResult.trim(),
+                actualResult: actualResult.trim() || (formStatus === 'passed' ? 'All test steps verified successfully.' : 'Verification complete.'),
                 notes: notes.trim(),
-                durationMs: 3000,
+                steps: formattedSteps,
+                durationMs: 3500,
                 executorType: 'manual',
                 artifact: screenshotData ? {
                     name: screenshotName || `evidence_${activeCaseId}.png`,
@@ -455,7 +638,7 @@ const RunExecutionPage = () => {
 
             const res = await executionService.recordExecution(runId, activeCaseId, payload);
             if (res.success) {
-                setSaveMessage('Execution attempt recorded successfully.');
+                setSaveMessage('Execution attempt recorded and committed to audit history.');
                 setCaseDrafts(prev => {
                     const next = { ...prev };
                     delete next[activeCaseId];
@@ -469,11 +652,89 @@ const RunExecutionPage = () => {
                 loadRunData();
                 setScreenshotData(null);
                 setScreenshotName('');
+
+                // Refresh history
+                const tcId = activeCase?.testCaseId || activeCaseId;
+                if (tcId) loadCaseHistory(tcId);
             }
         } catch (err) {
-            alert(`Execution recording failed: ${err.message}`);
+            alert(`Execution recording rejected: ${err.message}`);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Execute real HTTP API Test Case
+    const handleExecuteApi = async () => {
+        if (!activeCaseId) return;
+
+        let parsedHeaders = {};
+        if (apiConfig.headers && apiConfig.headers.trim()) {
+            try {
+                parsedHeaders = JSON.parse(apiConfig.headers);
+            } catch {
+                alert('Invalid JSON in Request Headers. Please provide a valid JSON object.');
+                return;
+            }
+        }
+
+        let parsedBody = null;
+        if (apiConfig.body && apiConfig.body.trim()) {
+            try {
+                parsedBody = JSON.parse(apiConfig.body);
+            } catch {
+                parsedBody = apiConfig.body.trim();
+            }
+        }
+
+        const targetUrl = apiConfig.url?.trim() || run?.targetEnvironment || 'https://httpbin.org/get';
+
+        setIsExecutingApi(true);
+        setApiResponse(null);
+        setSaveMessage(null);
+
+        try {
+            const assertions = [
+                { type: 'statusCode', expected: Number(apiConfig.expectedStatus) || 200 }
+            ];
+            if (apiConfig.jsonPath?.trim() && apiConfig.expectedValue?.trim()) {
+                assertions.push({
+                    type: 'bodyPath',
+                    property: apiConfig.jsonPath.trim(),
+                    expected: apiConfig.expectedValue.trim()
+                });
+            }
+
+            const payload = {
+                url: targetUrl,
+                method: apiConfig.method || 'GET',
+                headers: parsedHeaders,
+                body: parsedBody,
+                expectedStatus: Number(apiConfig.expectedStatus) || 200,
+                assertions
+            };
+
+            const res = await executionService.executeApiCase(runId, activeCaseId, payload);
+            if (res.success && res.data) {
+                setApiResponse(res.data.executionResult);
+                const isPassed = res.data.status === 'passed';
+                setSaveMessage(`API Execution completed: ${res.data.status.toUpperCase()} (${res.data.executionResult?.durationMs || 0}ms)`);
+
+                // Refresh active case details and run summary
+                const updatedCaseRes = await executionService.getRunCase(runId, activeCaseId);
+                if (updatedCaseRes.success) {
+                    setActiveCaseDetails(updatedCaseRes.data);
+                }
+                loadRunData();
+
+                // Refresh history
+                const tcId = activeCase?.testCaseId || activeCaseId;
+                if (tcId) loadCaseHistory(tcId);
+            }
+        } catch (err) {
+            alert(`API Execution failed: ${err.message}`);
+        } finally {
+            setIsExecutingApi(false);
         }
     };
 
@@ -1571,199 +1832,588 @@ return (
                                     </div>
                                 </div>
 
-                                {/* ─── 4. Test Steps ─── */}
+                                {/* ─── 4. Test Steps with Per-Step Verification ─── */}
                                 {Array.isArray(snapshot.steps) && snapshot.steps.length > 0 && (
                                     <div className="qa-section-block">
-                                        <h3 className="qa-section-title">
-                                            <span>Test Execution Steps</span>
-                                            <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
-                                                ({snapshot.steps.length} steps)
-                                            </span>
-                                        </h3>
-                                        <div className="qa-steps-list">
-                                            {snapshot.steps.map((st, idx) => (
-                                                <div key={idx} className="qa-step-item">
-                                                    <span className="qa-step-num">{idx + 1}</span>
-                                                    <div className="qa-step-body">
-                                                        <div>{safeFormatValue(typeof st === 'object' ? (st.action || st.step || st.description || st.text) : st)}</div>
-                                                        {st && typeof st === 'object' && st.expected && (
-                                                            <span className="qa-step-expected">↳ Expected: {safeFormatValue(st.expected)}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            <h3 className="qa-section-title" style={{ margin: 0 }}>
+                                                <span>Interactive Step Verification</span>
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
+                                                    ({snapshot.steps.length} steps)
+                                                </span>
+                                            </h3>
 
-                                {/* ─── 5. Manual & Retest Execution Station ─── */}
-                                <div className="qa-section-block">
-                                    <h3 className="qa-section-title">
-                                        <span>Record Execution Outcome</span>
-                                        <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
-                                            (Attempt #{activeCase.currentAttempt || 1})
-                                        </span>
-                                    </h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                {run?.targetEnvironment && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => window.open(run.targetEnvironment, '_blank', 'noopener,noreferrer')}
+                                                        className="ws-btn-secondary"
+                                                        style={{ height: '28px', fontSize: '0.75rem', gap: '5px' }}
+                                                        title="Open target application in a new tab for side-by-side verification"
+                                                    >
+                                                        <Eye size={13} />
+                                                        <span>Launch App</span>
+                                                    </button>
+                                                )}
 
-                                    <div className="qa-execution-station">
-                                        {/* Status Selector */}
-                                        <div className="qa-field-group">
-                                            <span className="qa-field-label">Verification Outcome *</span>
-                                            <div className="qa-outcome-btn-group">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setFormStatus('passed')}
-                                                    className={`qa-outcome-btn pass ${formStatus === 'passed' ? 'selected' : ''}`}
+                                                    onClick={handleMarkAllStepsPassed}
+                                                    className="ws-btn-secondary"
+                                                    style={{ height: '28px', fontSize: '0.75rem', gap: '5px', color: 'var(--qa-jade)' }}
+                                                    title="Mark all steps as Passed with one click"
                                                 >
-                                                    <CheckCircle2 size={15} />
-                                                    <span>Passed</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormStatus('failed')}
-                                                    className={`qa-outcome-btn fail ${formStatus === 'failed' ? 'selected' : ''}`}
-                                                >
-                                                    <XCircle size={15} />
-                                                    <span>Failed</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormStatus('blocked')}
-                                                    className={`qa-outcome-btn blocked ${formStatus === 'blocked' ? 'selected' : ''}`}
-                                                >
-                                                    <AlertTriangle size={15} />
-                                                    <span>Blocked</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormStatus('skipped')}
-                                                    className={`qa-outcome-btn skipped ${formStatus === 'skipped' ? 'selected' : ''}`}
-                                                >
-                                                    <MinusCircle size={15} />
-                                                    <span>Skipped</span>
+                                                    <CheckCircle2 size={13} />
+                                                    <span>Mark All Passed</span>
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* Actual Result & Observations */}
-                                        <div className="qa-field-group">
-                                            <label className="qa-field-label">Actual Result & Tester Observations</label>
-                                            <textarea
-                                                rows={3}
-                                                value={actualResult}
-                                                onChange={(e) => setActualResult(e.target.value)}
-                                                placeholder="Describe observed UI outcome, network status, assertion confirmation, or error messages..."
-                                                className="qa-textarea"
-                                            />
+                                        <div className="qa-steps-list">
+                                            {snapshot.steps.map((st, idx) => {
+                                                const stepState = stepOutcomes[idx] || { status: 'pending', actual: '' };
+                                                const stepStatus = stepState.status || 'pending';
+
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="qa-step-item"
+                                                        style={{
+                                                            borderLeft: `3px solid ${
+                                                                stepStatus === 'passed' ? 'var(--qa-jade)' :
+                                                                stepStatus === 'failed' ? 'var(--qa-fail)' :
+                                                                stepStatus === 'blocked' ? 'var(--qa-warn)' :
+                                                                stepStatus === 'skipped' ? 'var(--qa-purple)' : 'var(--qa-border)'
+                                                            }`,
+                                                            padding: '0.75rem',
+                                                            marginBottom: '0.65rem',
+                                                            background: 'rgba(255,255,255,0.02)',
+                                                            borderRadius: '4px'
+                                                        }}
+                                                    >
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                                                            <div style={{ display: 'flex', gap: '0.6rem', flex: 1 }}>
+                                                                <span className="qa-step-num">{idx + 1}</span>
+                                                                <div className="qa-step-body" style={{ flex: 1 }}>
+                                                                    <div style={{ fontWeight: 500, color: 'var(--qa-text)' }}>
+                                                                        {safeFormatValue(typeof st === 'object' ? (st.action || st.step || st.description || st.text) : st)}
+                                                                    </div>
+                                                                    {st && typeof st === 'object' && st.expected && (
+                                                                        <span className="qa-step-expected" style={{ display: 'block', marginTop: '0.25rem', color: 'var(--qa-jade)' }}>
+                                                                            ↳ Expected: {safeFormatValue(st.expected)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Step verification outcome buttons */}
+                                                            <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStepStatusChange(idx, 'passed')}
+                                                                    style={{
+                                                                        height: '24px',
+                                                                        padding: '0 7px',
+                                                                        fontSize: '0.7rem',
+                                                                        borderRadius: '3px',
+                                                                        cursor: 'pointer',
+                                                                        border: '1px solid',
+                                                                        borderColor: stepStatus === 'passed' ? 'var(--qa-jade)' : 'var(--qa-border)',
+                                                                        background: stepStatus === 'passed' ? 'rgba(139, 175, 154, 0.25)' : 'transparent',
+                                                                        color: stepStatus === 'passed' ? 'var(--qa-jade)' : 'var(--qa-text-dim)',
+                                                                        fontWeight: stepStatus === 'passed' ? 700 : 500
+                                                                    }}
+                                                                >
+                                                                    Pass
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStepStatusChange(idx, 'failed')}
+                                                                    style={{
+                                                                        height: '24px',
+                                                                        padding: '0 7px',
+                                                                        fontSize: '0.7rem',
+                                                                        borderRadius: '3px',
+                                                                        cursor: 'pointer',
+                                                                        border: '1px solid',
+                                                                        borderColor: stepStatus === 'failed' ? 'var(--qa-fail)' : 'var(--qa-border)',
+                                                                        background: stepStatus === 'failed' ? 'rgba(224, 108, 117, 0.25)' : 'transparent',
+                                                                        color: stepStatus === 'failed' ? 'var(--qa-fail)' : 'var(--qa-text-dim)',
+                                                                        fontWeight: stepStatus === 'failed' ? 700 : 500
+                                                                    }}
+                                                                >
+                                                                    Fail
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStepStatusChange(idx, 'blocked')}
+                                                                    style={{
+                                                                        height: '24px',
+                                                                        padding: '0 7px',
+                                                                        fontSize: '0.7rem',
+                                                                        borderRadius: '3px',
+                                                                        cursor: 'pointer',
+                                                                        border: '1px solid',
+                                                                        borderColor: stepStatus === 'blocked' ? 'var(--qa-warn)' : 'var(--qa-border)',
+                                                                        background: stepStatus === 'blocked' ? 'rgba(229, 192, 123, 0.25)' : 'transparent',
+                                                                        color: stepStatus === 'blocked' ? 'var(--qa-warn)' : 'var(--qa-text-dim)',
+                                                                        fontWeight: stepStatus === 'blocked' ? 700 : 500
+                                                                    }}
+                                                                >
+                                                                    Block
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStepStatusChange(idx, 'skipped')}
+                                                                    style={{
+                                                                        height: '24px',
+                                                                        padding: '0 7px',
+                                                                        fontSize: '0.7rem',
+                                                                        borderRadius: '3px',
+                                                                        cursor: 'pointer',
+                                                                        border: '1px solid',
+                                                                        borderColor: stepStatus === 'skipped' ? 'var(--qa-purple)' : 'var(--qa-border)',
+                                                                        background: stepStatus === 'skipped' ? 'rgba(198, 120, 221, 0.25)' : 'transparent',
+                                                                        color: stepStatus === 'skipped' ? 'var(--qa-purple)' : 'var(--qa-text-dim)',
+                                                                        fontWeight: stepStatus === 'skipped' ? 700 : 500
+                                                                    }}
+                                                                >
+                                                                    Skip
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Optional step observation text */}
+                                                        {stepStatus !== 'pending' && (
+                                                            <div style={{ marginTop: '0.4rem', marginLeft: '1.8rem' }}>
+                                                                <input
+                                                                    type="text"
+                                                                    value={stepState.actual || ''}
+                                                                    onChange={(e) => handleStepActualChange(idx, e.target.value)}
+                                                                    placeholder={`Observed step ${idx + 1} behavior (optional)...`}
+                                                                    className="qa-text-input"
+                                                                    style={{ height: '26px', fontSize: '0.75rem', padding: '0 8px' }}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
+                                    </div>
+                                )}
 
-                                        {/* Execution Notes */}
-                                        <div className="qa-field-group">
-                                            <label className="qa-field-label">Execution Notes & Context</label>
-                                            <input
-                                                type="text"
-                                                value={notes}
-                                                onChange={(e) => setNotes(e.target.value)}
-                                                placeholder="e.g., Verified on Chrome 124, 1920x1080 resolution, staging build #91"
-                                                className="qa-text-input"
-                                            />
+                                {/* ─── 5. Execution Station (Manual / API Testing) ─── */}
+                                <div className="qa-section-block">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <h3 className="qa-section-title" style={{ margin: 0 }}>
+                                            <span>Record Execution Outcome</span>
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
+                                                (Attempt #{activeCase.currentAttempt || 1})
+                                            </span>
+                                        </h3>
+
+                                        {/* Execution Mode Tabs: Manual vs API */}
+                                        <div style={{ display: 'flex', background: 'var(--qa-surface)', borderRadius: '4px', border: '1px solid var(--qa-border)', padding: '2px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setExecutionStationMode('manual')}
+                                                style={{
+                                                    background: executionStationMode === 'manual' ? 'var(--qa-bg-card)' : 'transparent',
+                                                    color: executionStationMode === 'manual' ? 'var(--qa-jade)' : 'var(--qa-text-dim)',
+                                                    border: 'none',
+                                                    borderRadius: '3px',
+                                                    padding: '3px 10px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Manual Workflow
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setExecutionStationMode('api')}
+                                                style={{
+                                                    background: executionStationMode === 'api' ? 'var(--qa-bg-card)' : 'transparent',
+                                                    color: executionStationMode === 'api' ? '#38BDF8' : 'var(--qa-text-dim)',
+                                                    border: 'none',
+                                                    borderRadius: '3px',
+                                                    padding: '3px 10px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                API Execution
+                                            </button>
                                         </div>
+                                    </div>
 
-                                        {/* Evidence Attachment */}
-                                        <div className="qa-field-group">
-                                            <label className="qa-field-label">Supporting Evidence / Failure Screenshot</label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                                <label className="ws-btn-secondary" style={{ height: '32px', cursor: 'pointer', gap: '6px' }}>
-                                                    <Camera size={14} />
-                                                    <span>Attach Screenshot</span>
-                                                    <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-                                                </label>
+                                    {/* ─── MODE A: MANUAL TESTING WORKFLOW ─── */}
+                                    {executionStationMode === 'manual' && (
+                                        <div className="qa-execution-station">
+                                            {/* Status Selector */}
+                                            <div className="qa-field-group">
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                                    <span className="qa-field-label">Verification Outcome *</span>
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--qa-text-dim)' }}>
+                                                        Derived automatically from steps
+                                                    </span>
+                                                </div>
+                                                <div className="qa-outcome-btn-group">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormStatus('passed')}
+                                                        className={`qa-outcome-btn pass ${formStatus === 'passed' ? 'selected' : ''}`}
+                                                    >
+                                                        <CheckCircle2 size={15} />
+                                                        <span>Passed</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormStatus('failed')}
+                                                        className={`qa-outcome-btn fail ${formStatus === 'failed' ? 'selected' : ''}`}
+                                                    >
+                                                        <XCircle size={15} />
+                                                        <span>Failed</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormStatus('blocked')}
+                                                        className={`qa-outcome-btn blocked ${formStatus === 'blocked' ? 'selected' : ''}`}
+                                                    >
+                                                        <AlertTriangle size={15} />
+                                                        <span>Blocked</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormStatus('skipped')}
+                                                        className={`qa-outcome-btn skipped ${formStatus === 'skipped' ? 'selected' : ''}`}
+                                                    >
+                                                        <MinusCircle size={15} />
+                                                        <span>Skipped</span>
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                                                {screenshotName && (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--qa-jade)' }}>
-                                                        <span>✓ {screenshotName} attached</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => { setScreenshotData(null); setScreenshotName(''); }}
-                                                            style={{ background: 'none', border: 'none', color: 'var(--qa-fail)', cursor: 'pointer', padding: 0 }}
-                                                            title="Remove screenshot"
-                                                        >
-                                                            <Trash2 size={13} />
-                                                        </button>
+                                            {/* Actual Result & Observations */}
+                                            <div className="qa-field-group">
+                                                <label className="qa-field-label">Actual Result & Tester Observations</label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={actualResult}
+                                                    onChange={(e) => setActualResult(e.target.value)}
+                                                    placeholder="Describe observed UI outcome, network behavior, assertion results, or encountered issues..."
+                                                    className="qa-textarea"
+                                                />
+                                            </div>
+
+                                            {/* Execution Notes */}
+                                            <div className="qa-field-group">
+                                                <label className="qa-field-label">Execution Notes & Context</label>
+                                                <input
+                                                    type="text"
+                                                    value={notes}
+                                                    onChange={(e) => setNotes(e.target.value)}
+                                                    placeholder="e.g., Verified on Chrome 124, 1920x1080 resolution, staging build #91"
+                                                    className="qa-text-input"
+                                                />
+                                            </div>
+
+                                            {/* Evidence Attachment */}
+                                            <div className="qa-field-group">
+                                                <label className="qa-field-label">Supporting Evidence / Failure Screenshot</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                                    <label className="ws-btn-secondary" style={{ height: '32px', cursor: 'pointer', gap: '6px' }}>
+                                                        <Camera size={14} />
+                                                        <span>Attach Screenshot</span>
+                                                        <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                                                    </label>
+
+                                                    {screenshotName && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--qa-jade)' }}>
+                                                            <span>✓ {screenshotName} attached</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setScreenshotData(null); setScreenshotName(''); }}
+                                                                style={{ background: 'none', border: 'none', color: 'var(--qa-fail)', cursor: 'pointer', padding: 0 }}
+                                                                title="Remove screenshot"
+                                                            >
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {screenshotData && (
+                                                    <div style={{ marginTop: '0.5rem' }}>
+                                                        <img
+                                                            src={screenshotData}
+                                                            alt="Evidence preview"
+                                                            style={{ maxWidth: '260px', maxHeight: '140px', borderRadius: '4px', border: '1px solid var(--qa-border)' }}
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {screenshotData && (
-                                                <div style={{ marginTop: '0.5rem' }}>
-                                                    <img
-                                                        src={screenshotData}
-                                                        alt="Evidence preview"
-                                                        style={{ maxWidth: '260px', maxHeight: '140px', borderRadius: '4px', border: '1px solid var(--qa-border)' }}
+                                            {saveMessage && (
+                                                <div style={{ color: 'var(--qa-jade)', fontSize: '0.84rem', fontWeight: 600 }}>
+                                                    ✓ {saveMessage}
+                                                </div>
+                                            )}
+
+                                            {/* Action Buttons: Save Draft vs Complete */}
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveDraft}
+                                                    className="ws-btn-secondary"
+                                                    style={{ height: '36px', padding: '0 1rem', fontSize: '0.8rem' }}
+                                                    title="Save in-progress verification draft without recording final completion"
+                                                >
+                                                    Save as Draft
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveExecution}
+                                                    disabled={isSaving}
+                                                    className="ws-btn-primary"
+                                                    style={{ height: '36px', padding: '0 1.5rem', fontWeight: 600 }}
+                                                >
+                                                    {isSaving ? 'Recording Execution...' : activeCase.status !== 'not_run' ? 'Log Retest Attempt' : 'Complete Execution'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ─── MODE B: REAL HTTP API EXECUTION STATION ─── */}
+                                    {executionStationMode === 'api' && (
+                                        <div className="qa-execution-station" style={{ borderLeft: '3px solid #38BDF8' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                                <div>
+                                                    <label className="qa-field-label">HTTP Method</label>
+                                                    <select
+                                                        value={apiConfig.method}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, method: e.target.value }))}
+                                                        className="qa-text-input"
+                                                        style={{ height: '36px', fontWeight: 700 }}
+                                                    >
+                                                        <option value="GET">GET</option>
+                                                        <option value="POST">POST</option>
+                                                        <option value="PUT">PUT</option>
+                                                        <option value="PATCH">PATCH</option>
+                                                        <option value="DELETE">DELETE</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="qa-field-label">Endpoint URL *</label>
+                                                    <input
+                                                        type="text"
+                                                        value={apiConfig.url}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, url: e.target.value }))}
+                                                        placeholder="https://api.example.com/v1/resource or target environment URL"
+                                                        className="qa-text-input"
+                                                        style={{ height: '36px' }}
                                                     />
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                                <div>
+                                                    <label className="qa-field-label">Request Headers (JSON)</label>
+                                                    <textarea
+                                                        rows={3}
+                                                        value={apiConfig.headers}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, headers: e.target.value }))}
+                                                        placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}'
+                                                        className="qa-textarea"
+                                                        style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="qa-field-label">Request Body (JSON / Payload)</label>
+                                                    <textarea
+                                                        rows={3}
+                                                        value={apiConfig.body}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, body: e.target.value }))}
+                                                        placeholder='{"title": "Test Resource", "status": "active"}'
+                                                        className="qa-textarea"
+                                                        style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                                <div>
+                                                    <label className="qa-field-label">Expected Status</label>
+                                                    <input
+                                                        type="number"
+                                                        value={apiConfig.expectedStatus}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, expectedStatus: e.target.value }))}
+                                                        className="qa-text-input"
+                                                        style={{ height: '36px' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="qa-field-label">Assert JSON Property (optional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={apiConfig.jsonPath}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, jsonPath: e.target.value }))}
+                                                        placeholder="e.g. data.success or status"
+                                                        className="qa-text-input"
+                                                        style={{ height: '36px' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="qa-field-label">Expected Value</label>
+                                                    <input
+                                                        type="text"
+                                                        value={apiConfig.expectedValue}
+                                                        onChange={(e) => setApiConfig(prev => ({ ...prev, expectedValue: e.target.value }))}
+                                                        placeholder="e.g. true or completed"
+                                                        className="qa-text-input"
+                                                        style={{ height: '36px' }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {saveMessage && (
+                                                <div style={{ color: 'var(--qa-jade)', fontSize: '0.84rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                                                    ✓ {saveMessage}
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleExecuteApi}
+                                                    disabled={isExecutingApi}
+                                                    className="ws-btn-primary"
+                                                    style={{ height: '36px', padding: '0 1.5rem', fontWeight: 600, background: '#0284C7' }}
+                                                >
+                                                    {isExecutingApi ? 'Executing HTTP Request...' : 'Dispatch Live API Call'}
+                                                </button>
+                                            </div>
+
+                                            {/* Live API Response Display */}
+                                            {apiResponse && (
+                                                <div style={{ marginTop: '1rem', background: '#0B0F12', border: '1px solid var(--qa-border)', borderRadius: '6px', padding: '1rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                            <span style={{
+                                                                padding: '2px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 700,
+                                                                background: apiResponse.status < 400 ? 'rgba(139, 175, 154, 0.2)' : 'rgba(224, 108, 117, 0.2)',
+                                                                color: apiResponse.status < 400 ? 'var(--qa-jade)' : 'var(--qa-fail)'
+                                                            }}>
+                                                                HTTP {apiResponse.status} {apiResponse.statusText}
+                                                            </span>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--qa-text-dim)' }}>
+                                                                Latency: <strong>{apiResponse.durationMs}ms</strong>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Assertions report */}
+                                                    {Array.isArray(apiResponse.assertions) && apiResponse.assertions.length > 0 && (
+                                                        <div style={{ marginBottom: '0.75rem' }}>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--qa-text-dim)', marginBottom: '0.25rem', fontWeight: 600 }}>
+                                                                Assertions:
+                                                            </div>
+                                                            {apiResponse.assertions.map((ass, i) => (
+                                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: ass.passed ? 'var(--qa-jade)' : 'var(--qa-fail)' }}>
+                                                                    {ass.passed ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                                                                    <span>{ass.message || `${ass.type}: expected ${ass.expected}, received ${ass.actual}`}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Response body */}
+                                                    <div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--qa-text-dim)', marginBottom: '0.25rem', fontWeight: 600 }}>
+                                                            Response Payload:
+                                                        </div>
+                                                        <pre style={{
+                                                            margin: 0,
+                                                            padding: '0.75rem',
+                                                            background: 'rgba(0,0,0,0.5)',
+                                                            borderRadius: '4px',
+                                                            fontSize: '0.72rem',
+                                                            maxHeight: '180px',
+                                                            overflowY: 'auto',
+                                                            color: '#E2E8F0'
+                                                        }}>
+                                                            {typeof apiResponse.data === 'object' ? JSON.stringify(apiResponse.data, null, 2) : String(apiResponse.data || '')}
+                                                        </pre>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
-
-                                        {saveMessage && (
-                                            <div style={{ color: 'var(--qa-jade)', fontSize: '0.84rem', fontWeight: 600 }}>
-                                                ✓ {saveMessage}
-                                            </div>
-                                        )}
-
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                                            <button
-                                                type="button"
-                                                onClick={handleSaveExecution}
-                                                disabled={isSaving}
-                                                className="ws-btn-primary"
-                                                style={{ height: '36px', padding: '0 1.5rem', fontWeight: 600 }}
-                                            >
-                                                {isSaving ? 'Recording Execution...' : activeCase.status !== 'not_run' ? 'Log Retest Attempt' : 'Save Execution'}
-                                            </button>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
 
-                                {/* ─── 6. Historical Execution Attempts Timeline ─── */}
-                                {attempts.length > 0 && (
-                                    <div className="qa-section-block">
-                                        <h3 className="qa-section-title">
-                                            <span>Historical Execution Attempts</span>
+                                {/* ─── 6. Historical Execution Attempts Timeline (Cross-Run Auditing) ─── */}
+                                <div className="qa-section-block">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                        <h3 className="qa-section-title" style={{ margin: 0 }}>
+                                            <span>Multiple Execution History</span>
                                             <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', fontWeight: 400 }}>
-                                                ({attempts.length} attempts recorded)
+                                                ({historicalAttempts.length > 0 ? historicalAttempts.length : attempts.length} total attempts across runs)
                                             </span>
                                         </h3>
-                                        <div className="qa-attempts-timeline">
-                                            {attempts.map(att => (
-                                                <div key={att.id} className="qa-attempt-entry">
-                                                    <div className="qa-attempt-header">
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                            <strong>Attempt #{att.attemptNumber}</strong>
-                                                            <StatusBadge status={att.status} />
-                                                            <span style={{ color: 'var(--qa-text-dim)' }}>
-                                                                ({att.executorType || 'manual'})
-                                                            </span>
-                                                        </div>
-                                                        <span style={{ color: 'var(--qa-text-dim)' }}>
-                                                            {new Date(att.executedAt || att.createdAt).toLocaleTimeString()} • {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
-                                                        </span>
-                                                    </div>
-                                                    {att.actualResult && (
-                                                        <div style={{ fontSize: '0.82rem', color: 'var(--qa-text)', lineHeight: '1.4' }}>
-                                                            {att.actualResult}
-                                                        </div>
-                                                    )}
-                                                    {att.notes && (
-                                                        <div style={{ fontSize: '0.76rem', color: 'var(--qa-text-muted)', fontStyle: 'italic' }}>
-                                                            Note: {att.notes}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => loadCaseHistory(activeCase.testCaseId || activeCaseId)}
+                                            disabled={isHistoryLoading}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '24px', fontSize: '0.7rem', gap: '4px' }}
+                                        >
+                                            <RefreshCw size={11} className={isHistoryLoading ? 'animate-spin' : ''} />
+                                            <span>Refresh History</span>
+                                        </button>
                                     </div>
-                                )}
+
+                                    <div className="qa-attempts-timeline">
+                                        {(historicalAttempts.length > 0 ? historicalAttempts : attempts).map((att, idx) => (
+                                            <div key={att.id || idx} className="qa-attempt-entry">
+                                                <div className="qa-attempt-header">
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <strong>Attempt #{att.attemptNumber || (idx + 1)}</strong>
+                                                        <StatusBadge status={att.status} />
+                                                        <span style={{ color: 'var(--qa-text-dim)', fontSize: '0.75rem' }}>
+                                                            ({att.executorType || 'manual'})
+                                                        </span>
+                                                        {att.runName && (
+                                                            <span style={{ fontSize: '0.72rem', color: '#94A3B8', border: '1px solid var(--qa-border)', borderRadius: '3px', padding: '1px 5px' }}>
+                                                                {att.runName}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span style={{ color: 'var(--qa-text-dim)', fontSize: '0.75rem' }}>
+                                                        {new Date(att.executedAt || att.createdAt).toLocaleTimeString()} • {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                {att.actualResult && (
+                                                    <div style={{ fontSize: '0.82rem', color: 'var(--qa-text)', lineHeight: '1.4' }}>
+                                                        {att.actualResult}
+                                                    </div>
+                                                )}
+                                                {att.notes && (
+                                                    <div style={{ fontSize: '0.76rem', color: 'var(--qa-text-muted)', fontStyle: 'italic' }}>
+                                                        Note: {att.notes}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--qa-text-dim)' }}>

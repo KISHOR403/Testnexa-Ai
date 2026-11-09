@@ -130,7 +130,9 @@ const normalizeTestCase = (testCase, category, index, feature) => {
         steps: testCase.steps || [],
         expectedResult: testCase.expectedResult || testCase.expected || '',
         actualResult: 'Not yet executed',
-        status: 'Not Executed',
+        lifecycleStatus: testCase.lifecycleStatus || 'ready',
+        executionStatus: 'not_run',
+        status: 'ready', // Default lifecycle status for authoring/management
         requirementId: testCase.requirementId || `REQ_${String(index + 1).padStart(3, '0')}`,
     };
 };

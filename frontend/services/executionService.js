@@ -186,6 +186,31 @@ export const executionService = {
     },
 
     /**
+     * Execute an actual API test case via backend HTTP dispatcher
+     */
+    executeApiCase: async (runId, caseId, apiPayload = {}) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/execute-api`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(apiPayload)
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Get historical attempts across all runs for a specific test case ID
+     */
+    getTestCaseHistory: async (caseId) => {
+        const response = await fetch(`${API_BASE_URL}/runs/cases/${encodeURIComponent(caseId)}/history`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
      * Save manual execution draft for a run case
      */
     saveExecutionDraft: async (runId, caseId, draftData) => {

@@ -337,6 +337,7 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
 
     const autoCount = autoObj.total || 0;
     const manualCount = manualObj.total || 0;
+    const apiCount = (typeof method.api === 'object' && method.api !== null) ? (method.api.total || 0) : (Number(method.api) || 0);
 
     const totalDurationMs = timestamps.durationMs || m.durationMs || 0;
     const avgDurationMs = m.total > 0 ? Math.round(totalDurationMs / m.total) : 0;
@@ -349,13 +350,15 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
     const failedCount = m.failed || 0;
     const blockedCount = m.blocked || 0;
     const skippedCount = m.skipped || 0;
-    const notRunCount = m.notRun ?? m.not_run ?? (totalCasesCount - (passedCount + failedCount + blockedCount + skippedCount));
-    const executedCount = totalCasesCount - notRunCount;
+    const errorCount = m.error || m.errors || 0;
+    const notRunCount = m.notRun ?? m.not_run ?? (totalCasesCount - (passedCount + failedCount + blockedCount + skippedCount + errorCount));
+    const executedCount = m.actuallyExecuted ?? (totalCasesCount - notRunCount);
 
-    const isPending = runStatus === 'pending' || (executedCount === 0 && passedCount === 0 && failedCount === 0);
+    const hasExecutedTests = meta.hasExecutedTests ?? (executedCount > 0);
+    const isPending = !hasExecutedTests || runStatus === 'pending' || (executedCount === 0 && passedCount === 0 && failedCount === 0);
     const hasStarted = Boolean(startedAt);
 
-    const passRate = isPending ? 0 : (m.passRate ?? (executedCount > 0 ? Math.round((passedCount / executedCount) * 100) : 0));
+    const passRate = !hasExecutedTests ? 0 : (m.passRate ?? (executedCount > 0 ? Math.round((passedCount / (passedCount + failedCount + blockedCount + errorCount)) * 100) : 0));
 
     // Progress bar segment percentages
     const passedPct = totalCasesCount > 0 ? (passedCount / totalCasesCount) * 100 : 0;
@@ -409,7 +412,7 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                     <div className="er-meta-context">
                         <span>Environment: <strong>{env.name || 'Default Staging'}</strong></span>
                         <span>•</span>
-                        <span>Framework: <strong>{meta.executionType === 'automated' ? 'Playwright / Chromium' : meta.executionType === 'mixed' ? 'Hybrid (Playwright + Manual)' : 'Manual Execution'}</strong></span>
+                        <span>Framework: <strong>{meta.executionType === 'automated' ? 'Playwright Automation' : meta.executionType === 'api' ? 'API Testing (HTTP Engine)' : meta.executionType === 'mixed' ? 'Hybrid (Playwright + Manual + API)' : 'Manual Execution'}</strong></span>
                         <span>•</span>
                         <span>Execution Date: <strong>{formatTimestamp(completedAt || startedAt || meta.createdAt)}</strong></span>
                     </div>
@@ -502,24 +505,24 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
             <section className="er-outcome-block">
                 <div className="er-outcome-header">
                     <div className="er-outcome-primary">
-                        <span className={`er-pass-rate ${isPending ? 'pending' : passRate >= 80 ? 'passed' : 'failed'}`}>
-                            {isPending ? '—' : `${passRate}%`}
+                        <span className={`er-pass-rate ${!hasExecutedTests ? 'pending' : passRate >= 80 ? 'passed' : 'failed'}`}>
+                            {!hasExecutedTests ? '—' : `${passRate}%`}
                         </span>
                         <div>
                             <div className="er-outcome-label">
-                                {isPending ? 'Pending Execution' : passRate === 100 ? 'All Tests Passed' : passRate >= 80 ? 'Suite Passed' : 'Tests Failed'}
+                                {!hasExecutedTests ? 'No tests have been executed yet.' : passRate === 100 ? 'All Tests Passed' : passRate >= 80 ? 'Suite Passed' : 'Tests Failed'}
                             </div>
                             <div className="er-outcome-summary-text">
-                                {isPending
-                                    ? `Suite planned with ${totalCasesCount} cases; execution has not started.`
-                                    : `${passedCount} of ${totalCasesCount} test cases completed successfully.`}
+                                {!hasExecutedTests
+                                    ? `This test run has ${totalCasesCount} planned test cases, but no test executions have been recorded yet.`
+                                    : `${passedCount} of ${executedCount} executed test cases passed (${totalCasesCount} total planned).`}
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Slim Horizontal Progress Line */}
-                <div className="er-progress-track" title={`Passed: ${passedCount}, Failed: ${failedCount}, Blocked: ${blockedCount}, Skipped: ${skippedCount}, Not Run: ${notRunCount}`}>
+                <div className="er-progress-track" title={`Executed: ${executedCount}, Passed: ${passedCount}, Failed: ${failedCount}, Blocked: ${blockedCount}, Skipped: ${skippedCount}, Not Run: ${notRunCount}`}>
                     {totalCasesCount > 0 && (
                         <>
                             <div className="er-progress-seg passed" style={{ width: `${passedPct}%` }} />
@@ -536,6 +539,10 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                     <div className="er-count-item">
                         <span className="er-dot total" />
                         <span>Total: <strong>{totalCasesCount}</strong></span>
+                    </div>
+                    <div className="er-count-item">
+                        <span className="er-dot" style={{ background: '#38BDF8' }} />
+                        <span>Actually Executed: <strong style={{ color: '#38BDF8' }}>{executedCount}</strong></span>
                     </div>
                     <div className="er-count-item">
                         <span className="er-dot passed" />
@@ -555,7 +562,7 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                     </div>
                     <div className="er-count-item">
                         <span className="er-dot not-run" />
-                        <span>Not Run: <strong>{notRunCount}</strong></span>
+                        <span>Not Executed: <strong>{notRunCount}</strong></span>
                     </div>
                 </div>
             </section>
@@ -967,9 +974,13 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                 </div>
 
                 <div className="er-coverage-counts">
-                    <span>Total Requirements: <strong>{coverage.totalRequirements || 0}</strong></span>
+                    <span>Linked: <strong>{coverage.linkedRequirements ?? coverage.totalRequirements ?? 0}</strong></span>
                     <span>•</span>
-                    <span style={{ color: 'var(--er-jade)' }}>Verified: <strong>{verifiedReqsCount}</strong></span>
+                    <span style={{ color: '#38BDF8' }}>Executed: <strong>{coverage.executedRequirements ?? 0}</strong></span>
+                    <span>•</span>
+                    <span style={{ color: 'var(--er-jade)' }}>Passed: <strong>{coverage.passedRequirements ?? verifiedReqsCount}</strong></span>
+                    <span>•</span>
+                    <span style={{ color: '#A855F7' }}>Verified (100% Pass): <strong>{coverage.verifiedRequirements ?? verifiedReqsCount}</strong></span>
                     <span>•</span>
                     <span style={{ color: failedReqsCount > 0 ? 'var(--er-fail)' : 'inherit' }}>Failing: <strong>{failedReqsCount}</strong></span>
                     <span>•</span>

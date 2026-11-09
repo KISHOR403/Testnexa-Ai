@@ -297,10 +297,11 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
                     <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#A0A5A5', marginBottom: '0.4rem' }}>
                         Execution Mode
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
                         {[
                             { id: 'manual', label: 'Manual Only', desc: 'Interactive step verification by testers', icon: User },
                             { id: 'automated', label: 'Automated (Playwright)', desc: 'Headless browser execution via queue', icon: Bot },
+                            { id: 'api', label: 'API Testing', desc: 'Direct HTTP request assertion execution', icon: Server },
                             { id: 'mixed', label: 'Mixed Mode', desc: 'Execute mapped tests; verify remainder manually', icon: Terminal }
                         ].map(mode => {
                             const isSelected = executionType === mode.id;

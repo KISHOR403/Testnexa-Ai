@@ -12,6 +12,7 @@ const rerunExecution = require('../services/runner/rerunExecution.service');
 const failureTrendsService = require('../services/runner/failureTrends.service');
 const executionIntelligenceService = require('../services/runner/executionIntelligence.service');
 const rootCauseAnalysisService = require('../services/runner/rootCauseAnalysis.service');
+const apiExecutionService = require('../services/runner/apiExecution.service');
 const auditService = require('../services/auditService');
 const usageMeteringService = require('../services/usageMetering.service');
 
@@ -441,11 +442,39 @@ exports.recordExecution = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Execution status is required' });
         }
 
+        // Validate completion rules and derive status from step outcomes
+        let effectiveStatus = String(status).toLowerCase();
+        const caseSteps = runCase.caseSnapshot?.steps || [];
+        if (executorType === 'manual' && Array.isArray(caseSteps) && caseSteps.length > 0) {
+            const stepKeys = Object.keys(stepOutcomes || {});
+            const stepValues = Object.values(stepOutcomes || {}).map(v => String(v || '').toLowerCase());
+
+            // Cannot complete test as Passed when steps remain unverified
+            if (effectiveStatus === 'passed' && stepKeys.length < caseSteps.length) {
+                return res.status(400).json({
+                    success: false,
+                    code: 'INCOMPLETE_STEPS',
+                    message: `Cannot complete test as Passed when ${caseSteps.length - stepKeys.length} step(s) remain unverified. Please evaluate every step or save as draft.`
+                });
+            }
+
+            // If any step failed, overall outcome is strictly failed
+            if (stepValues.some(v => v === 'failed')) {
+                effectiveStatus = 'failed';
+            } else if (stepValues.some(v => v === 'blocked') && !stepValues.some(v => v === 'failed')) {
+                effectiveStatus = 'blocked';
+            } else if (stepValues.some(v => v === 'error')) {
+                effectiveStatus = 'error';
+            } else if (stepKeys.length >= caseSteps.length && stepValues.every(v => v === 'passed' || v === 'skipped')) {
+                effectiveStatus = 'passed';
+            }
+        }
+
         const result = await supabaseService.recordTestExecution({
             runId: id,
             runCaseId: runCase.id,
             testCaseId: runCase.testCaseId,
-            status,
+            status: effectiveStatus,
             actualResult: actualResult || '',
             notes: notes || '',
             errorMessage: errorMessage || '',
@@ -528,6 +557,106 @@ exports.getCaseHistory = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error fetching case history:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET full chronological execution history across all runs for a test case ID
+ * GET /api/v1/runs/cases/:caseId/history
+ */
+exports.getTestCaseHistoricalAttempts = async (req, res) => {
+    try {
+        const { caseId } = req.params;
+        const executions = await supabaseService.getTestCaseAllExecutions(caseId);
+        res.json({
+            success: true,
+            data: executions
+        });
+    } catch (err) {
+        logger.error('Error fetching test case historical attempts:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * EXECUTE API Test Case genuinely via HTTP dispatch and assertions
+ * POST /api/v1/runs/:id/cases/:caseId/execute-api
+ */
+exports.executeApiCase = async (req, res) => {
+    try {
+        const { id, caseId } = req.params;
+        const userId = req.user._id || req.user.id;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        let runCase = await supabaseService.getRunCaseById(caseId);
+        if (!runCase || runCase.runId !== id) {
+            const allRunCases = await supabaseService.getRunCases(id);
+            runCase = allRunCases.find(rc => rc.id === caseId || rc.testCaseId === caseId);
+        }
+        if (!runCase) {
+            return res.status(404).json({ success: false, message: 'Test run case not found' });
+        }
+
+        const snap = runCase.caseSnapshot || {};
+        const apiDef = snap.apiDefinition || snap.apiMapping || {};
+
+        // Merge request configuration from body or snapshot
+        const {
+            url = apiDef.url || apiDef.endpoint || req.body.endpoint || run.targetEnvironment?.baseUrl || '/api/v1/health',
+            method = req.body.method || apiDef.method || 'GET',
+            headers = req.body.headers || apiDef.headers || {},
+            body = req.body.body || apiDef.body || null,
+            auth = req.body.auth || apiDef.auth || null,
+            expectedStatus = req.body.expectedStatus || apiDef.expectedStatus || 200,
+            assertions = req.body.assertions || apiDef.assertions || [],
+            timeoutMs = req.body.timeoutMs || 15000
+        } = req.body;
+
+        // Perform actual HTTP execution
+        const apiResult = await apiExecutionService.executeApiRequest({
+            url,
+            method,
+            headers,
+            body,
+            auth,
+            expectedStatus,
+            assertions,
+            timeoutMs,
+            targetEnvironment: run.targetEnvironment || {}
+        });
+
+        // Record real execution evidence in persistent database
+        const recorded = await supabaseService.recordTestExecution({
+            runId: id,
+            runCaseId: runCase.id,
+            testCaseId: runCase.testCaseId,
+            status: apiResult.status,
+            actualResult: apiResult.actualResult,
+            notes: apiResult.logs.join('\n'),
+            errorMessage: apiResult.errorMessage || '',
+            durationMs: apiResult.durationMs,
+            executedBy: userId,
+            executorType: 'api',
+            environment: run.targetEnvironment?.name || 'API Runner'
+        });
+
+        res.json({
+            success: true,
+            data: {
+                ...apiResult,
+                execution: recorded.execution,
+                runCase: recorded.runCase
+            }
+        });
+    } catch (err) {
+        logger.error('Error executing API test case:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

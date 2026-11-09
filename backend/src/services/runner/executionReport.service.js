@@ -49,6 +49,7 @@ class ExecutionReportService {
         let failed = 0;
         let blocked = 0;
         let skipped = 0;
+        let errors = 0;
         let notRun = 0;
 
         let manualTotal = 0;
@@ -56,6 +57,7 @@ class ExecutionReportService {
         let manualFailed = 0;
         let manualBlocked = 0;
         let manualSkipped = 0;
+        let manualError = 0;
         let manualDurationMs = 0;
 
         let automatedTotal = 0;
@@ -64,6 +66,12 @@ class ExecutionReportService {
         let automatedTimedOut = 0;
         let automatedInfraError = 0;
         let automatedDurationMs = 0;
+
+        let apiTotal = 0;
+        let apiPassed = 0;
+        let apiFailed = 0;
+        let apiError = 0;
+        let apiDurationMs = 0;
 
         const detailedCases = [];
         const failureInvestigations = [];
@@ -79,6 +87,7 @@ class ExecutionReportService {
             else if (st === 'failed') failed++;
             else if (st === 'blocked') blocked++;
             else if (st === 'skipped') skipped++;
+            else if (st === 'error' || st === 'infrastructure_error' || st === 'timed_out') errors++;
             else notRun++;
 
             if (method === 'automated') {
@@ -87,7 +96,13 @@ class ExecutionReportService {
                 if (st === 'passed') automatedPassed++;
                 else if (st === 'failed') automatedFailed++;
                 else if (st === 'timed_out') automatedTimedOut++;
-                else if (st === 'infrastructure_error') automatedInfraError++;
+                else if (st === 'infrastructure_error' || st === 'error') automatedInfraError++;
+            } else if (method === 'api') {
+                apiTotal++;
+                apiDurationMs += duration;
+                if (st === 'passed') apiPassed++;
+                else if (st === 'failed') apiFailed++;
+                else if (st === 'error') apiError++;
             } else {
                 manualTotal++;
                 manualDurationMs += duration;
@@ -95,6 +110,7 @@ class ExecutionReportService {
                 else if (st === 'failed') manualFailed++;
                 else if (st === 'blocked') manualBlocked++;
                 else if (st === 'skipped') manualSkipped++;
+                else if (st === 'error') manualError++;
             }
 
             // Find screenshot artifacts for this test case
@@ -186,11 +202,19 @@ class ExecutionReportService {
             }).length,
             warnings: warningCount
         };
-        const totalDurationMs = manualDurationMs + automatedDurationMs;
-        const overallPassRate = totalCases > 0 ? Math.round((passed / totalCases) * 100) : 0;
-        const manualPassRate = manualTotal > 0 ? Math.round((manualPassed / manualTotal) * 100) : 0;
-        const automatedPassRate = automatedTotal > 0 ? Math.round((automatedPassed / automatedTotal) * 100) : 0;
+        const totalDurationMs = manualDurationMs + automatedDurationMs + apiDurationMs;
+        const actuallyExecutedTests = passed + failed + blocked + errors + skipped;
+        const evaluatedDenominator = passed + failed + blocked + errors;
+        const overallPassRate = evaluatedDenominator > 0 ? Math.round((passed / evaluatedDenominator) * 100) : 0;
+        const manualEvaluated = manualPassed + manualFailed + manualBlocked + manualError;
+        const manualPassRate = manualEvaluated > 0 ? Math.round((manualPassed / manualEvaluated) * 100) : 0;
+        const automatedEvaluated = automatedPassed + automatedFailed + automatedTimedOut + automatedInfraError;
+        const automatedPassRate = automatedEvaluated > 0 ? Math.round((automatedPassed / automatedEvaluated) * 100) : 0;
+        const apiEvaluated = apiPassed + apiFailed + apiError;
+        const apiPassRate = apiEvaluated > 0 ? Math.round((apiPassed / apiEvaluated) * 100) : 0;
         const completionRate = totalCases > 0 ? Math.round(((totalCases - notRun) / totalCases) * 100) : 0;
+        const hasExecutedTests = actuallyExecutedTests > 0;
+        const statusMessage = hasExecutedTests ? null : 'No tests have been executed yet.';
 
         // 2. Requirement Traceability & Execution Coverage Analysis
         const coverageAnalysis = this.computeRunCoverage(cases, suite);
@@ -200,7 +224,7 @@ class ExecutionReportService {
         for (const c of detailedCases) {
             const cat = c.type || 'Functional';
             if (!categoryMap.has(cat)) {
-                categoryMap.set(cat, { total: 0, passed: 0, failed: 0, blocked: 0, skipped: 0, notRun: 0 });
+                categoryMap.set(cat, { total: 0, passed: 0, failed: 0, blocked: 0, skipped: 0, error: 0, notRun: 0 });
             }
             const agg = categoryMap.get(cat);
             agg.total++;
@@ -208,14 +232,18 @@ class ExecutionReportService {
             else if (c.status === 'failed') agg.failed++;
             else if (c.status === 'blocked') agg.blocked++;
             else if (c.status === 'skipped') agg.skipped++;
+            else if (c.status === 'error' || c.status === 'infrastructure_error') agg.error++;
             else agg.notRun++;
         }
 
-        const categoryBreakdown = Array.from(categoryMap.entries()).map(([category, stats]) => ({
-            category,
-            ...stats,
-            passRate: stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : 0
-        }));
+        const categoryBreakdown = Array.from(categoryMap.entries()).map(([category, stats]) => {
+            const catEvaluated = stats.passed + stats.failed + stats.blocked + (stats.error || 0);
+            return {
+                category,
+                ...stats,
+                passRate: catEvaluated > 0 ? Math.round((stats.passed / catEvaluated) * 100) : 0
+            };
+        });
 
         return {
             identifiers: {
@@ -228,6 +256,8 @@ class ExecutionReportService {
                 workspaceId: run.workspaceId || run.workspace_id,
                 executionType: run.executionType || run.execution_type || 'manual',
                 status: run.status || 'pending',
+                statusMessage,
+                hasExecutedTests,
                 createdBy: run.createdBy || run.created_by,
                 assignedTo: run.assignedTo || run.assigned_to
             },
@@ -245,10 +275,14 @@ class ExecutionReportService {
             },
             summary: {
                 total: totalCases,
+                actuallyExecuted: actuallyExecutedTests,
+                hasExecutedTests,
+                statusMessage,
                 passed,
                 failed,
                 blocked,
                 skipped,
+                error: errors,
                 notRun,
                 passRate: overallPassRate,
                 completionRate
@@ -260,6 +294,7 @@ class ExecutionReportService {
                     failed: manualFailed,
                     blocked: manualBlocked,
                     skipped: manualSkipped,
+                    error: manualError,
                     passRate: manualPassRate,
                     durationMs: manualDurationMs,
                     formattedDuration: this.formatDuration(manualDurationMs)
@@ -273,6 +308,15 @@ class ExecutionReportService {
                     passRate: automatedPassRate,
                     durationMs: automatedDurationMs,
                     formattedDuration: this.formatDuration(automatedDurationMs)
+                },
+                api: {
+                    total: apiTotal,
+                    passed: apiPassed,
+                    failed: apiFailed,
+                    error: apiError,
+                    passRate: apiPassRate,
+                    durationMs: apiDurationMs,
+                    formattedDuration: this.formatDuration(apiDurationMs)
                 }
             },
             categoryBreakdown,
@@ -407,13 +451,18 @@ class ExecutionReportService {
 
         const totalReqs = requirementMap.size;
         const requirementsList = Array.from(requirementMap.values());
+        const executedReqsCount = requirementsList.filter(r => r.linkedTests.some(t => !['not_run', 'pending', 'queued', 'running', 'in_progress'].includes(t.status))).length;
+        const passedReqsCount = requirementsList.filter(r => r.passedCases.length > 0).length;
 
         return {
             totalRequirements: totalReqs,
-            coveredRequirements: coveredRequirementsCount,
+            linkedRequirements: coveredRequirementsCount,
+            executedRequirements: executedReqsCount,
+            passedRequirements: passedReqsCount,
             verifiedRequirements: verifiedRequirementsCount,
             failedRequirements: failedRequirementsCount,
             partiallyCoveredRequirements: partiallyCoveredRequirementsCount,
+            unverifiedRequirements: requirementsList.filter(req => req.status === 'unverified' || req.status === 'partial').length,
             uncoveredRequirements: requirementsList.filter(req => req.status === 'uncovered').length,
             requirementCoveragePercentage: totalReqs > 0 ? Math.round((coveredRequirementsCount / totalReqs) * 100) : 0,
             requirementVerificationPercentage: totalReqs > 0 ? Math.round((verifiedRequirementsCount / totalReqs) * 100) : 0,
