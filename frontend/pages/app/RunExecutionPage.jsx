@@ -1239,6 +1239,9 @@ const RunExecutionPage = () => {
     const snapshot = activeCase?.caseSnapshot || {};
     const hasAutomation = Boolean(snapshot.automationMapping);
     const attempts = activeCaseDetails?.executions || [];
+    const targetAppUrl = typeof run?.targetEnvironment === 'string'
+        ? (run.targetEnvironment.trim() || null)
+        : (run?.targetEnvironment?.baseUrl || run?.targetEnvironment?.url || activeCase?.targetUrl || null);
 
     // Open Automation Mapping Modal for a specific case
     const handleOpenMappingModal = async (caseItem) => {
@@ -2078,10 +2081,10 @@ return (
                                             <StatusBadge status={activeCase.status} />
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                            {(run?.targetEnvironment || activeCase?.targetUrl) && (
+                                            {targetAppUrl && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => window.open(run?.targetEnvironment || activeCase?.targetUrl, '_blank', 'noopener,noreferrer')}
+                                                    onClick={() => window.open(targetAppUrl, '_blank', 'noopener,noreferrer')}
                                                     className="ws-btn-secondary"
                                                     style={{ height: '28px', fontSize: '0.74rem', gap: '5px' }}
                                                     title="Open target application in external browser tab"
@@ -2231,10 +2234,10 @@ return (
                                             </h3>
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                {run?.targetEnvironment && (
+                                                {targetAppUrl && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => window.open(run.targetEnvironment, '_blank', 'noopener,noreferrer')}
+                                                        onClick={() => window.open(targetAppUrl, '_blank', 'noopener,noreferrer')}
                                                         className="ws-btn-secondary"
                                                         style={{ height: '28px', fontSize: '0.75rem', gap: '5px' }}
                                                         title="Open target application in a new tab for side-by-side verification"
@@ -2967,11 +2970,19 @@ return (
                                             </div>
                                             <div className="qa-context-meta-row">
                                                 <span className="qa-context-meta-label">Environment</span>
-                                                <span className="qa-context-meta-val">{run.targetEnvironment || 'Staging'}</span>
+                                                <span className="qa-context-meta-val">
+                                                    {typeof run.targetEnvironment === 'object' && run.targetEnvironment !== null
+                                                        ? (run.targetEnvironment.name || run.targetEnvironment.baseUrl || 'Staging')
+                                                        : (run.targetEnvironment || 'Staging')}
+                                                </span>
                                             </div>
                                             <div className="qa-context-meta-row">
                                                 <span className="qa-context-meta-label">Assigned Tester</span>
-                                                <span className="qa-context-meta-val">{run.assignedTo?.name || run.assignedTo || 'Unassigned'}</span>
+                                                <span className="qa-context-meta-val">
+                                                    {typeof run.assignedTo === 'object' && run.assignedTo !== null
+                                                        ? (run.assignedTo.name || run.assignedTo.email || run.assignedTo.id || 'Unassigned')
+                                                        : (run.assignedTo || 'Unassigned')}
+                                                </span>
                                             </div>
                                             <div className="qa-context-meta-row">
                                                 <span className="qa-context-meta-label">Suite Version</span>
