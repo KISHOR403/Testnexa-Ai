@@ -222,12 +222,66 @@ export const executionService = {
         });
         return handleResponse(response);
     },
+    saveCaseDraft: async (runId, caseId, draftData) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/draft`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(draftData)
+        });
+        return handleResponse(response);
+    },
 
     /**
      * Get saved manual execution draft for a run case
      */
     getExecutionDraft: async (runId, caseId) => {
         const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/draft`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+    getCaseDraft: async (runId, caseId) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/draft`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Create a defect linked to a failed step/run case
+     */
+    createDefect: async (runId, caseId, defectData) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/defects`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(defectData)
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * List defects logged for a run case
+     */
+    getCaseDefects: async (runId, caseId) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/cases/${caseId}/defects`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * List all defects logged across a test run
+     */
+    getRunDefects: async (runId) => {
+        const response = await fetch(`${API_BASE_URL}/runs/${runId}/defects`, {
             method: 'GET',
             headers: getHeaders(),
             credentials: 'include'

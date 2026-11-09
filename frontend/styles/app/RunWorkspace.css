@@ -223,15 +223,20 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   4. TWO-PANEL MASTER-DETAIL GRID (Desktop 32% / 68%)
+   4. THREE-PANEL MANUAL EXECUTION WORKSPACE (Navigator | Center Execution | Context)
    ────────────────────────────────────────────────────────────────────────── */
 .qa-master-detail-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 32%) minmax(0, 1fr);
-  gap: 1.25rem;
+  grid-template-columns: 290px minmax(0, 1fr) 310px;
+  gap: 1rem;
   align-items: stretch;
-  height: calc(100vh - 270px);
-  min-height: 600px;
+  height: calc(100vh - 230px);
+  min-height: 620px;
+  transition: grid-template-columns 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qa-master-detail-grid.context-collapsed {
+  grid-template-columns: 290px minmax(0, 1fr) 44px;
 }
 
 /* LEFT PANEL: Master Case Navigator */
@@ -243,6 +248,100 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+.qa-navigator-progress {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--qa-border);
+  background: var(--qa-surface-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.qa-nav-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--qa-text-muted);
+}
+
+.qa-nav-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #090B0C;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.qa-nav-prog-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.qa-nav-prog-fill.passed { background: var(--qa-jade); }
+.qa-nav-prog-fill.failed { background: var(--qa-fail); }
+.qa-nav-prog-fill.blocked { background: var(--qa-warn); }
+.qa-nav-prog-fill.skipped { background: var(--qa-purple); }
+
+.qa-navigator-filter-pills {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  padding: 0.35rem 0.2rem;
+  scrollbar-width: none;
+}
+
+.qa-navigator-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.qa-filter-pill-btn {
+  background: transparent;
+  border: 1px solid var(--qa-border-subtle);
+  border-radius: 12px;
+  color: var(--qa-text-dim);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.qa-filter-pill-btn:hover {
+  color: var(--qa-text);
+  border-color: var(--qa-border);
+}
+
+.qa-filter-pill-btn.active {
+  background: var(--qa-surface-elevated);
+  color: var(--qa-jade);
+  border-color: var(--qa-jade-border);
+  font-weight: 600;
+}
+
+.qa-keyboard-shortcut-hint {
+  padding: 0.45rem 0.85rem;
+  border-top: 1px solid var(--qa-border-subtle);
+  background: var(--qa-surface);
+  font-size: 0.69rem;
+  color: var(--qa-text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qa-keyboard-shortcut-hint kbd {
+  background: var(--qa-surface-elevated);
+  border: 1px solid var(--qa-border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 0.65rem;
+  font-family: ui-monospace, monospace;
+  color: var(--qa-text-muted);
 }
 
 .qa-master-panel-header {
@@ -767,13 +866,315 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   8. RESPONSIVE DESIGN (Desktop -> Tablet -> Mobile)
+   8. RIGHT CONTEXT PANEL & WORKSPACE 2.0 ENHANCEMENTS
    ────────────────────────────────────────────────────────────────────────── */
+.qa-context-panel {
+  background: var(--qa-surface);
+  border: 1px solid var(--qa-border);
+  border-radius: 8px;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.22s ease;
+}
+
+.qa-context-panel.collapsed {
+  width: 44px;
+}
+
+.qa-context-panel-header {
+  padding: 0.75rem 0.85rem;
+  background: var(--qa-surface-elevated);
+  border-bottom: 1px solid var(--qa-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qa-context-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--qa-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.qa-context-collapse-btn {
+  background: transparent;
+  border: none;
+  color: var(--qa-text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qa-context-collapse-btn:hover {
+  background: var(--qa-surface-hover);
+  color: var(--qa-text);
+}
+
+.qa-context-collapsed-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0;
+  gap: 1rem;
+}
+
+.qa-context-rail-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--qa-text-dim);
+  cursor: pointer;
+}
+
+.qa-context-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--qa-border-subtle);
+  background: var(--qa-surface);
+}
+
+.qa-context-tab-btn {
+  flex: 1;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--qa-text-dim);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.qa-context-tab-btn:hover {
+  color: var(--qa-text);
+  background: var(--qa-surface-hover);
+}
+
+.qa-context-tab-btn.active {
+  color: var(--qa-jade);
+  border-bottom-color: var(--qa-jade);
+  background: var(--qa-surface-elevated);
+}
+
+.qa-context-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.qa-context-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.76rem;
+}
+
+.qa-context-meta-label {
+  color: var(--qa-text-dim);
+}
+
+.qa-context-meta-val {
+  color: var(--qa-text);
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-all;
+}
+
+/* Sticky Bottom Execution Footer */
+.qa-sticky-execution-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: #111415;
+  border-top: 1px solid var(--qa-border);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1.5rem -1.5rem -1.5rem -1.5rem;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.qa-autosave-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--qa-text-dim);
+}
+
+.qa-autosave-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748B;
+}
+
+.qa-autosave-indicator.saved .qa-autosave-dot {
+  background: var(--qa-jade);
+  box-shadow: 0 0 6px rgba(139, 175, 154, 0.6);
+}
+
+.qa-autosave-indicator.saving .qa-autosave-dot {
+  background: var(--qa-warn);
+  animation: qa-dot-pulse 1s infinite alternate;
+}
+
+.qa-autosave-indicator.unsaved .qa-autosave-dot {
+  background: var(--qa-warn);
+}
+
+.qa-autosave-indicator.error .qa-autosave-dot {
+  background: var(--qa-fail);
+}
+
+@keyframes qa-dot-pulse {
+  0% { opacity: 0.3; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+.qa-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Step defect button */
+.qa-step-defect-btn {
+  background: transparent;
+  border: 1px solid rgba(224, 108, 117, 0.35);
+  color: var(--qa-fail);
+  border-radius: 3px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qa-step-defect-btn:hover {
+  background: rgba(224, 108, 117, 0.2);
+}
+
+/* Defect list card */
+.qa-defect-card {
+  padding: 0.65rem 0.75rem;
+  background: var(--qa-surface-elevated);
+  border: 1px solid var(--qa-border-subtle);
+  border-left: 3px solid var(--qa-fail);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.qa-defect-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--qa-text);
+}
+
+.qa-defect-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--qa-text-dim);
+}
+
+.qa-defect-sev-badge {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+.qa-defect-sev-badge.critical { background: var(--qa-fail-dim); color: var(--qa-fail); }
+.qa-defect-sev-badge.high { background: var(--qa-warn-dim); color: var(--qa-warn); }
+.qa-defect-sev-badge.medium { background: rgba(56, 189, 248, 0.15); color: #38BDF8; }
+.qa-defect-sev-badge.low { background: rgba(255, 255, 255, 0.05); color: var(--qa-text-muted); }
+
+/* Breakdown summary table for modal */
+.qa-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+.qa-breakdown-box {
+  background: var(--qa-surface-elevated);
+  border: 1px solid var(--qa-border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.qa-breakdown-num {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.qa-breakdown-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--qa-text-dim);
+  margin-top: 0.35rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   9. RESPONSIVE DESIGN (Desktop -> Tablet -> Mobile)
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .qa-master-detail-grid {
+    grid-template-columns: 260px minmax(0, 1fr) 280px;
+  }
+}
+
 @media (max-width: 1024px) {
   .qa-master-detail-grid {
-    grid-template-columns: minmax(280px, 38%) minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     height: auto;
     min-height: 500px;
+  }
+
+  .qa-context-panel {
+    display: none;
   }
 }
 
@@ -806,5 +1207,17 @@
 
   .qa-outcome-btn-group {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .qa-sticky-execution-footer {
+    position: static;
+    margin: 1.5rem 0 0 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .qa-footer-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }

@@ -186,6 +186,8 @@ function AppContent() {
             <Route path="test-cases" element={<TestCasesPage />} />
             <Route path="runs" element={<TestRunsPage />} />
             <Route path="runs/:runId" element={<RunExecutionPage />} />
+            <Route path="runs/:runId/manual" element={<RunExecutionPage />} />
+            <Route path="projects/:projectId/executions/:runId/manual" element={<RunExecutionPage />} />
             <Route path="runs/:runId/compare/:rerunId?" element={<RunComparisonPage />} />
             <Route path="coverage" element={<CoveragePage />} />
             <Route path="risks" element={<RisksPage />} />

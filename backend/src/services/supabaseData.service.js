@@ -3321,6 +3321,15 @@ class SupabaseDataService {
     }
 
     /**
+     * Get saved manual execution draft for a run case
+     */
+    async getCaseDraft(runCaseId) {
+        const trc = await this.getRunCaseById(runCaseId);
+        if (!trc) return null;
+        return trc.caseSnapshot?.draftState || null;
+    }
+
+    /**
      * Explicitly update the Playwright automation mapping for a test case
      */
     async updateCaseAutomationMapping(runCaseId, mappingData = {}) {
@@ -3388,6 +3397,15 @@ class SupabaseDataService {
         }
 
         return await this.updateRunCase(runCaseId, patch);
+    }
+
+    /**
+     * Get saved manual execution draft for a run case
+     */
+    async getCaseDraft(runCaseId) {
+        const trc = await this.getRunCaseById(runCaseId);
+        if (!trc) return null;
+        return trc.caseSnapshot?.draftState || null;
     }
 
     /**
@@ -3665,6 +3683,10 @@ class SupabaseDataService {
     /**
      * Get all execution history across runs for a specific test case ID
      */
+    async getTestCaseExecutionHistory(testCaseId) {
+        return this.getTestCaseAllExecutions(testCaseId);
+    }
+
     async getTestCaseAllExecutions(testCaseId) {
         if (!testCaseId) return [];
 

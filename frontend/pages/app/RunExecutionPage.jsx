@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useLocation, useNavigate, NavLink } from 'react-router-dom';
 import {
     ArrowLeft, Play, RefreshCw, CheckCircle2, XCircle,
     AlertTriangle, MinusCircle, Clock, Shield, User, Bot,
     Terminal, FileText, Camera, Upload, Trash2,
     ChevronRight, ChevronDown, Check, AlertCircle, StopCircle, Eye, Download, Copy,
-    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare, Search, History
+    Wand2, RotateCcw, Edit3, Code, Layers, GitCompare, Search, History,
+    Bug, PanelRightClose, PanelRightOpen, ExternalLink, FileCheck, Save
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
@@ -280,6 +281,81 @@ const RunExecutionPage = () => {
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [isTerminalOpen, setIsTerminalOpen] = useState(false);
 
+    // 3-Panel Manual Workspace 2.0 State
+    const [isContextPanelCollapsed, setIsContextPanelCollapsed] = useState(false);
+    const [contextActiveTab, setContextActiveTab] = useState('metadata'); // 'metadata' | 'requirements' | 'history' | 'defects'
+    const [runDefects, setRunDefects] = useState([]);
+    const [caseDefects, setCaseDefects] = useState([]);
+    const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
+    const [isSubmittingDefect, setIsSubmittingDefect] = useState(false);
+    const [defectForm, setDefectForm] = useState({
+        title: '',
+        description: '',
+        severity: 'high',
+        priority: 'P1',
+        stepIndex: null,
+        expectedResult: '',
+        actualResult: ''
+    });
+
+    // Completion Confirmation Breakdown Modal
+    const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+    const [completionBreakdown, setCompletionBreakdown] = useState(null);
+
+    // Autosave & Recovery Engine
+    const [autosaveStatus, setAutosaveStatus] = useState('saved'); // 'idle' | 'saving' | 'saved' | 'unsaved' | 'error'
+    const [lastSavedTime, setLastSavedTime] = useState('');
+    const autosaveTimerRef = useRef(null);
+
+    const loadRunDefects = useCallback(async () => {
+        if (!runId) return;
+        try {
+            const res = await executionService.getRunDefects(runId);
+            if (res.success && res.data) {
+                setRunDefects(res.data);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch run defects:', err.message);
+        }
+    }, [runId]);
+
+    const loadCaseDefects = useCallback(async (cId) => {
+        if (!runId || !cId) return;
+        try {
+            const res = await executionService.getCaseDefects(runId, cId);
+            if (res.success && res.data) {
+                setCaseDefects(res.data);
+            }
+        } catch (err) {
+            console.warn('Failed to fetch case defects:', err.message);
+        }
+    }, [runId]);
+
+    const triggerDebouncedAutosave = useCallback((caseId, draftPayload) => {
+        if (!caseId || !runId) return;
+        setAutosaveStatus('unsaved');
+        try {
+            localStorage.setItem(`testnexa_exec_draft_${runId}_${caseId}`, JSON.stringify(draftPayload));
+        } catch {}
+
+        if (autosaveTimerRef.current) {
+            clearTimeout(autosaveTimerRef.current);
+        }
+
+        autosaveTimerRef.current = setTimeout(async () => {
+            setAutosaveStatus('saving');
+            try {
+                await executionService.saveCaseDraft(runId, caseId, draftPayload);
+                setAutosaveStatus('saved');
+                setLastSavedTime(new Date().toLocaleTimeString());
+            } catch (err) {
+                console.warn('Backend draft autosave notice:', err.message);
+                setAutosaveStatus('saved'); // Persisted locally in localStorage
+                setLastSavedTime(new Date().toLocaleTimeString());
+            }
+        }, 800);
+    }, [runId]);
+
     // Fetch Run details & cases
     const loadRunData = useCallback(async () => {
         if (!runId) return;
@@ -314,6 +390,9 @@ const RunExecutionPage = () => {
             } finally {
                 setIsArtifactsLoading(false);
             }
+
+            // Also load defects for this run
+            loadRunDefects();
         } catch (err) {
             console.error('Failed to load run details:', err);
         } finally {
@@ -409,18 +488,41 @@ const RunExecutionPage = () => {
             if (derived !== 'in_progress') {
                 setFormStatus(derived);
             }
+            triggerDebouncedAutosave(activeCaseId, {
+                formStatus: derived !== 'in_progress' ? derived : formStatus,
+                actualResult,
+                notes,
+                screenshotData,
+                screenshotName,
+                stepOutcomes: next,
+                executionStationMode,
+                apiConfig
+            });
             return next;
         });
     };
 
     const handleStepActualChange = (stepIdx, text) => {
-        setStepOutcomes(prev => ({
-            ...prev,
-            [stepIdx]: {
-                ...(prev[stepIdx] || {}),
-                actual: text
-            }
-        }));
+        setStepOutcomes(prev => {
+            const next = {
+                ...prev,
+                [stepIdx]: {
+                    ...(prev[stepIdx] || {}),
+                    actual: text
+                }
+            };
+            triggerDebouncedAutosave(activeCaseId, {
+                formStatus,
+                actualResult,
+                notes,
+                screenshotData,
+                screenshotName,
+                stepOutcomes: next,
+                executionStationMode,
+                apiConfig
+            });
+            return next;
+        });
     };
 
     const handleMarkAllStepsPassed = () => {
@@ -434,6 +536,40 @@ const RunExecutionPage = () => {
         });
         setStepOutcomes(next);
         setFormStatus('passed');
+        triggerDebouncedAutosave(activeCaseId, {
+            formStatus: 'passed',
+            actualResult: actualResult || 'All test steps verified successfully.',
+            notes,
+            screenshotData,
+            screenshotName,
+            stepOutcomes: next,
+            executionStationMode,
+            apiConfig
+        });
+    };
+
+    const handleResetAllSteps = () => {
+        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || [];
+        const next = {};
+        steps.forEach((_, idx) => {
+            next[idx] = {
+                status: 'pending',
+                actual: '',
+                notes: ''
+            };
+        });
+        setStepOutcomes(next);
+        setFormStatus('in_progress');
+        triggerDebouncedAutosave(activeCaseId, {
+            formStatus: 'in_progress',
+            actualResult: '',
+            notes,
+            screenshotData: null,
+            screenshotName: '',
+            stepOutcomes: next,
+            executionStationMode,
+            apiConfig
+        });
     };
 
     // Load full historical attempts across all runs for active test case
@@ -464,7 +600,21 @@ const RunExecutionPage = () => {
                     const caseData = res.data;
                     setActiveCaseDetails(caseData);
 
-                    const draft = caseDrafts[activeCaseId];
+                    // Check draft: local memory -> localStorage -> backend server draft
+                    let draft = caseDrafts[activeCaseId];
+                    if (!draft) {
+                        try {
+                            const cached = localStorage.getItem(`testnexa_exec_draft_${runId}_${activeCaseId}`);
+                            if (cached) draft = JSON.parse(cached);
+                        } catch {}
+                    }
+                    if (!draft) {
+                        try {
+                            const sDraft = await executionService.getCaseDraft(runId, activeCaseId);
+                            if (sDraft?.success && sDraft.data) draft = sDraft.data;
+                        } catch {}
+                    }
+
                     if (draft) {
                         setFormStatus(draft.formStatus || (caseData.status !== 'not_run' ? caseData.status : 'passed'));
                         setActualResult(draft.actualResult ?? caseData.actualResult ?? '');
@@ -474,6 +624,8 @@ const RunExecutionPage = () => {
                         setStepOutcomes(draft.stepOutcomes || {});
                         setExecutionStationMode(draft.executionStationMode || (caseData.executionType === 'api' ? 'api' : 'manual'));
                         if (draft.apiConfig) setApiConfig(draft.apiConfig);
+                        setAutosaveStatus('saved');
+                        setLastSavedTime(draft.savedAt || new Date().toLocaleTimeString());
                     } else {
                         setActualResult(caseData.actualResult || '');
                         setNotes(caseData.notes || '');
@@ -512,11 +664,12 @@ const RunExecutionPage = () => {
                     setSaveMessage(null);
                     setApiResponse(null);
 
-                    // Fetch multi-run historical executions
+                    // Fetch multi-run historical executions & case defects
                     const tcId = caseData.testCaseId || caseData.id;
                     if (tcId) {
                         loadCaseHistory(tcId);
                     }
+                    loadCaseDefects(activeCaseId);
                 }
             } catch (err) {
                 console.error('Failed to fetch case details:', err);
@@ -563,39 +716,106 @@ const RunExecutionPage = () => {
         reader.onload = () => {
             setScreenshotData(reader.result);
             setScreenshotName(file.name);
+            triggerDebouncedAutosave(activeCaseId, {
+                formStatus,
+                actualResult,
+                notes,
+                screenshotData: reader.result,
+                screenshotName: file.name,
+                stepOutcomes,
+                executionStationMode,
+                apiConfig
+            });
         };
         reader.readAsDataURL(file);
     };
 
     // Save manual execution attempt as a draft
-    const handleSaveDraft = () => {
+    const handleSaveDraft = async () => {
         if (!activeCaseId) return;
+        const draftPayload = {
+            formStatus: 'in_progress',
+            actualResult,
+            notes,
+            screenshotData,
+            screenshotName,
+            stepOutcomes,
+            executionStationMode,
+            apiConfig
+        };
         setCaseDrafts(prev => ({
             ...prev,
-            [activeCaseId]: {
-                formStatus: 'in_progress',
-                actualResult,
-                notes,
-                screenshotData,
-                screenshotName,
-                stepOutcomes,
-                executionStationMode,
-                apiConfig
-            }
+            [activeCaseId]: draftPayload
         }));
-        setSaveMessage('Draft progress saved locally. You can resume verification at any time.');
-        setTimeout(() => setSaveMessage(null), 4000);
+        try {
+            localStorage.setItem(`testnexa_exec_draft_${runId}_${activeCaseId}`, JSON.stringify(draftPayload));
+            await executionService.saveCaseDraft(runId, activeCaseId, draftPayload);
+        } catch {}
+        setAutosaveStatus('saved');
+        setLastSavedTime(new Date().toLocaleTimeString());
+        setSaveMessage('Draft progress saved successfully.');
+        setTimeout(() => setSaveMessage(null), 3000);
+    };
+
+    // Open Completion Confirmation Breakdown modal
+    const handleOpenCompletionModal = () => {
+        if (!activeCaseId) return;
+        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || activeCase?.caseSnapshot?.steps || [];
+        const total = steps.length;
+        let pCount = 0;
+        let fCount = 0;
+        let bCount = 0;
+        let sCount = 0;
+        let pendingCount = 0;
+
+        steps.forEach((_, idx) => {
+            const st = stepOutcomes[idx]?.status || 'pending';
+            if (st === 'passed') pCount++;
+            else if (st === 'failed') fCount++;
+            else if (st === 'blocked') bCount++;
+            else if (st === 'skipped') sCount++;
+            else pendingCount++;
+        });
+
+        // Determine derived status
+        let derivedStatus = 'passed';
+        if (fCount > 0) derivedStatus = 'failed';
+        else if (bCount > 0) derivedStatus = 'blocked';
+        else if (total > 0 && sCount === total) derivedStatus = 'skipped';
+        else if (pendingCount > 0) derivedStatus = 'in_progress';
+        else derivedStatus = 'passed';
+
+        const canPass = (total === 0 && actualResult.trim().length > 0) || (total > 0 && pendingCount === 0 && fCount === 0 && bCount === 0);
+
+        setCompletionBreakdown({
+            total,
+            passed: pCount,
+            failed: fCount,
+            blocked: bCount,
+            skipped: sCount,
+            pending: pendingCount,
+            derivedStatus: (formStatus && formStatus !== 'in_progress') ? formStatus : derivedStatus,
+            canPass
+        });
+        setIsCompletionModalOpen(true);
+    };
+
+    const handleConfirmCompletion = async (overrideStatus = null) => {
+        setIsCompletionModalOpen(false);
+        const targetStatus = overrideStatus || completionBreakdown?.derivedStatus || formStatus || 'passed';
+        await handleSaveExecution(targetStatus);
     };
 
     // Save & Complete manual execution attempt
-    const handleSaveExecution = async () => {
+    const handleSaveExecution = async (overrideStatus = null) => {
         if (!activeCaseId) return;
 
-        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || [];
+        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || activeCase?.caseSnapshot?.steps || [];
         const stepsCount = steps.length;
+        const finalStatus = overrideStatus || formStatus;
 
         // Completion validation: If tester selected Passed, all steps must be evaluated
-        if (formStatus === 'passed' && stepsCount > 0) {
+        if (finalStatus === 'passed' && stepsCount > 0) {
             const evaluatedCount = Object.values(stepOutcomes).filter(s => s && s.status && s.status !== 'pending').length;
             if (evaluatedCount < stepsCount) {
                 const confirmSaveDraft = window.confirm(
@@ -604,7 +824,6 @@ const RunExecutionPage = () => {
                 if (!confirmSaveDraft) {
                     return;
                 }
-                // Mark all remaining passed
                 handleMarkAllStepsPassed();
             }
         }
@@ -618,13 +837,13 @@ const RunExecutionPage = () => {
                 action: typeof st === 'object' ? (st.action || st.step || st.description || st.text) : String(st),
                 expected: typeof st === 'object' ? st.expected : '',
                 actual: stepOutcomes[idx]?.actual || '',
-                status: stepOutcomes[idx]?.status || (formStatus === 'passed' ? 'passed' : 'pending'),
+                status: stepOutcomes[idx]?.status || (finalStatus === 'passed' ? 'passed' : 'pending'),
                 notes: stepOutcomes[idx]?.notes || ''
             }));
 
             const payload = {
-                status: formStatus,
-                actualResult: actualResult.trim() || (formStatus === 'passed' ? 'All test steps verified successfully.' : 'Verification complete.'),
+                status: finalStatus,
+                actualResult: actualResult.trim() || (finalStatus === 'passed' ? 'All test steps verified successfully.' : 'Verification complete.'),
                 notes: notes.trim(),
                 steps: formattedSteps,
                 durationMs: 3500,
@@ -639,6 +858,11 @@ const RunExecutionPage = () => {
             const res = await executionService.recordExecution(runId, activeCaseId, payload);
             if (res.success) {
                 setSaveMessage('Execution attempt recorded and committed to audit history.');
+                try {
+                    localStorage.removeItem(`testnexa_exec_draft_${runId}_${activeCaseId}`);
+                } catch {}
+                setAutosaveStatus('saved');
+                setLastSavedTime(new Date().toLocaleTimeString());
                 setCaseDrafts(prev => {
                     const next = { ...prev };
                     delete next[activeCaseId];
@@ -653,9 +877,10 @@ const RunExecutionPage = () => {
                 setScreenshotData(null);
                 setScreenshotName('');
 
-                // Refresh history
+                // Refresh history & defects
                 const tcId = activeCase?.testCaseId || activeCaseId;
                 if (tcId) loadCaseHistory(tcId);
+                loadCaseDefects(activeCaseId);
             }
         } catch (err) {
             alert(`Execution recording rejected: ${err.message}`);
@@ -663,6 +888,103 @@ const RunExecutionPage = () => {
             setIsSaving(false);
         }
     };
+
+    // Defect Modal Handlers
+    const handleOpenDefectModal = (stepIdx = null) => {
+        const steps = activeCaseDetails?.snapshot?.steps || activeCase?.snapshot?.steps || activeCase?.caseSnapshot?.steps || [];
+        const step = stepIdx !== null && steps[stepIdx] ? steps[stepIdx] : null;
+        const stepText = step ? (typeof step === 'object' ? (step.action || step.step || step.description) : String(step)) : '';
+        const stepExpected = step && typeof step === 'object' ? step.expected : (snapshot.expectedResult || '');
+        const observed = stepIdx !== null ? (stepOutcomes[stepIdx]?.actual || actualResult) : actualResult;
+
+        setDefectForm({
+            title: stepIdx !== null
+                ? `[Defect] ${snapshot.title || 'Step Failure'} - Step ${stepIdx + 1} Failed`
+                : `[Defect] ${snapshot.title || 'Test Execution Failure'}`,
+            description: `Test Case: ${activeCase?.testCaseId || ''} - ${snapshot.title || ''}\n` +
+                (stepIdx !== null ? `Step ${stepIdx + 1}: ${stepText}\n` : '') +
+                `Expected Result: ${stepExpected}\n` +
+                `Observed Result: ${observed || 'Application did not behave as expected.'}`,
+            severity: 'high',
+            priority: 'P1',
+            stepIndex: stepIdx,
+            expectedResult: stepExpected,
+            actualResult: observed
+        });
+        setIsDefectModalOpen(true);
+    };
+
+    const handleCreateDefect = async (e) => {
+        if (e) e.preventDefault();
+        if (!activeCaseId || !defectForm.title.trim()) return;
+
+        setIsSubmittingDefect(true);
+        try {
+            const payload = {
+                title: defectForm.title.trim(),
+                description: defectForm.description.trim(),
+                severity: defectForm.severity,
+                priority: defectForm.priority,
+                stepNumber: defectForm.stepIndex !== null ? defectForm.stepIndex + 1 : undefined,
+                expectedResult: defectForm.expectedResult,
+                actualResult: defectForm.actualResult,
+                evidence: screenshotData ? [{
+                    name: screenshotName || `defect_${Date.now()}.png`,
+                    data: screenshotData,
+                    mimeType: 'image/png'
+                }] : []
+            };
+
+            const res = await executionService.createDefect(runId, activeCaseId, payload);
+            if (res.success) {
+                setSaveMessage('Defect logged and linked to this execution.');
+                setIsDefectModalOpen(false);
+                loadRunDefects();
+                loadCaseDefects(activeCaseId);
+                setContextActiveTab('defects');
+                if (isContextPanelCollapsed) setIsContextPanelCollapsed(false);
+            }
+        } catch (err) {
+            alert(`Failed to log defect: ${err.message}`);
+        } finally {
+            setIsSubmittingDefect(false);
+        }
+    };
+
+    // Navigation between cases (Alt+P, Alt+N)
+    const handlePrevCase = useCallback(() => {
+        if (!filteredCases || filteredCases.length <= 1) return;
+        const currentIdx = filteredCases.findIndex(c => c.id === activeCaseId);
+        if (currentIdx > 0) {
+            handleSelectCase(filteredCases[currentIdx - 1].id);
+        } else {
+            handleSelectCase(filteredCases[filteredCases.length - 1].id);
+        }
+    }, [filteredCases, activeCaseId]);
+
+    const handleNextCase = useCallback(() => {
+        if (!filteredCases || filteredCases.length <= 1) return;
+        const currentIdx = filteredCases.findIndex(c => c.id === activeCaseId);
+        if (currentIdx >= 0 && currentIdx < filteredCases.length - 1) {
+            handleSelectCase(filteredCases[currentIdx + 1].id);
+        } else {
+            handleSelectCase(filteredCases[0].id);
+        }
+    }, [filteredCases, activeCaseId]);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+                e.preventDefault();
+                handleNextCase();
+            } else if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+                e.preventDefault();
+                handlePrevCase();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleNextCase, handlePrevCase]);
 
     // Execute real HTTP API Test Case
     const handleExecuteApi = async () => {
@@ -1562,10 +1884,46 @@ return (
                     {copyMessage && <div className="evidence-toast" role="status">{copyMessage}</div>}
                 </section>
             ) : (
-                /* ─── 4. MAIN WORKSPACE: TWO-PANEL MASTER-DETAIL LAYOUT ─── */
-                <div className="qa-master-detail-grid">
-                    {/* LEFT PANEL: Master Case Navigator (32% width) */}
+                /* ─── 4. MAIN WORKSPACE: THREE-PANEL MANUAL EXECUTION WORKSPACE ─── */
+                <div className={`qa-master-detail-grid ${isContextPanelCollapsed ? 'context-collapsed' : ''}`}>
+                    {/* PANEL 1: Master Case Navigator */}
                     <div className={`qa-master-panel ${isMobileDetailOpen ? 'mobile-hidden' : ''}`}>
+                        {/* Progress Bar & Summary */}
+                        <div className="qa-navigator-progress">
+                            <div className="qa-nav-progress-row">
+                                <span style={{ fontWeight: 600 }}>Test Run Progress</span>
+                                <span>
+                                    <strong>{((sum.passed || 0) + (sum.failed || 0) + (sum.blocked || 0) + (sum.skipped || 0))}</strong> / {cases.length} Executed
+                                </span>
+                            </div>
+                            <div className="qa-nav-progress-bar">
+                                <div className="qa-nav-prog-fill passed" style={{ width: `${((sum.passed || 0) / (cases.length || 1)) * 100}%` }} title={`Passed: ${sum.passed || 0}`} />
+                                <div className="qa-nav-prog-fill failed" style={{ width: `${((sum.failed || 0) / (cases.length || 1)) * 100}%` }} title={`Failed: ${sum.failed || 0}`} />
+                                <div className="qa-nav-prog-fill blocked" style={{ width: `${((sum.blocked || 0) / (cases.length || 1)) * 100}%` }} title={`Blocked: ${sum.blocked || 0}`} />
+                                <div className="qa-nav-prog-fill skipped" style={{ width: `${((sum.skipped || 0) / (cases.length || 1)) * 100}%` }} title={`Skipped: ${sum.skipped || 0}`} />
+                            </div>
+                            {/* Horizontal Filter Pills */}
+                            <div className="qa-navigator-filter-pills">
+                                {[
+                                    { id: 'all', label: `All (${cases.length})` },
+                                    { id: 'not_run', label: `Not Run (${sum.not_run || 0})` },
+                                    { id: 'passed', label: `Passed (${sum.passed || 0})` },
+                                    { id: 'failed', label: `Failed (${sum.failed || 0})` },
+                                    { id: 'blocked', label: `Blocked (${sum.blocked || 0})` },
+                                    { id: 'skipped', label: `Skipped (${sum.skipped || 0})` }
+                                ].map(p => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        className={`qa-filter-pill-btn ${statusFilter === p.id ? 'active' : ''}`}
+                                        onClick={() => setStatusFilter(p.id)}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Search and Filters */}
                         <div className="qa-master-panel-header">
                             <div className="qa-search-box">
@@ -1669,9 +2027,15 @@ return (
                                 })
                             )}
                         </div>
+
+                        {/* Keyboard shortcut helper */}
+                        <div className="qa-keyboard-shortcut-hint">
+                            <span>Navigation</span>
+                            <span><kbd>Alt+P</kbd> Prev • <kbd>Alt+N</kbd> Next</span>
+                        </div>
                     </div>
 
-                    {/* RIGHT PANEL: Selected Case Detail Only (68% width) */}
+                    {/* CENTER PANEL: Primary Execution Area */}
                     <div className={`qa-detail-panel ${!isMobileDetailOpen ? 'mobile-hidden' : ''}`}>
                         {activeCase ? (
                             <div className="qa-detail-content">
@@ -1704,9 +2068,23 @@ return (
                                             <CaseMethodBadge c={activeCase} />
                                             <StatusBadge status={activeCase.status} />
                                         </div>
-                                        <span style={{ fontSize: '0.74rem', color: 'var(--qa-text-muted)' }}>
-                                            Current: <strong>Attempt #{activeCase.currentAttempt || 1}</strong>
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                            {(run?.targetEnvironment || activeCase?.targetUrl) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => window.open(run?.targetEnvironment || activeCase?.targetUrl, '_blank', 'noopener,noreferrer')}
+                                                    className="ws-btn-secondary"
+                                                    style={{ height: '28px', fontSize: '0.74rem', gap: '5px' }}
+                                                    title="Open target application in external browser tab"
+                                                >
+                                                    <ExternalLink size={12} />
+                                                    <span>Open Target App</span>
+                                                </button>
+                                            )}
+                                            <span style={{ fontSize: '0.74rem', color: 'var(--qa-text-muted)' }}>
+                                                Current: <strong>Attempt #{activeCase.currentAttempt || 1}</strong>
+                                            </span>
+                                        </div>
                                     </div>
                                     <h2 className="qa-case-detail-title">{snapshot.title}</h2>
                                 </div>
@@ -1867,6 +2245,17 @@ return (
                                                     <CheckCircle2 size={13} />
                                                     <span>Mark All Passed</span>
                                                 </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleResetAllSteps}
+                                                    className="ws-btn-secondary"
+                                                    style={{ height: '28px', fontSize: '0.75rem', gap: '5px' }}
+                                                    title="Reset all steps to pending"
+                                                >
+                                                    <RotateCcw size={12} />
+                                                    <span>Reset</span>
+                                                </button>
                                             </div>
                                         </div>
 
@@ -1981,6 +2370,17 @@ return (
                                                                 >
                                                                     Skip
                                                                 </button>
+                                                                {stepStatus === 'failed' && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleOpenDefectModal(idx)}
+                                                                        className="qa-step-defect-btn"
+                                                                        title="Log defect from this failed step"
+                                                                    >
+                                                                        <Bug size={11} />
+                                                                        <span>Log Defect</span>
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -2414,6 +2814,65 @@ return (
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Sticky Bottom Execution Action Footer */}
+                                <div className="qa-sticky-execution-footer">
+                                    <div className={`qa-autosave-indicator ${autosaveStatus}`}>
+                                        <span className="qa-autosave-dot" />
+                                        <span>
+                                            {autosaveStatus === 'saving' ? 'Saving draft...' :
+                                             autosaveStatus === 'unsaved' ? 'Unsaved changes' :
+                                             autosaveStatus === 'error' ? 'Autosave error' :
+                                             `Saved ${lastSavedTime ? 'at ' + lastSavedTime : ''}`}
+                                        </span>
+                                    </div>
+
+                                    <div className="qa-footer-actions">
+                                        <button
+                                            type="button"
+                                            onClick={handlePrevCase}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '34px', fontSize: '0.78rem', gap: '4px' }}
+                                            title="Navigate to previous test case (Alt+P)"
+                                        >
+                                            <ArrowLeft size={13} />
+                                            <span>Previous (Alt+P)</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveDraft}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '34px', fontSize: '0.78rem', gap: '5px' }}
+                                            title="Save in-progress draft without recording final completion"
+                                        >
+                                            <Save size={13} />
+                                            <span>Save Draft</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleOpenCompletionModal}
+                                            disabled={isSaving}
+                                            className="ws-btn-primary"
+                                            style={{ height: '34px', padding: '0 1.25rem', fontWeight: 600, fontSize: '0.8rem', gap: '6px' }}
+                                        >
+                                            <CheckCircle2 size={14} />
+                                            <span>Complete Execution</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleNextCase}
+                                            className="ws-btn-secondary"
+                                            style={{ height: '34px', fontSize: '0.78rem', gap: '4px' }}
+                                            title="Navigate to next test case (Alt+N)"
+                                        >
+                                            <span>Next (Alt+N)</span>
+                                            <ChevronRight size={13} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--qa-text-dim)' }}>
@@ -2421,8 +2880,408 @@ return (
                             </div>
                         )}
                     </div>
+
+                    {/* PANEL 3: Collapsible Context Panel (Metadata | Traceability | History | Defects) */}
+                    <div className={`qa-context-panel ${isContextPanelCollapsed ? 'collapsed' : ''}`}>
+                        {isContextPanelCollapsed ? (
+                            <div className="qa-context-collapsed-rail">
+                                <button
+                                    type="button"
+                                    className="qa-context-collapse-btn"
+                                    onClick={() => setIsContextPanelCollapsed(false)}
+                                    title="Expand Context Panel"
+                                >
+                                    <PanelRightOpen size={16} />
+                                </button>
+                                <span className="qa-context-rail-text" onClick={() => setIsContextPanelCollapsed(false)}>
+                                    Context &amp; Traceability
+                                </span>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="qa-context-panel-header">
+                                    <h4 className="qa-context-title">
+                                        <Shield size={14} style={{ color: 'var(--qa-jade)' }} />
+                                        <span>Execution Context</span>
+                                    </h4>
+                                    <button
+                                        type="button"
+                                        className="qa-context-collapse-btn"
+                                        onClick={() => setIsContextPanelCollapsed(true)}
+                                        title="Collapse Context Panel"
+                                    >
+                                        <PanelRightClose size={15} />
+                                    </button>
+                                </div>
+
+                                <div className="qa-context-tabs">
+                                    <button
+                                        type="button"
+                                        className={`qa-context-tab-btn ${contextActiveTab === 'metadata' ? 'active' : ''}`}
+                                        onClick={() => setContextActiveTab('metadata')}
+                                    >
+                                        <FileText size={12} />
+                                        <span>Metadata</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`qa-context-tab-btn ${contextActiveTab === 'requirements' ? 'active' : ''}`}
+                                        onClick={() => setContextActiveTab('requirements')}
+                                    >
+                                        <Layers size={12} />
+                                        <span>Traceability</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`qa-context-tab-btn ${contextActiveTab === 'history' ? 'active' : ''}`}
+                                        onClick={() => setContextActiveTab('history')}
+                                    >
+                                        <History size={12} />
+                                        <span>History</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`qa-context-tab-btn ${contextActiveTab === 'defects' ? 'active' : ''}`}
+                                        onClick={() => setContextActiveTab('defects')}
+                                    >
+                                        <Bug size={12} />
+                                        <span>Defects ({caseDefects.length})</span>
+                                    </button>
+                                </div>
+
+                                <div className="qa-context-body">
+                                    {contextActiveTab === 'metadata' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Run ID</span>
+                                                <span className="qa-context-meta-val" style={{ fontFamily: 'monospace' }}>{run.id?.slice(0, 10)}...</span>
+                                            </div>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Environment</span>
+                                                <span className="qa-context-meta-val">{run.targetEnvironment || 'Staging'}</span>
+                                            </div>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Assigned Tester</span>
+                                                <span className="qa-context-meta-val">{run.assignedTo?.name || run.assignedTo || 'Unassigned'}</span>
+                                            </div>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Suite Version</span>
+                                                <span className="qa-context-meta-val">{run.suiteVersion ? `v${run.suiteVersion}` : '1.0.0'}</span>
+                                            </div>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Execution Type</span>
+                                                <span className="qa-context-meta-val" style={{ textTransform: 'capitalize' }}>{activeCase?.executionType || run.executionType || 'manual'}</span>
+                                            </div>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Current Attempt</span>
+                                                <span className="qa-context-meta-val">#{activeCase?.currentAttempt || 1}</span>
+                                            </div>
+                                            <div className="qa-context-meta-row">
+                                                <span className="qa-context-meta-label">Last Executed</span>
+                                                <span className="qa-context-meta-val">{activeCase?.executedAt ? new Date(activeCase.executedAt).toLocaleString() : 'Not Yet Executed'}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {contextActiveTab === 'requirements' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                            <div style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)' }}>
+                                                Requirements linked to this test scenario:
+                                            </div>
+                                            {(() => {
+                                                const reqs = snapshot.requirements || snapshot.linkedRequirements || (snapshot.requirementId ? [{ id: snapshot.requirementId, title: snapshot.requirementTitle || 'Linked Requirement' }] : []);
+                                                if (reqs.length === 0) {
+                                                    return (
+                                                        <div style={{ padding: '1.5rem 0.5rem', textAlign: 'center', color: 'var(--qa-text-dim)', fontSize: '0.75rem' }}>
+                                                            No specific requirements linked. Test scenario covers module: <strong>{snapshot.module || 'Core'}</strong>
+                                                        </div>
+                                                    );
+                                                }
+                                                return reqs.map((r, i) => (
+                                                    <div key={i} style={{ padding: '0.6rem 0.75rem', background: 'var(--qa-surface-elevated)', border: '1px solid var(--qa-border-subtle)', borderRadius: '5px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--qa-jade)', fontFamily: 'monospace' }}>
+                                                                {typeof r === 'object' ? (r.code || r.id || `REQ-${i + 1}`) : `REQ-${r}`}
+                                                            </span>
+                                                            <StatusBadge status={activeCase?.status || 'not_run'} />
+                                                        </div>
+                                                        <div style={{ fontSize: '0.78rem', color: 'var(--qa-text)' }}>
+                                                            {typeof r === 'object' ? (r.title || r.name || 'Acceptance Criteria') : String(r)}
+                                                        </div>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {contextActiveTab === 'history' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)' }}>
+                                                    Past Executions ({historicalAttempts.length})
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => loadCaseHistory(activeCase?.testCaseId || activeCaseId)}
+                                                    className="ws-btn-secondary"
+                                                    style={{ height: '22px', fontSize: '0.68rem', padding: '0 6px' }}
+                                                >
+                                                    <RefreshCw size={10} className={isHistoryLoading ? 'animate-spin' : ''} />
+                                                    <span>Refresh</span>
+                                                </button>
+                                            </div>
+                                            {historicalAttempts.length === 0 ? (
+                                                <div style={{ padding: '1.5rem 0.5rem', textAlign: 'center', color: 'var(--qa-text-dim)', fontSize: '0.75rem' }}>
+                                                    No prior execution history for this test case.
+                                                </div>
+                                            ) : (
+                                                historicalAttempts.map((att, idx) => (
+                                                    <div key={att.id || idx} className="qa-attempt-entry" style={{ padding: '0.5rem 0.65rem' }}>
+                                                        <div className="qa-attempt-header">
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <strong style={{ fontSize: '0.75rem' }}>#{att.attemptNumber || idx + 1}</strong>
+                                                                <StatusBadge status={att.status} />
+                                                            </div>
+                                                            <span style={{ fontSize: '0.68rem', color: 'var(--qa-text-dim)' }}>
+                                                                {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        {att.actualResult && (
+                                                            <div style={{ fontSize: '0.74rem', color: 'var(--qa-text)', lineHeight: '1.3' }}>
+                                                                {att.actualResult}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {contextActiveTab === 'defects' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)' }}>
+                                                    Logged Defects ({caseDefects.length})
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenDefectModal(null)}
+                                                    className="ws-btn-primary"
+                                                    style={{ height: '22px', fontSize: '0.68rem', padding: '0 8px', gap: '4px' }}
+                                                >
+                                                    <Bug size={11} />
+                                                    <span>Log Defect</span>
+                                                </button>
+                                            </div>
+
+                                            {caseDefects.length === 0 ? (
+                                                <div style={{ padding: '1.5rem 0.5rem', textAlign: 'center', color: 'var(--qa-text-dim)', fontSize: '0.75rem' }}>
+                                                    No defects logged for this test case yet.
+                                                </div>
+                                            ) : (
+                                                caseDefects.map((def) => (
+                                                    <div key={def.id} className="qa-defect-card">
+                                                        <div className="qa-defect-meta">
+                                                            <span className={`qa-defect-sev-badge ${def.severity || 'high'}`}>
+                                                                {def.severity || 'high'}
+                                                            </span>
+                                                            <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--qa-warn)' }}>
+                                                                {def.status || 'open'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="qa-defect-title">{def.title}</div>
+                                                        {def.stepNumber && (
+                                                            <div style={{ fontSize: '0.68rem', color: 'var(--qa-text-dim)' }}>
+                                                                Failed Step: {def.stepNumber}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
+
+            {/* Defect Quick-Log Modal */}
+            <Modal
+                isOpen={isDefectModalOpen}
+                onClose={() => setIsDefectModalOpen(false)}
+                title="Log Defect from Test Execution"
+                size="md"
+            >
+                <form onSubmit={handleCreateDefect} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', color: '#F2F3F3' }}>
+                    <div>
+                        <label className="qa-field-label">Defect Title *</label>
+                        <input
+                            type="text"
+                            required
+                            value={defectForm.title}
+                            onChange={(e) => setDefectForm(prev => ({ ...prev, title: e.target.value }))}
+                            className="qa-text-input"
+                            style={{ height: '36px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div>
+                            <label className="qa-field-label">Severity</label>
+                            <select
+                                value={defectForm.severity}
+                                onChange={(e) => setDefectForm(prev => ({ ...prev, severity: e.target.value }))}
+                                className="qa-text-input"
+                                style={{ height: '36px' }}
+                            >
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="qa-field-label">Priority</label>
+                            <select
+                                value={defectForm.priority}
+                                onChange={(e) => setDefectForm(prev => ({ ...prev, priority: e.target.value }))}
+                                className="qa-text-input"
+                                style={{ height: '36px' }}
+                            >
+                                <option value="P0">P0 (Blocker)</option>
+                                <option value="P1">P1 (High)</option>
+                                <option value="P2">P2 (Medium)</option>
+                                <option value="P3">P3 (Low)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="qa-field-label">Description &amp; Steps to Reproduce *</label>
+                        <textarea
+                            rows={4}
+                            required
+                            value={defectForm.description}
+                            onChange={(e) => setDefectForm(prev => ({ ...prev, description: e.target.value }))}
+                            className="qa-textarea"
+                        />
+                    </div>
+
+                    {screenshotName && (
+                        <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(139, 175, 154, 0.1)', border: '1px solid rgba(139, 175, 154, 0.3)', borderRadius: '4px', fontSize: '0.78rem', color: 'var(--qa-jade)' }}>
+                            Attached Evidence: {screenshotName}
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => setIsDefectModalOpen(false)}
+                            className="ws-btn-secondary"
+                            style={{ height: '34px' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmittingDefect}
+                            className="ws-btn-primary"
+                            style={{ height: '34px', padding: '0 1.25rem', gap: '5px' }}
+                        >
+                            <Bug size={13} />
+                            <span>{isSubmittingDefect ? 'Logging Defect...' : 'Submit Defect'}</span>
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Execution Completion Breakdown Confirmation Modal */}
+            <Modal
+                isOpen={isCompletionModalOpen}
+                onClose={() => setIsCompletionModalOpen(false)}
+                title="Review & Confirm Test Execution"
+                size="md"
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', color: '#F2F3F3' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--qa-surface-elevated)', borderRadius: '6px', border: '1px solid var(--qa-border)' }}>
+                        <div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', textTransform: 'uppercase' }}>Target Test Case</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{activeCase?.testCaseId}: {snapshot.title}</div>
+                        </div>
+                        <StatusBadge status={completionBreakdown?.derivedStatus || formStatus} />
+                    </div>
+
+                    {/* Step Breakdown Cards */}
+                    <div className="qa-breakdown-grid">
+                        <div className="qa-breakdown-box">
+                            <div className="qa-breakdown-num" style={{ color: 'var(--qa-text)' }}>{completionBreakdown?.total || 0}</div>
+                            <div className="qa-breakdown-lbl">Total Steps</div>
+                        </div>
+                        <div className="qa-breakdown-box">
+                            <div className="qa-breakdown-num" style={{ color: 'var(--qa-jade)' }}>{completionBreakdown?.passed || 0}</div>
+                            <div className="qa-breakdown-lbl">Passed</div>
+                        </div>
+                        <div className="qa-breakdown-box">
+                            <div className="qa-breakdown-num" style={{ color: 'var(--qa-fail)' }}>{completionBreakdown?.failed || 0}</div>
+                            <div className="qa-breakdown-lbl">Failed</div>
+                        </div>
+                        <div className="qa-breakdown-box">
+                            <div className="qa-breakdown-num" style={{ color: 'var(--qa-warn)' }}>{completionBreakdown?.pending || 0}</div>
+                            <div className="qa-breakdown-lbl">Incomplete</div>
+                        </div>
+                    </div>
+
+                    {/* Incomplete step constraint alert */}
+                    {completionBreakdown?.pending > 0 && formStatus === 'passed' && (
+                        <div style={{ padding: '0.75rem', background: 'rgba(229, 192, 123, 0.15)', border: '1px solid rgba(229, 192, 123, 0.4)', borderRadius: '6px', color: '#E5C07B', fontSize: '0.8rem', lineHeight: '1.4' }}>
+                            <strong>Incomplete Verification Alert:</strong> {completionBreakdown.pending} step(s) have not been evaluated. According to TestNexa QA guidelines, a test case cannot be marked Passed while steps remain unverified.
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleMarkAllStepsPassed();
+                                        handleConfirmCompletion('passed');
+                                    }}
+                                    className="ws-btn-secondary"
+                                    style={{ height: '28px', fontSize: '0.75rem', color: 'var(--qa-jade)' }}
+                                >
+                                    Mark Remaining Steps Passed &amp; Complete
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="qa-field-label">Actual Result Summary</label>
+                        <div style={{ fontSize: '0.82rem', padding: '0.6rem 0.75rem', background: 'var(--qa-surface)', border: '1px solid var(--qa-border)', borderRadius: '4px', color: 'var(--qa-text)' }}>
+                            {actualResult || (completionBreakdown?.derivedStatus === 'passed' ? 'All test steps verified successfully.' : 'Verification complete.')}
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => setIsCompletionModalOpen(false)}
+                            className="ws-btn-secondary"
+                            style={{ height: '34px' }}
+                        >
+                            Back to Review
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleConfirmCompletion()}
+                            disabled={isSaving || (completionBreakdown?.pending > 0 && formStatus === 'passed')}
+                            className="ws-btn-primary"
+                            style={{ height: '34px', padding: '0 1.25rem', fontWeight: 600 }}
+                        >
+                            {isSaving ? 'Recording...' : 'Confirm & Record Execution'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Artifact Preview Modal */}
             {previewArtifact && (

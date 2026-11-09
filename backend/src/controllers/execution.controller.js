@@ -13,6 +13,8 @@ const failureTrendsService = require('../services/runner/failureTrends.service')
 const executionIntelligenceService = require('../services/runner/executionIntelligence.service');
 const rootCauseAnalysisService = require('../services/runner/rootCauseAnalysis.service');
 const apiExecutionService = require('../services/runner/apiExecution.service');
+const executionStatusEngine = require('../services/runner/executionStatusEngine.service');
+const defectService = require('../services/defect.service');
 const auditService = require('../services/auditService');
 const usageMeteringService = require('../services/usageMetering.service');
 
@@ -442,33 +444,25 @@ exports.recordExecution = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Execution status is required' });
         }
 
-        // Validate completion rules and derive status from step outcomes
-        let effectiveStatus = String(status).toLowerCase();
+        // Validate completion rules and derive status via Centralized Status Engine
         const caseSteps = runCase.caseSnapshot?.steps || [];
-        if (executorType === 'manual' && Array.isArray(caseSteps) && caseSteps.length > 0) {
-            const stepKeys = Object.keys(stepOutcomes || {});
-            const stepValues = Object.values(stepOutcomes || {}).map(v => String(v || '').toLowerCase());
+        const validation = executionStatusEngine.validateCompletionRequest({
+            steps: caseSteps,
+            stepOutcomes: stepOutcomes || {},
+            requestedStatus: status,
+            actualResult: actualResult || ''
+        });
 
-            // Cannot complete test as Passed when steps remain unverified
-            if (effectiveStatus === 'passed' && stepKeys.length < caseSteps.length) {
-                return res.status(400).json({
-                    success: false,
-                    code: 'INCOMPLETE_STEPS',
-                    message: `Cannot complete test as Passed when ${caseSteps.length - stepKeys.length} step(s) remain unverified. Please evaluate every step or save as draft.`
-                });
-            }
-
-            // If any step failed, overall outcome is strictly failed
-            if (stepValues.some(v => v === 'failed')) {
-                effectiveStatus = 'failed';
-            } else if (stepValues.some(v => v === 'blocked') && !stepValues.some(v => v === 'failed')) {
-                effectiveStatus = 'blocked';
-            } else if (stepValues.some(v => v === 'error')) {
-                effectiveStatus = 'error';
-            } else if (stepKeys.length >= caseSteps.length && stepValues.every(v => v === 'passed' || v === 'skipped')) {
-                effectiveStatus = 'passed';
-            }
+        if (!validation.isValid && executorType === 'manual') {
+            return res.status(400).json({
+                success: false,
+                code: validation.code || 'VALIDATION_FAILED',
+                message: validation.message,
+                evaluation: validation.evaluation
+            });
         }
+
+        const effectiveStatus = validation.effectiveStatus || String(status).toLowerCase();
 
         const result = await supabaseService.recordTestExecution({
             runId: id,
@@ -2234,5 +2228,121 @@ exports.submitFailureAnalysisFeedback = async (req, res) => {
         logger.error('Error submitting analysis feedback:', err);
         const statusCode = err.statusCode || (err.message?.includes('not found') ? 404 : 500);
         res.status(statusCode).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * Defect Management: Create defect linked to failed step / execution
+ * POST /api/v1/runs/:id/cases/:caseId/defects
+ */
+exports.createCaseDefect = async (req, res) => {
+    try {
+        const { id, caseId } = req.params;
+        const userId = req.user._id || req.user.id;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        let runCase = await supabaseService.getRunCaseById(caseId);
+        if (!runCase || runCase.runId !== id) {
+            const allRunCases = await supabaseService.getRunCases(id);
+            runCase = allRunCases.find(rc => rc.id === caseId || rc.testCaseId === caseId);
+        }
+        if (!runCase) {
+            return res.status(404).json({ success: false, message: 'Test run case not found' });
+        }
+
+        const {
+            title,
+            description,
+            stepIndex,
+            stepNumber,
+            expectedResult,
+            actualResult,
+            severity,
+            priority,
+            evidence
+        } = req.body;
+
+        const defect = await defectService.createDefect({
+            runId: id,
+            runCaseId: runCase.id,
+            testCaseId: runCase.testCaseId,
+            stepIndex,
+            stepNumber,
+            title,
+            description,
+            expectedResult,
+            actualResult,
+            severity,
+            priority,
+            evidence,
+            environment: run.targetEnvironment,
+            createdBy: userId
+        });
+
+        res.status(201).json({
+            success: true,
+            data: defect
+        });
+    } catch (err) {
+        logger.error('Error logging defect:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * List defects for a run
+ * GET /api/v1/runs/:id/defects
+ */
+exports.listRunDefects = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const defects = await defectService.listDefects({ runId: id });
+        res.json({
+            success: true,
+            data: defects
+        });
+    } catch (err) {
+        logger.error('Error listing run defects:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * List defects for a specific run case
+ * GET /api/v1/runs/:id/cases/:caseId/defects
+ */
+exports.listCaseDefects = async (req, res) => {
+    try {
+        const { id, caseId } = req.params;
+        const run = await supabaseService.getTestRunById(id);
+        if (!run) {
+            return res.status(404).json({ success: false, message: 'Test run not found' });
+        }
+
+        const isAllowed = await verifyAccess(req, res, run.workspaceId);
+        if (!isAllowed) return;
+
+        const defects = await defectService.listDefects({ runId: id, runCaseId: caseId });
+        res.json({
+            success: true,
+            data: defects
+        });
+    } catch (err) {
+        logger.error('Error listing case defects:', err);
+        res.status(500).json({ success: false, message: err.message });
     }
 };

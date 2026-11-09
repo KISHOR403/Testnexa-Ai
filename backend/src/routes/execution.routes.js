@@ -66,6 +66,11 @@ router.post('/:id/cases/:caseId/draft', executionController.saveCaseDraft);
 router.get('/:id/cases/:caseId/draft', executionController.getCaseDraft);
 router.get('/:id/cases/:caseId/executions', executionController.getCaseHistory);
 
+// Defect Management
+router.post('/:id/cases/:caseId/defects', executionController.createCaseDefect);
+router.get('/:id/cases/:caseId/defects', executionController.listCaseDefects);
+router.get('/:id/defects', executionController.listRunDefects);
+
 // Artifacts
 router.post('/:id/cases/:caseId/artifacts', executionController.uploadArtifact);
 router.get('/:id/artifacts', executionController.listRunArtifacts);
