@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Play, X, Layers, CheckSquare, Square, Shield,
-    Server, User, AlertCircle, FileText, Bot, Terminal
+    Server, User, UserCheck, AlertCircle, FileText, Bot, Clock, Terminal, PlaySquare
 } from 'lucide-react';
 import { executionService } from '../../services/executionService';
 import { sessionService } from '../../services/sessionService';
 import { workspaceService } from '../../services/workspaceService';
+import { getExecutionMethodList, isExecutionMethodEnabled } from '../../config/executionFeatures';
+import ComingSoonModal from './ComingSoonModal';
 import Modal from '../ui/Modal';
 import '../../styles/app/WorkspaceDesignSystem.css';
 
@@ -20,7 +22,8 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [executionType, setExecutionType] = useState('manual'); // 'manual' | 'automated' | 'mixed'
+    const [executionType, setExecutionType] = useState('manual');
+    const [comingSoonMethod, setComingSoonMethod] = useState(null);
     const [environments, setEnvironments] = useState([]);
     const [selectedEnvId, setSelectedEnvId] = useState('');
     const [members, setMembers] = useState([]);
@@ -148,6 +151,15 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
         }
     };
 
+    const handleSelectExecutionMethod = (mode) => {
+        if (mode.enabled) {
+            setExecutionType(mode.id);
+        } else {
+            // Do not switch to unavailable execution type; open modal instead
+            setComingSoonMethod(mode);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!name.trim()) {
@@ -156,6 +168,10 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
         }
         if (selectedCaseIds.size === 0) {
             setError('Please select at least one test case to execute');
+            return;
+        }
+        if (!isExecutionMethodEnabled(executionType)) {
+            setError('Only Manual Execution is currently available in this release. Automation options are coming soon.');
             return;
         }
 
@@ -294,43 +310,71 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
 
                 {/* 3. Execution Type Selector */}
                 <div>
-                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#A0A5A5', marginBottom: '0.4rem' }}>
-                        Execution Mode
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
-                        {[
-                            { id: 'manual', label: 'Manual Only', desc: 'Interactive step verification by testers', icon: User },
-                            { id: 'automated', label: 'Automated (Playwright)', desc: 'Headless browser execution via queue', icon: Bot },
-                            { id: 'api', label: 'API Testing', desc: 'Direct HTTP request assertion execution', icon: Server },
-                            { id: 'mixed', label: 'Mixed Mode', desc: 'Execute mapped tests; verify remainder manually', icon: Terminal }
-                        ].map(mode => {
-                            const isSelected = executionType === mode.id;
-                            const IconComponent = mode.icon;
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#A0A5A5' }}>
+                            Execution Mode
+                        </label>
+                        <span style={{ fontSize: '0.75rem', color: '#8BAF9A', fontWeight: 500 }}>
+                            Manual is active
+                        </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
+                        {getExecutionMethodList().map(mode => {
+                            const isSelected = executionType === mode.id && mode.enabled;
+                            const isComingSoon = !mode.enabled;
+
                             return (
                                 <button
                                     key={mode.id}
                                     type="button"
-                                    onClick={() => setExecutionType(mode.id)}
+                                    onClick={() => handleSelectExecutionMethod(mode)}
+                                    title={isComingSoon ? `${mode.displayName} is Coming Soon — click to preview upcoming capabilities` : `Select ${mode.displayName}`}
                                     style={{
                                         display: 'flex',
                                         flexDirection: 'column',
                                         alignItems: 'flex-start',
-                                        gap: '0.35rem',
-                                        padding: '0.75rem',
+                                        gap: '0.45rem',
+                                        padding: '0.85rem',
                                         background: isSelected ? 'rgba(139, 175, 154, 0.12)' : '#161819',
-                                        border: `1px solid ${isSelected ? '#8BAF9A' : '#292D2D'}`,
+                                        border: `1px solid ${isSelected ? '#8BAF9A' : isComingSoon ? 'rgba(255, 255, 255, 0.08)' : '#292D2D'}`,
                                         borderRadius: '8px',
                                         cursor: 'pointer',
                                         textAlign: 'left',
                                         transition: 'all 0.15s ease'
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isSelected ? '#8BAF9A' : '#F2F3F3' }}>
-                                        <IconComponent size={16} />
-                                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{mode.label}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            color: isSelected ? '#8BAF9A' : isComingSoon ? '#D6DADA' : '#F2F3F3'
+                                        }}>
+                                            {mode.iconName === 'UserCheck' ? <UserCheck size={16} /> : mode.iconName === 'Bot' ? <Bot size={16} /> : <Server size={16} />}
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{mode.displayName}</span>
+                                        </div>
+
+                                        <span style={{
+                                            fontSize: '0.66rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.04em',
+                                            padding: '0.15rem 0.45rem',
+                                            borderRadius: '12px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            background: mode.enabled ? 'rgba(139, 175, 154, 0.16)' : 'rgba(255, 255, 255, 0.06)',
+                                            color: mode.enabled ? '#8BAF9A' : '#A0A5A5',
+                                            border: `1px solid ${mode.enabled ? 'rgba(139, 175, 154, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
+                                        }}>
+                                            {isComingSoon && <Clock size={10} />}
+                                            {mode.badgeLabel}
+                                        </span>
                                     </div>
-                                    <span style={{ fontSize: '0.72rem', color: '#A0A5A5', lineHeight: '1.3' }}>
-                                        {mode.desc}
+
+                                    <span style={{ fontSize: '0.74rem', color: '#A0A5A5', lineHeight: '1.35' }}>
+                                        {mode.shortDesc || mode.description}
                                     </span>
                                 </button>
                             );
@@ -500,11 +544,10 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
                         )}
                     </div>
 
-                    {executionType === 'mixed' && (
-                        <div style={{ marginTop: '0.4rem', fontSize: '0.74rem', color: '#A0A5A5' }}>
-                            Mixed execution breakdown: <strong>{automatedCount} automated (Playwright)</strong>, <strong>{manualCount} manual</strong>.
-                        </div>
-                    )}
+                    {/* Interactive manual testing notice */}
+                    <div style={{ marginTop: '0.45rem', fontSize: '0.74rem', color: '#8BAF9A' }}>
+                        Manual verification active: all <strong>{selectedCaseIds.size}</strong> selected test cases will be recorded interactively.
+                    </div>
                 </div>
 
                 {/* Footer Actions */}
@@ -536,6 +579,13 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
                     </button>
                 </div>
             </form>
+
+            {/* Coming Soon Modal for Automation Capabilities */}
+            <ComingSoonModal
+                isOpen={Boolean(comingSoonMethod)}
+                onClose={() => setComingSoonMethod(null)}
+                method={comingSoonMethod}
+            />
         </Modal>
     );
 };

@@ -29,7 +29,8 @@ router.get('/intelligence/dashboard', executionController.getIntelligenceDashboa
 router.get('/intelligence/attention', executionController.getIntelligenceAttentionQueue);
 router.get('/intelligence/coverage', executionController.getIntelligenceCoverageOverview);
 
-// Test Run CRUD
+// Test Run CRUD & Features
+router.get('/features', executionController.getExecutionFeatures);
 router.get('/', executionController.listRuns);
 router.post('/', executionController.createRun);
 router.get('/:id', executionController.getRun);

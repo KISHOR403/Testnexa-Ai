@@ -17,6 +17,7 @@ const executionStatusEngine = require('../services/runner/executionStatusEngine.
 const defectService = require('../services/defect.service');
 const auditService = require('../services/auditService');
 const usageMeteringService = require('../services/usageMetering.service');
+const { validateExecutionMethod, getAllExecutionMethods } = require('../config/executionFeatures');
 
 /**
  * Resolves the target workspace ID for the request
@@ -83,6 +84,18 @@ exports.createRun = async (req, res) => {
 
         if (!name || !name.trim()) {
             return res.status(400).json({ success: false, message: 'Test run name is required' });
+        }
+
+        // Validate execution method availability (reject Coming Soon / unavailable methods)
+        const requestedMethod = executionType || 'manual';
+        const methodValidation = validateExecutionMethod(requestedMethod);
+        if (!methodValidation.valid) {
+            return res.status(403).json({
+                success: false,
+                code: methodValidation.code,
+                message: methodValidation.message,
+                method: methodValidation.method
+            });
         }
 
         // Enforce execution quota
@@ -920,6 +933,17 @@ exports.triggerAutomatedRun = async (req, res) => {
         const isAllowed = await verifyAccess(req, res, run.workspaceId);
         if (!isAllowed) return;
 
+        // Automation capabilities are currently in development (Coming Soon)
+        const methodValidation = validateExecutionMethod('playwright');
+        if (!methodValidation.valid) {
+            return res.status(403).json({
+                success: false,
+                code: methodValidation.code,
+                message: methodValidation.message,
+                method: methodValidation.method
+            });
+        }
+
         const { adapter = 'playwright', targetEnvironment } = req.body;
 
         const job = await jobQueue.submitJob({
@@ -1064,6 +1088,17 @@ exports.executeSingleTest = async (req, res) => {
         }
         const isAllowed = await verifyAccess(req, res, workspaceId);
         if (!isAllowed) return;
+
+        // Automation capabilities are currently in development (Coming Soon)
+        const methodValidation = validateExecutionMethod('playwright');
+        if (!methodValidation.valid) {
+            return res.status(403).json({
+                success: false,
+                code: methodValidation.code,
+                message: methodValidation.message,
+                method: methodValidation.method
+            });
+        }
 
         const {
             testCaseId = 'TEST_SINGLE',
@@ -2343,6 +2378,23 @@ exports.listCaseDefects = async (req, res) => {
         });
     } catch (err) {
         logger.error('Error listing case defects:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/runs/features
+ * Return centralized execution method availability configuration
+ */
+exports.getExecutionFeatures = async (req, res) => {
+    try {
+        const methods = getAllExecutionMethods();
+        res.status(200).json({
+            success: true,
+            data: methods
+        });
+    } catch (err) {
+        logger.error('Error fetching execution features:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

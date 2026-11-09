@@ -16,6 +16,8 @@ import RunComparisonView from '../../components/execution/RunComparisonView';
 import RerunResultComparisonView from '../../components/execution/RerunResultComparisonView';
 import RerunModal from '../../components/execution/RerunModal';
 import RerunHistoryDrawer from '../../components/execution/RerunHistoryDrawer';
+import ComingSoonModal from '../../components/execution/ComingSoonModal';
+import { getExecutionMethod, isExecutionMethodEnabled } from '../../config/executionFeatures';
 import '../../styles/app/WorkspaceDesignSystem.css';
 import '../../styles/app/RunWorkspace.css';
 import '../../styles/app/ArtifactEvidence.css';
@@ -280,6 +282,7 @@ const RunExecutionPage = () => {
     });
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+    const [comingSoonMethod, setComingSoonMethod] = useState(null);
 
     // 3-Panel Manual Workspace 2.0 State
     const [isContextPanelCollapsed, setIsContextPanelCollapsed] = useState(false);
@@ -1062,6 +1065,11 @@ const RunExecutionPage = () => {
 
     // Trigger Playwright Automated Execution
     const handleTriggerAutomated = async () => {
+        if (!isExecutionMethodEnabled('playwright')) {
+            setComingSoonMethod(getExecutionMethod('playwright'));
+            return;
+        }
+
         setIsTriggeringAuto(true);
         try {
             const res = await executionService.triggerAutomatedRun(runId, {
@@ -4103,6 +4111,13 @@ return (
                     }}
                 />
             )}
+
+            {/* Coming Soon Modal for Automation Capabilities */}
+            <ComingSoonModal
+                isOpen={Boolean(comingSoonMethod)}
+                onClose={() => setComingSoonMethod(null)}
+                method={comingSoonMethod}
+            />
         </div>
     );
 };

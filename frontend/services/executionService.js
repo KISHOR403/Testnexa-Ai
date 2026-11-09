@@ -25,6 +25,16 @@ const handleResponse = async (response) => {
 
 export const executionService = {
     /**
+     * Get feature availability configuration for execution methods
+     */
+    getExecutionFeatures: async () => {
+        const response = await fetch(`${API_BASE_URL}/runs/features`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(response);
+    },
+
+    /**
      * List test runs
      */
     listRuns: async ({ workspaceId, page = 1, limit = 20, status, executionType, search, sort = 'newest' } = {}) => {
