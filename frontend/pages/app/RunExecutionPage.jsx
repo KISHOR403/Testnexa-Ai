@@ -157,6 +157,24 @@ const safeFormatValue = (val, fallback = '') => {
     return String(val);
 };
 
+const formatEnvironmentName = (env) => {
+    if (!env) return 'Default Staging';
+    if (typeof env === 'string') return env.trim() || 'Default Staging';
+    if (typeof env === 'object') {
+        return env.name || env.environment || env.baseUrl || env.url || 'Default Staging';
+    }
+    return String(env);
+};
+
+const formatAssignedTester = (assigned) => {
+    if (!assigned) return 'Unassigned';
+    if (typeof assigned === 'string') return assigned.trim() || 'Unassigned';
+    if (typeof assigned === 'object') {
+        return assigned.name || assigned.fullName || assigned.email || assigned.username || 'Unassigned';
+    }
+    return String(assigned);
+};
+
 const EvidenceThumbnail = ({ runId, artifact, onSelect }) => {
     const [src, setSrc] = useState('');
     useEffect(() => {
@@ -1537,8 +1555,8 @@ return (
 
                     <div className="qa-header-meta-row">
                         <span className="qa-header-meta-item">
-                            Environment: <strong>{run.targetEnvironment?.name || 'Default Staging'}</strong>
-                            {run.targetEnvironment?.baseUrl && <span style={{ color: 'var(--qa-text-dim)', marginLeft: '4px' }}>({run.targetEnvironment.baseUrl})</span>}
+                            Environment: <strong>{formatEnvironmentName(run.targetEnvironment)}</strong>
+                            {typeof run.targetEnvironment === 'object' && run.targetEnvironment?.baseUrl && <span style={{ color: 'var(--qa-text-dim)', marginLeft: '4px' }}>({run.targetEnvironment.baseUrl})</span>}
                         </span>
                         <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
                         <span className="qa-header-meta-item">
@@ -1848,7 +1866,7 @@ return (
                         <div>
                             <div className="evidence-breadcrumb"><NavLink to="/app/runs">Execution</NavLink><span>/</span><span>Artifacts &amp; Evidence</span></div>
                             <h2>{evidenceSuiteName || run.suiteName || run.suite?.name || run.suite?.title || 'Test suite'} <span className="evidence-run-number">Run {run.runNumber || run.run_number || String(run.id).slice(0, 8)}</span></h2>
-                            <div className="evidence-run-meta"><StatusBadge status={run.status} /><span>{run.targetEnvironment?.name || 'Environment not specified'}</span><span>{artifacts.length} {artifacts.length === 1 ? 'artifact' : 'artifacts'}</span></div>
+                            <div className="evidence-run-meta"><StatusBadge status={run.status} /><span>{formatEnvironmentName(run.targetEnvironment)}</span><span>{artifacts.length} {artifacts.length === 1 ? 'artifact' : 'artifacts'}</span></div>
                         </div>
                         {previewArtifact && <button type="button" className="evidence-download evidence-heading-download" onClick={() => downloadEvidence(previewArtifact)}><Download size={14} /> Download selected</button>}
                     </div>
@@ -2050,7 +2068,9 @@ return (
                     {/* CENTER PANEL: Primary Execution Area */}
                     <div className={`qa-detail-panel ${!isMobileDetailOpen ? 'mobile-hidden' : ''}`}>
                         {activeCase ? (
-                            <div className="qa-detail-content">
+                            <>
+                                <div className="qa-detail-scroll-area">
+                                    <div className="qa-detail-content">
                                 {/* Mobile Back Button */}
                                 {isMobileDetailOpen && (
                                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-0.5rem' }}>
@@ -2826,9 +2846,11 @@ return (
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                {/* Sticky Bottom Execution Action Footer */}
-                                <div className="qa-sticky-execution-footer">
+                        {/* Sticky Bottom Execution Action Footer */}
+                        <div className="qa-sticky-execution-footer">
                                     <div className={`qa-autosave-indicator ${autosaveStatus}`}>
                                         <span className="qa-autosave-dot" />
                                         <span>
@@ -2885,7 +2907,7 @@ return (
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         ) : (
                             <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--qa-text-dim)' }}>
                                 Select a test case from the master navigation panel to view its details or record execution outcomes.
@@ -2970,19 +2992,11 @@ return (
                                             </div>
                                             <div className="qa-context-meta-row">
                                                 <span className="qa-context-meta-label">Environment</span>
-                                                <span className="qa-context-meta-val">
-                                                    {typeof run.targetEnvironment === 'object' && run.targetEnvironment !== null
-                                                        ? (run.targetEnvironment.name || run.targetEnvironment.baseUrl || 'Staging')
-                                                        : (run.targetEnvironment || 'Staging')}
-                                                </span>
+                                                <span className="qa-context-meta-val">{formatEnvironmentName(run.targetEnvironment)}</span>
                                             </div>
                                             <div className="qa-context-meta-row">
                                                 <span className="qa-context-meta-label">Assigned Tester</span>
-                                                <span className="qa-context-meta-val">
-                                                    {typeof run.assignedTo === 'object' && run.assignedTo !== null
-                                                        ? (run.assignedTo.name || run.assignedTo.email || run.assignedTo.id || 'Unassigned')
-                                                        : (run.assignedTo || 'Unassigned')}
-                                                </span>
+                                                <span className="qa-context-meta-val">{formatAssignedTester(run.assignedTo)}</span>
                                             </div>
                                             <div className="qa-context-meta-row">
                                                 <span className="qa-context-meta-label">Suite Version</span>
