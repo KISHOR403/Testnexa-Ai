@@ -1,47 +1,37 @@
 import React, { useState } from 'react';
-import { Download, Terminal, Code, ArrowRight, Check, Copy, ExternalLink, GitPullRequest, Layers, Sparkles } from 'lucide-react';
+import { ArrowRight, Copy, Check } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
-const EXPORT_CAPABILITIES = [
+const RUNNERS = [
     {
         key: 'playwright',
-        label: 'Playwright (.spec.ts)',
-        category: 'AVAILABLE NOW',
-        statusClass: 'is-available',
-        meta: 'TypeScript test suite',
-        desc: 'Atomic assertions, page object models, strict locators, and deterministic wait assertions ready to run with npx playwright test.'
+        name: 'Playwright (.spec.ts)',
+        desc: 'Atomic assertions, page object models, strict locators, and deterministic wait assertions ready for npx playwright test.',
+        badge: 'TYPESCRIPT'
     },
     {
         key: 'cypress',
-        label: 'Cypress (.cy.js)',
-        category: 'AVAILABLE NOW',
-        statusClass: 'is-available',
-        meta: 'End-to-end spec',
-        desc: 'Browser-driven test scenarios formatted with cy.intercept(), custom commands, and chained assertion steps.'
+        name: 'Cypress (.cy.js)',
+        desc: 'Browser-driven test scenarios formatted with cy.intercept(), custom commands, and chained assertion steps.',
+        badge: 'JAVASCRIPT'
     },
     {
         key: 'gherkin',
-        label: 'Cucumber BDD (.feature)',
-        category: 'AVAILABLE NOW',
-        statusClass: 'is-available',
-        meta: 'Given-When-Then syntax',
-        desc: 'Executable human-readable feature files compatible with Cucumber.js, Behave, and SpecFlow automation frameworks.'
+        name: 'Cucumber BDD (.feature)',
+        desc: 'Executable human-readable feature files compatible with Cucumber.js, Behave, and SpecFlow automation frameworks.',
+        badge: 'GHERKIN'
     },
     {
         key: 'junit',
-        label: 'JUnit XML / CI Schema',
-        category: 'AVAILABLE NOW',
-        statusClass: 'is-available',
-        meta: 'CI/CD quality gates',
-        desc: 'Standardized test reporting schemas ready for immediate test result parsing and PR build-blocking in GitHub Actions and GitLab.'
+        name: 'JUnit XML / CI Schema',
+        desc: 'Standardized test reporting schemas ready for build-blocking quality gates in GitHub Actions and GitLab CI.',
+        badge: 'CI / CD'
     },
     {
         key: 'jira',
-        label: 'Jira Software & Zephyr',
-        category: 'EXPORT / WEBHOOK SYNC',
-        statusClass: 'is-sync',
-        meta: 'Issue & test case sync',
-        desc: 'Export structured test scenarios directly into Jira tickets and Zephyr Squad/Scale test cycles via REST webhook payloads.'
+        name: 'Jira Software & Zephyr',
+        desc: 'Export structured test scenarios directly into Jira tickets and Zephyr Squad/Scale test cycles via REST webhooks.',
+        badge: 'REST WEBHOOK'
     }
 ];
 
@@ -83,11 +73,11 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
     "suite_id": "suite_842a_prod",
     "requirement_id": "REQ-142",
     "cases_generated": 24,
-    "clause_coverage_pct": 87.5,
+    "clause_coverage_pct": 100.0,
     "runners": ["playwright", "cypress", "gherkin"],
     "test_cases": [
       {
-        "id": "TC-001",
+        "id": "TC-FUNC-001",
         "title": "Valid password reset submission",
         "type": "Functional",
         "assertions": 3,
@@ -111,113 +101,94 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
             aria-labelledby="integrations-heading"
         >
             <div className="de-container">
-                {/* ─── Editorial Header ─── */}
-                <div style={{ maxWidth: 740 }}>
+                {/* ─── Header ─── */}
+                <div style={{ maxWidth: 760 }}>
                     <div className="de-eyebrow">
                         <span className="de-eyebrow-dot" />
-                        <span>05 / CI/CD &amp; RUNNER INTEGRATIONS</span>
+                        <span>05 / CI/CD & DEVELOPER PIPELINE</span>
                     </div>
 
                     <h2 id="integrations-heading" className="de-editorial-title">
-                        Engineered for your pipeline.
+                        Quality belongs in your development workflow.
                     </h2>
 
                     <p className="de-lead">
-                        Native test runners, deterministic assertions, and CI/CD quality gates. Export typed Playwright specs, Cypress suites, Cucumber feature files, or trigger generation directly via our developer REST API.
+                        Automate test generation from your terminal, export to standard runner formats, and gate pull requests before defects reach production.
                     </p>
                 </div>
 
-                {/* ─── Asymmetric Developer Split ─── */}
-                <div className="de-cicd-split">
-                    {/* Left: Native Supported Runners */}
-                    <div>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8BAF9A', fontWeight: 600 }}>
-                            Native Runners &amp; Formats
-                        </span>
-
-                        <div className="de-runner-list">
-                            {EXPORT_CAPABILITIES.map((fmt) => (
-                                <div key={fmt.key} className="de-runner-item">
-                                    <div>
-                                        <div className="de-runner-name">{fmt.label}</div>
-                                        <div style={{ fontSize: '0.78rem', color: '#969B98', marginTop: 2 }}>{fmt.meta}</div>
-                                    </div>
-                                    <span className="de-runner-tag">{fmt.category}</span>
+                {/* ─── Asymmetric Layout: Runners on Left, Code Stream on Right ─── */}
+                <div className="de-cicd-layout">
+                    {/* Left: Runners and Integrations */}
+                    <div className="de-runners-list">
+                        {RUNNERS.map((r) => (
+                            <div key={r.key} className="de-runner-item">
+                                <div style={{ paddingRight: 16 }}>
+                                    <span className="de-runner-name">{r.name}</span>
+                                    <p className="de-runner-desc">{r.desc}</p>
                                 </div>
-                            ))}
-                        </div>
+                                <span className="de-runner-badge">{r.badge}</span>
+                            </div>
+                        ))}
 
-                        <div style={{ marginTop: '2.5rem', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: '2rem' }}>
                             <a
-                                href={getTargetUrl('/app/workspace')}
-                                className="tn-inline-link"
+                                href={getTargetUrl('/app/cicd')}
+                                className="de-inline-link"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    handleWorkspaceEntry('/app/workspace');
+                                    handleWorkspaceEntry('/app/cicd');
                                 }}
                             >
-                                <span>Open Workspace &amp; Export Suite</span>
+                                <span>Configure CI/CD webhooks &amp; pipeline gates</span>
                                 <ArrowRight size={13} />
-                            </a>
-                            <span style={{ color: 'rgba(255,255,255,0.2)' }}>&bull;</span>
-                            <a href="/api-reference" className="tn-inline-link" style={{ color: '#969B98' }}>
-                                <span>API Documentation</span>
                             </a>
                         </div>
                     </div>
 
-                    {/* Right: Authentic Developer Terminal Window (Unboxed, hairline-defined) */}
-                    <div className="de-term-window">
-                        <div className="de-term-nav">
-                            <div className="de-term-tabs" role="tablist" aria-label="Terminal Tabs">
+                    {/* Right: Monospace Code Stream */}
+                    <div className="de-code-workbench">
+                        <div className="de-code-topbar">
+                            <div className="de-mode-tabs" style={{ borderBottom: 'none', padding: 0 }}>
                                 <button
                                     type="button"
-                                    role="tab"
-                                    aria-selected={tabMode === 'playwright'}
-                                    className={`de-term-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
-                                    onClick={() => setTabMode('playwright')}
-                                >
-                                    Playwright (.spec.ts)
-                                </button>
-                                <button
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={tabMode === 'curl'}
-                                    className={`de-term-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
+                                    className={`de-mode-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('curl')}
                                 >
                                     cURL API
                                 </button>
                                 <button
                                     type="button"
-                                    role="tab"
-                                    aria-selected={tabMode === 'response'}
-                                    className={`de-term-tab ${tabMode === 'response' ? 'is-active' : ''}`}
+                                    className={`de-mode-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
+                                    onClick={() => setTabMode('playwright')}
+                                >
+                                    Playwright (.spec.ts)
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`de-mode-tab ${tabMode === 'response' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('response')}
                                 >
-                                    200 OK JSON
+                                    JSON Response
                                 </button>
                             </div>
 
                             <button
                                 type="button"
-                                className="de-term-copy"
+                                className="de-copy-btn"
                                 onClick={handleCopy}
-                                title="Copy code"
+                                aria-label="Copy code snippet"
                             >
-                                {copied ? <Check size={12} style={{ color: '#8BAF9A' }} /> : <Copy size={12} />}
+                                {copied ? <Check size={12} color="#8BAF9A" /> : <Copy size={12} />}
                                 <span>{copied ? 'Copied' : 'Copy'}</span>
                             </button>
                         </div>
 
-                        <pre className="de-term-codeblock">
-                            <code>{tabMode === 'curl' ? curlSnippet : tabMode === 'playwright' ? playwrightSnippet : responseSnippet}</code>
+                        <pre className="de-code-pre">
+                            {tabMode === 'curl' && curlSnippet}
+                            {tabMode === 'playwright' && playwrightSnippet}
+                            {tabMode === 'response' && responseSnippet}
                         </pre>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', background: '#080909', fontFamily: 'monospace', fontSize: '0.7rem', color: '#68706B' }}>
-                            <span>Target: Headless Chromium / CI Worker</span>
-                            <span style={{ color: '#8BAF9A' }}>Atomic assertions &bull; Deterministic wait</span>
-                        </div>
                     </div>
                 </div>
             </div>

@@ -1,61 +1,47 @@
 import React, { useState } from 'react';
-import {
-    AlertTriangle,
-    Shield,
-    Check,
-    FileText,
-    ArrowRight,
-    Search,
-    Code,
-    SlidersHorizontal,
-    GitBranch
-} from 'lucide-react';
+import { ArrowRight, CheckCircle2, Shield, AlertTriangle } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
-const ANNOTATIONS = [
+const CAPABILITIES = [
     {
-        id: 'an-1',
-        type: 'Security',
-        typeClass: 'is-security',
-        title: 'Account Enumeration Risk',
-        desc: 'Uniform HTTP timing response required to prevent determining if email exists in database.',
-        targetPhrase: 'registered email address',
-        action: 'Assert constant-time response (≤ 120ms delta) on both existent and non-existent accounts.'
+        id: 'cap-1',
+        num: '01',
+        title: 'Implicit Boundary Detection',
+        desc: 'Unstated token lifetimes, session invalidation omissions, and unhandled status codes are isolated before code is executed.',
+        clause: 'Users can reset their password',
+        synthesis: 'Synthesize AC-1: Cryptographic single-use token strictly bounded to 15-minute TTL; revoke prior active sessions upon reset.'
     },
     {
-        id: 'an-2',
-        type: 'Ambiguity',
-        typeClass: 'is-ambiguity',
-        title: 'Unstated Token Lifecycle',
-        desc: 'Source requirement does not define TTL or token single-use constraints.',
-        targetPhrase: 'reset their password',
-        action: 'Synthesize AC-1: Cryptographic single-use token strictly bounded to 15-minute TTL.'
+        id: 'cap-2',
+        num: '02',
+        title: 'Account Enumeration & Timing Auditing',
+        desc: 'Flags timing delta vulnerabilities where attacker probes can detect whether an email address exists in the database.',
+        clause: 'using their registered email address',
+        synthesis: 'Assert uniform constant-time HTTP response (≤ 120ms delta) regardless of user account existence.'
     },
     {
-        id: 'an-3',
-        type: 'Missing Criteria',
-        typeClass: 'is-missing',
-        title: 'Session Invalidation Omission',
-        desc: 'Existing web and mobile sessions must be revoked upon successful password change.',
-        targetPhrase: 'password',
-        action: 'Synthesize AC-2: Invalidate all active JWT tokens and session cookies on confirmation.'
+        id: 'cap-3',
+        num: '03',
+        title: 'RFC 5322 Syntax & Unicode Normalization',
+        desc: 'Identifies malformed email syntax edge cases and internationalized strings that cause backend parsing exceptions.',
+        clause: 'registered email address',
+        synthesis: 'Synthesize AC-2: Strict RFC 5322 syntax validation on client gateway; reject malformed payloads with 422 UNPROCESSABLE_ENTITY.'
     },
     {
-        id: 'an-4',
-        type: 'Edge Boundary',
-        typeClass: 'is-edge',
-        title: 'RFC 5322 Boundary & Rate Limit',
-        desc: 'Missing rate limit allows automated flood of auth dispatch queues.',
-        targetPhrase: 'Users can reset',
-        action: 'Synthesize AC-3: Throttle requests to max 5/hour per IP & validate unicode email strings.'
+        id: 'cap-4',
+        num: '04',
+        title: 'Anti-Abuse Rate Limiting Enforcement',
+        desc: 'Extracts missing throttling criteria to protect authentication dispatch queues from automated credential abuse.',
+        clause: 'Users can reset their password',
+        synthesis: 'Synthesize AC-3: Throttle password recovery requests to max 5 attempts/hour per client IP and account ID.'
     }
 ];
 
 export const RequirementTransformation = () => {
-    const [selectedAnnotationId, setSelectedAnnotationId] = useState('an-1');
+    const [activeCapId, setActiveCapId] = useState('cap-1');
     const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
-    const activeAnnotation = ANNOTATIONS.find((a) => a.id === selectedAnnotationId) || ANNOTATIONS[0];
+    const activeCap = CAPABILITIES.find((c) => c.id === activeCapId) || CAPABILITIES[0];
 
     return (
         <section
@@ -64,9 +50,9 @@ export const RequirementTransformation = () => {
             aria-labelledby="req-intel-heading"
         >
             <div className="de-container">
-                <div className="de-req-split">
-                    {/* LEFT COLUMN: Editorial Typography & Technical Findings */}
-                    <div className="de-req-left">
+                <div className="de-req-layout">
+                    {/* LEFT COLUMN: Editorial Typography & 4 Analysis Capabilities */}
+                    <div className="de-req-copy">
                         <div className="de-eyebrow">
                             <span className="de-eyebrow-dot" />
                             <span>01 / REQUIREMENT INTELLIGENCE</span>
@@ -81,34 +67,33 @@ export const RequirementTransformation = () => {
                             Raw specifications hide unstated assumptions, ambiguous boundaries, and implicit timing vulnerabilities. TestNexa deconstructs natural language into deterministic acceptance logic before writing a single test.
                         </p>
 
-                        {/* List of Actual Capabilities (Open, hairline-divided) */}
-                        <div className="de-req-list" role="tablist" aria-label="Requirement Analysis Findings">
-                            {ANNOTATIONS.map((item, idx) => {
-                                const isSelected = selectedAnnotationId === item.id;
+                        {/* 4 Actual Capabilities */}
+                        <div className="de-req-capabilities" role="tablist" aria-label="Analysis Capabilities">
+                            {CAPABILITIES.map((cap) => {
+                                const isActive = cap.id === activeCapId;
                                 return (
                                     <button
-                                        key={item.id}
+                                        key={cap.id}
                                         type="button"
                                         role="tab"
-                                        aria-selected={isSelected}
-                                        className={`de-req-item ${isSelected ? 'is-active' : ''}`}
-                                        onClick={() => setSelectedAnnotationId(item.id)}
+                                        aria-selected={isActive}
+                                        className={`de-req-cap-item ${isActive ? 'is-active' : ''}`}
+                                        onClick={() => setActiveCapId(cap.id)}
                                     >
-                                        <span className="de-req-num">0{idx + 1}</span>
-                                        <div className="de-req-body">
-                                            <span className="de-req-tag">{item.type}</span>
-                                            <span className="de-req-heading">{item.title}</span>
-                                            <p className="de-req-desc">{item.desc}</p>
+                                        <span className="de-req-cap-num">{cap.num}</span>
+                                        <div>
+                                            <span className="de-req-cap-title">{cap.title}</span>
+                                            <p className="de-req-cap-desc">{cap.desc}</p>
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div style={{ marginTop: '2.5rem' }}>
+                        <div style={{ marginTop: '2rem' }}>
                             <a
                                 href={getTargetUrl('/app/workspace')}
-                                className="tn-inline-link"
+                                className="de-inline-link"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     handleWorkspaceEntry('/app/workspace');
@@ -120,59 +105,25 @@ export const RequirementTransformation = () => {
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Genuine Integrated Specification Canvas */}
-                    <div className="de-spec-canvas">
-                        <div className="de-spec-topbar">
-                            <span className="de-spec-id">REQ-142 / PASSWORD RESET SPECIFICATION</span>
-                            <span className="de-spec-status">
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6DAE82' }} />
-                                <span>Deterministic Audit Complete</span>
-                            </span>
+                    {/* RIGHT COLUMN: Large Genuine Requirement-Analysis Interface */}
+                    <div className="de-req-visual-wrap">
+                        <div className="de-req-image-frame">
+                            <img
+                                src="/screenshots/transformation-preview.png"
+                                alt="TestNexa Requirement Analysis Workbench"
+                                className="de-req-image"
+                                loading="lazy"
+                            />
+                            <div className="de-req-image-overlay" />
                         </div>
 
-                        <div className="de-spec-doc-body">
-                            <div className="de-spec-line">
-                                <span className="de-spec-linenum">01</span>
-                                <span className="de-spec-text" style={{ color: '#8BAF9A' }}>Feature Specification: Password Recovery &amp; Credential Lifecycle</span>
+                        {/* Dynamic Live Annotation Callout */}
+                        <div className="de-req-callout">
+                            <span className="de-req-callout-tag">Target Clause Deconstruction: &ldquo;{activeCap.clause}&rdquo;</span>
+                            <div className="de-req-callout-text">{activeCap.synthesis}</div>
+                            <div className="de-req-callout-meta">
+                                Verified Rule &bull; DOC-AUTH-2026 PRD Section 4.2 &bull; 100% Clause Coverage
                             </div>
-                            <div className="de-spec-line">
-                                <span className="de-spec-linenum">02</span>
-                                <span className="de-spec-text">
-                                    <span
-                                        className={`de-highlight-token ${selectedAnnotationId === 'an-4' ? 'is-selected' : ''}`}
-                                        onClick={() => setSelectedAnnotationId('an-4')}
-                                    >
-                                        Users can reset
-                                    </span>{' '}
-                                    <span
-                                        className={`de-highlight-token ${selectedAnnotationId === 'an-3' ? 'is-selected' : ''}`}
-                                        onClick={() => setSelectedAnnotationId('an-3')}
-                                    >
-                                        their password
-                                    </span>{' '}
-                                    using{' '}
-                                    <span
-                                        className={`de-highlight-token ${selectedAnnotationId === 'an-1' ? 'is-selected' : ''}`}
-                                        onClick={() => setSelectedAnnotationId('an-1')}
-                                    >
-                                        their registered email address
-                                    </span>
-                                    .
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="de-synth-block">
-                            <span className="de-synth-label">Target Clause: &ldquo;{activeAnnotation.targetPhrase}&rdquo;</span>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 500, color: '#F2F2F0', margin: '0 0 6px' }}>{activeAnnotation.title}</h3>
-                            <p style={{ fontSize: '0.82rem', color: '#969B98', margin: '0 0 12px', lineHeight: 1.5 }}>{activeAnnotation.desc}</p>
-                            <span className="de-synth-label">Synthesized Acceptance Rule:</span>
-                            <div className="de-synth-rule">{activeAnnotation.action}</div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontFamily: 'monospace', fontSize: '0.74rem', color: '#969B98' }}>
-                            <span>4 Implicit Gaps Isolated</span>
-                            <span style={{ color: '#8BAF9A' }}>100% Clause Coverage Synthesized</span>
                         </div>
                     </div>
                 </div>

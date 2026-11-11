@@ -6,13 +6,13 @@ export const FinalCTA = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
 
     return (
-        <section 
-            id="final-cta" 
-            className="de-section de-cta-section" 
+        <section
+            id="final-cta"
+            className="de-section de-cta-section"
             aria-labelledby="final-cta-heading"
         >
             <div className="de-container">
-                <div style={{ maxWidth: 960 }}>
+                <div style={{ maxWidth: 880 }}>
                     <div className="de-eyebrow">
                         <span className="de-eyebrow-dot" />
                         <span>06 / GET STARTED</span>
@@ -42,7 +42,7 @@ export const FinalCTA = () => {
                         </a>
 
                         <span className="de-cta-reassurance">
-                            Start free &bull; No credit card required &bull; Full access
+                            Start free &bull; No credit card required &bull; Full workspace access
                         </span>
                     </div>
                 </div>

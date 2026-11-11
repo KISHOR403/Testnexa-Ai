@@ -1,28 +1,17 @@
 import React, { useState } from 'react';
-import {
-    CheckCircle2,
-    Shield,
-    AlertTriangle,
-    FileText,
-    ArrowRight,
-    Check,
-    Layers,
-    GitBranch
-} from 'lucide-react';
+import { ArrowRight, CheckCircle2, ShieldCheck, ChevronRight } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 const TRACE_LINKS = [
     {
         id: 'LNK-1',
         reqId: 'REQ-142.1',
-        reqName: 'Valid Password Recovery Spec',
+        reqName: 'Single-Use Token Dispatch Spec',
         tcId: 'TC-FUNC-001',
-        tcName: 'Submit registered email & token dispatch',
+        tcName: 'Submit registered email & verify token',
         executionResult: 'Run #842 · Passed · 42ms',
-        executionStatus: 'passed',
-        verificationStatus: 'Verified',
         verificationCoverage: '100% Trace',
-        proofDetail: 'Cryptographic token generated with 256-bit entropy; verified in SMTP queue.'
+        proofDetail: 'Cryptographic token generated with 256-bit entropy; verified in SMTP queue; active session preserved.'
     },
     {
         id: 'LNK-2',
@@ -31,34 +20,28 @@ const TRACE_LINKS = [
         tcId: 'TC-NEG-002',
         tcName: 'Malformed email syntax rejection',
         executionResult: 'Run #842 · Passed · 18ms',
-        executionStatus: 'passed',
-        verificationStatus: 'Verified',
         verificationCoverage: '100% Trace',
-        proofDetail: 'Client input blocked trigger; raw API post returned HTTP 422 Unprocessable.'
+        proofDetail: 'Client input disabled trigger; direct API post returned HTTP 422 Unprocessable with code INVALID_EMAIL.'
     },
     {
         id: 'LNK-3',
         reqId: 'REQ-142.3',
         reqName: '15-Minute Token TTL Expiration',
         tcId: 'TC-NEG-003',
-        tcName: 'Expired token redemption replay assertion',
+        tcName: 'Expired token replay assertion',
         executionResult: 'Run #842 · Passed · 65ms',
-        executionStatus: 'passed',
-        verificationStatus: 'Verified',
         verificationCoverage: '100% Trace',
-        proofDetail: 'Token age > 900s rejected at gateway with 401 TOKEN_EXPIRED error payload.'
+        proofDetail: 'Token timestamp > 900s rejected at gateway with 401 TOKEN_EXPIRED error payload; database unaltered.'
     },
     {
         id: 'LNK-4',
         reqId: 'REQ-142.4',
-        reqName: '5 Req/Hr Rate Limiting',
+        reqName: 'Anti-Abuse 5 Req/Hr Rate Limit',
         tcId: 'TC-SEC-004',
         tcName: 'Brute-force throttle enforcement',
         executionResult: 'Run #842 · Passed · 94ms',
-        executionStatus: 'passed',
-        verificationStatus: 'Verified',
         verificationCoverage: '100% Trace',
-        proofDetail: '6th request within 60s yielded HTTP 429 Too Many Requests with Retry-After header.'
+        proofDetail: '6th request within 15m yielded HTTP 429 Too Many Requests with Retry-After: 3600 header.'
     }
 ];
 
@@ -71,19 +54,19 @@ export const TraceabilityGraph = () => {
     return (
         <section
             id="traceability"
-            className="de-section"
-            aria-labelledby="trace-flow-heading"
+            className="de-section de-section-alt"
+            aria-labelledby="trace-heading"
         >
             <div className="de-container">
-                {/* ─── Editorial Header (Open Technical Story) ─── */}
+                {/* ─── Editorial Header ─── */}
                 <div style={{ maxWidth: 760 }}>
                     <div className="de-eyebrow">
                         <span className="de-eyebrow-dot" />
                         <span>04 / REQUIREMENT TRACEABILITY</span>
                     </div>
 
-                    <h2 id="trace-flow-heading" className="de-editorial-title">
-                        Every test maps back to a requirement.
+                    <h2 id="trace-heading" className="de-editorial-title">
+                        Every test has a reason to exist.
                     </h2>
 
                     <p className="de-lead">
@@ -91,10 +74,10 @@ export const TraceabilityGraph = () => {
                     </p>
                 </div>
 
-                {/* ─── Open Technical Traceability Matrix (No boxed card!) ─── */}
-                <div className="de-trace-wrap" aria-label="Bidirectional Traceability Matrix">
+                {/* ─── Technical Data Ledger: Requirement → Test Case → Execution → Verification ─── */}
+                <div className="de-trace-ledger" aria-label="Bidirectional Traceability Ledger">
                     {/* Header Columns */}
-                    <div className="de-trace-grid-header">
+                    <div className="de-trace-row-header">
                         <span>01 / Requirement Clause</span>
                         <span />
                         <span>02 / Test Case</span>
@@ -105,69 +88,78 @@ export const TraceabilityGraph = () => {
                     </div>
 
                     {/* Trace Rows */}
-                    <div role="list">
-                        {TRACE_LINKS.map((link) => {
-                            const isSelected = activeLinkId === link.id;
-                            return (
-                                <div
-                                    key={link.id}
-                                    role="listitem"
-                                    className={`de-trace-row ${isSelected ? 'is-active' : ''}`}
-                                    onClick={() => setActiveLinkId(link.id)}
-                                >
-                                    {/* 1. Requirement */}
-                                    <div className="de-trace-node">
-                                        <span className="de-trace-code">{link.reqId}</span>
-                                        <span className="de-trace-text">{link.reqName}</span>
-                                    </div>
-
-                                    <div className="de-trace-connector" aria-hidden="true">&rarr;</div>
-
-                                    {/* 2. Test Case */}
-                                    <div className="de-trace-node">
-                                        <span className="de-trace-code">{link.tcId}</span>
-                                        <span className="de-trace-text">{link.tcName}</span>
-                                    </div>
-
-                                    <div className="de-trace-connector" aria-hidden="true">&rarr;</div>
-
-                                    {/* 3. Execution Result */}
-                                    <div>
-                                        <span className="de-trace-token">{link.executionResult}</span>
-                                    </div>
-
-                                    <div className="de-trace-connector" aria-hidden="true">&rarr;</div>
-
-                                    {/* 4. Verification Status */}
-                                    <div>
-                                        <span className="de-trace-verified">
-                                            <Check size={12} />
-                                            <span>{link.verificationStatus}</span>
-                                        </span>
-                                    </div>
+                    {TRACE_LINKS.map((link) => {
+                        const isActive = link.id === activeLinkId;
+                        return (
+                            <div
+                                key={link.id}
+                                className={`de-trace-row ${isActive ? 'is-active' : ''}`}
+                                onClick={() => setActiveLinkId(link.id)}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Inspect ${link.reqId} to ${link.tcId} traceability`}
+                            >
+                                <div>
+                                    <span className="de-trace-id">{link.reqId}</span>
+                                    <span className="de-trace-text">{link.reqName}</span>
                                 </div>
-                            );
-                        })}
+
+                                <div className="de-trace-arrow">
+                                    <ChevronRight size={14} />
+                                </div>
+
+                                <div>
+                                    <span className="de-trace-id">{link.tcId}</span>
+                                    <span className="de-trace-text">{link.tcName}</span>
+                                </div>
+
+                                <div className="de-trace-arrow">
+                                    <ChevronRight size={14} />
+                                </div>
+
+                                <div>
+                                    <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#BAC5BE' }}>
+                                        {link.executionResult}
+                                    </span>
+                                </div>
+
+                                <div className="de-trace-arrow">
+                                    <ChevronRight size={14} />
+                                </div>
+
+                                <div>
+                                    <span className="de-trace-pill">
+                                        <CheckCircle2 size={13} />
+                                        <span>{link.verificationCoverage}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Cryptographic Inspection Proof Callout */}
+                <div className="de-trace-proof-panel">
+                    <div>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--de-accent)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '4px' }}>
+                            Lineage Proof &bull; {activeLink.reqId} &rarr; {activeLink.tcId}
+                        </span>
+                        <span style={{ fontSize: '0.88rem', color: 'var(--de-text)' }}>
+                            {activeLink.proofDetail}
+                        </span>
                     </div>
 
-                    {/* Footer Audit Footnote */}
-                    <div className="de-trace-footer-strip">
-                        <div>
-                            <span style={{ color: '#8BAF9A', fontWeight: 600, marginRight: 8 }}>AUDIT PROOF:</span>
-                            <span>Selection maps <strong>{activeLink.reqId}</strong> &rarr; <strong>{activeLink.tcId}</strong> &rarr; <strong>{activeLink.executionResult}</strong>: {activeLink.proofDetail}</span>
-                        </div>
-                        <a
-                            href={getTargetUrl('/app/workspace')}
-                            className="tn-inline-link"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                handleWorkspaceEntry('/app/workspace');
-                            }}
-                        >
-                            <span>Inspect full traceability tree</span>
-                            <ArrowRight size={13} />
-                        </a>
-                    </div>
+                    <a
+                        href={getTargetUrl('/app/traceability')}
+                        className="de-inline-link"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            handleWorkspaceEntry('/app/traceability');
+                        }}
+                    >
+                        <span>Open coverage matrix</span>
+                        <ArrowRight size={13} />
+                    </a>
                 </div>
             </div>
         </section>
