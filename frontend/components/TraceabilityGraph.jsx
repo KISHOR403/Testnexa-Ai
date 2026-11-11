@@ -64,132 +64,84 @@ const TRACE_LINKS = [
 
 export const TraceabilityGraph = () => {
     const [activeLinkId, setActiveLinkId] = useState('LNK-1');
-    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+    const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
     const activeLink = TRACE_LINKS.find((l) => l.id === activeLinkId) || TRACE_LINKS[0];
 
     return (
         <section
             id="traceability"
-            className="tn-section tn-trace-flow-section"
+            className="de-section"
             aria-labelledby="trace-flow-heading"
         >
-            <div className="tn-container">
-                {/* ─── Editorial Header (Open Canvas) ─── */}
-                <div className="tn-trace-header-group">
-                    <div className="tn-chapter-eyebrow">
-                        <span className="tn-kicker-dot" />
-                        <span>BIDIRECTIONAL TRACEABILITY</span>
+            <div className="de-container">
+                {/* ─── Editorial Header (Open Technical Story) ─── */}
+                <div style={{ maxWidth: 760 }}>
+                    <div className="de-eyebrow">
+                        <span className="de-eyebrow-dot" />
+                        <span>04 / REQUIREMENT TRACEABILITY</span>
                     </div>
 
-                    <h2 id="trace-flow-heading" className="tn-trace-title">
+                    <h2 id="trace-flow-heading" className="de-editorial-title">
                         Every test maps back to a requirement.
                     </h2>
 
-                    <p className="tn-trace-subtitle">
-                        Eliminate orphan test cases and undocumented gaps. TestNexa establishes verifiable, bidirectional lineage from requirement to scenario, test case, and risk mitigation.
+                    <p className="de-lead">
+                        Zero orphan tests. Zero untested assumptions. Every generated assertion maintains a verifiable cryptographic chain of custody from specification clause to executed test run.
                     </p>
                 </div>
 
-                {/* ─── Horizontal Traceability Flow Canvas ─── */}
-                <div
-                    className="tn-trace-flow-canvas tn-spotlight-card"
-                    aria-label="Bidirectional Traceability Matrix"
-                    onMouseMove={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-                    }}
-                >
-                    {/* Top Metric Bar */}
-                    <div className="tn-tflow-topbar">
-                        <div className="tn-tflow-breadcrumbs">
-                            <span className="tn-tflow-root-label">LINEAGE MATRIX</span>
-                            <span className="tn-tflow-root-id">REQ-142</span>
-                            <span className="tn-tflow-lock-status">
-                                <CheckCircle2 size={13} className="text-green" />
-                                <span>100% Bidirectional Lock</span>
-                            </span>
-                        </div>
-
-                        <div className="tn-tflow-kpis">
-                            <div className="tn-tflow-kpi">
-                                <span className="tn-tkpi-val font-mono">94.2%</span>
-                                <span className="tn-tkpi-lbl">Clause coverage</span>
-                            </div>
-                            <div className="tn-tkpi-sep" />
-                            <div className="tn-tflow-kpi">
-                                <span className="tn-tkpi-val font-mono text-green">0</span>
-                                <span className="tn-tkpi-lbl">Orphan tests</span>
-                            </div>
-                            <div className="tn-tkpi-sep" />
-                            <div className="tn-tflow-kpi">
-                                <span className="tn-tkpi-val font-mono text-accent">24 / 24</span>
-                                <span className="tn-tkpi-lbl">Cases linked</span>
-                            </div>
-                        </div>
+                {/* ─── Open Technical Traceability Matrix (No boxed card!) ─── */}
+                <div className="de-trace-wrap" aria-label="Bidirectional Traceability Matrix">
+                    {/* Header Columns */}
+                    <div className="de-trace-grid-header">
+                        <span>01 / Requirement Clause</span>
+                        <span />
+                        <span>02 / Test Case</span>
+                        <span />
+                        <span>03 / Execution Result</span>
+                        <span />
+                        <span>04 / Verification</span>
                     </div>
 
-                    {/* Horizontal Stream Rows: Requirement → Test Case → Execution Result → Verification */}
-                    <div className="tn-tflow-grid-header">
-                        <span className="col-head col-req">REQUIREMENT CLAUSE</span>
-                        <span className="col-head col-arrow" />
-                        <span className="col-head col-tc">TEST CASE</span>
-                        <span className="col-head col-arrow" />
-                        <span className="col-head col-exec">EXECUTION RESULT</span>
-                        <span className="col-head col-arrow" />
-                        <span className="col-head col-status">VERIFICATION</span>
-                    </div>
-
-                    <div className="tn-tflow-rows" role="list">
+                    {/* Trace Rows */}
+                    <div role="list">
                         {TRACE_LINKS.map((link) => {
                             const isSelected = activeLinkId === link.id;
                             return (
                                 <div
                                     key={link.id}
                                     role="listitem"
-                                    className={`tn-tflow-row ${isSelected ? 'is-selected' : ''}`}
+                                    className={`de-trace-row ${isSelected ? 'is-active' : ''}`}
                                     onClick={() => setActiveLinkId(link.id)}
                                 >
-                                    {/* 1. Requirement Node */}
-                                    <div className="tn-tflow-cell col-req">
-                                        <span className="tn-node-code">{link.reqId}</span>
-                                        <span className="tn-node-desc">{link.reqName}</span>
+                                    {/* 1. Requirement */}
+                                    <div className="de-trace-node">
+                                        <span className="de-trace-code">{link.reqId}</span>
+                                        <span className="de-trace-text">{link.reqName}</span>
                                     </div>
 
-                                    {/* Connector */}
-                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
-                                        <span className="tn-conn-line" />
-                                        <span className="tn-conn-dot" />
+                                    <div className="de-trace-connector" aria-hidden="true">&rarr;</div>
+
+                                    {/* 2. Test Case */}
+                                    <div className="de-trace-node">
+                                        <span className="de-trace-code">{link.tcId}</span>
+                                        <span className="de-trace-text">{link.tcName}</span>
                                     </div>
 
-                                    {/* 2. Test Case Node */}
-                                    <div className="tn-tflow-cell col-tc">
-                                        <span className="tn-node-code">{link.tcId}</span>
-                                        <span className="tn-node-desc">{link.tcName}</span>
+                                    <div className="de-trace-connector" aria-hidden="true">&rarr;</div>
+
+                                    {/* 3. Execution Result */}
+                                    <div>
+                                        <span className="de-trace-token">{link.executionResult}</span>
                                     </div>
 
-                                    {/* Connector */}
-                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
-                                        <span className="tn-conn-line" />
-                                        <span className="tn-conn-dot" />
-                                    </div>
-
-                                    {/* 3. Execution Result Node */}
-                                    <div className="tn-tflow-cell col-exec">
-                                        <span className="tn-exec-pill">{link.executionResult}</span>
-                                    </div>
-
-                                    {/* Connector */}
-                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
-                                        <span className="tn-conn-line" />
-                                        <span className="tn-conn-dot" />
-                                    </div>
+                                    <div className="de-trace-connector" aria-hidden="true">&rarr;</div>
 
                                     {/* 4. Verification Status */}
-                                    <div className="tn-tflow-cell col-status">
-                                        <span className="tn-audit-chip is-verified">
-                                            <Check size={11} />
+                                    <div>
+                                        <span className="de-trace-verified">
+                                            <Check size={12} />
                                             <span>{link.verificationStatus}</span>
                                         </span>
                                     </div>
@@ -198,15 +150,15 @@ export const TraceabilityGraph = () => {
                         })}
                     </div>
 
-                    {/* Bottom Lineage Detail Footnote */}
-                    <div className="tn-tflow-footer">
-                        <div className="tn-tflow-footer-text">
-                            <span className="tn-tfoot-tag">AUDIT PROOF:</span>
+                    {/* Footer Audit Footnote */}
+                    <div className="de-trace-footer-strip">
+                        <div>
+                            <span style={{ color: '#8BAF9A', fontWeight: 600, marginRight: 8 }}>AUDIT PROOF:</span>
                             <span>Selection maps <strong>{activeLink.reqId}</strong> &rarr; <strong>{activeLink.tcId}</strong> &rarr; <strong>{activeLink.executionResult}</strong>: {activeLink.proofDetail}</span>
                         </div>
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            className="tn-tflow-cta-link"
+                            className="tn-inline-link"
                             onClick={(e) => {
                                 e.preventDefault();
                                 handleWorkspaceEntry('/app/workspace');

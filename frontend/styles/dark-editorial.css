@@ -1,0 +1,822 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — DARK EDITORIAL ENGINEERING STYLESHEET
+   Awwwards-level creative direction:
+   - Deep pure black (#080909) and carbon (#0C0E0D)
+   - Typographic hierarchy: oversized editorial headlines, mono metadata
+   - Strict no-box architecture: open compositions, hairlines, negative space
+   - Restrained mineral jade accent (#8BAF9A)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Global Editorial Tokens ────────────────────────────────────────────── */
+:root {
+  --de-bg: #080909;
+  --de-bg-subtle: #0C0E0D;
+  --de-text: #F2F2F0;
+  --de-text-secondary: #969B98;
+  --de-text-muted: #68706B;
+  --de-accent: #8BAF9A;
+  --de-accent-dim: rgba(139, 175, 154, 0.12);
+  --de-border: rgba(255, 255, 255, 0.08);
+  --de-border-subtle: rgba(255, 255, 255, 0.05);
+  --de-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --de-font-mono: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+}
+
+/* ─── Section Shared Styles ──────────────────────────────────────────────── */
+.de-section {
+  background: var(--de-bg);
+  color: var(--de-text);
+  padding: clamp(80px, 10vw, 160px) 0;
+  border-top: 1px solid var(--de-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.de-container {
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 48px);
+  box-sizing: border-box;
+}
+
+.de-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--de-text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.de-eyebrow-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--de-accent);
+}
+
+.de-editorial-title {
+  font-family: var(--de-font-sans);
+  font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+  font-weight: 380;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+  color: var(--de-text);
+  margin: 0 0 1.5rem;
+}
+
+.de-text-accent {
+  color: var(--de-accent);
+}
+
+.de-lead {
+  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  line-height: 1.65;
+  color: var(--de-text-secondary);
+  font-weight: 380;
+  max-width: 680px;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION 1 — REQUIREMENT INTELLIGENCE
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-req-split {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: clamp(48px, 6vw, 96px);
+  align-items: start;
+}
+
+.de-req-left {
+  padding-right: clamp(0px, 2vw, 32px);
+}
+
+.de-req-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2.75rem;
+  border-top: 1px solid var(--de-border);
+}
+
+.de-req-item {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--de-border);
+  cursor: pointer;
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  transition: opacity 0.2s ease;
+  width: 100%;
+}
+
+.de-req-item:hover {
+  opacity: 0.85;
+}
+
+.de-req-item.is-active .de-req-num {
+  color: var(--de-accent);
+}
+
+.de-req-item.is-active .de-req-heading {
+  color: #FFFFFF;
+}
+
+.de-req-num {
+  font-family: var(--de-font-mono);
+  font-size: 0.82rem;
+  color: var(--de-text-muted);
+  font-weight: 500;
+  padding-top: 2px;
+}
+
+.de-req-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.de-req-tag {
+  font-family: var(--de-font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--de-accent);
+}
+
+.de-req-heading {
+  font-size: 1.05rem;
+  font-weight: 480;
+  color: var(--de-text);
+  letter-spacing: -0.01em;
+}
+
+.de-req-desc {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--de-text-secondary);
+  margin: 0;
+}
+
+/* Right Column: Open Integrated Spec Canvas */
+.de-spec-canvas {
+  background: var(--de-bg-subtle);
+  border: 1px solid var(--de-border);
+  padding: clamp(24px, 3vw, 40px);
+  position: relative;
+}
+
+.de-spec-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--de-border);
+  margin-bottom: 1.5rem;
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+}
+
+.de-spec-id {
+  color: var(--de-accent);
+  font-weight: 600;
+}
+
+.de-spec-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6DAE82;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.de-spec-doc-body {
+  font-family: var(--de-font-mono);
+  font-size: 0.88rem;
+  line-height: 1.8;
+  color: var(--de-text-secondary);
+}
+
+.de-spec-line {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.de-spec-linenum {
+  color: var(--de-text-muted);
+  user-select: none;
+}
+
+.de-spec-text {
+  color: var(--de-text);
+}
+
+.de-highlight-token {
+  background: rgba(139, 175, 154, 0.14);
+  color: #FFFFFF;
+  border-bottom: 1px solid var(--de-accent);
+  padding: 1px 4px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.de-highlight-token.is-selected {
+  background: rgba(139, 175, 154, 0.28);
+  border-bottom-color: #A0C5AF;
+}
+
+/* Synthesized Acceptance Block */
+.de-synth-block {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--de-border);
+}
+
+.de-synth-label {
+  font-family: var(--de-font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--de-accent);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.de-synth-rule {
+  font-family: var(--de-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--de-text);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 12px 16px;
+  border-left: 2px solid var(--de-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION 2 — THE QA WORKFLOW (Large Typography-Led Horizontal Progression)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-workflow-track-wrap {
+  margin-top: 4rem;
+  position: relative;
+}
+
+.de-workflow-track {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: clamp(16px, 2.5vw, 36px);
+  position: relative;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--de-border);
+}
+
+.de-workflow-stage-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: opacity 0.2s ease;
+}
+
+.de-workflow-stage-btn:hover {
+  opacity: 0.85;
+}
+
+.de-stage-num {
+  font-family: var(--de-font-sans);
+  font-size: clamp(2.4rem, 3.8vw, 4.2rem);
+  font-weight: 300;
+  letter-spacing: -0.05em;
+  color: var(--de-text-muted);
+  line-height: 1;
+  transition: color 0.22s ease;
+}
+
+.de-workflow-stage-btn.is-active .de-stage-num {
+  color: var(--de-accent);
+}
+
+.de-stage-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.de-stage-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--de-text);
+  letter-spacing: -0.01em;
+}
+
+.de-stage-sub {
+  font-size: 0.78rem;
+  color: var(--de-text-secondary);
+  line-height: 1.45;
+}
+
+/* Active indicator hairline under selected stage */
+.de-workflow-stage-btn.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2rem;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--de-accent);
+}
+
+/* Wide Genuine Workspace Preview Underneath */
+.de-workflow-preview {
+  margin-top: 2.5rem;
+  background: var(--de-bg-subtle);
+  border: 1px solid var(--de-border);
+  padding: clamp(24px, 3.5vw, 44px);
+}
+
+.de-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--de-border);
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.de-preview-tag {
+  font-family: var(--de-font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--de-accent);
+  letter-spacing: 0.06em;
+}
+
+.de-preview-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  font-family: var(--de-font-mono);
+  color: var(--de-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION 3 — TEST GENERATION (Precision in Every Test)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-gen-split {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: clamp(40px, 5vw, 80px);
+  margin-top: 3.5rem;
+  align-items: start;
+}
+
+.de-gen-index-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--de-border);
+}
+
+.de-gen-index-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--de-border);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  width: 100%;
+}
+
+.de-gen-index-item:hover {
+  opacity: 0.85;
+}
+
+.de-gen-index-item.is-selected .de-gen-item-id {
+  color: var(--de-accent);
+}
+
+.de-gen-index-item.is-selected .de-gen-item-title {
+  color: #FFFFFF;
+}
+
+.de-gen-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.de-gen-item-id {
+  font-family: var(--de-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--de-text-muted);
+}
+
+.de-gen-item-title {
+  font-size: 0.95rem;
+  font-weight: 480;
+  color: var(--de-text);
+  line-height: 1.4;
+}
+
+.de-gen-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-family: var(--de-font-mono);
+  font-size: 0.68rem;
+  color: var(--de-text-muted);
+}
+
+.de-gen-main-view {
+  background: var(--de-bg-subtle);
+  border: 1px solid var(--de-border);
+  padding: clamp(20px, 3vw, 36px);
+}
+
+.de-gen-view-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--de-border);
+  margin-bottom: 1.5rem;
+}
+
+.de-gen-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  border: 1px solid var(--de-border);
+  color: var(--de-text);
+  transition: all 0.2s ease;
+}
+
+.de-gen-status-toggle.is-approved {
+  color: #8BAF9A;
+  border-color: rgba(139, 175, 154, 0.35);
+  background: rgba(139, 175, 154, 0.08);
+}
+
+.de-gen-status-toggle.is-review {
+  color: #C8993C;
+  border-color: rgba(200, 153, 60, 0.35);
+  background: rgba(200, 153, 60, 0.08);
+}
+
+/* Steps Spec Table */
+.de-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.de-table th {
+  font-family: var(--de-font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--de-text-muted);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--de-border);
+}
+
+.de-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--de-border-subtle);
+  vertical-align: top;
+  color: var(--de-text);
+  line-height: 1.5;
+}
+
+.de-table tr:last-child td {
+  border-bottom: none;
+}
+
+.de-mono-cell {
+  font-family: var(--de-font-mono);
+  color: var(--de-accent);
+  font-size: 0.76rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION 4 — REQUIREMENT TRACEABILITY (Technical Linear Audit Chain)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-trace-wrap {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--de-border);
+}
+
+.de-trace-grid-header {
+  display: grid;
+  grid-template-columns: 1.4fr 0.3fr 1.6fr 0.3fr 1.3fr 0.3fr 0.9fr;
+  gap: 8px;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--de-border);
+  font-family: var(--de-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--de-text-muted);
+}
+
+.de-trace-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.3fr 1.6fr 0.3fr 1.3fr 0.3fr 0.9fr;
+  gap: 8px;
+  padding: 1.35rem 0;
+  align-items: center;
+  border-bottom: 1px solid var(--de-border-subtle);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.de-trace-row:hover {
+  opacity: 0.85;
+}
+
+.de-trace-row.is-active {
+  border-bottom-color: var(--de-accent);
+}
+
+.de-trace-node {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.de-trace-code {
+  font-family: var(--de-font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--de-accent);
+}
+
+.de-trace-text {
+  font-size: 0.86rem;
+  color: var(--de-text);
+  line-height: 1.4;
+}
+
+.de-trace-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--de-border);
+  font-family: var(--de-font-mono);
+  font-size: 0.8rem;
+}
+
+.de-trace-token {
+  font-family: var(--de-font-mono);
+  font-size: 0.76rem;
+  color: #8BAF9A;
+  background: rgba(139, 175, 154, 0.08);
+  border: 1px solid rgba(139, 175, 154, 0.22);
+  padding: 4px 10px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.de-trace-verified {
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  color: #6DAE82;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.de-trace-footer-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0 0;
+  font-family: var(--de-font-mono);
+  font-size: 0.78rem;
+  color: var(--de-text-secondary);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION 5 — CI/CD ENGINEERING (Split Terminal Pipeline)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-cicd-split {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: clamp(48px, 6vw, 96px);
+  margin-top: 3.5rem;
+  align-items: start;
+}
+
+.de-runner-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--de-border);
+  margin-top: 2rem;
+}
+
+.de-runner-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--de-border);
+}
+
+.de-runner-name {
+  font-size: 0.92rem;
+  font-weight: 480;
+  color: var(--de-text);
+}
+
+.de-runner-tag {
+  font-family: var(--de-font-mono);
+  font-size: 0.65rem;
+  color: var(--de-accent);
+  letter-spacing: 0.06em;
+}
+
+.de-term-window {
+  background: #060707;
+  border: 1px solid var(--de-border);
+  position: relative;
+}
+
+.de-term-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--de-border);
+  background: var(--de-bg);
+}
+
+.de-term-tabs {
+  display: flex;
+  gap: 16px;
+}
+
+.de-term-tab {
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  color: var(--de-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.18s ease;
+}
+
+.de-term-tab.is-active {
+  color: var(--de-accent);
+}
+
+.de-term-copy {
+  font-family: var(--de-font-mono);
+  font-size: 0.68rem;
+  color: var(--de-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.de-term-copy:hover {
+  color: var(--de-text);
+}
+
+.de-term-codeblock {
+  padding: 1.5rem;
+  margin: 0;
+  font-family: var(--de-font-mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: #BAC5BE;
+  overflow-x: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION 6 — FINAL CTA (Expansive Typographic Closing)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-cta-section {
+  padding: clamp(120px, 15vw, 240px) 0;
+  background: var(--de-bg);
+  border-top: 1px solid var(--de-border);
+  text-align: left;
+}
+
+.de-cta-massive-title {
+  font-family: var(--de-font-sans);
+  font-size: clamp(3rem, 6.5vw, 6.2rem);
+  font-weight: 380;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  color: var(--de-text);
+  margin: 0 0 2rem;
+}
+
+.de-cta-action-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 2.5rem;
+}
+
+.de-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--de-accent);
+  color: #080909;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 14px 28px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.de-cta-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.de-cta-reassurance {
+  font-family: var(--de-font-mono);
+  font-size: 0.78rem;
+  color: var(--de-text-muted);
+}
+
+/* ─── Responsive Breakdown ───────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .de-req-split,
+  .de-gen-split,
+  .de-cicd-split {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .de-workflow-track {
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 32px;
+  }
+
+  .de-trace-grid-header,
+  .de-trace-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .de-trace-connector {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .de-workflow-track {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

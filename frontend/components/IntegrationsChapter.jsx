@@ -107,147 +107,116 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
     return (
         <section
             id="integrations"
-            className="tn-section tn-integrations-section"
+            className="de-section"
             aria-labelledby="integrations-heading"
         >
-            <div className="tn-container">
+            <div className="de-container">
                 {/* ─── Editorial Header ─── */}
-                <div className="tn-int-header-group">
-                    <div className="tn-chapter-eyebrow">
-                        <span className="tn-kicker-dot" />
-                        <span>DEVELOPER RUNNERS & CI/CD</span>
+                <div style={{ maxWidth: 740 }}>
+                    <div className="de-eyebrow">
+                        <span className="de-eyebrow-dot" />
+                        <span>05 / CI/CD &amp; RUNNER INTEGRATIONS</span>
                     </div>
 
-                    <h2 id="integrations-heading" className="tn-int-title">
-                        Connect QA directly to your CI/CD pipeline.
+                    <h2 id="integrations-heading" className="de-editorial-title">
+                        Engineered for your pipeline.
                     </h2>
 
-                    <p className="tn-int-subtitle">
-                        Trigger test generation via REST API on pull requests or export structured test suites into Playwright, Cypress, Cucumber BDD, and GitHub Actions.
+                    <p className="de-lead">
+                        Native test runners, deterministic assertions, and CI/CD quality gates. Export typed Playwright specs, Cypress suites, Cucumber feature files, or trigger generation directly via our developer REST API.
                     </p>
                 </div>
 
-                {/* ─── Two-Column Split Workspace ─── */}
-                <div className="tn-int-workspace-grid">
-                    {/* Left: Real Export Capabilities with clear availability labels */}
-                    <div className="tn-int-formats-col">
-                        <div className="tn-int-col-head">
-                            <span className="tn-int-col-tag">NATIVE EXPORTS & RUNNER TARGETS</span>
-                        </div>
+                {/* ─── Asymmetric Developer Split ─── */}
+                <div className="de-cicd-split">
+                    {/* Left: Native Supported Runners */}
+                    <div>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8BAF9A', fontWeight: 600 }}>
+                            Native Runners &amp; Formats
+                        </span>
 
-                        <div className="tn-format-rows-list">
+                        <div className="de-runner-list">
                             {EXPORT_CAPABILITIES.map((fmt) => (
-                                <div key={fmt.key} className="tn-format-item-row">
-                                    <div className="tn-fitem-head">
-                                        <span className="tn-fitem-name">{fmt.label}</span>
-                                        <span className={`tn-fitem-status-pill ${fmt.statusClass}`}>
-                                            {fmt.category}
-                                        </span>
+                                <div key={fmt.key} className="de-runner-item">
+                                    <div>
+                                        <div className="de-runner-name">{fmt.label}</div>
+                                        <div style={{ fontSize: '0.78rem', color: '#969B98', marginTop: 2 }}>{fmt.meta}</div>
                                     </div>
-                                    <p className="tn-fitem-desc">{fmt.desc}</p>
+                                    <span className="de-runner-tag">{fmt.category}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="tn-int-docs-cta">
+                        <div style={{ marginTop: '2.5rem', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
                             <a
-                                href="/api-reference"
+                                href={getTargetUrl('/app/workspace')}
                                 className="tn-inline-link"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleWorkspaceEntry('/app/workspace');
+                                }}
                             >
-                                <span>Read REST API documentation</span>
+                                <span>Open Workspace &amp; Export Suite</span>
                                 <ArrowRight size={13} />
+                            </a>
+                            <span style={{ color: 'rgba(255,255,255,0.2)' }}>&bull;</span>
+                            <a href="/api-reference" className="tn-inline-link" style={{ color: '#969B98' }}>
+                                <span>API Documentation</span>
                             </a>
                         </div>
                     </div>
 
-                    {/* Right: Authentic Developer Terminal Window */}
-                    <div className="tn-int-terminal-col">
-                        <div
-                            className="tn-dev-terminal tn-spotlight-card"
-                            onMouseMove={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-                            }}
-                        >
-                            {/* Terminal Top Bar */}
-                            <div className="tn-term-top-bar">
-                                <div className="tn-term-dots" aria-hidden="true">
-                                    <span className="tn-term-dot" />
-                                    <span className="tn-term-dot" />
-                                    <span className="tn-term-dot" />
-                                </div>
-
-                                <div className="tn-term-tabs" role="tablist" aria-label="Terminal API Tabs">
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={tabMode === 'curl'}
-                                        className={`tn-term-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
-                                        onClick={() => setTabMode('curl')}
-                                    >
-                                        <Terminal size={12} />
-                                        <span>cURL Request</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={tabMode === 'playwright'}
-                                        className={`tn-term-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
-                                        onClick={() => setTabMode('playwright')}
-                                    >
-                                        <Code size={12} />
-                                        <span>Playwright Spec</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={tabMode === 'response'}
-                                        className={`tn-term-tab ${tabMode === 'response' ? 'is-active' : ''}`}
-                                        onClick={() => setTabMode('response')}
-                                    >
-                                        <Code size={12} />
-                                        <span>200 OK JSON</span>
-                                    </button>
-                                </div>
-
+                    {/* Right: Authentic Developer Terminal Window (Unboxed, hairline-defined) */}
+                    <div className="de-term-window">
+                        <div className="de-term-nav">
+                            <div className="de-term-tabs" role="tablist" aria-label="Terminal Tabs">
                                 <button
                                     type="button"
-                                    className="tn-term-copy-btn"
-                                    onClick={handleCopy}
-                                    title="Copy code snippet"
-                                    aria-label="Copy code snippet"
+                                    role="tab"
+                                    aria-selected={tabMode === 'playwright'}
+                                    className={`de-term-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
+                                    onClick={() => setTabMode('playwright')}
                                 >
-                                    {copied ? <Check size={12} className="text-accent" /> : <Copy size={12} />}
-                                    <span>{copied ? 'Copied' : 'Copy'}</span>
+                                    Playwright (.spec.ts)
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={tabMode === 'curl'}
+                                    className={`de-term-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
+                                    onClick={() => setTabMode('curl')}
+                                >
+                                    cURL API
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={tabMode === 'response'}
+                                    className={`de-term-tab ${tabMode === 'response' ? 'is-active' : ''}`}
+                                    onClick={() => setTabMode('response')}
+                                >
+                                    200 OK JSON
                                 </button>
                             </div>
 
-                            {/* Code Area */}
-                            <div className="tn-term-body">
-                                <pre className="tn-term-code">
-                                    <code>{tabMode === 'curl' ? curlSnippet : tabMode === 'playwright' ? playwrightSnippet : responseSnippet}</code>
-                                </pre>
-                            </div>
-
-                            {/* Terminal Footer Info */}
-                            <div className="tn-term-footer">
-                                <span className="tn-term-meta-tag">SPECIFICATION:</span>
-                                <span className="tn-term-meta-text">POST /v1/suites/generate &bull; Rate limit: 120 req/min &bull; Latency: ~820ms</span>
-                            </div>
+                            <button
+                                type="button"
+                                className="de-term-copy"
+                                onClick={handleCopy}
+                                title="Copy code"
+                            >
+                                {copied ? <Check size={12} style={{ color: '#8BAF9A' }} /> : <Copy size={12} />}
+                                <span>{copied ? 'Copied' : 'Copy'}</span>
+                            </button>
                         </div>
 
-                        {/* Runner Ecosystem Chips */}
-                        <div className="tn-runner-ecosystem-bar">
-                            <span className="tn-reco-label">COMPATIBLE RUNNERS:</span>
-                            <div className="tn-reco-chips">
-                                <span className="tn-reco-chip">Playwright</span>
-                                <span className="tn-reco-chip">Cypress</span>
-                                <span className="tn-reco-chip">Cucumber</span>
-                                <span className="tn-reco-chip">JUnit XML</span>
-                                <span className="tn-reco-chip">GitHub Actions</span>
-                                <span className="tn-reco-chip">Jira Software</span>
-                            </div>
+                        <pre className="de-term-codeblock">
+                            <code>{tabMode === 'curl' ? curlSnippet : tabMode === 'playwright' ? playwrightSnippet : responseSnippet}</code>
+                        </pre>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', background: '#080909', fontFamily: 'monospace', fontSize: '0.7rem', color: '#68706B' }}>
+                            <span>Target: Headless Chromium / CI Worker</span>
+                            <span style={{ color: '#8BAF9A' }}>Atomic assertions &bull; Deterministic wait</span>
                         </div>
                     </div>
                 </div>

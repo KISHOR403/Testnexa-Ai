@@ -156,95 +156,84 @@ export const TestSuiteChapter = () => {
     return (
         <section
             id="review-risk"
-            className="tn-section tn-suite-chapter-section"
+            className="de-section"
             aria-labelledby="suite-chapter-heading"
         >
-            <div className="tn-container">
+            <div className="de-container">
                 {/* ─── Editorial Header ─── */}
-                <div className="tn-suite-header-group">
-                    <div className="tn-chapter-eyebrow">
-                        <span className="tn-kicker-dot" />
-                        <span>TEST CASE GENERATION &amp; REVIEW</span>
+                <div style={{ maxWidth: 720 }}>
+                    <div className="de-eyebrow">
+                        <span className="de-eyebrow-dot" />
+                        <span>03 / TEST GENERATION</span>
                     </div>
 
-                    <h2 id="suite-chapter-heading" className="tn-suite-title">
-                        Deterministic test generation with step-level precision.
+                    <h2 id="suite-chapter-heading" className="de-editorial-title">
+                        Precision in every test.
                     </h2>
 
-                    <p className="tn-suite-subtitle">
-                        Test cases are not generic checklists. TestNexa synthesizes atomic execution steps with preconditions, boundary assertions, and expected outcomes. QA engineers inspect and approve every test before automation.
+                    <p className="de-lead">
+                        Atomic execution steps, deterministic preconditions, test data, and expected assertions. Reviewable in human-readable steps or exported directly as executable Playwright TypeScript.
                     </p>
                 </div>
 
-                {/* ─── Product Workbench: Test Case & Risk Inspection ─── */}
-                <div className="tn-suite-workbench">
-                    {/* Top Case Selector Strip */}
-                    <div className="tn-sw-selector-bar">
-                        <div className="tn-sw-case-tabs" role="tablist" aria-label="Generated Test Cases">
-                            {SUITE_TEST_CASES.map((tc) => {
-                                const isSelected = tc.id === selectedTestId;
-                                const st = caseStatuses[tc.id] || tc.status;
-                                return (
-                                    <button
-                                        key={tc.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={isSelected}
-                                        className={`tn-sw-tab ${isSelected ? 'is-selected' : ''}`}
-                                        onClick={() => setSelectedTestId(tc.id)}
-                                    >
-                                        <span className="tn-sw-tab-id">{tc.id}</span>
-                                        <span className="tn-sw-tab-name">{tc.scenario}</span>
-                                        <span className={`tn-sw-type-pill ${tc.typeClass}`}>{tc.type}</span>
-                                        <span className={`tn-sw-status-mini ${st === 'Approved' ? 'is-pass' : 'is-review'}`}>
-                                            {st === 'Approved' ? <Check size={10} /> : <AlertTriangle size={10} />}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                {/* ─── Immersive Asymmetric Showcase ─── */}
+                <div className="de-gen-split">
+                    {/* Left: Test Cases Directory */}
+                    <div className="de-gen-index-list" role="tablist" aria-label="Generated Test Directory">
+                        {SUITE_TEST_CASES.map((tc) => {
+                            const isSelected = tc.id === selectedTestId;
+                            const st = caseStatuses[tc.id] || tc.status;
+                            return (
+                                <button
+                                    key={tc.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isSelected}
+                                    className={`de-gen-index-item ${isSelected ? 'is-selected' : ''}`}
+                                    onClick={() => setSelectedTestId(tc.id)}
+                                >
+                                    <div className="de-gen-item-left">
+                                        <span className="de-gen-item-id">{tc.id} &bull; {tc.priority}</span>
+                                        <span className="de-gen-item-title">{tc.scenario}</span>
+                                        <div className="de-gen-item-meta">
+                                            <span>{tc.type}</span>
+                                            <span>&bull;</span>
+                                            <span style={{ color: st === 'Approved' ? '#8BAF9A' : '#C8993C' }}>{st}</span>
+                                        </div>
+                                    </div>
+                                    <ArrowRight size={14} style={{ opacity: isSelected ? 1 : 0.25, color: isSelected ? '#8BAF9A' : 'inherit', flexShrink: 0, marginTop: 4 }} />
+                                </button>
+                            );
+                        })}
 
-                        {/* Format Switcher */}
-                        <div className="tn-sw-format-toggle" role="tablist" aria-label="Specification View Toggle">
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={viewMode === 'steps'}
-                                className={`tn-sw-toggle-btn ${viewMode === 'steps' ? 'is-active' : ''}`}
-                                onClick={() => setViewMode('steps')}
+                        <div style={{ marginTop: '2rem' }}>
+                            <a
+                                href={getTargetUrl('/app/workspace')}
+                                className="tn-inline-link"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleWorkspaceEntry('/app/workspace');
+                                }}
                             >
-                                <CheckSquare size={13} />
-                                <span>Steps & Assertions</span>
-                            </button>
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={viewMode === 'gherkin'}
-                                className={`tn-sw-toggle-btn ${viewMode === 'gherkin' ? 'is-active' : ''}`}
-                                onClick={() => setViewMode('gherkin')}
-                            >
-                                <Code size={13} />
-                                <span>Cucumber BDD Spec</span>
-                            </button>
+                                <span>Open full test suite in workspace</span>
+                                <ArrowRight size={13} />
+                            </a>
                         </div>
                     </div>
 
-                    {/* Active Case Workspace */}
-                    <div className="tn-sw-case-body">
-                        {/* Meta Sub-bar */}
-                        <div className="tn-sw-meta-bar">
-                            <div className="tn-sw-meta-left">
-                                <span className="tn-sw-active-id">{activeTest.id}</span>
-                                <h3 className="tn-sw-active-title">{activeTest.title}</h3>
+                    {/* Right: Immersive Product Preview */}
+                    <div className="de-gen-main-view">
+                        <div className="de-gen-view-head">
+                            <div>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#8BAF9A', fontWeight: 600 }}>{activeTest.id} &bull; {activeTest.priority} PRIORITY</span>
+                                <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: '#F2F2F0', margin: '4px 0 0' }}>{activeTest.title}</h3>
                             </div>
-
-                            <div className="tn-sw-meta-right">
-                                <span className="tn-sw-priority-tag">{activeTest.priority} Priority</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <button
                                     type="button"
-                                    className={`tn-sw-status-tag ${currentStatus === 'Approved' ? 'is-pass' : 'is-review'}`}
+                                    className={`de-gen-status-toggle ${currentStatus === 'Approved' ? 'is-approved' : 'is-review'}`}
                                     onClick={() => toggleStatus(activeTest.id)}
-                                    title="Click to toggle approval status"
+                                    title="Click to toggle approval state"
                                 >
                                     {currentStatus === 'Approved' ? <Check size={12} /> : <AlertTriangle size={12} />}
                                     <span>{currentStatus}</span>
@@ -252,93 +241,99 @@ export const TestSuiteChapter = () => {
                             </div>
                         </div>
 
-                        {/* Risk & Missing Scenario Callout */}
-                        <div className="tn-sw-risk-callout">
-                            <div className="tn-sw-rc-col">
-                                <span className="tn-sw-rc-lbl">RISK VECTOR ISOLATED:</span>
-                                <span className="tn-sw-rc-val">{activeTest.riskVector}</span>
-                            </div>
-                            <div className="tn-sw-rc-divider" />
-                            <div className="tn-sw-rc-col">
-                                <span className="tn-sw-rc-lbl">REQUIREMENT GAP RESOLVED:</span>
-                                <span className="tn-sw-rc-val text-accent">{activeTest.missingScenarioMitigated}</span>
-                            </div>
+                        {/* Preconditions */}
+                        <div style={{ padding: '0.75rem 1rem', background: 'rgba(0, 0, 0, 0.3)', borderLeft: '2px solid rgba(255,255,255,0.1)', marginBottom: '1.5rem', fontFamily: 'monospace', fontSize: '0.78rem', color: '#969B98' }}>
+                            <strong style={{ color: '#F2F2F0', textTransform: 'uppercase', marginRight: 6 }}>Preconditions:</strong>
+                            {activeTest.preconditions}
                         </div>
 
-                        {/* Content Pane: Either Steps or Gherkin */}
-                        {viewMode === 'steps' ? (
-                            <div className="tn-sw-steps-view">
-                                <div className="tn-sw-preconditions">
-                                    <span className="tn-sw-pre-label">PRECONDITIONS:</span>
-                                    <span className="tn-sw-pre-text">{activeTest.preconditions}</span>
-                                </div>
+                        {/* View Switcher Bar */}
+                        <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('steps')}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.76rem',
+                                    fontWeight: viewMode === 'steps' ? 600 : 400,
+                                    color: viewMode === 'steps' ? '#8BAF9A' : '#68706B',
+                                    cursor: 'pointer',
+                                    padding: 0
+                                }}
+                            >
+                                [01] Step-by-Step Assertions
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('gherkin')}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.76rem',
+                                    fontWeight: viewMode === 'gherkin' ? 600 : 400,
+                                    color: viewMode === 'gherkin' ? '#8BAF9A' : '#68706B',
+                                    cursor: 'pointer',
+                                    padding: 0
+                                }}
+                            >
+                                [02] Cucumber BDD (.feature)
+                            </button>
+                        </div>
 
-                                <div className="tn-sw-steps-table-wrap">
-                                    <table className="tn-sw-steps-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="th-step">STEP</th>
-                                                <th className="th-action">ACTION / INPUT</th>
-                                                <th className="th-expected">EXPECTED RESULT / ASSERTION</th>
-                                                <th className="th-data">TEST DATA</th>
+                        {/* Steps or Code */}
+                        {viewMode === 'steps' ? (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table className="de-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: 60 }}>STEP</th>
+                                            <th>ACTION / INPUT</th>
+                                            <th>EXPECTED RESULT / ASSERTION</th>
+                                            <th>TEST DATA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {activeTest.steps.map((s) => (
+                                            <tr key={s.step}>
+                                                <td className="de-mono-cell">0{s.step}</td>
+                                                <td>{s.action}</td>
+                                                <td style={{ color: '#F2F2F0' }}>{s.expected}</td>
+                                                <td className="de-mono-cell">{s.data}</td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {activeTest.steps.map((s) => (
-                                                <tr key={s.step}>
-                                                    <td className="td-step"><code>{String(s.step).padStart(2, '0')}</code></td>
-                                                    <td className="td-action">{s.action}</td>
-                                                    <td className="td-expected">{s.expected}</td>
-                                                    <td className="td-data"><code>{s.data}</code></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         ) : (
-                            <div className="tn-sw-gherkin-view">
-                                <div className="tn-gherkin-top-bar">
-                                    <span className="tn-gherkin-lang">gherkin &bull; {activeTest.id}.feature</span>
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#68706B' }}>{activeTest.id}.feature</span>
                                     <button
                                         type="button"
-                                        className="tn-copy-gherkin-btn"
                                         onClick={handleCopy}
-                                        title="Copy Gherkin Feature Spec"
+                                        style={{ background: 'transparent', border: 'none', color: '#8BAF9A', fontFamily: 'monospace', fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                                     >
-                                        {copiedGherkin ? <Check size={12} className="text-green" /> : <Copy size={12} />}
-                                        <span>{copiedGherkin ? 'Copied to Clipboard' : 'Copy Feature File'}</span>
+                                        {copiedGherkin ? <Check size={11} /> : <Copy size={11} />}
+                                        <span>{copiedGherkin ? 'Copied' : 'Copy'}</span>
                                     </button>
                                 </div>
-                                <pre className="tn-gherkin-codeblock">
+                                <pre style={{ margin: 0, padding: '1rem', background: '#050606', border: '1px solid rgba(255,255,255,0.06)', fontFamily: 'monospace', fontSize: '0.78rem', color: '#BAC5BE', lineHeight: 1.65, overflowX: 'auto' }}>
                                     <code>{activeTest.gherkin}</code>
                                 </pre>
                             </div>
                         )}
 
-                        {/* Runner Compatibility Footer */}
-                        <div className="tn-sw-footer">
-                            <div className="tn-sw-footer-left">
-                                <span className="tn-sw-footer-label">NATIVE AUTOMATION TARGETS:</span>
-                                <div className="tn-sw-runner-chips">
-                                    <span className="tn-runner-chip">Playwright Test (.spec.ts)</span>
-                                    <span className="tn-runner-chip">Cypress (.cy.js)</span>
-                                    <span className="tn-runner-chip">Cucumber BDD (.feature)</span>
-                                    <span className="tn-runner-chip">JUnit XML Quality Gate</span>
-                                </div>
-                            </div>
-
-                            <a
-                                href={getTargetUrl('/app/workspace')}
-                                className="tn-sw-open-cta"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    handleWorkspaceEntry('/app/workspace');
-                                }}
-                            >
-                                <span>Export Full Test Suite</span>
-                                <ArrowRight size={13} />
-                            </a>
+                        {/* Runner Ecosystem Strip */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', gap: 12 }}>
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#969B98' }}>
+                                Native Runner Export: <strong style={{ color: '#F2F2F0' }}>Playwright &bull; Cypress &bull; Cucumber &bull; JUnit XML</strong>
+                            </span>
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#8BAF9A' }}>
+                                Risk Vector Mitigated: {activeTest.riskVector}
+                            </span>
                         </div>
                     </div>
                 </div>

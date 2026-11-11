@@ -126,122 +126,62 @@ export const EnterpriseWorkflowChapter = () => {
     return (
         <section
             id="workflow"
-            className="tn-section tn-workspace-section"
+            className="de-section"
             aria-labelledby="workflow-workspace-heading"
         >
-            <div className="tn-container">
+            <div className="de-container">
                 {/* ─── 1. SECTION INTRO ─── */}
-                <div className="tn-ws-intro-header">
-                    <div className="tn-ws-intro-left">
-                        <div className="tn-chapter-eyebrow">
-                            <span className="tn-kicker-dot" />
-                            <span>END-TO-END QA WORKFLOW</span>
-                        </div>
-                        <h2 id="workflow-workspace-heading" className="tn-ws-title">
-                            A complete QA workflow,<br />
-                            not just a test generator.
-                        </h2>
-                        <p className="tn-ws-subtitle">
-                            See how generated tests move through review, editing, approval, coverage analysis, and CI/CD automation—as one connected engineering process.
-                        </p>
+                <div style={{ maxWidth: 740, marginBottom: '3.5rem' }}>
+                    <div className="de-eyebrow">
+                        <span className="de-eyebrow-dot" />
+                        <span>02 / THE QA WORKFLOW</span>
                     </div>
+                    <h2 id="workflow-workspace-heading" className="de-editorial-title">
+                        A complete QA workflow.<br />
+                        <span className="de-text-accent">Not just a test generator.</span>
+                    </h2>
+                    <p className="de-lead">
+                        From raw specifications to executed test runs and defect tracking, TestNexa delivers an uninterrupted engineering loop across every phase of testing.
+                    </p>
+                </div>
 
-                    <div className="tn-ws-intro-right">
-                        <div className="tn-ws-status-meta">
-                            <span className="tn-ws-meta-tag">WORKSPACE PIPELINE</span>
-                            <span className="tn-ws-meta-id">REQ-142</span>
-                            <span className="tn-ws-meta-name">Password Reset</span>
-                            <div className="tn-ws-meta-runtime">
-                                <span className="tn-ws-status-dot" />
-                                <span>Deterministic Engine</span>
-                            </div>
-                        </div>
+                {/* ─── 2. LARGE TYPOGRAPHY-LED WORKFLOW TRACK ─── */}
+                <div className="de-workflow-track-wrap">
+                    <div className="de-workflow-track" role="tablist" aria-label="Workflow Stages">
+                        {WORKFLOW_STEPS.map((step, idx) => {
+                            const isActive = idx === activeStepIndex;
+                            return (
+                                <button
+                                    key={step.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={isActive}
+                                    className={`de-workflow-stage-btn ${isActive ? 'is-active' : ''}`}
+                                    onClick={() => setActiveStepIndex(idx)}
+                                >
+                                    <span className="de-stage-num">0{idx + 1}</span>
+                                    <div className="de-stage-meta">
+                                        <span className="de-stage-title">{step.title}</span>
+                                        <span className="de-stage-sub">{step.shortDesc}</span>
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* ─── 2. CONNECTED PROCESS STEPPER (No nested cards, clean horizontal flow) ─── */}
-                <div className="tn-connected-process-bar" role="tablist" aria-label="Workflow Pipeline Steps">
-                    {WORKFLOW_STEPS.map((step, idx) => {
-                        const isActive = idx === activeStepIndex;
-                        const isPast = idx < activeStepIndex;
-                        return (
-                            <button
-                                key={step.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={isActive}
-                                className={`tn-cprocess-step ${isActive ? 'is-active' : ''} ${isPast ? 'is-past' : ''}`}
-                                onClick={() => setActiveStepIndex(idx)}
-                            >
-                                <div className="tn-cstep-top">
-                                    <span className="tn-cstep-num">{step.num}</span>
-                                    {isPast && <Check size={12} className="tn-cstep-check text-accent" />}
-                                    {isActive && <span className="tn-cstep-active-dot" />}
-                                </div>
-                                <span className="tn-cstep-title">{step.title}</span>
-                                <span className="tn-cstep-sub">{step.shortDesc}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* ─── 3. INTERACTIVE PRODUCT WORKSPACE FOR THE SELECTED STEP ─── */}
-                <div className="tn-product-workspace" role="region" aria-label="Connected QA Workflow Workspace">
-                    {/* Top Workspace Header Bar */}
-                    <div className="tn-ws-app-bar">
-                        <div className="tn-ws-breadcrumb-group">
-                            <span className="tn-ws-brand-mark">TestNexa</span>
-                            <span className="tn-ws-crumb-sep">/</span>
-                            <span className="tn-ws-crumb-id">REQ-142</span>
-                            <span className="tn-ws-crumb-sep">/</span>
-                            <span className="tn-ws-crumb-title">Password Reset</span>
-                            <span className="tn-ws-status-pill">{currentStep.badge}</span>
-                            <span className="tn-ws-time-tag">Step {currentStep.num} of 06</span>
+                {/* ─── 3. GENUINE TESTNEXA WORKSPACE INTERFACE PREVIEW ─── */}
+                <div className="de-workflow-preview" role="region" aria-label="Workflow Stage Live Preview">
+                    <div className="de-preview-head">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span className="de-preview-tag">STAGE 0{activeStepIndex + 1}: {currentStep.title.toUpperCase()}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.2)' }}>/</span>
+                            <span style={{ fontSize: '0.8rem', color: '#BAC5BE' }}>{currentStep.detail}</span>
                         </div>
-
-                        {/* Live Quality Signal */}
-                        <div className="tn-ws-quality-signal" aria-label="Workflow Quality Metrics">
-                            <div className="tn-ws-qstat">
-                                <span className="tn-ws-qstat-val font-mono">87%</span>
-                                <span className="tn-ws-qstat-lbl">Clause coverage</span>
-                            </div>
-                            <div className="tn-ws-qstat-divider" />
-                            <div className="tn-ws-qstat">
-                                <span className="tn-ws-qstat-val font-mono text-amber">3</span>
-                                <span className="tn-ws-qstat-lbl">Risk signals</span>
-                            </div>
-                            <div className="tn-ws-qstat-divider" />
-                            <div className="tn-ws-qstat">
-                                <span className="tn-ws-qstat-val font-mono text-accent">24 / 24</span>
-                                <span className="tn-ws-qstat-lbl">Traced to spec</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Step Explanatory Banner */}
-                    <div className="tn-ws-step-banner">
-                        <div className="tn-ws-step-banner-left">
-                            <span className="tn-ws-banner-tag">STAGE {currentStep.num}: {currentStep.title.toUpperCase()}</span>
-                            <p className="tn-ws-banner-text">{currentStep.detail}</p>
-                        </div>
-                        <div className="tn-ws-step-banner-actions">
-                            <button
-                                type="button"
-                                className="tn-ws-nav-btn"
-                                disabled={activeStepIndex === 0}
-                                onClick={() => setActiveStepIndex((prev) => Math.max(0, prev - 1))}
-                            >
-                                Previous Step
-                            </button>
-                            <button
-                                type="button"
-                                className="tn-ws-nav-btn is-next"
-                                disabled={activeStepIndex === WORKFLOW_STEPS.length - 1}
-                                onClick={() => setActiveStepIndex((prev) => Math.min(WORKFLOW_STEPS.length - 1, prev + 1))}
-                            >
-                                <span>Next: {WORKFLOW_STEPS[Math.min(WORKFLOW_STEPS.length - 1, activeStepIndex + 1)].title}</span>
-                                <ArrowRight size={13} />
-                            </button>
+                        <div className="de-preview-badges">
+                            <span>Clause Coverage: 100%</span>
+                            <span>&bull;</span>
+                            <span style={{ color: '#8BAF9A' }}>24/24 Linked</span>
                         </div>
                     </div>
 

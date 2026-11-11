@@ -8,35 +8,29 @@ export const FinalCTA = () => {
     return (
         <section 
             id="final-cta" 
-            className="tn-final-cta-section" 
+            className="de-section de-cta-section" 
             aria-labelledby="final-cta-heading"
         >
-            <div className="tn-container">
-                <div className="tn-final-cta-flow">
-                    
-                    {/* Eyebrow with minimalist jade line marker */}
-                    <div className="tn-final-cta-eyebrow-row">
-                        <span className="tn-final-cta-accent-bar" aria-hidden="true" />
-                        <span className="tn-final-cta-eyebrow">READY WHEN YOU ARE</span>
+            <div className="de-container">
+                <div style={{ maxWidth: 960 }}>
+                    <div className="de-eyebrow">
+                        <span className="de-eyebrow-dot" />
+                        <span>06 / GET STARTED</span>
                     </div>
 
-                    {/* Headline — Typographic Focal Point */}
-                    <h2 id="final-cta-heading" className="tn-final-cta-title">
-                        Start with a requirement.{' '}
-                        <br className="tn-cta-br" />
-                        Leave with a <span className="tn-cta-accent-text">test suite.</span>
+                    <h2 id="final-cta-heading" className="de-cta-massive-title">
+                        Start with a requirement.<br />
+                        <span className="de-text-accent">Leave with a test suite.</span>
                     </h2>
 
-                    {/* Supporting Sentence */}
-                    <p className="tn-final-cta-subtitle">
-                        Turn unstructured requirements into reviewable, traceable QA work.
+                    <p className="de-lead">
+                        Turn natural language specifications into verified, traceable QA work. Ingest requirements, isolate implicit risks, and export to Playwright and CI/CD in minutes.
                     </p>
 
-                    {/* Primary Action & Reassurance */}
-                    <div className="tn-final-cta-action-dock">
+                    <div className="de-cta-action-row">
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            className={`tn-final-cta-btn ${isOpening ? 'is-opening' : ''}`}
+                            className="de-cta-btn"
                             id="final-cta-btn"
                             onClick={(e) => {
                                 e.preventDefault();
@@ -44,14 +38,13 @@ export const FinalCTA = () => {
                             }}
                         >
                             <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
-                            <ArrowRight size={15} className="tn-final-cta-btn-arrow" aria-hidden="true" />
+                            <ArrowRight size={16} />
                         </a>
 
-                        <p className="tn-final-cta-reassurance">
-                            Start free · No credit card required
-                        </p>
+                        <span className="de-cta-reassurance">
+                            Start free &bull; No credit card required &bull; Full access
+                        </span>
                     </div>
-
                 </div>
             </div>
         </section>

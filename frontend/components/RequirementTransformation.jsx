@@ -53,37 +53,37 @@ const ANNOTATIONS = [
 
 export const RequirementTransformation = () => {
     const [selectedAnnotationId, setSelectedAnnotationId] = useState('an-1');
-    const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
+    const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
     const activeAnnotation = ANNOTATIONS.find((a) => a.id === selectedAnnotationId) || ANNOTATIONS[0];
 
     return (
         <section
             id="transformation"
-            className="tn-section tn-req-intel-section"
+            className="de-section"
             aria-labelledby="req-intel-heading"
         >
-            <div className="tn-container">
-                {/* ─── Asymmetric Split: Editorial Text on Left, Product UI on Right ─── */}
-                <div className="tn-req-intel-grid">
-                    {/* LEFT COLUMN: Editorial Storytelling */}
-                    <div className="tn-req-intel-story">
-                        <div className="tn-chapter-eyebrow">
-                            <span className="tn-kicker-dot" />
-                            <span>REQUIREMENT INTELLIGENCE</span>
+            <div className="de-container">
+                <div className="de-req-split">
+                    {/* LEFT COLUMN: Editorial Typography & Technical Findings */}
+                    <div className="de-req-left">
+                        <div className="de-eyebrow">
+                            <span className="de-eyebrow-dot" />
+                            <span>01 / REQUIREMENT INTELLIGENCE</span>
                         </div>
 
-                        <h2 id="req-intel-heading" className="tn-req-intel-title">
-                            Understand the requirement before writing tests.
+                        <h2 id="req-intel-heading" className="de-editorial-title">
+                            Understand the requirement.<br />
+                            <span className="de-text-accent">Before you test it.</span>
                         </h2>
 
-                        <p className="tn-req-intel-lead">
-                            Raw specifications contain unstated assumptions, ambiguous boundaries, and implicit edge cases. TestNexa deconstructs natural language into verifiable acceptance logic before synthesizing a single test.
+                        <p className="de-lead">
+                            Raw specifications hide unstated assumptions, ambiguous boundaries, and implicit timing vulnerabilities. TestNexa deconstructs natural language into deterministic acceptance logic before writing a single test.
                         </p>
 
-                        {/* Inline Technical Findings (No Cards!) */}
-                        <div className="tn-intel-findings-list" role="tablist" aria-label="Requirement Findings">
-                            {ANNOTATIONS.map((item) => {
+                        {/* List of Actual Capabilities (Open, hairline-divided) */}
+                        <div className="de-req-list" role="tablist" aria-label="Requirement Analysis Findings">
+                            {ANNOTATIONS.map((item, idx) => {
                                 const isSelected = selectedAnnotationId === item.id;
                                 return (
                                     <button
@@ -91,25 +91,21 @@ export const RequirementTransformation = () => {
                                         type="button"
                                         role="tab"
                                         aria-selected={isSelected}
-                                        className={`tn-finding-row ${isSelected ? 'is-selected' : ''}`}
+                                        className={`de-req-item ${isSelected ? 'is-active' : ''}`}
                                         onClick={() => setSelectedAnnotationId(item.id)}
                                     >
-                                        <div className="tn-finding-indicator">
-                                            <span className={`tn-finding-dot ${item.typeClass}`} />
-                                        </div>
-                                        <div className="tn-finding-body">
-                                            <div className="tn-finding-head">
-                                                <span className="tn-finding-type">{item.type}</span>
-                                                <span className="tn-finding-name">{item.title}</span>
-                                            </div>
-                                            <p className="tn-finding-desc">{item.desc}</p>
+                                        <span className="de-req-num">0{idx + 1}</span>
+                                        <div className="de-req-body">
+                                            <span className="de-req-tag">{item.type}</span>
+                                            <span className="de-req-heading">{item.title}</span>
+                                            <p className="de-req-desc">{item.desc}</p>
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div className="tn-req-intel-cta-row">
+                        <div style={{ marginTop: '2.5rem' }}>
                             <a
                                 href={getTargetUrl('/app/workspace')}
                                 className="tn-inline-link"
@@ -124,85 +120,59 @@ export const RequirementTransformation = () => {
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Product Interaction with Annotation UI */}
-                    <div className="tn-req-intel-workspace">
-                        <div
-                            className="tn-annotation-canvas tn-spotlight-card"
-                            onMouseMove={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-                            }}
-                        >
-                            {/* Editor Header Bar */}
-                            <div className="tn-ann-canvas-header">
-                                <div className="tn-ann-file-meta">
-                                    <span className="tn-ann-doc-id">REQ-142</span>
-                                    <span className="tn-ann-sep">/</span>
-                                    <span className="tn-ann-doc-name">Password Reset Specification</span>
-                                </div>
-                                <span className="tn-ann-status-tag">Deterministic Audit Complete</span>
+                    {/* RIGHT COLUMN: Genuine Integrated Specification Canvas */}
+                    <div className="de-spec-canvas">
+                        <div className="de-spec-topbar">
+                            <span className="de-spec-id">REQ-142 / PASSWORD RESET SPECIFICATION</span>
+                            <span className="de-spec-status">
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6DAE82' }} />
+                                <span>Deterministic Audit Complete</span>
+                            </span>
+                        </div>
+
+                        <div className="de-spec-doc-body">
+                            <div className="de-spec-line">
+                                <span className="de-spec-linenum">01</span>
+                                <span className="de-spec-text" style={{ color: '#8BAF9A' }}>Feature Specification: Password Recovery &amp; Credential Lifecycle</span>
                             </div>
-
-                            {/* Requirement Text with Annotation Highlights */}
-                            <div className="tn-ann-editor-surface">
-                                <span className="tn-ann-editor-line-num">01</span>
-                                <div className="tn-ann-editor-content">
-                                    <span className="tn-ann-lead-clause">Feature Specification: Password Recovery</span>
-                                    <p className="tn-ann-text-para">
-                                        <span className={`tn-highlight-term ${selectedAnnotationId === 'an-4' ? 'is-active' : ''}`} onClick={() => setSelectedAnnotationId('an-4')}>
-                                            Users can reset
-                                        </span>{' '}
-                                        <span className={`tn-highlight-term ${selectedAnnotationId === 'an-3' ? 'is-active' : ''}`} onClick={() => setSelectedAnnotationId('an-3')}>
-                                            their password
-                                        </span>{' '}
-                                        using{' '}
-                                        <span className={`tn-highlight-term ${selectedAnnotationId === 'an-1' ? 'is-active' : ''}`} onClick={() => setSelectedAnnotationId('an-1')}>
-                                            their registered email address
-                                        </span>
-                                        .
-                                    </p>
-                                </div>
+                            <div className="de-spec-line">
+                                <span className="de-spec-linenum">02</span>
+                                <span className="de-spec-text">
+                                    <span
+                                        className={`de-highlight-token ${selectedAnnotationId === 'an-4' ? 'is-selected' : ''}`}
+                                        onClick={() => setSelectedAnnotationId('an-4')}
+                                    >
+                                        Users can reset
+                                    </span>{' '}
+                                    <span
+                                        className={`de-highlight-token ${selectedAnnotationId === 'an-3' ? 'is-selected' : ''}`}
+                                        onClick={() => setSelectedAnnotationId('an-3')}
+                                    >
+                                        their password
+                                    </span>{' '}
+                                    using{' '}
+                                    <span
+                                        className={`de-highlight-token ${selectedAnnotationId === 'an-1' ? 'is-selected' : ''}`}
+                                        onClick={() => setSelectedAnnotationId('an-1')}
+                                    >
+                                        their registered email address
+                                    </span>
+                                    .
+                                </span>
                             </div>
+                        </div>
 
-                            {/* ─── ANNOTATION UI (Direct Line Callout System) ─── */}
-                            <div className="tn-annotation-callout-box">
-                                <div className="tn-ann-stem-line" aria-hidden="true">
-                                    <div className="tn-ann-stem-corner" />
-                                    <div className="tn-ann-stem-vert" />
-                                    <div className="tn-ann-stem-node" />
-                                </div>
+                        <div className="de-synth-block">
+                            <span className="de-synth-label">Target Clause: &ldquo;{activeAnnotation.targetPhrase}&rdquo;</span>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 500, color: '#F2F2F0', margin: '0 0 6px' }}>{activeAnnotation.title}</h3>
+                            <p style={{ fontSize: '0.82rem', color: '#969B98', margin: '0 0 12px', lineHeight: 1.5 }}>{activeAnnotation.desc}</p>
+                            <span className="de-synth-label">Synthesized Acceptance Rule:</span>
+                            <div className="de-synth-rule">{activeAnnotation.action}</div>
+                        </div>
 
-                                <div className="tn-ann-callout-panel">
-                                    <div className="tn-ann-callout-head">
-                                        <span className={`tn-ann-badge ${activeAnnotation.typeClass}`}>
-                                            {activeAnnotation.type.toUpperCase()} DETECTED
-                                        </span>
-                                        <span className="tn-ann-target-ref">Target: “{activeAnnotation.targetPhrase}”</span>
-                                    </div>
-
-                                    <h3 className="tn-ann-callout-title">{activeAnnotation.title}</h3>
-                                    <p className="tn-ann-callout-text">{activeAnnotation.desc}</p>
-
-                                    <div className="tn-ann-action-box">
-                                        <span className="tn-ann-action-label">SYNTHESIZED ACCEPTANCE RULE:</span>
-                                        <p className="tn-ann-action-code">{activeAnnotation.action}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Bottom Status Proof Footer */}
-                            <div className="tn-ann-canvas-footer">
-                                <div className="tn-ann-footer-stat">
-                                    <span className="tn-stat-num">4</span>
-                                    <span className="tn-stat-lbl">Implicit gaps resolved</span>
-                                </div>
-                                <div className="tn-ann-footer-divider" />
-                                <div className="tn-ann-footer-stat">
-                                    <span className="tn-stat-num">100%</span>
-                                    <span className="tn-stat-lbl">Specification coverage mapped</span>
-                                </div>
-                            </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontFamily: 'monospace', fontSize: '0.74rem', color: '#969B98' }}>
+                            <span>4 Implicit Gaps Isolated</span>
+                            <span style={{ color: '#8BAF9A' }}>100% Clause Coverage Synthesized</span>
                         </div>
                     </div>
                 </div>
