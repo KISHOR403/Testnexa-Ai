@@ -3661,7 +3661,7 @@ return (
                                             <span>Configuration Warnings:</span>
                                         </div>
                                         <ul style={{ margin: '4px 0 0 1rem', padding: 0 }}>
-                                            {templateWarnings.map((w, i) => <li key={i}>{w}</li>)}
+                                            {templateWarnings.map((w, i) => <li key={i}>{safeFormatValue(w)}</li>)}
                                         </ul>
                                     </div>
                                 )}
@@ -3863,13 +3863,13 @@ return (
 
                             {validationResult.errors?.length > 0 && (
                                 <ul style={{ margin: '6px 0 0 1.25rem', padding: 0, color: '#E06C75' }}>
-                                    {validationResult.errors.map((e, idx) => <li key={idx}>{e}</li>)}
+                                    {validationResult.errors.map((e, idx) => <li key={idx}>{safeFormatValue(e)}</li>)}
                                 </ul>
                             )}
 
                             {validationResult.warnings?.length > 0 && (
                                 <ul style={{ margin: '6px 0 0 1.25rem', padding: 0, color: '#E5C07B' }}>
-                                    {validationResult.warnings.map((w, idx) => <li key={idx}>{w}</li>)}
+                                    {validationResult.warnings.map((w, idx) => <li key={idx}>{safeFormatValue(w)}</li>)}
                                 </ul>
                             )}
                         </div>
@@ -3944,9 +3944,9 @@ return (
                                         }}
                                     >
                                         <div>
-                                            <span style={{ color: '#8BAF9A', fontWeight: 600, marginRight: '8px' }}>v{h.version}</span>
-                                            <span style={{ color: '#A0A5A5' }}>{h.scriptRef || h.automationTestId}</span>
-                                            <span style={{ color: '#777E7E', marginLeft: '8px' }}>({new Date(h.savedAt).toLocaleDateString()})</span>
+                                            <span style={{ color: '#8BAF9A', fontWeight: 600, marginRight: '8px' }}>v{safeFormatValue(h.version, '1.0.0')}</span>
+                                            <span style={{ color: '#A0A5A5' }}>{safeFormatValue(h.scriptRef || h.automationTestId, 'Default')}</span>
+                                            <span style={{ color: '#777E7E', marginLeft: '8px' }}>({h.savedAt ? new Date(h.savedAt).toLocaleDateString() : 'Recent'})</span>
                                         </div>
                                         <button
                                             type="button"

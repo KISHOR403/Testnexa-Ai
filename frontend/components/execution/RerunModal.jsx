@@ -7,6 +7,15 @@ import {
 import { executionService } from '../../services/executionService';
 import '../../styles/app/RerunWorkspace.css';
 
+const safeFormatValue = (val, fallback = '') => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'object') {
+        return val.title || val.name || val.text || val.description || val.id || fallback;
+    }
+    const str = String(val).trim();
+    return str || fallback;
+};
+
 const RerunModal = ({
     isOpen = true,
     onClose,
@@ -299,11 +308,11 @@ const RerunModal = ({
                                                 {filteredFailures.map(c => {
                                                     const isChecked = selectedIds.has(c.id);
                                                     const snap = c.caseSnapshot || {};
-                                                    const caseId = c.testCaseId || snap.id || c.id;
-                                                    const title = snap.title || c.title || 'Untitled';
-                                                    const category = snap.type || c.type || 'Functional';
-                                                    const priority = snap.priority || c.priority || 'Medium';
-                                                    const isAuto = c.executionType === 'automated' || run.executionType === 'automated';
+                                                    const caseId = safeFormatValue(c.testCaseId || snap.id || c.id, 'TC');
+                                                    const title = safeFormatValue(snap.title || c.title, 'Untitled');
+                                                    const category = safeFormatValue(snap.type || c.type, 'Functional');
+                                                    const priority = safeFormatValue(snap.priority || c.priority, 'Medium');
+                                                    const isAuto = c.executionType === 'automated' || run?.executionType === 'automated';
                                                     const mapping = snap.automationMapping || c.automationMapping;
                                                     const isReady = isAuto && mapping?.mappingStatus === 'configured';
 

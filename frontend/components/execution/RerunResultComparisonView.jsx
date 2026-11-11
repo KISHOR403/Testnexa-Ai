@@ -10,6 +10,36 @@ import {
 import { executionService } from '../../services/executionService';
 import '../../styles/app/RerunComparisonView.css';
 
+const safeFormatValue = (val, fallback = '') => {
+    if (val === null || val === undefined) return fallback;
+    if (Array.isArray(val)) {
+        if (val.length === 0) return fallback;
+        const formatted = val.map(v => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object') {
+                return v.description || v.text || v.step || v.action || v.title || v.name || '';
+            }
+            return String(v);
+        }).filter(Boolean).join(', ');
+        return formatted || fallback;
+    }
+    if (typeof val === 'object') {
+        const str = val.description || val.text || val.name || val.title || val.summary || val.code || val.label || '';
+        return str || fallback;
+    }
+    const str = String(val).trim();
+    return str || fallback;
+};
+
+const formatSuiteTitle = (suite, fallback = 'Test Suite') => {
+    if (!suite) return fallback;
+    if (typeof suite === 'string') return suite.trim() || fallback;
+    if (typeof suite === 'object') {
+        return suite.title || suite.name || suite.feature || suite.testSuiteName || fallback;
+    }
+    return String(suite || fallback);
+};
+
 const formatDuration = (ms) => {
     if (ms === null || ms === undefined || ms <= 0) return '0ms';
     if (ms < 1000) return `${ms}ms`;
@@ -63,10 +93,10 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                         <div style={{ fontSize: '0.73rem', color: '#8A968E', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                             <span>Failure Diagnostics &amp; Comparison</span>
                             <span>•</span>
-                            <span className="rcv-case-id">{testCase.testCaseId}</span>
+                            <span className="rcv-case-id">{safeFormatValue(testCase.testCaseId, 'TC')}</span>
                         </div>
                         <h3 className="rcv-modal-title" id="rcv-detail-title">
-                            {testCase.title}
+                            {safeFormatValue(testCase.title, 'Test Case')}
                         </h3>
                     </div>
                     <button type="button" className="rcv-modal-close" onClick={onClose} aria-label="Close modal">
@@ -80,9 +110,9 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                     <div className={`rcv-analysis-box ${testCase.transition}`}>
                         <div style={{ fontWeight: 600, color: '#FFFFFF', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <ShieldCheck size={14} color="var(--tc-jade)" />
-                            <span>Diagnostic Verdict: {testCase.transitionLabel}</span>
+                            <span>Diagnostic Verdict: {safeFormatValue(testCase.transitionLabel, testCase.transition)}</span>
                         </div>
-                        <div>{diff.summary || 'Diagnostic inspection between original and rerun attempts.'}</div>
+                        <div>{safeFormatValue(diff.summary, 'Diagnostic inspection between original and rerun attempts.')}</div>
                     </div>
 
                     {/* Side-by-side comparison columns */}
@@ -91,12 +121,12 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                         <div className="rcv-diff-pane original">
                             <div className="rcv-pane-header">
                                 <span className="rcv-pane-title">Original Execution</span>
-                                <span className={`rcv-badge ${orig.status}`}>{orig.status}</span>
+                                <span className={`rcv-badge ${orig.status}`}>{safeFormatValue(orig.status, 'unknown')}</span>
                             </div>
 
                             <div style={{ fontSize: '0.74rem', color: '#8A968E', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                 <div>Duration: <strong style={{ color: '#BAC5BE' }}>{formatDuration(orig.durationMs)}</strong></div>
-                                <div>Executed: <span>{formatDate(orig.executedAt)}</span> · {orig.executedBy || 'Tester'}</div>
+                                <div>Executed: <span>{formatDate(orig.executedAt)}</span> · {safeFormatValue(orig.executedBy, 'Tester')}</div>
                             </div>
 
                             {/* Original Error Message */}
@@ -115,7 +145,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                                     )}
                                 </div>
                                 {orig.errorMessage ? (
-                                    <pre className="rcv-code-block">{orig.errorMessage}</pre>
+                                    <pre className="rcv-code-block">{safeFormatValue(orig.errorMessage)}</pre>
                                 ) : (
                                     <div style={{ fontSize: '0.74rem', color: '#556058', fontStyle: 'italic' }}>No error logged</div>
                                 )}
@@ -125,7 +155,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                             {orig.stackTrace && (
                                 <div>
                                     <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#727D75', textTransform: 'uppercase', marginBottom: '0.3rem' }}>Stack Trace</div>
-                                    <pre className="rcv-code-block stack">{orig.stackTrace}</pre>
+                                    <pre className="rcv-code-block stack">{safeFormatValue(orig.stackTrace)}</pre>
                                 </div>
                             )}
 
@@ -133,7 +163,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                             <div>
                                 <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#727D75', textTransform: 'uppercase', marginBottom: '0.3rem' }}>Actual Result &amp; Notes</div>
                                 <div style={{ fontSize: '0.76rem', color: '#BAC5BE', background: '#070908', border: '1px solid #1B221D', borderRadius: '4px', padding: '0.55rem 0.75rem', minHeight: '36px' }}>
-                                    {orig.actualResult || orig.notes || 'No recorded actual result note.'}
+                                    {safeFormatValue(orig.actualResult) || safeFormatValue(orig.notes) || 'No recorded actual result note.'}
                                 </div>
                             </div>
 
@@ -151,7 +181,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                                                 className="rcv-evidence-item"
                                             >
                                                 <Camera size={12} />
-                                                <span>{art.name || `Artifact #${idx + 1}`}</span>
+                                                <span>{safeFormatValue(art.name, `Artifact #${idx + 1}`)}</span>
                                             </a>
                                         ))}
                                     </div>
@@ -163,12 +193,12 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                         <div className="rcv-diff-pane rerun">
                             <div className="rcv-pane-header">
                                 <span className="rcv-pane-title">Rerun Execution</span>
-                                <span className={`rcv-badge ${rerun.status}`}>{rerun.status}</span>
+                                <span className={`rcv-badge ${rerun.status}`}>{safeFormatValue(rerun.status, 'unknown')}</span>
                             </div>
 
                             <div style={{ fontSize: '0.74rem', color: '#8A968E', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                 <div>Duration: <strong style={{ color: '#BAC5BE' }}>{formatDuration(rerun.durationMs)}</strong></div>
-                                <div>Executed: <span>{formatDate(rerun.executedAt)}</span> · {rerun.executedBy || 'Tester'}</div>
+                                <div>Executed: <span>{formatDate(rerun.executedAt)}</span> · {safeFormatValue(rerun.executedBy, 'Tester')}</div>
                             </div>
 
                             {/* Rerun Error Message */}
@@ -187,7 +217,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                                     )}
                                 </div>
                                 {rerun.errorMessage ? (
-                                    <pre className="rcv-code-block">{rerun.errorMessage}</pre>
+                                    <pre className="rcv-code-block">{safeFormatValue(rerun.errorMessage)}</pre>
                                 ) : (
                                     <div style={{ fontSize: '0.74rem', color: '#8BAF9A', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <CheckCircle2 size={13} />
@@ -200,7 +230,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                             {rerun.stackTrace && (
                                 <div>
                                     <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#727D75', textTransform: 'uppercase', marginBottom: '0.3rem' }}>Stack Trace</div>
-                                    <pre className="rcv-code-block stack">{rerun.stackTrace}</pre>
+                                    <pre className="rcv-code-block stack">{safeFormatValue(rerun.stackTrace)}</pre>
                                 </div>
                             )}
 
@@ -208,7 +238,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                             <div>
                                 <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#727D75', textTransform: 'uppercase', marginBottom: '0.3rem' }}>Actual Result &amp; Notes</div>
                                 <div style={{ fontSize: '0.76rem', color: '#BAC5BE', background: '#070908', border: '1px solid #1B221D', borderRadius: '4px', padding: '0.55rem 0.75rem', minHeight: '36px' }}>
-                                    {rerun.actualResult || rerun.notes || (rerun.status === 'passed' ? 'Scenario verified and passed on rerun.' : 'No notes recorded.')}
+                                    {safeFormatValue(rerun.actualResult) || safeFormatValue(rerun.notes) || (rerun.status === 'passed' ? 'Scenario verified and passed on rerun.' : 'No notes recorded.')}
                                 </div>
                             </div>
 
@@ -226,7 +256,7 @@ const FailureDetailComparisonModal = ({ testCase, comparisonData, onClose }) => 
                                                 className="rcv-evidence-item"
                                             >
                                                 <Camera size={12} />
-                                                <span>{art.name || `Artifact #${idx + 1}`}</span>
+                                                <span>{safeFormatValue(art.name, `Artifact #${idx + 1}`)}</span>
                                             </a>
                                         ))}
                                     </div>
@@ -438,13 +468,13 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                         <div className="rcv-breadcrumb">
                             <NavLink to="/app/runs">Execution</NavLink>
                             <span>/</span>
-                            <NavLink to={`/app/runs/${comparison.originalRunId}`}>Run {comparison.originalRunId.slice(-8)}</NavLink>
+                            <NavLink to={`/app/runs/${comparison.originalRunId}`}>Run {String(comparison.originalRunId || '').slice(-8)}</NavLink>
                             <span>/</span>
                             <span>Rerun Comparison</span>
                         </div>
                         <h2 className="rcv-header-title">
                             <GitCompare size={20} color="var(--tc-jade)" />
-                            <span>Rerun Result Comparison: {comparison.suiteName || 'Test Suite'}</span>
+                            <span>Rerun Result Comparison: {formatSuiteTitle(comparison.suiteName)}</span>
                         </h2>
                     </div>
 
@@ -469,7 +499,7 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                     <div className="rcv-meta-item">
                         <span>Original Run:</span>
                         <NavLink to={`/app/runs/${comparison.originalRunId}`}>
-                            <strong>{comparison.originalRunId.slice(-8)}</strong>
+                            <strong>{String(comparison.originalRunId || '').slice(-8)}</strong>
                         </NavLink>
                     </div>
 
@@ -484,20 +514,20 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                             >
                                 {availableReruns.map((r, idx) => (
                                     <option key={r.id} value={r.id}>
-                                        Rerun #{availableReruns.length - idx} ({r.id.slice(-6)}) · {r.status}
+                                        Rerun #{availableReruns.length - idx} ({String(r.id || '').slice(-6)}) · {safeFormatValue(r.status, 'not_run')}
                                     </option>
                                 ))}
                             </select>
                         ) : (
                             <NavLink to={`/app/runs/${comparison.rerunId}`}>
-                                <strong>{comparison.rerunId.slice(-8)}</strong>
+                                <strong>{String(comparison.rerunId || '').slice(-8)}</strong>
                             </NavLink>
                         )}
                     </div>
 
                     <div className="rcv-meta-item">
                         <span>Environment:</span>
-                        <strong>{comparison.targetEnvironment?.name || 'Default'}</strong>
+                        <strong>{safeFormatValue(comparison.targetEnvironment?.name || comparison.targetEnvironment, 'Default')}</strong>
                     </div>
 
                     <div className="rcv-meta-item">
@@ -519,7 +549,7 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                         <span className={`rcv-shift-pill ${summary.verdict === 'ALL_FIXED' ? 'fixed' : summary.verdict === 'REGRESSIONS_DETECTED' ? 'regression' : summary.verdict === 'PARTIALLY_FIXED' ? 'fixed' : 'still_failing'}`}>
                             {summary.verdict === 'ALL_FIXED' && <CheckCircle2 size={12} />}
                             {summary.verdict === 'REGRESSIONS_DETECTED' && <AlertTriangle size={12} />}
-                            <span>Verdict: {summary.verdict.replace(/_/g, ' ')}</span>
+                            <span>Verdict: {summary.verdict ? String(summary.verdict).replace(/_/g, ' ') : 'EVALUATING'}</span>
                         </span>
                     </div>
                 </div>
@@ -667,17 +697,17 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                     </thead>
                     <tbody>
                         {paginatedComparisons.length > 0 ? (
-                            paginatedComparisons.map((c) => {
+                            paginatedComparisons.map((c, idx) => {
                                 const delta = c.durationDiffMs || 0;
                                 return (
-                                    <tr key={c.testCaseId}>
+                                    <tr key={c.testCaseId || idx}>
                                         <td>
-                                            <span className="rcv-case-id">{c.testCaseId}</span>
+                                            <span className="rcv-case-id">{safeFormatValue(c.testCaseId, 'TC')}</span>
                                         </td>
                                         <td>
-                                            <div className="rcv-case-title" title={c.title}>{c.title}</div>
+                                            <div className="rcv-case-title" title={safeFormatValue(c.title)}>{safeFormatValue(c.title, 'Untitled Test Case')}</div>
                                             <div style={{ fontSize: '0.69rem', color: '#727D75', marginTop: '2px' }}>
-                                                {c.category} · Priority: {c.priority}
+                                                {safeFormatValue(c.category, 'Functional')} · Priority: {safeFormatValue(c.priority, 'Medium')}
                                             </div>
                                         </td>
                                         <td>
@@ -687,12 +717,12 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                                         </td>
                                         <td>
                                             <span className={`rcv-badge ${c.originalStatus}`}>
-                                                {c.originalStatus}
+                                                {safeFormatValue(c.originalStatus, 'not_run')}
                                             </span>
                                         </td>
                                         <td>
                                             <span className={`rcv-badge ${c.rerunStatus}`}>
-                                                {c.rerunStatus}
+                                                {safeFormatValue(c.rerunStatus, 'not_run')}
                                             </span>
                                         </td>
                                         <td>
@@ -703,7 +733,7 @@ const RerunResultComparisonView = ({ runId, initialRerunId = null, onSelectRun }
                                                 {c.transition === 'blocked' && <AlertTriangle size={12} />}
                                                 {c.transition === 'skipped' && <MinusCircle size={12} />}
                                                 {c.transition === 'pending' && <Clock size={12} />}
-                                                <span>{c.transitionLabel}</span>
+                                                <span>{safeFormatValue(c.transitionLabel, c.transition)}</span>
                                             </span>
                                         </td>
                                         <td>

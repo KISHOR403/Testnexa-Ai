@@ -907,7 +907,7 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                                         label: `${item.artifactType || 'Evidence'} captured`, detail: item.name
                                     }))].filter(event => event.at).sort((a, b) => new Date(a.at) - new Date(b.at)).map(event => <li key={event.id}>
                                         <span className="diagnostics-timeline-marker" />
-                                        <div><strong>{event.label}</strong><span>{event.detail}{event.duration ? ` · ${formatDuration(event.duration)}` : ''}</span></div>
+                                        <div><strong>{safeFormatValue(event.label)}</strong><span>{safeFormatValue(event.detail)}{event.duration ? ` · ${formatDuration(event.duration)}` : ''}</span></div>
                                         <time>{formatTimestamp(event.at)}</time>
                                     </li>)}
                                 </ol>
@@ -1008,13 +1008,13 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                                     return (
                                         <tr key={req.id}>
                                             <td style={{ fontFamily: 'var(--er-mono-font)', color: isUncovered ? 'var(--er-warn)' : 'var(--er-jade)', fontSize: '0.78rem' }}>
-                                                {req.id}
+                                                {safeFormatValue(req.id)}
                                             </td>
                                             <td>
-                                                <span className="er-cat-pill">{req.category || 'Functional'}</span>
+                                                <span className="er-cat-pill">{safeFormatValue(req.category, 'Functional')}</span>
                                             </td>
                                             <td style={{ color: 'var(--er-text)', maxWidth: '420px' }}>
-                                                {req.description}
+                                                {safeFormatValue(req.description)}
                                             </td>
                                             <td>
                                                 <span className={`er-status-badge ${st === 'verified' ? 'passed' : st === 'failed' ? 'failed' : 'pending'}`}>

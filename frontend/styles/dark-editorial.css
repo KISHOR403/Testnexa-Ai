@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   TESTNEXA AI — DARK EDITORIAL ENGINEERING STYLESHEET
+   TESTNEXA AI — DARK EDITORIAL ENGINEERING STYLESHEET (NO-BOX ARCHITECTURE)
    Awwwards-level creative direction:
    - Deep pure black (#080909) and carbon (#0C0E0D)
-   - Typographic hierarchy: oversized editorial headlines, mono metadata
-   - Strict no-box architecture: open compositions, hairlines, negative space
+   - Zero outer screenshot frames or card containers
+   - Oversized editorial typography with intentional line breaks
+   - Fine hairlines (rgba(255, 255, 255, 0.08)), expansive negative space
    - Restrained mineral jade accent (#8BAF9A)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -22,14 +23,13 @@
   --de-font-mono: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
 }
 
-/* ─── Section Shared Styles ──────────────────────────────────────────────── */
+/* ─── Base Section & Typography ──────────────────────────────────────────── */
 .de-section {
   background: var(--de-bg);
   color: var(--de-text);
-  padding: clamp(80px, 10vw, 160px) 0;
+  padding: clamp(90px, 12vw, 170px) 0;
   border-top: 1px solid var(--de-border);
   position: relative;
-  overflow: hidden;
 }
 
 .de-container {
@@ -47,7 +47,7 @@
   font-family: var(--de-font-mono);
   font-size: 0.72rem;
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--de-text-muted);
   margin-bottom: 1.5rem;
@@ -62,10 +62,10 @@
 
 .de-editorial-title {
   font-family: var(--de-font-sans);
-  font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+  font-size: clamp(2.5rem, 5.2vw, 4.6rem);
   font-weight: 380;
-  letter-spacing: -0.035em;
-  line-height: 1.06;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
   color: var(--de-text);
   margin: 0 0 1.5rem;
 }
@@ -75,26 +75,25 @@
 }
 
 .de-lead {
-  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
   line-height: 1.65;
   color: var(--de-text-secondary);
   font-weight: 380;
-  max-width: 680px;
   margin: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SECTION 1 — REQUIREMENT INTELLIGENCE
+   SECTION A — REQUIREMENT INTELLIGENCE (Large Editorial Split)
    ═══════════════════════════════════════════════════════════════════════════ */
 .de-req-split {
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: 0.95fr 1.05fr;
   gap: clamp(48px, 6vw, 96px);
   align-items: start;
 }
 
 .de-req-left {
-  padding-right: clamp(0px, 2vw, 32px);
+  max-width: 480px;
 }
 
 .de-req-list {
@@ -106,16 +105,16 @@
 
 .de-req-item {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 16px;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
   padding: 1.25rem 0;
   border-bottom: 1px solid var(--de-border);
-  cursor: pointer;
   background: transparent;
   border-left: none;
   border-right: none;
   border-top: none;
   text-align: left;
+  cursor: pointer;
   transition: opacity 0.2s ease;
   width: 100%;
 }
@@ -162,17 +161,40 @@
 }
 
 .de-req-desc {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   line-height: 1.55;
   color: var(--de-text-secondary);
   margin: 0;
 }
 
-/* Right Column: Open Integrated Spec Canvas */
+/* Unframed Product Visual (Right Column) */
+.de-unframed-visual {
+  position: relative;
+  overflow: hidden;
+}
+
+.de-unframed-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  object-position: top left;
+  max-height: 520px;
+  filter: contrast(1.02) brightness(0.98);
+}
+
+.de-unframed-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0 0;
+}
+
+/* Open Integrated Spec Canvas (Unboxed Editorial Presentation) */
 .de-spec-canvas {
   background: var(--de-bg-subtle);
-  border: 1px solid var(--de-border);
-  padding: clamp(24px, 3vw, 40px);
+  border-top: 1px solid var(--de-border);
+  padding: clamp(24px, 3vw, 36px) 0 0;
   position: relative;
 }
 
@@ -182,41 +204,43 @@
   justify-content: space-between;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--de-border);
-  margin-bottom: 1.5rem;
-  font-family: var(--de-font-mono);
-  font-size: 0.72rem;
 }
 
 .de-spec-id {
-  color: var(--de-accent);
-  font-weight: 600;
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  color: var(--de-text-muted);
+  letter-spacing: 0.08em;
 }
 
 .de-spec-status {
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  color: #6DAE82;
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #6DAE82;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .de-spec-doc-body {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--de-border);
   font-family: var(--de-font-mono);
-  font-size: 0.88rem;
-  line-height: 1.8;
-  color: var(--de-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.7;
 }
 
 .de-spec-line {
   display: grid;
-  grid-template-columns: 32px 1fr;
+  grid-template-columns: 28px 1fr;
   gap: 12px;
-  margin-bottom: 0.75rem;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
 }
 
 .de-spec-linenum {
   color: var(--de-text-muted);
+  font-size: 0.72rem;
   user-select: none;
 }
 
@@ -225,51 +249,52 @@
 }
 
 .de-highlight-token {
-  background: rgba(139, 175, 154, 0.14);
-  color: #FFFFFF;
-  border-bottom: 1px solid var(--de-accent);
-  padding: 1px 4px;
+  background: rgba(139, 175, 154, 0.12);
+  color: #8BAF9A;
+  padding: 2px 6px;
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: all 0.2s ease;
 }
 
 .de-highlight-token.is-selected {
   background: rgba(139, 175, 154, 0.28);
-  border-bottom-color: #A0C5AF;
+  color: #F2F2F0;
+  outline: 1px solid #8BAF9A;
 }
 
-/* Synthesized Acceptance Block */
 .de-synth-block {
-  margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--de-border);
 }
 
 .de-synth-label {
+  display: block;
   font-family: var(--de-font-mono);
   font-size: 0.68rem;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--de-accent);
-  display: block;
-  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  color: var(--de-text-muted);
+  margin-bottom: 6px;
 }
 
 .de-synth-rule {
   font-family: var(--de-font-mono);
-  font-size: 0.82rem;
-  line-height: 1.6;
-  color: var(--de-text);
-  background: rgba(0, 0, 0, 0.4);
-  padding: 12px 16px;
-  border-left: 2px solid var(--de-accent);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #8BAF9A;
+  padding: 0.75rem 0;
+}
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  color: var(--de-text-muted);
+  border-top: 1px solid var(--de-border-subtle);
+  margin-top: 12px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SECTION 2 — THE QA WORKFLOW (Large Typography-Led Horizontal Progression)
+   SECTION B — THE QA WORKFLOW (Open Full-Width Timeline)
    ═══════════════════════════════════════════════════════════════════════════ */
 .de-workflow-track-wrap {
-  margin-top: 4rem;
+  margin-top: 4.5rem;
   position: relative;
 }
 
@@ -301,7 +326,7 @@
 
 .de-stage-num {
   font-family: var(--de-font-sans);
-  font-size: clamp(2.4rem, 3.8vw, 4.2rem);
+  font-size: clamp(2.8rem, 4.4vw, 5rem);
   font-weight: 300;
   letter-spacing: -0.05em;
   color: var(--de-text-muted);
@@ -320,7 +345,7 @@
 }
 
 .de-stage-title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 500;
   color: var(--de-text);
   letter-spacing: -0.01em;
@@ -343,167 +368,86 @@
   background: var(--de-accent);
 }
 
-/* Wide Genuine Workspace Preview Underneath */
-.de-workflow-preview {
-  margin-top: 2.5rem;
-  background: var(--de-bg-subtle);
-  border: 1px solid var(--de-border);
-  padding: clamp(24px, 3.5vw, 44px);
+/* Unframed Large Workflow Visual */
+.de-workflow-canvas-wrap {
+  margin-top: 3rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.de-preview-head {
+.de-workflow-canvas-img {
+  width: 100%;
+  height: auto;
+  max-height: 480px;
+  object-fit: cover;
+  object-position: top left;
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTION C — PRECISION IN EVERY TEST (Asymmetric Unboxed Spec)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.de-gen-split {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: clamp(48px, 6vw, 96px);
+  margin-top: 4rem;
+  align-items: start;
+}
+
+.de-gen-left-col {
+  max-width: 440px;
+}
+
+.de-meta-feature-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--de-border);
+  margin-top: 2rem;
+}
+
+.de-meta-feature-item {
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--de-border);
+}
+
+.de-mfeat-label {
+  font-family: var(--de-font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--de-accent);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.de-mfeat-desc {
+  font-size: 0.88rem;
+  color: var(--de-text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Right Side: Open, Unboxed Step Table */
+.de-gen-spec-area {
+  position: relative;
+}
+
+.de-gen-spec-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 1.25rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--de-border);
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-.de-preview-tag {
-  font-family: var(--de-font-mono);
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--de-accent);
-  letter-spacing: 0.06em;
-}
-
-.de-preview-badges {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.72rem;
-  font-family: var(--de-font-mono);
-  color: var(--de-text-muted);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SECTION 3 — TEST GENERATION (Precision in Every Test)
-   ═══════════════════════════════════════════════════════════════════════════ */
-.de-gen-split {
-  display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
-  gap: clamp(40px, 5vw, 80px);
-  margin-top: 3.5rem;
-  align-items: start;
-}
-
-.de-gen-index-list {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--de-border);
-}
-
-.de-gen-index-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 1.25rem 0;
-  border-bottom: 1px solid var(--de-border);
-  background: transparent;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-  text-align: left;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-  width: 100%;
-}
-
-.de-gen-index-item:hover {
-  opacity: 0.85;
-}
-
-.de-gen-index-item.is-selected .de-gen-item-id {
-  color: var(--de-accent);
-}
-
-.de-gen-index-item.is-selected .de-gen-item-title {
-  color: #FFFFFF;
-}
-
-.de-gen-item-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.de-gen-item-id {
-  font-family: var(--de-font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--de-text-muted);
-}
-
-.de-gen-item-title {
-  font-size: 0.95rem;
-  font-weight: 480;
-  color: var(--de-text);
-  line-height: 1.4;
-}
-
-.de-gen-item-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  font-family: var(--de-font-mono);
-  font-size: 0.68rem;
-  color: var(--de-text-muted);
-}
-
-.de-gen-main-view {
-  background: var(--de-bg-subtle);
-  border: 1px solid var(--de-border);
-  padding: clamp(20px, 3vw, 36px);
-}
-
-.de-gen-view-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--de-border);
-  margin-bottom: 1.5rem;
-}
-
-.de-gen-status-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  font-family: var(--de-font-mono);
-  font-size: 0.72rem;
-  font-weight: 500;
-  border-radius: 3px;
-  background: transparent;
-  cursor: pointer;
-  border: 1px solid var(--de-border);
-  color: var(--de-text);
-  transition: all 0.2s ease;
-}
-
-.de-gen-status-toggle.is-approved {
-  color: #8BAF9A;
-  border-color: rgba(139, 175, 154, 0.35);
-  background: rgba(139, 175, 154, 0.08);
-}
-
-.de-gen-status-toggle.is-review {
-  color: #C8993C;
-  border-color: rgba(200, 153, 60, 0.35);
-  background: rgba(200, 153, 60, 0.08);
-}
-
-/* Steps Spec Table */
 .de-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   text-align: left;
 }
 
@@ -512,14 +456,14 @@
   font-size: 0.68rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--de-text-muted);
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--de-border);
 }
 
 .de-table td {
-  padding: 12px;
+  padding: 14px;
   border-bottom: 1px solid var(--de-border-subtle);
   vertical-align: top;
   color: var(--de-text);
@@ -537,10 +481,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SECTION 4 — REQUIREMENT TRACEABILITY (Technical Linear Audit Chain)
+   SECTION D — REQUIREMENT TRACEABILITY (Full-Width Technical Data Ledger)
    ═══════════════════════════════════════════════════════════════════════════ */
 .de-trace-wrap {
-  margin-top: 3.5rem;
+  margin-top: 4rem;
   border-top: 1px solid var(--de-border);
 }
 
@@ -561,7 +505,7 @@
   display: grid;
   grid-template-columns: 1.4fr 0.3fr 1.6fr 0.3fr 1.3fr 0.3fr 0.9fr;
   gap: 8px;
-  padding: 1.35rem 0;
+  padding: 1.4rem 0;
   align-items: center;
   border-bottom: 1px solid var(--de-border-subtle);
   cursor: pointer;
@@ -590,7 +534,7 @@
 }
 
 .de-trace-text {
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   color: var(--de-text);
   line-height: 1.4;
 }
@@ -617,7 +561,7 @@
 
 .de-trace-verified {
   font-family: var(--de-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: #6DAE82;
   display: inline-flex;
   align-items: center;
@@ -638,13 +582,13 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SECTION 5 — CI/CD ENGINEERING (Split Terminal Pipeline)
+   SECTION E — CI/CD ENGINEERING (Technical Split, No Outer Card)
    ═══════════════════════════════════════════════════════════════════════════ */
 .de-cicd-split {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
   gap: clamp(48px, 6vw, 96px);
-  margin-top: 3.5rem;
+  margin-top: 4rem;
   align-items: start;
 }
 
@@ -659,12 +603,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0;
+  padding: 1.1rem 0;
   border-bottom: 1px solid var(--de-border);
 }
 
 .de-runner-name {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 480;
   color: var(--de-text);
 }
@@ -673,32 +617,30 @@
   font-family: var(--de-font-mono);
   font-size: 0.65rem;
   color: var(--de-accent);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
-.de-term-window {
-  background: #060707;
-  border: 1px solid var(--de-border);
+.de-code-stream {
   position: relative;
+  border-top: 1px solid var(--de-border);
 }
 
 .de-term-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--de-border);
-  background: var(--de-bg);
 }
 
 .de-term-tabs {
   display: flex;
-  gap: 16px;
+  gap: 20px;
 }
 
 .de-term-tab {
   font-family: var(--de-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--de-text-muted);
   background: transparent;
   border: none;
@@ -711,45 +653,29 @@
   color: var(--de-accent);
 }
 
-.de-term-copy {
-  font-family: var(--de-font-mono);
-  font-size: 0.68rem;
-  color: var(--de-text-muted);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.de-term-copy:hover {
-  color: var(--de-text);
-}
-
 .de-term-codeblock {
-  padding: 1.5rem;
+  padding: 1.5rem 0;
   margin: 0;
   font-family: var(--de-font-mono);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   line-height: 1.7;
   color: #BAC5BE;
   overflow-x: auto;
+  background: transparent;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SECTION 6 — FINAL CTA (Expansive Typographic Closing)
+   SECTION F — FINAL CTA (Expansive Black Space)
    ═══════════════════════════════════════════════════════════════════════════ */
 .de-cta-section {
-  padding: clamp(120px, 15vw, 240px) 0;
+  padding: clamp(140px, 16vw, 260px) 0;
   background: var(--de-bg);
   border-top: 1px solid var(--de-border);
-  text-align: left;
 }
 
 .de-cta-massive-title {
   font-family: var(--de-font-sans);
-  font-size: clamp(3rem, 6.5vw, 6.2rem);
+  font-size: clamp(3rem, 6.8vw, 6.4rem);
   font-weight: 380;
   letter-spacing: -0.04em;
   line-height: 1.02;
@@ -762,7 +688,7 @@
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
-  margin-top: 2.5rem;
+  margin-top: 2.75rem;
 }
 
 .de-cta-btn {

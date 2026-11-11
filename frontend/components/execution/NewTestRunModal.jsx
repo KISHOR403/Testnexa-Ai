@@ -12,6 +12,15 @@ import ComingSoonModal from './ComingSoonModal';
 import Modal from '../ui/Modal';
 import '../../styles/app/WorkspaceDesignSystem.css';
 
+const safeFormatValue = (val, fallback = '') => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'object') {
+        return val.title || val.name || val.text || val.description || val.id || fallback;
+    }
+    const str = String(val).trim();
+    return str || fallback;
+};
+
 const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds = [] }) => {
     const navigate = useNavigate();
 
@@ -511,8 +520,8 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
                                                 overflow: 'hidden',
                                                 textOverflow: 'ellipsis'
                                             }}>
-                                                <strong style={{ color: '#A0A5A5', marginRight: '6px' }}>{c.id}</strong>
-                                                {c.title}
+                                                <strong style={{ color: '#A0A5A5', marginRight: '6px' }}>{safeFormatValue(c.id)}</strong>
+                                                {safeFormatValue(c.title, 'Untitled Test Case')}
                                             </span>
                                         </div>
 
@@ -535,7 +544,7 @@ const NewTestRunModal = ({ isOpen, onClose, initialSuite = null, initialCaseIds 
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '0.04em'
                                             }}>
-                                                {c.priority}
+                                                {safeFormatValue(c.priority, 'medium')}
                                             </span>
                                         </div>
                                     </div>
