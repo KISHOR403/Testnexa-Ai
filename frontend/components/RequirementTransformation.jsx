@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 const CAPABILITIES = [
@@ -46,29 +46,35 @@ export const RequirementTransformation = () => {
     return (
         <section
             id="transformation"
-            className="de-section"
-            aria-labelledby="req-intel-heading"
+            className="vt-story-section"
+            aria-labelledby="story-intel-heading"
         >
-            <div className="de-container">
-                <div className="de-req-layout">
-                    {/* LEFT COLUMN: Editorial Typography & 4 Analysis Capabilities */}
-                    <div className="de-req-copy">
-                        <div className="de-eyebrow">
-                            <span className="de-eyebrow-dot" />
+            <div className="vt-container">
+                <div className="vt-story-layout">
+                    {/* LEFT COLUMN: Editorial Typography with Vertical Dotted Guide */}
+                    <div className="vt-story-left">
+                        {/* Architectural Dotted Vertical Line and Marker */}
+                        <div className="vt-story-vertical-guide" />
+                        <div className="vt-story-node-anchor">
+                            <div className="vt-story-node-inner" />
+                        </div>
+
+                        <div className="vt-eyebrow">
+                            <span className="vt-eyebrow-node" />
                             <span>01 / REQUIREMENT INTELLIGENCE</span>
                         </div>
 
-                        <h2 id="req-intel-heading" className="de-editorial-title">
-                            Understand the requirement.<br />
-                            <span className="de-text-accent">Before you test it.</span>
+                        <h2 id="story-intel-heading" className="vt-editorial-heading">
+                            Before a test exists,<br />
+                            <span className="vt-text-accent">understand what matters.</span>
                         </h2>
 
-                        <p className="de-lead">
+                        <p className="vt-lead-text">
                             Raw specifications hide unstated assumptions, ambiguous boundaries, and implicit timing vulnerabilities. TestNexa deconstructs natural language into deterministic acceptance logic before writing a single test.
                         </p>
 
-                        {/* 4 Actual Capabilities */}
-                        <div className="de-req-capabilities" role="tablist" aria-label="Analysis Capabilities">
+                        {/* 4 Capabilities List */}
+                        <div className="vt-capability-list" role="tablist" aria-label="Requirement Analysis Capabilities">
                             {CAPABILITIES.map((cap) => {
                                 const isActive = cap.id === activeCapId;
                                 return (
@@ -77,23 +83,23 @@ export const RequirementTransformation = () => {
                                         type="button"
                                         role="tab"
                                         aria-selected={isActive}
-                                        className={`de-req-cap-item ${isActive ? 'is-active' : ''}`}
+                                        className={`vt-capability-row ${isActive ? 'is-active' : ''}`}
                                         onClick={() => setActiveCapId(cap.id)}
                                     >
-                                        <span className="de-req-cap-num">{cap.num}</span>
+                                        <span className="vt-cap-num">{cap.num}</span>
                                         <div>
-                                            <span className="de-req-cap-title">{cap.title}</span>
-                                            <p className="de-req-cap-desc">{cap.desc}</p>
+                                            <span className="vt-cap-title">{cap.title}</span>
+                                            <p className="vt-cap-desc">{cap.desc}</p>
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div style={{ marginTop: '2rem' }}>
+                        <div style={{ marginTop: '2.5rem' }}>
                             <a
                                 href={getTargetUrl('/app/workspace')}
-                                className="de-inline-link"
+                                className="vt-inline-link"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     handleWorkspaceEntry('/app/workspace');
@@ -105,25 +111,34 @@ export const RequirementTransformation = () => {
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Large Genuine Requirement-Analysis Interface */}
-                    <div className="de-req-visual-wrap">
-                        <div className="de-req-image-frame">
+                    {/* RIGHT COLUMN: Genuine Product Interface Preview (Aspect 1.56:1) */}
+                    <div className="vt-visual-column">
+                        <div className="vt-product-frame-156">
                             <img
                                 src="/screenshots/transformation-preview.png"
                                 alt="TestNexa Requirement Analysis Workbench"
-                                className="de-req-image"
+                                className="vt-product-img"
                                 loading="lazy"
                             />
-                            <div className="de-req-image-overlay" />
+                            <div className="vt-product-vignette" />
                         </div>
 
-                        {/* Dynamic Live Annotation Callout */}
-                        <div className="de-req-callout">
-                            <span className="de-req-callout-tag">Target Clause Deconstruction: &ldquo;{activeCap.clause}&rdquo;</span>
-                            <div className="de-req-callout-text">{activeCap.synthesis}</div>
-                            <div className="de-req-callout-meta">
-                                Verified Rule &bull; DOC-AUTH-2026 PRD Section 4.2 &bull; 100% Clause Coverage
+                        {/* Interactive Clause Breakdown Strip */}
+                        <div className="vt-visual-caption-strip">
+                            <div>
+                                <span style={{ color: 'var(--vt-accent)', fontWeight: 600 }}>TARGET CLAUSE: </span>
+                                <span>&ldquo;{activeCap.clause}&rdquo;</span>
                             </div>
+                            <div>
+                                <span style={{ color: '#8BAF9A' }}>100% Clause Coverage Synthesized</span>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '12px', padding: '12px 16px', background: 'var(--vt-bg-charcoal)', borderLeft: '2px solid var(--vt-accent)', fontSize: '0.82rem', color: '#BAC5BE', lineHeight: 1.5 }}>
+                            <strong style={{ color: '#FFFFFF', display: 'block', marginBottom: '2px', fontFamily: 'monospace', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                Synthesized Rule &bull; DOC-AUTH-2026 PRD Section 4.2
+                            </strong>
+                            {activeCap.synthesis}
                         </div>
                     </div>
                 </div>

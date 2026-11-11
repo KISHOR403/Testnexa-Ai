@@ -8,29 +8,29 @@ export const FinalCTA = () => {
     return (
         <section
             id="final-cta"
-            className="de-section de-cta-section"
+            className="vt-cta-section"
             aria-labelledby="final-cta-heading"
         >
-            <div className="de-container">
-                <div style={{ maxWidth: 880 }}>
-                    <div className="de-eyebrow">
-                        <span className="de-eyebrow-dot" />
-                        <span>06 / GET STARTED</span>
+            <div className="vt-container">
+                <div style={{ maxWidth: 940 }}>
+                    <div className="vt-eyebrow">
+                        <span className="vt-eyebrow-node" />
+                        <span>GET STARTED TODAY</span>
                     </div>
 
-                    <h2 id="final-cta-heading" className="de-cta-massive-title">
+                    <h2 id="final-cta-heading" className="vt-cta-title">
                         Start with a requirement.<br />
-                        <span className="de-text-accent">Leave with a test suite.</span>
+                        <span className="vt-text-accent">Leave with a test suite.</span>
                     </h2>
 
-                    <p className="de-lead">
+                    <p className="vt-lead-text">
                         Turn natural language specifications into verified, traceable QA work. Ingest requirements, isolate implicit risks, and export to Playwright and CI/CD in minutes.
                     </p>
 
-                    <div className="de-cta-action-row">
+                    <div className="vt-cta-actions">
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            className="de-cta-btn"
+                            className="vt-cta-button"
                             id="final-cta-btn"
                             onClick={(e) => {
                                 e.preventDefault();
@@ -41,7 +41,7 @@ export const FinalCTA = () => {
                             <ArrowRight size={16} />
                         </a>
 
-                        <span className="de-cta-reassurance">
+                        <span className="vt-cta-meta">
                             Start free &bull; No credit card required &bull; Full workspace access
                         </span>
                     </div>

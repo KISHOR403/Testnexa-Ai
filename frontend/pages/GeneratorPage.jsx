@@ -1,9 +1,8 @@
 import React from 'react';
 import Hero from '../components/Hero';
 import RequirementTransformation from '../components/RequirementTransformation';
-import EnterpriseWorkflowChapter from '../components/EnterpriseWorkflowChapter';
-import TestSuiteChapter from '../components/TestSuiteChapter';
-import TraceabilityGraph from '../components/TraceabilityGraph';
+import InteractiveTimelineSection from '../components/InteractiveTimelineSection';
+import TypographicStatement from '../components/TypographicStatement';
 import IntegrationsChapter from '../components/IntegrationsChapter';
 import FinalCTA from '../components/FinalCTA';
 import GlobalWorkflowIndicator from '../components/GlobalWorkflowIndicator';
@@ -14,25 +13,37 @@ const GeneratorPage = () => {
             {/* Subtle Vertical Workflow Indicator connecting chapters */}
             <GlobalWorkflowIndicator />
 
-            {/* Hero: Problem framing, core value proposition & authentic product canvas */}
+            {/* Hero: Problem framing, core value proposition & authentic product canvas (PRESERVED EXACTLY) */}
             <Hero />
 
-            {/* Section A: Requirement Intelligence — Natural language to verified acceptance logic */}
+            {/* 1. First Storytelling Section — Requirement Intelligence with Timeline Anchor */}
             <RequirementTransformation />
 
-            {/* Section B: Complete QA Workflow — Connected end-to-end engineering pipeline */}
-            <EnterpriseWorkflowChapter />
+            {/* Dramatic Transition Statement 1 */}
+            <TypographicStatement
+                tag="[ SPECIFICATION RIGOR ]"
+                text="Every requirement has a purpose."
+            />
 
-            {/* Section C: Review and Risk — Interactive test case inspection, edge cases & BDD */}
-            <TestSuiteChapter />
+            {/* 2. Main Interactive Timeline (5-Stage Vention Charcoal #222426 Environment) */}
+            <InteractiveTimelineSection />
 
-            {/* Section D: Bidirectional Traceability — Verifiable lineage from spec to risk mitigation */}
-            <TraceabilityGraph />
+            {/* Dramatic Transition Statement 2 */}
+            <TypographicStatement
+                tag="[ AUDITABLE LINEAGE ]"
+                text="Every test needs a reason."
+            />
 
-            {/* Section E: Developer Pipeline & Integrations — Native test runners, cURL & CI/CD quality gates */}
+            {/* 3. Developer Pipeline & CI/CD Integrations */}
             <IntegrationsChapter />
 
-            {/* Final CTA: Editorial closing canvas */}
+            {/* Dramatic Transition Statement 3 */}
+            <TypographicStatement
+                tag="[ ACCEPTANCE CRITERIA ]"
+                text="Quality must be verified."
+            />
+
+            {/* 4. Final Typographic Call to Action */}
             <FinalCTA />
         </div>
     );

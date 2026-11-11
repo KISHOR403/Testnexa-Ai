@@ -97,44 +97,43 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
     return (
         <section
             id="integrations"
-            className="de-section"
-            aria-labelledby="integrations-heading"
+            className="vt-pipeline-section"
+            aria-labelledby="pipeline-heading"
         >
-            <div className="de-container">
-                {/* ─── Header ─── */}
-                <div style={{ maxWidth: 760 }}>
-                    <div className="de-eyebrow">
-                        <span className="de-eyebrow-dot" />
-                        <span>05 / CI/CD & DEVELOPER PIPELINE</span>
+            <div className="vt-container">
+                <div style={{ maxWidth: 800 }}>
+                    <div className="vt-eyebrow">
+                        <span className="vt-eyebrow-node" />
+                        <span>DEVELOPER PIPELINE & RUNNERS</span>
                     </div>
 
-                    <h2 id="integrations-heading" className="de-editorial-title">
+                    <h2 id="pipeline-heading" className="vt-editorial-heading">
                         Quality belongs in your development workflow.
                     </h2>
 
-                    <p className="de-lead">
+                    <p className="vt-lead-text">
                         Automate test generation from your terminal, export to standard runner formats, and gate pull requests before defects reach production.
                     </p>
                 </div>
 
-                {/* ─── Asymmetric Layout: Runners on Left, Code Stream on Right ─── */}
-                <div className="de-cicd-layout">
+                {/* Asymmetric Split Layout */}
+                <div className="vt-pipeline-grid">
                     {/* Left: Runners and Integrations */}
-                    <div className="de-runners-list">
+                    <div className="vt-runner-list">
                         {RUNNERS.map((r) => (
-                            <div key={r.key} className="de-runner-item">
+                            <div key={r.key} className="vt-runner-row">
                                 <div style={{ paddingRight: 16 }}>
-                                    <span className="de-runner-name">{r.name}</span>
-                                    <p className="de-runner-desc">{r.desc}</p>
+                                    <span className="vt-runner-title">{r.name}</span>
+                                    <p className="vt-runner-desc">{r.desc}</p>
                                 </div>
-                                <span className="de-runner-badge">{r.badge}</span>
+                                <span className="vt-runner-pill">{r.badge}</span>
                             </div>
                         ))}
 
-                        <div style={{ marginTop: '2rem' }}>
+                        <div style={{ marginTop: '2.5rem' }}>
                             <a
                                 href={getTargetUrl('/app/cicd')}
-                                className="de-inline-link"
+                                className="vt-inline-link"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     handleWorkspaceEntry('/app/cicd');
@@ -146,27 +145,27 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
                         </div>
                     </div>
 
-                    {/* Right: Monospace Code Stream */}
-                    <div className="de-code-workbench">
-                        <div className="de-code-topbar">
-                            <div className="de-mode-tabs" style={{ borderBottom: 'none', padding: 0 }}>
+                    {/* Right: Monospace Code Console */}
+                    <div className="vt-code-console">
+                        <div className="vt-code-header">
+                            <div className="vt-code-tabs">
                                 <button
                                     type="button"
-                                    className={`de-mode-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
+                                    className={`vt-code-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('curl')}
                                 >
                                     cURL API
                                 </button>
                                 <button
                                     type="button"
-                                    className={`de-mode-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
+                                    className={`vt-code-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('playwright')}
                                 >
                                     Playwright (.spec.ts)
                                 </button>
                                 <button
                                     type="button"
-                                    className={`de-mode-tab ${tabMode === 'response' ? 'is-active' : ''}`}
+                                    className={`vt-code-tab ${tabMode === 'response' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('response')}
                                 >
                                     JSON Response
@@ -175,7 +174,7 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
 
                             <button
                                 type="button"
-                                className="de-copy-btn"
+                                className="vt-copy-action"
                                 onClick={handleCopy}
                                 aria-label="Copy code snippet"
                             >
@@ -184,7 +183,7 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
                             </button>
                         </div>
 
-                        <pre className="de-code-pre">
+                        <pre className="vt-code-stream">
                             {tabMode === 'curl' && curlSnippet}
                             {tabMode === 'playwright' && playwrightSnippet}
                             {tabMode === 'response' && responseSnippet}
