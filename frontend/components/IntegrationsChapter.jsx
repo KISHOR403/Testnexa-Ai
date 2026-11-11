@@ -46,7 +46,7 @@ const EXPORT_CAPABILITIES = [
 ];
 
 export const IntegrationsChapter = () => {
-    const [tabMode, setTabMode] = useState('curl'); // 'curl' | 'response'
+    const [tabMode, setTabMode] = useState('curl'); // 'curl' | 'playwright' | 'response'
     const [copied, setCopied] = useState(false);
     const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
@@ -59,6 +59,23 @@ export const IntegrationsChapter = () => {
     "target_runners": ["playwright", "cypress", "gherkin"],
     "depth": "deterministic"
   }'`;
+
+    const playwrightSnippet = `import { test, expect } from '@playwright/test';
+
+test.describe('Password Recovery Suite (REQ-142)', () => {
+  test('TC-FUNC-001: Valid password reset dispatches token with 15m TTL', async ({ page }) => {
+    await page.goto('/forgot-password');
+    await page.getByLabel('Registered Email').fill('user@company.com');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(res => res.url().includes('/api/v1/auth/reset') && res.status() === 200),
+      page.getByRole('button', { name: 'Send Reset Link' }).click()
+    ]);
+
+    expect(response.ok()).toBeTruthy();
+    await expect(page.getByText('Reset instructions sent to registered address')).toBeVisible();
+  });
+});`;
 
     const responseSnippet = `{
   "status": "success",
@@ -81,7 +98,8 @@ export const IntegrationsChapter = () => {
 }`;
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(tabMode === 'curl' ? curlSnippet : responseSnippet);
+        const text = tabMode === 'curl' ? curlSnippet : tabMode === 'playwright' ? playwrightSnippet : responseSnippet;
+        navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -174,12 +192,22 @@ export const IntegrationsChapter = () => {
                                     <button
                                         type="button"
                                         role="tab"
+                                        aria-selected={tabMode === 'playwright'}
+                                        className={`tn-term-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
+                                        onClick={() => setTabMode('playwright')}
+                                    >
+                                        <Code size={12} />
+                                        <span>Playwright Spec</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="tab"
                                         aria-selected={tabMode === 'response'}
                                         className={`tn-term-tab ${tabMode === 'response' ? 'is-active' : ''}`}
                                         onClick={() => setTabMode('response')}
                                     >
                                         <Code size={12} />
-                                        <span>200 OK Response</span>
+                                        <span>200 OK JSON</span>
                                     </button>
                                 </div>
 
@@ -198,7 +226,7 @@ export const IntegrationsChapter = () => {
                             {/* Code Area */}
                             <div className="tn-term-body">
                                 <pre className="tn-term-code">
-                                    <code>{tabMode === 'curl' ? curlSnippet : responseSnippet}</code>
+                                    <code>{tabMode === 'curl' ? curlSnippet : tabMode === 'playwright' ? playwrightSnippet : responseSnippet}</code>
                                 </pre>
                             </div>
 

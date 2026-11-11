@@ -20,51 +20,51 @@ import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 const WORKFLOW_STEPS = [
     {
         num: '01',
-        id: 'ingest',
-        title: 'Ingest Specification',
-        shortDesc: 'Natural language & Jira issues',
-        detail: 'Ingest user stories, PRD clauses, or Jira tickets into normalized specification models.',
+        id: 'requirement',
+        title: 'Requirement',
+        shortDesc: 'Ingest user stories & PRD clauses',
+        detail: 'Ingest natural language specifications, PRD clauses, or Jira tickets into normalized specification models.',
         badge: 'DOC-AUTH-2026'
     },
     {
         num: '02',
-        id: 'decompose',
-        title: 'Condition Analysis',
+        id: 'analyze',
+        title: 'Analyze',
         shortDesc: 'Implicit risk & boundary flags',
-        detail: 'Deconstruct unstated assumptions, RFC email syntax boundaries, and security timing risks.',
+        detail: 'Deconstruct unstated assumptions, RFC email syntax boundaries, and security timing vulnerabilities.',
         badge: '3 Risk Flags'
     },
     {
         num: '03',
-        id: 'synthesize',
-        title: 'Scenario Generation',
-        shortDesc: 'Functional, negative & edge',
-        detail: 'Synthesize structured, prioritized test cases with atomic steps, preconditions, and assertions.',
+        id: 'generate',
+        title: 'Generate',
+        shortDesc: 'Functional, negative & edge suites',
+        detail: 'Synthesize structured, prioritized test cases with atomic execution steps, preconditions, and assertions.',
         badge: '24 Scenarios'
     },
     {
         num: '04',
         id: 'review',
-        title: 'Review & Approval',
+        title: 'Review',
         shortDesc: 'QA engineer inspection & editing',
-        detail: 'QA engineers review assertions, edit test steps, update status from Review to Approved.',
+        detail: 'QA engineers review assertions, edit test steps, and promote status from Needs Review to Approved.',
         badge: 'Interactive Review'
     },
     {
         num: '05',
-        id: 'coverage',
-        title: 'Coverage & Traceability',
-        shortDesc: 'Bidirectional lineage locking',
-        detail: 'Map 100% of test cases back to specification clauses with zero orphan tests.',
-        badge: '87% Clause Coverage'
+        id: 'execute',
+        title: 'Execute',
+        shortDesc: 'Manual workspace & test runs',
+        detail: 'Execute tests step-by-step with Pass/Fail/Blocked recording, actual observations, and defect logging.',
+        badge: 'Live Run #842'
     },
     {
         num: '06',
-        id: 'export',
-        title: 'Runner Export',
-        shortDesc: 'Playwright, Cypress & CI/CD',
-        detail: 'Export directly to Playwright (.spec.ts), Cypress (.cy.js), Cucumber BDD, and GitHub Actions.',
-        badge: 'Release Ready'
+        id: 'report',
+        title: 'Report',
+        shortDesc: 'Traceability & pass-rate analytics',
+        detail: 'Audit-ready execution reports with verified requirement coverage, duration deltas, and zero orphan tests.',
+        badge: 'Audit Verified'
     }
 ];
 
@@ -245,182 +245,300 @@ export const EnterpriseWorkflowChapter = () => {
                         </div>
                     </div>
 
-                    {/* Workspace Core Area: Multi-panel Split */}
+                    {/* Workspace Core Area: Dynamic Multi-panel Stage Preview */}
                     <div className="tn-ws-canvas">
-                        {/* LEFT COLUMN: Specification & Analysis */}
-                        <div className="tn-ws-col tn-ws-col-left">
-                            {/* Requirement Specification Panel */}
-                            <div className="tn-ws-panel tn-ws-panel-req">
-                                <div className="tn-ws-panel-head">
-                                    <span className="tn-ws-panel-tag">REQUIREMENT SPECIFICATION</span>
-                                    <span className="tn-ws-doc-ref">DOC-AUTH-2026</span>
-                                </div>
-                                <div className="tn-ws-req-quote">
-                                    <p>“Users can reset their password using their registered email address.”</p>
-                                </div>
-                                <div className="tn-ws-criteria-list">
-                                    <div className="tn-ws-crit-item">
-                                        <span className="tn-ws-crit-key">AC-1</span>
-                                        <span>Token dispatched to verified email only; TTL restricted to 15 minutes.</span>
+                        {currentStep.id === 'requirement' && (
+                            <div className="tn-ws-stage-view tn-ws-stage-req">
+                                <div className="tn-ws-panel tn-ws-panel-req" style={{ width: '100%' }}>
+                                    <div className="tn-ws-panel-head">
+                                        <span className="tn-ws-panel-tag">INGESTED SPECIFICATION</span>
+                                        <span className="tn-ws-doc-ref">DOC-AUTH-2026 &bull; PRD Section 4.2</span>
                                     </div>
-                                    <div className="tn-ws-crit-item">
-                                        <span className="tn-ws-crit-key">AC-2</span>
-                                        <span>Invalidate all existing session tokens immediately upon successful reset.</span>
+                                    <div className="tn-ws-req-quote">
+                                        <p>&ldquo;Users can reset their password using their registered email address.&rdquo;</p>
                                     </div>
-                                    <div className="tn-ws-crit-item">
-                                        <span className="tn-ws-crit-key">AC-3</span>
-                                        <span>Rate limit requests to 5 attempts/hour per originating IP and account.</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* AI Analysis Panel */}
-                            <div className="tn-ws-panel tn-ws-panel-analysis">
-                                <div className="tn-ws-panel-head">
-                                    <span className="tn-ws-panel-tag">DECOMPOSED CONDITIONS & RISKS</span>
-                                    <span className="tn-ws-analysis-badge">Deterministic</span>
-                                </div>
-
-                                <div className="tn-ws-analysis-content">
-                                    <div className="tn-ws-intent-row">
-                                        <span className="tn-ws-sub-label">PRIMARY INTENT</span>
-                                        <span className="tn-ws-intent-val">Password recovery & credential lifecycle validation</span>
-                                    </div>
-
-                                    <div className="tn-ws-analysis-split">
-                                        <div className="tn-ws-cond-block">
-                                            <span className="tn-ws-sub-label">TESTABLE CONDITIONS</span>
-                                            <ul className="tn-ws-bullet-list">
-                                                <li>• Registered email address syntax & existence</li>
-                                                <li>• One-time cryptographic token generation</li>
-                                                <li>• 15-minute expiry boundary enforcement</li>
-                                                <li>• Active web/mobile session revocation</li>
-                                            </ul>
+                                    <div className="tn-ws-criteria-list">
+                                        <div className="tn-ws-crit-item">
+                                            <span className="tn-ws-crit-key">AC-1</span>
+                                            <div>
+                                                <strong style={{ color: '#F2F3F3', display: 'block', marginBottom: '2px' }}>Token Dispatch &amp; TTL Bounding</strong>
+                                                <span>Cryptographic single-use token dispatched to verified email only. Strictly bounded to 15-minute TTL.</span>
+                                            </div>
                                         </div>
-
-                                        <div className="tn-ws-risks-block">
-                                            <span className="tn-ws-sub-label">ISOLATED RISKS</span>
-                                            <ul className="tn-ws-bullet-list tn-ws-risks-list">
-                                                <li>
-                                                    <span className="tn-ws-risk-dot is-amber" />
-                                                    <span>Expired token redemption replay</span>
-                                                </li>
-                                                <li>
-                                                    <span className="tn-ws-risk-dot is-red" />
-                                                    <span>Account enumeration via response timing</span>
-                                                </li>
-                                                <li>
-                                                    <span className="tn-ws-risk-dot is-amber" />
-                                                    <span>RFC 5322 internationalized email boundary</span>
-                                                </li>
-                                            </ul>
+                                        <div className="tn-ws-crit-item">
+                                            <span className="tn-ws-crit-key">AC-2</span>
+                                            <div>
+                                                <strong style={{ color: '#F2F3F3', display: 'block', marginBottom: '2px' }}>Session Revocation</strong>
+                                                <span>Invalidate all existing session tokens and refresh cookies immediately upon successful password update.</span>
+                                            </div>
+                                        </div>
+                                        <div className="tn-ws-crit-item">
+                                            <span className="tn-ws-crit-key">AC-3</span>
+                                            <div>
+                                                <strong style={{ color: '#F2F3F3', display: 'block', marginBottom: '2px' }}>Anti-Abuse Rate Limit</strong>
+                                                <span>Throttle password reset requests to maximum 5 attempts per hour per originating client IP and account identifier.</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* RIGHT COLUMN: Reviewable Test Suite & Lineage */}
-                        <div className="tn-ws-col tn-ws-col-right">
-                            {/* Test Suite Table Panel with QA Review Controls */}
-                            <div className="tn-ws-panel tn-ws-panel-suite">
-                                <div className="tn-ws-panel-head">
-                                    <div className="tn-ws-suite-title-group">
-                                        <span className="tn-ws-panel-tag">TEST CASES IN REVIEW</span>
-                                        <span className="tn-ws-count-badge">24 test cases</span>
+                        {currentStep.id === 'analyze' && (
+                            <div className="tn-ws-stage-view tn-ws-stage-analyze">
+                                <div className="tn-ws-panel tn-ws-panel-analysis" style={{ width: '100%' }}>
+                                    <div className="tn-ws-panel-head">
+                                        <span className="tn-ws-panel-tag">DECOMPOSED CONDITIONS &amp; RISKS</span>
+                                        <span className="tn-ws-analysis-badge">Deterministic Analysis</span>
                                     </div>
-                                    <div className="tn-ws-suite-breakdown">
-                                        <span className="tn-ws-type-pill is-func">Functional 12</span>
-                                        <span className="tn-ws-type-pill is-neg">Negative 7</span>
-                                        <span className="tn-ws-type-pill is-sec">Security 5</span>
+                                    <div className="tn-ws-analysis-content">
+                                        <div className="tn-ws-intent-row">
+                                            <span className="tn-ws-sub-label">PRIMARY INTENT</span>
+                                            <span className="tn-ws-intent-val">Password recovery &amp; credential lifecycle validation</span>
+                                        </div>
+                                        <div className="tn-ws-analysis-split">
+                                            <div className="tn-ws-cond-block">
+                                                <span className="tn-ws-sub-label">TESTABLE CONDITIONS</span>
+                                                <ul className="tn-ws-bullet-list">
+                                                    <li>&bull; Registered email address syntax &amp; database existence</li>
+                                                    <li>&bull; Single-use cryptographic token generation (256-bit entropy)</li>
+                                                    <li>&bull; 15-minute expiry boundary rejection assertion</li>
+                                                    <li>&bull; Active web/mobile session revocation upon password mutation</li>
+                                                </ul>
+                                            </div>
+                                            <div className="tn-ws-risks-block">
+                                                <span className="tn-ws-sub-label">ISOLATED RISKS</span>
+                                                <ul className="tn-ws-bullet-list tn-ws-risks-list">
+                                                    <li>
+                                                        <span className="tn-ws-risk-dot is-amber" />
+                                                        <span>Expired token redemption replay window</span>
+                                                    </li>
+                                                    <li>
+                                                        <span className="tn-ws-risk-dot is-red" />
+                                                        <span>Account enumeration via response timing variance (&gt; 120ms)</span>
+                                                    </li>
+                                                    <li>
+                                                        <span className="tn-ws-risk-dot is-amber" />
+                                                        <span>RFC 5322 internationalized email boundary parsing exception</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Table Rows */}
-                                <div className="tn-ws-table-wrap">
-                                    <table className="tn-ws-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="th-id">ID</th>
-                                                <th className="th-desc">SCENARIO & ASSERTION</th>
-                                                <th className="th-type">TYPE</th>
-                                                <th className="th-status">QA STATUS</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {TEST_CASES_DATA.map((tc) => (
-                                                <tr key={tc.id} className="tn-ws-tr is-visible">
-                                                    <td className="td-id">
-                                                        <code>{tc.id}</code>
-                                                    </td>
-                                                    <td className="td-desc">
-                                                        <div className="tn-ws-tc-title">{tc.title}</div>
-                                                        <div className="tn-ws-tc-assert">{tc.assertion}</div>
-                                                    </td>
-                                                    <td className="td-type">
-                                                        <span className={`tn-ws-type-tag ${tc.typeClass}`}>{tc.type}</span>
-                                                    </td>
-                                                    <td className="td-status">
-                                                        <span className={`tn-ws-status-chip ${tc.status === 'Approved' ? 'is-pass' : 'is-review'}`}>
-                                                            {tc.status === 'Approved' ? (
-                                                                <Check className="tn-chip-icon" size={11} />
-                                                            ) : (
-                                                                <AlertCircle className="tn-chip-icon" size={11} />
-                                                            )}
-                                                            {tc.status}
-                                                        </span>
-                                                    </td>
+                        {currentStep.id === 'generate' && (
+                            <div className="tn-ws-stage-view tn-ws-stage-generate">
+                                <div className="tn-ws-panel tn-ws-panel-suite" style={{ width: '100%' }}>
+                                    <div className="tn-ws-panel-head">
+                                        <div className="tn-ws-suite-title-group">
+                                            <span className="tn-ws-panel-tag">SYNTHESIZED TEST SCENARIOS</span>
+                                            <span className="tn-ws-count-badge">24 scenarios generated</span>
+                                        </div>
+                                        <div className="tn-ws-suite-breakdown">
+                                            <span className="tn-ws-type-pill is-func">12 Functional</span>
+                                            <span className="tn-ws-type-pill is-neg">7 Negative</span>
+                                            <span className="tn-ws-type-pill is-sec">5 Security &amp; Timing</span>
+                                        </div>
+                                    </div>
+                                    <div className="tn-ws-table-wrap">
+                                        <table className="tn-ws-table">
+                                            <thead>
+                                                <tr>
+                                                    <th className="th-id">ID</th>
+                                                    <th className="th-desc">SCENARIO &amp; EXPECTED OUTCOME</th>
+                                                    <th className="th-type">TYPE</th>
+                                                    <th className="th-status">STEPS</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {TEST_CASES_DATA.map((tc) => (
+                                                    <tr key={tc.id} className="tn-ws-tr is-visible">
+                                                        <td className="td-id"><code>{tc.id}</code></td>
+                                                        <td className="td-desc">
+                                                            <div className="tn-ws-tc-title">{tc.title}</div>
+                                                            <div className="tn-ws-tc-assert">{tc.assertion}</div>
+                                                        </td>
+                                                        <td className="td-type"><span className={`tn-ws-type-tag ${tc.typeClass}`}>{tc.type}</span></td>
+                                                        <td className="td-status"><span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#8BAF9A' }}>3 Atomic Steps</span></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Traceability Relationship Panel */}
-                            <div className="tn-ws-panel tn-ws-panel-trace">
-                                <div className="tn-ws-panel-head">
-                                    <span className="tn-ws-panel-tag">BIDIRECTIONAL TRACEABILITY</span>
-                                    <span className="tn-ws-trace-stat">Clause Coverage: 87% • 24/24 Linked</span>
+                        {currentStep.id === 'review' && (
+                            <div className="tn-ws-stage-view tn-ws-stage-review" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1rem', width: '100%' }}>
+                                <div className="tn-ws-panel tn-ws-panel-suite">
+                                    <div className="tn-ws-panel-head">
+                                        <div className="tn-ws-suite-title-group">
+                                            <span className="tn-ws-panel-tag">TEST CASES IN REVIEW</span>
+                                            <span className="tn-ws-count-badge">24 test cases</span>
+                                        </div>
+                                        <div className="tn-ws-suite-breakdown">
+                                            <span className="tn-ws-type-pill is-func">Functional 12</span>
+                                            <span className="tn-ws-type-pill is-neg">Negative 7</span>
+                                            <span className="tn-ws-type-pill is-sec">Security 5</span>
+                                        </div>
+                                    </div>
+                                    <div className="tn-ws-table-wrap">
+                                        <table className="tn-ws-table">
+                                            <thead>
+                                                <tr>
+                                                    <th className="th-id">ID</th>
+                                                    <th className="th-desc">SCENARIO &amp; ASSERTION</th>
+                                                    <th className="th-type">TYPE</th>
+                                                    <th className="th-status">QA STATUS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {TEST_CASES_DATA.map((tc) => (
+                                                    <tr key={tc.id} className="tn-ws-tr is-visible">
+                                                        <td className="td-id"><code>{tc.id}</code></td>
+                                                        <td className="td-desc">
+                                                            <div className="tn-ws-tc-title">{tc.title}</div>
+                                                            <div className="tn-ws-tc-assert">{tc.assertion}</div>
+                                                        </td>
+                                                        <td className="td-type"><span className={`tn-ws-type-tag ${tc.typeClass}`}>{tc.type}</span></td>
+                                                        <td className="td-status">
+                                                            <span className={`tn-ws-status-chip ${tc.status === 'Approved' ? 'is-pass' : 'is-review'}`}>
+                                                                {tc.status === 'Approved' ? <Check className="tn-chip-icon" size={11} /> : <AlertCircle className="tn-chip-icon" size={11} />}
+                                                                {tc.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
 
-                                <div className="tn-ws-trace-tree">
-                                    <div className="tn-ws-tree-root">
-                                        <span className="tn-ws-tree-root-box">REQ-142</span>
+                                <div className="tn-ws-panel tn-ws-panel-trace">
+                                    <div className="tn-ws-panel-head">
+                                        <span className="tn-ws-panel-tag">BIDIRECTIONAL TRACEABILITY</span>
+                                        <span className="tn-ws-trace-stat">Clause Coverage: 87% &bull; 24/24 Linked</span>
                                     </div>
-                                    <div className="tn-ws-tree-branches">
-                                        <div className="tn-ws-tree-line" />
-                                        <div className="tn-ws-tree-nodes">
-                                            <div className="tn-ws-tree-leaf">
-                                                <span className="tn-ws-branch-arm">├──</span>
-                                                <span className="tn-ws-leaf-id">TC-FUNC-001</span>
-                                                <span className="tn-ws-leaf-clause">[AC-1, AC-2]</span>
-                                            </div>
-                                            <div className="tn-ws-tree-leaf">
-                                                <span className="tn-ws-branch-arm">├──</span>
-                                                <span className="tn-ws-leaf-id">TC-FUNC-002</span>
-                                                <span className="tn-ws-leaf-clause">[AC-1]</span>
-                                            </div>
-                                            <div className="tn-ws-tree-leaf">
-                                                <span className="tn-ws-branch-arm">├──</span>
-                                                <span className="tn-ws-leaf-id">TC-NEG-004</span>
-                                                <span className="tn-ws-leaf-clause">[AC-1]</span>
-                                            </div>
-                                            <div className="tn-ws-tree-leaf">
-                                                <span className="tn-ws-branch-arm">├──</span>
-                                                <span className="tn-ws-leaf-id">TC-SEC-002</span>
-                                                <span className="tn-ws-leaf-clause">[AC-3]</span>
-                                            </div>
-                                            <div className="tn-ws-tree-leaf">
-                                                <span className="tn-ws-branch-arm">└──</span>
-                                                <span className="tn-ws-leaf-id">TC-EDGE-003</span>
-                                                <span className="tn-ws-leaf-clause">[AC-1]</span>
+                                    <div className="tn-ws-trace-tree">
+                                        <div className="tn-ws-tree-root">
+                                            <span className="tn-ws-tree-root-box">REQ-142</span>
+                                        </div>
+                                        <div className="tn-ws-tree-branches">
+                                            <div className="tn-ws-tree-line" />
+                                            <div className="tn-ws-tree-nodes">
+                                                <div className="tn-ws-tree-leaf">
+                                                    <span className="tn-ws-branch-arm">&boxvr;&HorizontalLine;</span>
+                                                    <span className="tn-ws-leaf-id">TC-FUNC-001</span>
+                                                    <span className="tn-ws-leaf-clause">[AC-1, AC-2]</span>
+                                                </div>
+                                                <div className="tn-ws-tree-leaf">
+                                                    <span className="tn-ws-branch-arm">&boxvr;&HorizontalLine;</span>
+                                                    <span className="tn-ws-leaf-id">TC-FUNC-002</span>
+                                                    <span className="tn-ws-leaf-clause">[AC-1]</span>
+                                                </div>
+                                                <div className="tn-ws-tree-leaf">
+                                                    <span className="tn-ws-branch-arm">&boxvr;&HorizontalLine;</span>
+                                                    <span className="tn-ws-leaf-id">TC-NEG-004</span>
+                                                    <span className="tn-ws-leaf-clause">[AC-1]</span>
+                                                </div>
+                                                <div className="tn-ws-tree-leaf">
+                                                    <span className="tn-ws-branch-arm">&boxvr;&HorizontalLine;</span>
+                                                    <span className="tn-ws-leaf-id">TC-SEC-002</span>
+                                                    <span className="tn-ws-leaf-clause">[AC-3]</span>
+                                                </div>
+                                                <div className="tn-ws-tree-leaf">
+                                                    <span className="tn-ws-branch-arm">&boxur;&HorizontalLine;</span>
+                                                    <span className="tn-ws-leaf-id">TC-EDGE-003</span>
+                                                    <span className="tn-ws-leaf-clause">[AC-1]</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
+
+                        {currentStep.id === 'execute' && (
+                            <div className="tn-ws-stage-view tn-ws-stage-execute" style={{ width: '100%' }}>
+                                <div className="tn-ws-panel" style={{ width: '100%', background: '#0C0E0D', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <div className="tn-ws-panel-head" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.75rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ fontFamily: 'monospace', color: '#8BAF9A', fontWeight: 700, fontSize: '0.82rem' }}>RUN #842</span>
+                                            <span style={{ color: '#F2F3F3', fontWeight: 600, fontSize: '0.86rem' }}>TC-FUNC-001 &bull; Submit registered email &amp; token dispatch</span>
+                                            <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>IN PROGRESS</span>
+                                        </div>
+                                        <span style={{ fontFamily: 'monospace', color: '#969B98', fontSize: '0.76rem' }}>Timer: 00:01:24</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: 'rgba(139, 175, 154, 0.06)', border: '1px solid rgba(139, 175, 154, 0.2)', borderRadius: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontFamily: 'monospace', color: '#8BAF9A', fontWeight: 700, fontSize: '0.78rem' }}>STEP 01</span>
+                                                <span style={{ color: '#F2F3F3', fontSize: '0.82rem' }}>Navigate to /forgot-password and input &ldquo;user@company.com&rdquo;</span>
+                                            </div>
+                                            <span style={{ background: 'rgba(139, 175, 154, 0.15)', color: '#8BAF9A', border: '1px solid rgba(139, 175, 154, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>PASSED</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#101211', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontFamily: 'monospace', color: '#38BDF8', fontWeight: 700, fontSize: '0.78rem' }}>STEP 02</span>
+                                                <span style={{ color: '#F2F3F3', fontSize: '0.82rem' }}>Submit form and monitor HTTP 200 constant-time network response</span>
+                                            </div>
+                                            <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>IN PROGRESS</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: '#0C0E0D', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', opacity: 0.7 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontFamily: 'monospace', color: '#68706B', fontWeight: 700, fontSize: '0.78rem' }}>STEP 03</span>
+                                                <span style={{ color: '#969B98', fontSize: '0.82rem' }}>Verify single-use cryptographic token delivered via SMTP with 15m TTL</span>
+                                            </div>
+                                            <span style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#68706B', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem' }}>NOT RUN</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <span style={{ fontSize: '0.76rem', color: '#969B98' }}>Observed: <code>HTTP 200 OK returned in 84ms &bull; Payload hash verified</code></span>
+                                        <span style={{ fontSize: '0.74rem', color: '#8BAF9A', fontWeight: 600 }}>Target: Staging Environment</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep.id === 'report' && (
+                            <div className="tn-ws-stage-view tn-ws-stage-report" style={{ width: '100%' }}>
+                                <div className="tn-ws-panel" style={{ width: '100%', background: '#0C0E0D', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                    <div className="tn-ws-panel-head" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.75rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ fontFamily: 'monospace', color: '#8BAF9A', fontWeight: 700, fontSize: '0.82rem' }}>REPORT &bull; RUN #842</span>
+                                            <span style={{ color: '#F2F3F3', fontWeight: 600, fontSize: '0.86rem' }}>Authentication &amp; Password Recovery Suite</span>
+                                        </div>
+                                        <span style={{ background: 'rgba(139, 175, 154, 0.15)', color: '#8BAF9A', border: '1px solid rgba(139, 175, 154, 0.3)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 600 }}>PASSED &bull; AUDIT VERIFIED</span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', margin: '1.25rem 0' }}>
+                                        <div style={{ padding: '0.85rem', background: '#101211', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px' }}>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'monospace', color: '#8BAF9A' }}>100%</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#969B98', textTransform: 'uppercase', marginTop: '2px' }}>Pass Rate (24/24)</div>
+                                        </div>
+                                        <div style={{ padding: '0.85rem', background: '#101211', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px' }}>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'monospace', color: '#F2F3F3' }}>1.4s</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#969B98', textTransform: 'uppercase', marginTop: '2px' }}>Total Duration</div>
+                                        </div>
+                                        <div style={{ padding: '0.85rem', background: '#101211', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px' }}>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'monospace', color: '#8BAF9A' }}>100%</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#969B98', textTransform: 'uppercase', marginTop: '2px' }}>Clause Coverage</div>
+                                        </div>
+                                        <div style={{ padding: '0.85rem', background: '#101211', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px' }}>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'monospace', color: '#8BAF9A' }}>0</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#969B98', textTransform: 'uppercase', marginTop: '2px' }}>Orphan Tests</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', fontSize: '0.78rem', color: '#969B98', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Cryptographic lineage token: <code>tn_audit_sig_e891c0b29841</code></span>
+                                        <span style={{ color: '#8BAF9A' }}>Exportable as JUnit XML, JSON, or PDF</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Workspace Bottom Action / Export Bar */}

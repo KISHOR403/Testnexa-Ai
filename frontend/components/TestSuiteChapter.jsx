@@ -164,15 +164,15 @@ export const TestSuiteChapter = () => {
                 <div className="tn-suite-header-group">
                     <div className="tn-chapter-eyebrow">
                         <span className="tn-kicker-dot" />
-                        <span>REVIEW & RISK INSPECTION</span>
+                        <span>TEST CASE GENERATION &amp; REVIEW</span>
                     </div>
 
                     <h2 id="suite-chapter-heading" className="tn-suite-title">
-                        Inspect test cases, isolate edge boundaries, and approve suites.
+                        Deterministic test generation with step-level precision.
                     </h2>
 
                     <p className="tn-suite-subtitle">
-                        Test cases are not generic checklists. QA engineers inspect atomic execution steps, review unstated boundary risks, identify missing edge scenarios, and approve tests before they move into CI/CD automation.
+                        Test cases are not generic checklists. TestNexa synthesizes atomic execution steps with preconditions, boundary assertions, and expected outcomes. QA engineers inspect and approve every test before automation.
                     </p>
                 </div>
 

@@ -15,46 +15,50 @@ const TRACE_LINKS = [
     {
         id: 'LNK-1',
         reqId: 'REQ-142.1',
-        reqName: 'Valid Password Recovery',
-        scenario: 'SC-01 Happy Path',
-        tcId: 'TC-001',
+        reqName: 'Valid Password Recovery Spec',
+        tcId: 'TC-FUNC-001',
         tcName: 'Submit registered email & token dispatch',
-        riskId: 'RISK-02',
-        riskName: 'Token Replay & Reuse',
-        status: 'Verified'
+        executionResult: 'Run #842 · Passed · 42ms',
+        executionStatus: 'passed',
+        verificationStatus: 'Verified',
+        verificationCoverage: '100% Trace',
+        proofDetail: 'Cryptographic token generated with 256-bit entropy; verified in SMTP queue.'
     },
     {
         id: 'LNK-2',
         reqId: 'REQ-142.2',
-        reqName: 'RFC 5322 Syntax Rules',
-        scenario: 'SC-02 Input Validation',
-        tcId: 'TC-002',
+        reqName: 'RFC 5322 Syntax Boundary Rules',
+        tcId: 'TC-NEG-002',
         tcName: 'Malformed email syntax rejection',
-        riskId: 'RISK-04',
-        riskName: 'Injection Vector Bypass',
-        status: 'Verified'
+        executionResult: 'Run #842 · Passed · 18ms',
+        executionStatus: 'passed',
+        verificationStatus: 'Verified',
+        verificationCoverage: '100% Trace',
+        proofDetail: 'Client input blocked trigger; raw API post returned HTTP 422 Unprocessable.'
     },
     {
         id: 'LNK-3',
         reqId: 'REQ-142.3',
-        reqName: '15-Minute Token TTL Window',
-        scenario: 'SC-03 Expiration Limits',
-        tcId: 'TC-003',
-        tcName: 'Expired token redemption attempt',
-        riskId: 'RISK-01',
-        riskName: 'Hijack Window Vulnerability',
-        status: 'Verified'
+        reqName: '15-Minute Token TTL Expiration',
+        tcId: 'TC-NEG-003',
+        tcName: 'Expired token redemption replay assertion',
+        executionResult: 'Run #842 · Passed · 65ms',
+        executionStatus: 'passed',
+        verificationStatus: 'Verified',
+        verificationCoverage: '100% Trace',
+        proofDetail: 'Token age > 900s rejected at gateway with 401 TOKEN_EXPIRED error payload.'
     },
     {
         id: 'LNK-4',
         reqId: 'REQ-142.4',
         reqName: '5 Req/Hr Rate Limiting',
-        scenario: 'SC-04 Abuse Mitigation',
-        tcId: 'TC-004',
+        tcId: 'TC-SEC-004',
         tcName: 'Brute-force throttle enforcement',
-        riskId: 'RISK-03',
-        riskName: 'Auth Gateway Flooding',
-        status: 'Review'
+        executionResult: 'Run #842 · Passed · 94ms',
+        executionStatus: 'passed',
+        verificationStatus: 'Verified',
+        verificationCoverage: '100% Trace',
+        proofDetail: '6th request within 60s yielded HTTP 429 Too Many Requests with Retry-After header.'
     }
 ];
 
@@ -126,16 +130,15 @@ export const TraceabilityGraph = () => {
                         </div>
                     </div>
 
-                    {/* Horizontal Stream Rows */}
+                    {/* Horizontal Stream Rows: Requirement → Test Case → Execution Result → Verification */}
                     <div className="tn-tflow-grid-header">
                         <span className="col-head col-req">REQUIREMENT CLAUSE</span>
                         <span className="col-head col-arrow" />
-                        <span className="col-head col-scen">SCENARIO GROUP</span>
+                        <span className="col-head col-tc">TEST CASE</span>
                         <span className="col-head col-arrow" />
-                        <span className="col-head col-tc">EXECUTABLE TEST CASE</span>
+                        <span className="col-head col-exec">EXECUTION RESULT</span>
                         <span className="col-head col-arrow" />
-                        <span className="col-head col-risk">RISK MITIGATION</span>
-                        <span className="col-head col-status">AUDIT STATUS</span>
+                        <span className="col-head col-status">VERIFICATION</span>
                     </div>
 
                     <div className="tn-tflow-rows" role="list">
@@ -148,7 +151,7 @@ export const TraceabilityGraph = () => {
                                     className={`tn-tflow-row ${isSelected ? 'is-selected' : ''}`}
                                     onClick={() => setActiveLinkId(link.id)}
                                 >
-                                    {/* Requirement Node */}
+                                    {/* 1. Requirement Node */}
                                     <div className="tn-tflow-cell col-req">
                                         <span className="tn-node-code">{link.reqId}</span>
                                         <span className="tn-node-desc">{link.reqName}</span>
@@ -160,18 +163,7 @@ export const TraceabilityGraph = () => {
                                         <span className="tn-conn-dot" />
                                     </div>
 
-                                    {/* Scenario Node */}
-                                    <div className="tn-tflow-cell col-scen">
-                                        <span className="tn-scen-tag">{link.scenario}</span>
-                                    </div>
-
-                                    {/* Connector */}
-                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
-                                        <span className="tn-conn-line" />
-                                        <span className="tn-conn-dot" />
-                                    </div>
-
-                                    {/* Test Case Node */}
+                                    {/* 2. Test Case Node */}
                                     <div className="tn-tflow-cell col-tc">
                                         <span className="tn-node-code">{link.tcId}</span>
                                         <span className="tn-node-desc">{link.tcName}</span>
@@ -183,17 +175,22 @@ export const TraceabilityGraph = () => {
                                         <span className="tn-conn-dot" />
                                     </div>
 
-                                    {/* Risk Node */}
-                                    <div className="tn-tflow-cell col-risk">
-                                        <span className="tn-risk-pill">{link.riskId}</span>
-                                        <span className="tn-risk-desc">{link.riskName}</span>
+                                    {/* 3. Execution Result Node */}
+                                    <div className="tn-tflow-cell col-exec">
+                                        <span className="tn-exec-pill">{link.executionResult}</span>
                                     </div>
 
-                                    {/* Status Pill */}
+                                    {/* Connector */}
+                                    <div className="tn-tflow-connector col-arrow" aria-hidden="true">
+                                        <span className="tn-conn-line" />
+                                        <span className="tn-conn-dot" />
+                                    </div>
+
+                                    {/* 4. Verification Status */}
                                     <div className="tn-tflow-cell col-status">
-                                        <span className={`tn-audit-chip ${link.status === 'Verified' ? 'is-verified' : 'is-review'}`}>
-                                            {link.status === 'Verified' ? <Check size={11} /> : <AlertTriangle size={11} />}
-                                            <span>{link.status}</span>
+                                        <span className="tn-audit-chip is-verified">
+                                            <Check size={11} />
+                                            <span>{link.verificationStatus}</span>
                                         </span>
                                     </div>
                                 </div>
@@ -205,7 +202,7 @@ export const TraceabilityGraph = () => {
                     <div className="tn-tflow-footer">
                         <div className="tn-tflow-footer-text">
                             <span className="tn-tfoot-tag">AUDIT PROOF:</span>
-                            <span>Selection maps <strong>{activeLink.reqId}</strong> through <strong>{activeLink.tcId}</strong> verifying mitigation of <strong>{activeLink.riskId} ({activeLink.riskName})</strong>.</span>
+                            <span>Selection maps <strong>{activeLink.reqId}</strong> &rarr; <strong>{activeLink.tcId}</strong> &rarr; <strong>{activeLink.executionResult}</strong>: {activeLink.proofDetail}</span>
                         </div>
                         <a
                             href={getTargetUrl('/app/workspace')}
