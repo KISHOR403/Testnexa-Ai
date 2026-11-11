@@ -1,27 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ArrowRight,
     Check,
-    AlertTriangle,
-    FileText,
-    Shield,
-    GitBranch,
-    SlidersHorizontal,
-    Code,
-    Sparkles
+    AlertTriangle
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
-import AntigravityTypewriter from './AntigravityTypewriter';
 
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
     const [activeTab, setActiveTab] = useState('cases');
     const sectionRef = useRef(null);
-    const windowRef = useRef(null);
     const [isRevealed, setIsRevealed] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsRevealed(true), 60);
+        const timer = setTimeout(() => setIsRevealed(true), 40);
         return () => clearTimeout(timer);
     }, []);
 
@@ -35,16 +27,6 @@ export const Hero = () => {
         }
     };
 
-    // Subtle spotlight mouse illumination tracker for the product canvas
-    const handleWindowMouseMove = useCallback((e) => {
-        if (!windowRef.current) return;
-        const rect = windowRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        windowRef.current.style.setProperty('--mouse-x', `${x}px`);
-        windowRef.current.style.setProperty('--mouse-y', `${y}px`);
-    }, []);
-
     return (
         <header className="tn-hero-section" aria-labelledby="hero-main-heading" ref={sectionRef}>
             <div className="tn-container">
@@ -53,28 +35,31 @@ export const Hero = () => {
                     className="tn-hero-content"
                     style={{
                         opacity: isRevealed ? 1 : 0,
-                        transform: isRevealed ? 'translateY(0)' : 'translateY(16px)',
-                        transition: 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)'
+                        transform: isRevealed ? 'translateY(0)' : 'translateY(14px)',
+                        transition: 'opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)'
                     }}
                 >
-                    <div className="tn-hero-kicker">
-                        <span className="tn-kicker-dot" />
-                        <span>INTELLIGENT QA ENGINEERING</span>
+                    {/* Eyebrow Label */}
+                    <div className="tn-hero-eyebrow">
+                        INTELLIGENT QA ENGINEERING
                     </div>
 
+                    {/* Exact Large Headline */}
                     <h1 id="hero-main-heading" className="tn-hero-title">
-                        <AntigravityTypewriter staticPrefix="From requirements to" />
+                        From requirements to verified acceptance.
                     </h1>
 
+                    {/* Supporting Description */}
                     <p className="tn-hero-desc">
                         TestNexa helps QA teams analyze requirements, generate structured test scenarios,
                         identify coverage gaps, and review tests before they move into execution.
                     </p>
 
+                    {/* Action CTAs */}
                     <div className="tn-hero-actions">
                         <a
                             href={getTargetUrl('/app/workspace')}
-                            className={`tn-btn-primary tn-btn-primary--lg ${isOpening ? 'is-opening' : ''}`}
+                            className={`tn-hero-btn-primary ${isOpening ? 'is-opening' : ''}`}
                             id="hero-generate-cta"
                             onClick={(e) => {
                                 e.preventDefault();
@@ -83,30 +68,29 @@ export const Hero = () => {
                             aria-label="Generate Test Suite"
                         >
                             <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
-                            <ArrowRight size={15} />
+                            <ArrowRight size={14} />
                         </a>
 
                         <button
                             type="button"
-                            className="tn-btn-secondary tn-btn-secondary--lg"
+                            className="tn-hero-btn-secondary"
                             onClick={handleExploreWorkflow}
                         >
                             <span>Explore the Workflow</span>
                         </button>
                     </div>
 
-                    <div className="tn-hero-pipeline-strip" aria-label="QA Pipeline Steps">
-                        <span className="tn-hpipe-item is-active">01 Requirement</span>
-                        <span className="tn-hpipe-sep">──</span>
-                        <span className="tn-hpipe-item">02 Analysis</span>
-                        <span className="tn-hpipe-sep">──</span>
-                        <span className="tn-hpipe-item">03 Test Suite</span>
-                        <span className="tn-hpipe-sep">──</span>
-                        <span className="tn-hpipe-item">04 Coverage</span>
-                        <span className="tn-hpipe-sep">──</span>
-                        <span className="tn-hpipe-item">05 Traceability</span>
-                        <span className="tn-hpipe-sep">──</span>
-                        <span className="tn-hpipe-item">06 Export</span>
+                    {/* Minimal Capability Indicators: Simple Horizontal Text Row */}
+                    <div className="tn-hero-capabilities" aria-label="Core Capabilities">
+                        <span className="tn-cap-item">Requirement Analysis</span>
+                        <span className="tn-cap-sep" aria-hidden="true">/</span>
+                        <span className="tn-cap-item">Test Generation</span>
+                        <span className="tn-cap-sep" aria-hidden="true">/</span>
+                        <span className="tn-cap-item">Coverage Intelligence</span>
+                        <span className="tn-cap-sep" aria-hidden="true">/</span>
+                        <span className="tn-cap-item">Traceability</span>
+                        <span className="tn-cap-sep" aria-hidden="true">/</span>
+                        <span className="tn-cap-item">Execution Ready</span>
                     </div>
                 </div>
 
@@ -117,15 +101,11 @@ export const Hero = () => {
                     aria-label="TestNexa Product Canvas"
                     style={{
                         opacity: isRevealed ? 1 : 0,
-                        transform: isRevealed ? 'translateY(0)' : 'translateY(24px)',
-                        transition: 'opacity 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s, transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s'
+                        transform: isRevealed ? 'translateY(0)' : 'translateY(20px)',
+                        transition: 'opacity 0.7s cubic-bezier(0.16,1,0.3,1) 0.12s, transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.12s'
                     }}
                 >
-                    <div
-                        ref={windowRef}
-                        className="tn-software-window tn-spotlight-card"
-                        onMouseMove={handleWindowMouseMove}
-                    >
+                    <div className="tn-software-window">
                         {/* Title Bar */}
                         <div className="tn-window-header">
                             <div className="tn-window-dots" aria-hidden="true">
@@ -144,7 +124,7 @@ export const Hero = () => {
                             </div>
                         </div>
 
-                        {/* App Sub-header with interactive tabs */}
+                        {/* App Sub-header with interactive tabs & real metrics */}
                         <div className="tn-canvas-subbar">
                             <div className="tn-canvas-tabs" role="tablist" aria-label="Preview Views">
                                 {[
@@ -261,7 +241,7 @@ export const Hero = () => {
                                                             <div className="tc-sub">Assert HTTP 200 generic confirmation &bull; 15m token queued</div>
                                                         </td>
                                                         <td className="td-type"><span className="tc-type tc-type--func">Functional</span></td>
-                                                        <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
+                                                        <td className="td-status"><span className="tc-status is-ready"><Check size={11} /> Ready</span></td>
                                                     </tr>
                                                     <tr>
                                                         <td className="td-id"><code>TC-002</code></td>
@@ -270,7 +250,7 @@ export const Hero = () => {
                                                             <div className="tc-sub">Assert RFC 5322 regex validation &bull; HTTP 422 INVALID_EMAIL</div>
                                                         </td>
                                                         <td className="td-type"><span className="tc-type tc-type--neg">Negative</span></td>
-                                                        <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
+                                                        <td className="td-status"><span className="tc-status is-ready"><Check size={11} /> Ready</span></td>
                                                     </tr>
                                                     <tr>
                                                         <td className="td-id"><code>TC-003</code></td>
@@ -279,7 +259,7 @@ export const Hero = () => {
                                                             <div className="tc-sub">Reject token &gt; 15m &bull; Assert HTTP 401 TOKEN_EXPIRED</div>
                                                         </td>
                                                         <td className="td-type"><span className="tc-type tc-type--neg">Negative</span></td>
-                                                        <td className="td-status"><span className="tc-status is-pass"><Check size={11} /> Pass</span></td>
+                                                        <td className="td-status"><span className="tc-status is-ready"><Check size={11} /> Ready</span></td>
                                                     </tr>
                                                     <tr>
                                                         <td className="td-id"><code>TC-004</code></td>
@@ -296,29 +276,27 @@ export const Hero = () => {
 
                                         <div className="tn-hero-pane-footer">
                                             <span className="tn-pfooter-lbl">LINEAGE:</span>
-                                            <span className="tn-pfooter-val">100% bidirectional traceability linked to REQ-142</span>
+                                            <span className="tn-pfooter-val font-mono">REQ-142 &rarr; AC-1, AC-2, AC-3 &rarr; 24 verified scenarios</span>
                                             <div className="tn-pfooter-actions">
-                                                <span className="tn-runner-badge">Playwright</span>
-                                                <span className="tn-runner-badge">Cypress</span>
-                                                <span className="tn-runner-badge">Cucumber BDD</span>
+                                                <span className="tn-runner-badge">Playwright Ready</span>
+                                                <span className="tn-runner-badge">Manual QA Ready</span>
                                             </div>
                                         </div>
                                     </div>
                                 </>
                             )}
 
-                            {/* TAB: REQUIREMENT SPEC */}
+                            {/* TAB: REQUIREMENT */}
                             {activeTab === 'requirement' && (
                                 <div className="tn-cbody-pane tn-cbody-pane--full">
                                     <div className="tn-cpane-head">
-                                        <span className="tn-cpane-tag">RAW REQUIREMENT DECONSTRUCTION</span>
-                                        <span className="tn-cpane-source">Source: Jira PROD-842 &bull; Auth Domain</span>
+                                        <span className="tn-cpane-tag">FULL REQUIREMENT SPECIFICATION</span>
+                                        <span className="tn-cpane-source">REQ-142 v1.2</span>
                                     </div>
                                     <div className="tn-tab-full-content">
                                         <div className="tn-spec-text-block">
-                                            <span className="tn-ann-editor-line-num">01</span>
                                             <p className="tn-spec-quote">
-                                                “Users can reset their password using their registered email address.”
+                                                &ldquo;As a registered user who has forgotten their password, I want to initiate a secure recovery sequence using my verified email so that I can regain authenticated access without administrative intervention.&rdquo;
                                             </p>
                                         </div>
                                         <div className="tn-tab-ac-grid">
@@ -327,7 +305,7 @@ export const Hero = () => {
                                                     <span className="tn-clause-idx">AC-1</span>
                                                     <span className="tn-ac-status is-pass">Verified</span>
                                                 </div>
-                                                <p className="tn-ac-card-title">Token Dispatch & TTL</p>
+                                                <p className="tn-ac-card-title">Token Lifecycle &amp; Dispatch</p>
                                                 <p className="tn-ac-card-desc">Single-use token dispatched via SMTP to verified email address only. Link expiration strictly locked to 15-minute TTL.</p>
                                             </div>
                                             <div className="tn-ac-card">
@@ -343,7 +321,7 @@ export const Hero = () => {
                                                     <span className="tn-clause-idx">AC-3</span>
                                                     <span className="tn-ac-status is-review">Review</span>
                                                 </div>
-                                                <p className="tn-ac-card-title">Rate Limiting & Abuse Prevention</p>
+                                                <p className="tn-ac-card-title">Rate Limiting &amp; Abuse Prevention</p>
                                                 <p className="tn-ac-card-desc">Throttle password recovery triggers to max 5 requests per hour per originating IP and account.</p>
                                             </div>
                                         </div>
@@ -355,7 +333,7 @@ export const Hero = () => {
                             {activeTab === 'analysis' && (
                                 <div className="tn-cbody-pane tn-cbody-pane--full">
                                     <div className="tn-cpane-head">
-                                        <span className="tn-cpane-tag">AI ANALYSIS & RISK SIGNALS</span>
+                                        <span className="tn-cpane-tag">AI ANALYSIS &amp; RISK SIGNALS</span>
                                         <span className="tn-analysis-badge">Deterministic Deconstruction</span>
                                     </div>
                                     <div className="tn-tab-full-content">
@@ -363,20 +341,20 @@ export const Hero = () => {
                                             <div className="tn-decomp-col">
                                                 <span className="tn-decomp-header">ISOLATED CONDITIONS</span>
                                                 <ul className="tn-decomp-list">
-                                                    <li>• Registered email address verification in database</li>
-                                                    <li>• Cryptographic one-time reset token generation (256-bit entropy)</li>
-                                                    <li>• Strict 15-minute expiration boundary</li>
-                                                    <li>• Full invalidation of prior active bearer tokens</li>
+                                                    <li>&bull; Registered email address verification in database</li>
+                                                    <li>&bull; Cryptographic one-time reset token generation (256-bit entropy)</li>
+                                                    <li>&bull; Strict 15-minute expiration boundary</li>
+                                                    <li>&bull; Full invalidation of prior active bearer tokens</li>
                                                 </ul>
                                             </div>
                                             <div className="tn-decomp-col">
-                                                <span className="tn-decomp-header">IDENTIFIED RISKS & BLIND SPOTS</span>
+                                                <span className="tn-decomp-header">EDGE RISKS &amp; AMBIGUITIES</span>
                                                 <ul className="tn-decomp-list tn-decomp-list--risks">
                                                     <li>
-                                                        <span className="tn-risk-indicator is-red" />
+                                                        <span className="tn-risk-indicator is-amber" />
                                                         <div>
-                                                            <strong>Account Enumeration Vulnerability</strong>
-                                                            <p>Different response codes or timings on existing vs non-existing emails expose registered accounts.</p>
+                                                            <strong>Account Enumeration Timing Delta</strong>
+                                                            <p>Response timings on existing vs non-existing emails expose registered accounts.</p>
                                                         </div>
                                                     </li>
                                                     <li>
@@ -422,7 +400,7 @@ export const Hero = () => {
                                                     <span className="tc-type tc-type--neg">Negative (7)</span>
                                                     <span className="tn-sg-prio">P1 High</span>
                                                 </div>
-                                                <h4 className="tn-sg-title">Input & Expiry Boundaries</h4>
+                                                <h4 className="tn-sg-title">Input &amp; Expiry Boundaries</h4>
                                                 <p className="tn-sg-desc">RFC 5322 malformed email syntax, expired token redemption, replayed single-use token, invalid password complexity.</p>
                                             </div>
                                             <div className="tn-scen-group-card">
@@ -430,7 +408,7 @@ export const Hero = () => {
                                                     <span className="tc-type tc-type--sec">Security (5)</span>
                                                     <span className="tn-sg-prio">P0 Critical</span>
                                                 </div>
-                                                <h4 className="tn-sg-title">Abuse Mitigation & Timing</h4>
+                                                <h4 className="tn-sg-title">Abuse Mitigation &amp; Timing</h4>
                                                 <p className="tn-sg-desc">Rate limit enforcement (&gt;5 req/hr), constant-time response delta (&le;120ms), session cookie revocation on completion.</p>
                                             </div>
                                         </div>
