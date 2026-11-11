@@ -64,7 +64,8 @@ const SCRIPT_TEMPLATES = {
 };
 
 const StatusBadge = ({ status }) => {
-    const s = (status || 'not_run').toLowerCase();
+    const raw = typeof status === 'object' && status !== null ? (status.status || status.label || status.name || 'not_run') : (status || 'not_run');
+    const s = String(raw).toLowerCase();
     const config = {
         passed: { label: 'Passed', bg: 'rgba(139, 175, 154, 0.15)', color: '#8BAF9A', border: 'rgba(139, 175, 154, 0.3)' },
         failed: { label: 'Failed', bg: 'rgba(224, 108, 117, 0.15)', color: '#E06C75', border: 'rgba(224, 108, 117, 0.3)' },
@@ -80,7 +81,7 @@ const StatusBadge = ({ status }) => {
         in_progress: { label: 'In Progress', bg: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', border: 'rgba(56, 189, 248, 0.3)' },
         pending: { label: 'Pending', bg: 'rgba(255, 255, 255, 0.05)', color: '#A0A5A5', border: '#292D2D' },
         not_run: { label: 'Not Run', bg: 'rgba(255, 255, 255, 0.05)', color: '#A0A5A5', border: '#292D2D' }
-    }[s] || { label: status, bg: '#161819', color: '#F2F3F3', border: '#292D2D' };
+    }[s] || { label: String(raw), bg: '#161819', color: '#F2F3F3', border: '#292D2D' };
 
     return (
         <span style={{
@@ -97,17 +98,18 @@ const StatusBadge = ({ status }) => {
             color: config.color,
             border: `1px solid ${config.border}`
         }}>
-            {config.label}
+            {String(config.label || 'Not Run')}
         </span>
     );
 };
 
 const PriorityBadge = ({ priority }) => {
-    const p = (priority || 'medium').toLowerCase();
+    const raw = typeof priority === 'object' && priority !== null ? (priority.level || priority.name || priority.priority || 'medium') : (priority || 'medium');
+    const p = String(raw).toLowerCase();
     const className = ['critical', 'high', 'medium', 'low'].includes(p) ? p : 'medium';
     return (
         <span className={`qa-priority-pill ${className}`}>
-            {priority || 'Medium'}
+            {String(raw || 'Medium')}
         </span>
     );
 };
@@ -149,12 +151,31 @@ const formatBytes = (bytes = 0) => {
 const safeFormatValue = (val, fallback = '') => {
     if (val === null || val === undefined) return fallback;
     if (Array.isArray(val)) {
-        return val.map(v => typeof v === 'object' ? (v.description || v.text || v.step || v.action || JSON.stringify(v)) : String(v)).join(', ');
+        if (val.length === 0) return fallback;
+        const formatted = val.map(v => {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object') {
+                return v.description || v.text || v.step || v.action || v.title || v.name || '';
+            }
+            return String(v);
+        }).filter(Boolean).join(', ');
+        return formatted || fallback;
     }
     if (typeof val === 'object') {
-        return val.description || val.text || val.name || JSON.stringify(val);
+        const str = val.description || val.text || val.name || val.title || val.summary || val.code || val.label || '';
+        return str || fallback;
     }
-    return String(val);
+    const str = String(val).trim();
+    return str || fallback;
+};
+
+const formatSuiteTitle = (suite, fallback = 'Test Suite') => {
+    if (!suite) return fallback;
+    if (typeof suite === 'string') return suite.trim() || fallback;
+    if (typeof suite === 'object') {
+        return suite.title || suite.name || suite.feature || suite.testSuiteName || fallback;
+    }
+    return String(suite || fallback);
 };
 
 const formatEnvironmentName = (env) => {
@@ -163,7 +184,7 @@ const formatEnvironmentName = (env) => {
     if (typeof env === 'object') {
         return env.name || env.environment || env.baseUrl || env.url || 'Default Staging';
     }
-    return String(env);
+    return String(env || 'Default Staging');
 };
 
 const formatAssignedTester = (assigned) => {
@@ -172,7 +193,7 @@ const formatAssignedTester = (assigned) => {
     if (typeof assigned === 'object') {
         return assigned.name || assigned.fullName || assigned.email || assigned.username || 'Unassigned';
     }
-    return String(assigned);
+    return String(assigned || 'Unassigned');
 };
 
 const EvidenceThumbnail = ({ runId, artifact, onSelect }) => {
@@ -1503,7 +1524,7 @@ return (
                         <NavLink to={`/app/runs/${run.originalRunId}`} style={{ color: '#8BAF9A', fontFamily: 'ui-monospace, monospace', textDecoration: 'underline', fontWeight: 600 }}>
                             Run #{String(run.originalRunId).slice(-8)}
                         </NavLink>
-                        <span style={{ color: '#727D75' }}>({run.rerunType || 'failed'} tests scope)</span>
+                        <span style={{ color: '#727D75' }}>({safeFormatValue(run.rerunType, 'failed')} tests scope)</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <NavLink
@@ -1536,7 +1557,7 @@ return (
                         >
                             <ArrowLeft size={16} />
                         </NavLink>
-                        <h1 className="qa-run-title">{run.name}</h1>
+                        <h1 className="qa-run-title">{safeFormatValue(run.name, 'Untitled Run')}</h1>
                         <span className="qa-run-id-pill">Run #{String(run.id).slice(-8)}</span>
                         <StatusBadge status={run.status} />
                         <span style={{
@@ -1560,7 +1581,7 @@ return (
                         </span>
                         <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
                         <span className="qa-header-meta-item">
-                            Suite: <strong>{run.suiteTitle || run.suiteName || 'Test Suite'}</strong> (v{run.suiteVersion || 1})
+                            Suite: <strong>{formatSuiteTitle(run.suiteTitle || run.suiteName || run.suite)}</strong> (v{typeof run.suiteVersion === 'number' || typeof run.suiteVersion === 'string' ? run.suiteVersion : 1})
                         </span>
                         <span style={{ color: 'var(--qa-text-dim)' }}>•</span>
                         <span className="qa-header-meta-item">
@@ -1865,7 +1886,7 @@ return (
                     <div className="evidence-heading">
                         <div>
                             <div className="evidence-breadcrumb"><NavLink to="/app/runs">Execution</NavLink><span>/</span><span>Artifacts &amp; Evidence</span></div>
-                            <h2>{evidenceSuiteName || run.suiteName || run.suite?.name || run.suite?.title || 'Test suite'} <span className="evidence-run-number">Run {run.runNumber || run.run_number || String(run.id).slice(0, 8)}</span></h2>
+                            <h2>{formatSuiteTitle(evidenceSuiteName || run.suiteName || run.suite)} <span className="evidence-run-number">Run {safeFormatValue(run.runNumber || run.run_number || String(run.id).slice(0, 8))}</span></h2>
                             <div className="evidence-run-meta"><StatusBadge status={run.status} /><span>{formatEnvironmentName(run.targetEnvironment)}</span><span>{artifacts.length} {artifacts.length === 1 ? 'artifact' : 'artifacts'}</span></div>
                         </div>
                         {previewArtifact && <button type="button" className="evidence-download evidence-heading-download" onClick={() => downloadEvidence(previewArtifact)}><Download size={14} /> Download selected</button>}
@@ -2036,7 +2057,7 @@ return (
                                                             >
                                                                 <div className="qa-case-card-top">
                                                                     <span className="qa-case-id-text">
-                                                                        {c.testCaseId}
+                                                                        {safeFormatValue(c.testCaseId, 'TC')}
                                                                     </span>
                                                                     <div className="qa-case-badges">
                                                                         <PriorityBadge priority={c.caseSnapshot?.priority} />
@@ -2045,7 +2066,7 @@ return (
                                                                     </div>
                                                                 </div>
                                                                 <div className="qa-case-title-text">
-                                                                    {c.caseSnapshot?.title || 'Untitled Test Case'}
+                                                                    {safeFormatValue(c.caseSnapshot?.title, 'Untitled Test Case')}
                                                                 </div>
                                                             </div>
                                                         );
@@ -2091,10 +2112,10 @@ return (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                                             <span className="qa-case-id-text" style={{ fontSize: '0.86rem' }}>
-                                                {activeCase.testCaseId}
+                                                {safeFormatValue(activeCase.testCaseId, 'TC')}
                                             </span>
                                             <span style={{ fontSize: '0.78rem', color: 'var(--qa-text-muted)' }}>
-                                                {snapshot.module || 'General'} • {snapshot.type || 'Functional'}
+                                                {safeFormatValue(snapshot.module, 'General')} • {safeFormatValue(snapshot.type, 'Functional')}
                                             </span>
                                             <PriorityBadge priority={snapshot.priority} />
                                             <CaseMethodBadge c={activeCase} />
@@ -2118,7 +2139,7 @@ return (
                                             </span>
                                         </div>
                                     </div>
-                                    <h2 className="qa-case-detail-title">{snapshot.title}</h2>
+                                    <h2 className="qa-case-detail-title">{safeFormatValue(snapshot.title, 'Untitled Test Case')}</h2>
                                 </div>
 
                                 {/* ─── 2. Automation Readiness & Mapping Info ─── */}
@@ -2832,14 +2853,14 @@ return (
                                                         {new Date(att.executedAt || att.createdAt).toLocaleTimeString()} • {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
                                                     </span>
                                                 </div>
-                                                {att.actualResult && (
+                                                {Boolean(safeFormatValue(att.actualResult)) && (
                                                     <div style={{ fontSize: '0.82rem', color: 'var(--qa-text)', lineHeight: '1.4' }}>
-                                                        {att.actualResult}
+                                                        {safeFormatValue(att.actualResult)}
                                                     </div>
                                                 )}
-                                                {att.notes && (
+                                                {Boolean(safeFormatValue(att.notes)) && (
                                                     <div style={{ fontSize: '0.76rem', color: 'var(--qa-text-muted)', fontStyle: 'italic' }}>
-                                                        Note: {att.notes}
+                                                        Note: {safeFormatValue(att.notes)}
                                                     </div>
                                                 )}
                                             </div>
@@ -3027,7 +3048,7 @@ return (
                                                 if (reqs.length === 0) {
                                                     return (
                                                         <div style={{ padding: '1.5rem 0.5rem', textAlign: 'center', color: 'var(--qa-text-dim)', fontSize: '0.75rem' }}>
-                                                            No specific requirements linked. Test scenario covers module: <strong>{snapshot.module || 'Core'}</strong>
+                                                            No specific requirements linked. Test scenario covers module: <strong>{safeFormatValue(snapshot.module, 'Core')}</strong>
                                                         </div>
                                                     );
                                                 }
@@ -3080,9 +3101,9 @@ return (
                                                                 {new Date(att.executedAt || att.createdAt).toLocaleDateString()}
                                                             </span>
                                                         </div>
-                                                        {att.actualResult && (
+                                                        {Boolean(safeFormatValue(att.actualResult)) && (
                                                             <div style={{ fontSize: '0.74rem', color: 'var(--qa-text)', lineHeight: '1.3' }}>
-                                                                {att.actualResult}
+                                                                {safeFormatValue(att.actualResult)}
                                                             </div>
                                                         )}
                                                     </div>
@@ -3123,10 +3144,10 @@ return (
                                                                 {def.status || 'open'}
                                                             </span>
                                                         </div>
-                                                        <div className="qa-defect-title">{def.title}</div>
+                                                        <div className="qa-defect-title">{safeFormatValue(def.title, 'Untitled Defect')}</div>
                                                         {def.stepNumber && (
                                                             <div style={{ fontSize: '0.68rem', color: 'var(--qa-text-dim)' }}>
-                                                                Failed Step: {def.stepNumber}
+                                                                Failed Step: {safeFormatValue(def.stepNumber)}
                                                             </div>
                                                         )}
                                                     </div>
@@ -3243,7 +3264,7 @@ return (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--qa-surface-elevated)', borderRadius: '6px', border: '1px solid var(--qa-border)' }}>
                         <div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--qa-text-dim)', textTransform: 'uppercase' }}>Target Test Case</div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{activeCase?.testCaseId}: {snapshot.title}</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{safeFormatValue(activeCase?.testCaseId, 'TC')}: {safeFormatValue(snapshot.title, 'Untitled Test Case')}</div>
                         </div>
                         <StatusBadge status={completionBreakdown?.derivedStatus || formStatus} />
                     </div>
@@ -3380,10 +3401,10 @@ return (
                                 fontSize: '0.75rem',
                                 fontWeight: 700
                             }}>
-                                {activeCase?.testCaseId}
+                                {safeFormatValue(activeCase?.testCaseId, 'TC')}
                             </span>
                             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F2F3F3' }}>
-                                {activeCase?.caseSnapshot?.title || 'Selected Test Case'}
+                                {safeFormatValue(activeCase?.caseSnapshot?.title, 'Selected Test Case')}
                             </span>
                         </div>
 

@@ -402,7 +402,7 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                     </div>
 
                     <div className="er-title-row">
-                        <h1 className="er-title">{meta.suiteName || meta.runName || 'Execution Report'}</h1>
+                        <h1 className="er-title">{typeof (meta.suiteName || meta.runName) === 'object' ? 'Execution Report' : (meta.suiteName || meta.runName || 'Execution Report')}</h1>
                         <span className="er-run-badge">Run #{String(meta.runId || runId || '').slice(-6)}</span>
                         <span className={`er-status-badge ${runStatus}`}>
                             {runStatus.replace('_', ' ')}
@@ -410,7 +410,7 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                     </div>
 
                     <div className="er-meta-context">
-                        <span>Environment: <strong>{env.name || 'Default Staging'}</strong></span>
+                        <span>Environment: <strong>{typeof env === 'object' && env !== null ? (env.name || env.baseUrl || 'Default Staging') : String(env || 'Default Staging')}</strong></span>
                         <span>•</span>
                         <span>Framework: <strong>{meta.executionType === 'automated' ? 'Playwright Automation' : meta.executionType === 'api' ? 'API Testing (HTTP Engine)' : meta.executionType === 'mixed' ? 'Hybrid (Playwright + Manual + API)' : 'Manual Execution'}</strong></span>
                         <span>•</span>
@@ -599,8 +599,8 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
 
                     <div className="er-spec-item">
                         <span className="er-spec-label">Target Environment</span>
-                        <span className="er-spec-value">{env.name || 'Default Staging'}</span>
-                        <span className="er-spec-sub">{env.baseUrl || 'https://staging.testnexa.dev'}</span>
+                        <span className="er-spec-value">{typeof env === 'object' && env !== null ? (env.name || 'Default Staging') : String(env || 'Default Staging')}</span>
+                        <span className="er-spec-sub">{typeof env === 'object' && env !== null ? (env.baseUrl || 'https://staging.testnexa.dev') : 'https://staging.testnexa.dev'}</span>
                     </div>
 
                     <div className="er-spec-item">
@@ -750,10 +750,10 @@ const RunReportView = ({ runId, onRerunTriggered }) => {
                                                     <span className={`er-dot ${st === 'passed' ? 'passed' : st === 'failed' ? 'failed' : st === 'blocked' ? 'blocked' : st === 'skipped' ? 'skipped' : 'not-run'}`} />
                                                 </td>
                                                 <td style={{ fontFamily: 'var(--er-mono-font)', color: 'var(--er-jade)', fontSize: '0.8rem' }}>
-                                                    {c.testCaseId}
+                                                    {typeof c.testCaseId === 'object' ? 'TC' : String(c.testCaseId || 'TC')}
                                                 </td>
                                                 <td style={{ color: 'var(--er-text)', fontWeight: 500 }}>
-                                                    {c.title}
+                                                    {typeof c.title === 'object' ? 'Untitled Test Case' : String(c.title || 'Untitled Test Case')}
                                                 </td>
                                                 <td>
                                                     <span className="er-cat-pill">{c.type || 'Functional'}</span>

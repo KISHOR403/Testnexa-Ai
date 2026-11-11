@@ -285,14 +285,14 @@ const RunComparisonView = ({ runId, onSwitchToCases }) => {
                             fontFamily: 'var(--rc-mono-font)',
                             color: 'var(--rc-text-muted)'
                         }}>
-                            {target.name || currentRun?.name || 'Target Run'}
+                            {typeof (target.name || currentRun?.name) === 'object' ? 'Target Run' : (target.name || currentRun?.name || 'Target Run')}
                         </span>
                     </div>
 
                     <div className="rc-context-meta">
-                        <span>Suite: <strong style={{ color: '#FFFFFF' }}>{target.suiteName || currentRun?.suiteTitle || 'Test Suite'}</strong></span>
+                        <span>Suite: <strong style={{ color: '#FFFFFF' }}>{typeof (target.suiteName || currentRun?.suiteTitle) === 'object' ? 'Test Suite' : (target.suiteName || currentRun?.suiteTitle || 'Test Suite')}</strong></span>
                         <span>•</span>
-                        <span>Baseline: <strong style={{ color: '#FFFFFF' }}>{baseline.name || 'Selected Run'}</strong></span>
+                        <span>Baseline: <strong style={{ color: '#FFFFFF' }}>{typeof baseline.name === 'object' ? 'Selected Run' : (baseline.name || 'Selected Run')}</strong></span>
                     </div>
                 </div>
 
@@ -362,9 +362,9 @@ const RunComparisonView = ({ runId, onSwitchToCases }) => {
                         <span className="rc-chip-label">Target Run (Current Evaluation)</span>
                         <div className="rc-chip-val" style={{ padding: '0.45rem 0' }}>
                             <span style={{ color: 'var(--rc-jade)', fontFamily: 'var(--rc-mono-font)' }}>#{String(runId).slice(-6)}</span>
-                            <span>{target.name || currentRun?.name}</span>
+                            <span>{typeof (target.name || currentRun?.name) === 'object' ? 'Target Run' : (target.name || currentRun?.name || 'Target Run')}</span>
                             <span style={{ fontSize: '0.74rem', color: 'var(--rc-text-dim)' }}>
-                                ({target.environment || 'Staging'})
+                                ({typeof target.environment === 'object' && target.environment !== null ? (target.environment.name || target.environment.baseUrl || 'Staging') : String(target.environment || 'Staging')})
                             </span>
                         </div>
                     </div>
