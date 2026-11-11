@@ -5,6 +5,7 @@ import {
     AlertTriangle
 } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
+import AntigravityTypewriter from './AntigravityTypewriter';
 
 export const Hero = () => {
     const { handleWorkspaceEntry, getTargetUrl, isOpening } = useWorkspaceEntry();
@@ -44,9 +45,9 @@ export const Hero = () => {
                         INTELLIGENT QA ENGINEERING
                     </div>
 
-                    {/* Exact Large Headline */}
+                    {/* Large Headline with Antigravity Typewriter Text Style */}
                     <h1 id="hero-main-heading" className="tn-hero-title">
-                        From requirements to verified acceptance.
+                        <AntigravityTypewriter staticPrefix="From requirements to" />
                     </h1>
 
                     {/* Supporting Description */}
