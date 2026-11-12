@@ -25,6 +25,8 @@ export const Navbar = ({ isMarketingLayout = true }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const [hidden, setHidden] = useState(false);
+    const lastScrollY = useRef(0);
     const location = useLocation();
     const navigate = useNavigate();
     const navRef = useRef(null);
@@ -49,14 +51,26 @@ export const Navbar = ({ isMarketingLayout = true }) => {
         }
     }, [location.pathname, navigate]);
 
-    // Scroll state for subtle background solidifying
+    // Scroll state: transparent, blur backdrop on scroll, hides on scroll down, shows on scroll up
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 20);
+            const currentScrollY = window.scrollY;
+            setScrolled(currentScrollY > 20);
+
+            if (currentScrollY > 120 && !isMobileNavOpen) {
+                if (currentScrollY > lastScrollY.current + 4) {
+                    setHidden(true);
+                } else if (currentScrollY < lastScrollY.current - 4) {
+                    setHidden(false);
+                }
+            } else {
+                setHidden(false);
+            }
+            lastScrollY.current = currentScrollY;
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [isMobileNavOpen]);
 
     // Close mobile nav on route change
     useEffect(() => {
@@ -87,7 +101,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
 
     return (
         <>
-            <header className={`tn-navbar ${scrolled ? 'is-scrolled' : ''}`} ref={navRef}>
+            <header className={`tn-navbar ${scrolled ? 'is-scrolled' : ''} ${hidden ? 'is-hidden' : ''}`} ref={navRef}>
                 <div className="tn-navbar__inner tn-container">
                     {/* Brand Logo */}
                     <div className="tn-navbar__brand">

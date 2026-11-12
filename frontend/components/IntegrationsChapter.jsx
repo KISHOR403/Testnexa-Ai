@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Copy, Check } from 'lucide-react';
+import { ArrowRight, Copy, Check, Terminal, Cpu } from 'lucide-react';
 import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
 
 const RUNNERS = [
@@ -36,23 +36,13 @@ const RUNNERS = [
 ];
 
 export const IntegrationsChapter = () => {
-    const [tabMode, setTabMode] = useState('curl'); // 'curl' | 'playwright' | 'response'
+    const [tabMode, setTabMode] = useState('playwright'); // 'playwright' | 'curl' | 'response'
     const [copied, setCopied] = useState(false);
     const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
 
-    const curlSnippet = `curl -X POST https://api.testnexa.ai/v1/suites/generate \\
-  -H "Authorization: Bearer tn_live_sec_9841..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "spec_id": "REQ-142",
-    "requirement": "Users can reset password via registered email...",
-    "target_runners": ["playwright", "cypress", "gherkin"],
-    "depth": "deterministic"
-  }'`;
-
     const playwrightSnippet = `import { test, expect } from '@playwright/test';
 
-test.describe('Password Recovery Suite (REQ-142)', () => {
+test.describe('Password Recovery Suite (DOC-AUTH-2026 §4.2)', () => {
   test('TC-FUNC-001: Valid password reset dispatches token with 15m TTL', async ({ page }) => {
     await page.goto('/forgot-password');
     await page.getByLabel('Registered Email').fill('user@company.com');
@@ -66,6 +56,16 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
     await expect(page.getByText('Reset instructions sent to registered address')).toBeVisible();
   });
 });`;
+
+    const curlSnippet = `curl -X POST https://api.testnexa.ai/v1/suites/generate \\
+  -H "Authorization: Bearer tn_live_sec_9841..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "spec_id": "REQ-142",
+    "requirement": "Users can reset password via registered email...",
+    "target_runners": ["playwright", "cypress", "gherkin"],
+    "depth": "deterministic"
+  }'`;
 
     const responseSnippet = `{
   "status": "success",
@@ -88,7 +88,7 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
 }`;
 
     const handleCopy = () => {
-        const text = tabMode === 'curl' ? curlSnippet : tabMode === 'playwright' ? playwrightSnippet : responseSnippet;
+        const text = tabMode === 'playwright' ? playwrightSnippet : tabMode === 'curl' ? curlSnippet : responseSnippet;
         navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -97,40 +97,74 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
     return (
         <section
             id="integrations"
-            className="vt-pipeline-section"
+            className="vt-fullscreen-stage vt-pipeline-stage"
             aria-labelledby="pipeline-heading"
         >
             <div className="vt-container">
-                <div style={{ maxWidth: 800 }}>
-                    <div className="vt-eyebrow">
-                        <span className="vt-eyebrow-node" />
-                        <span>DEVELOPER PIPELINE & RUNNERS</span>
+                {/* Stage Indicator & Guide */}
+                <div className="vt-stage-connector-top">
+                    <div className="vt-stage-marker-circle">
+                        <span>06</span>
                     </div>
-
-                    <h2 id="pipeline-heading" className="vt-editorial-heading">
-                        Quality belongs in your development workflow.
-                    </h2>
-
-                    <p className="vt-lead-text">
-                        Automate test generation from your terminal, export to standard runner formats, and gate pull requests before defects reach production.
-                    </p>
+                    <div className="vt-stage-stem-line" aria-hidden="true" />
                 </div>
 
-                {/* Asymmetric Split Layout */}
-                <div className="vt-pipeline-grid">
-                    {/* Left: Runners and Integrations */}
-                    <div className="vt-runner-list">
-                        {RUNNERS.map((r) => (
-                            <div key={r.key} className="vt-runner-row">
-                                <div style={{ paddingRight: 16 }}>
-                                    <span className="vt-runner-title">{r.name}</span>
-                                    <p className="vt-runner-desc">{r.desc}</p>
-                                </div>
-                                <span className="vt-runner-pill">{r.badge}</span>
-                            </div>
-                        ))}
+                <div className="vt-eyebrow">
+                    <span className="vt-eyebrow-node" />
+                    <span>06 / PIPELINE &bull; CI/CD INTEGRATIONS</span>
+                </div>
 
-                        <div style={{ marginTop: '2.5rem' }}>
+                {/* Editorial Heading */}
+                <h2 id="pipeline-heading" className="vt-editorial-heading">
+                    Quality belongs in your development workflow.
+                </h2>
+
+                <p className="vt-lead-text">
+                    Automate test generation from your terminal, export to standard runner formats, and gate pull requests before defects reach production.
+                </p>
+
+                {/* Technical Metadata Row (Bare on Black) */}
+                <div className="vt-pipeline-tech-metadata">
+                    <span className="vt-meta-k">SUPPORTED RUNNERS &amp; GATES:</span>
+                    <span className="vt-pipeline-tech-item">CLI v2.4.1</span>
+                    <span className="vt-pipeline-sep">&bull;</span>
+                    <span className="vt-pipeline-tech-item">REST API</span>
+                    <span className="vt-pipeline-sep">&bull;</span>
+                    <span className="vt-pipeline-tech-item">GitHub Actions</span>
+                    <span className="vt-pipeline-sep">&bull;</span>
+                    <span className="vt-pipeline-tech-item">GitLab CI</span>
+                    <span className="vt-pipeline-sep">&bull;</span>
+                    <span className="vt-pipeline-tech-item">Playwright</span>
+                    <span className="vt-pipeline-sep">&bull;</span>
+                    <span className="vt-pipeline-tech-item">Cypress</span>
+                    <span className="vt-pipeline-sep">&bull;</span>
+                    <span className="vt-pipeline-tech-item">Jira Webhooks</span>
+                </div>
+
+                {/* Editorial Split Composition: Zero Boxed Code Preview */}
+                <div className="vt-pipeline-editorial-grid">
+                    {/* Left: Supported Runners List (Bare on Black with fine divider lines) */}
+                    <div className="vt-runners-stream">
+                        <div className="vt-stream-header-strip">
+                            <span className="vt-floating-label">[ EXPORT RUNNERS & PROTOCOLS ]</span>
+                            <span className="vt-stream-suite-badge">Deterministic Syntax</span>
+                        </div>
+
+                        <div className="vt-runner-rows-list">
+                            {RUNNERS.map((r) => (
+                                <div key={r.key} className="vt-runner-editorial-row">
+                                    <div className="vt-runner-info">
+                                        <div className="vt-runner-header-line">
+                                            <span className="vt-runner-title">{r.name}</span>
+                                            <span className="vt-runner-pill">{r.badge}</span>
+                                        </div>
+                                        <p className="vt-runner-desc">{r.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="vt-stage-action-wrap">
                             <a
                                 href={getTargetUrl('/app/cicd')}
                                 className="vt-inline-link"
@@ -139,55 +173,71 @@ test.describe('Password Recovery Suite (REQ-142)', () => {
                                     handleWorkspaceEntry('/app/cicd');
                                 }}
                             >
-                                <span>Configure CI/CD webhooks &amp; pipeline gates</span>
+                                <span>Configure CI/CD webhooks &amp; pipeline gates in workspace</span>
                                 <ArrowRight size={13} />
                             </a>
                         </div>
                     </div>
 
-                    {/* Right: Monospace Code Console */}
-                    <div className="vt-code-console">
-                        <div className="vt-code-header">
-                            <div className="vt-code-tabs">
+                    {/* Right: Short Genuine Configuration Snippets Sitting Naturally on Black (No Card / No Box) */}
+                    <div className="vt-code-editorial-stream">
+                        {/* Interactive Tab Switcher as Minimal Monospace Links */}
+                        <div className="vt-code-editorial-header">
+                            <div className="vt-code-tabs-nav">
                                 <button
                                     type="button"
-                                    className={`vt-code-tab ${tabMode === 'curl' ? 'is-active' : ''}`}
-                                    onClick={() => setTabMode('curl')}
-                                >
-                                    cURL API
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vt-code-tab ${tabMode === 'playwright' ? 'is-active' : ''}`}
+                                    className={`vt-code-tab-btn ${tabMode === 'playwright' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('playwright')}
                                 >
                                     Playwright (.spec.ts)
                                 </button>
                                 <button
                                     type="button"
-                                    className={`vt-code-tab ${tabMode === 'response' ? 'is-active' : ''}`}
+                                    className={`vt-code-tab-btn ${tabMode === 'curl' ? 'is-active' : ''}`}
+                                    onClick={() => setTabMode('curl')}
+                                >
+                                    cURL (API v1)
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vt-code-tab-btn ${tabMode === 'response' ? 'is-active' : ''}`}
                                     onClick={() => setTabMode('response')}
                                 >
-                                    JSON Response
+                                    Response (JSON)
                                 </button>
                             </div>
 
                             <button
                                 type="button"
-                                className="vt-copy-action"
+                                className="vt-copy-code-btn"
                                 onClick={handleCopy}
-                                aria-label="Copy code snippet"
+                                aria-label="Copy snippet"
                             >
                                 {copied ? <Check size={12} color="#8BAF9A" /> : <Copy size={12} />}
                                 <span>{copied ? 'Copied' : 'Copy'}</span>
                             </button>
                         </div>
 
-                        <pre className="vt-code-stream">
-                            {tabMode === 'curl' && curlSnippet}
-                            {tabMode === 'playwright' && playwrightSnippet}
-                            {tabMode === 'response' && responseSnippet}
+                        {/* Thin Connector Line */}
+                        <div className="vt-code-editorial-divider" aria-hidden="true" />
+
+                        {/* Monospace Code Stream Sitting Directly on Black Canvas */}
+                        <pre className="vt-code-editorial-pre">
+                            <code>
+                                {tabMode === 'playwright' && playwrightSnippet}
+                                {tabMode === 'curl' && curlSnippet}
+                                {tabMode === 'response' && responseSnippet}
+                            </code>
                         </pre>
+
+                        {/* Fine Technical Footnote */}
+                        <div className="vt-code-editorial-footer">
+                            <span className="vt-code-spec-meta">
+                                {tabMode === 'playwright' && 'Strict locators & auto-waiting • Zero flaky timeouts'}
+                                {tabMode === 'curl' && 'Bearer token authentication • 256-bit TLS encrypted'}
+                                {tabMode === 'response' && 'Complete test metadata • Deterministic schema validated'}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

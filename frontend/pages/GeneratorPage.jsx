@@ -1,50 +1,99 @@
-import React from 'react';
-import Hero from '../components/Hero';
-import RequirementTransformation from '../components/RequirementTransformation';
-import InteractiveTimelineSection from '../components/InteractiveTimelineSection';
-import TypographicStatement from '../components/TypographicStatement';
-import IntegrationsChapter from '../components/IntegrationsChapter';
-import FinalCTA from '../components/FinalCTA';
-import GlobalWorkflowIndicator from '../components/GlobalWorkflowIndicator';
+import React, { useEffect } from 'react';
+import Lenis from 'lenis';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-const GeneratorPage = () => {
+import CustomCursor from '../components/CustomCursor';
+import NoiseOverlay from '../components/NoiseOverlay';
+import TraceThread from '../components/TraceThread';
+import CompetitionHero from '../components/CompetitionHero';
+import PipelineStickyScene from '../components/PipelineStickyScene';
+import ProofStats from '../components/ProofStats';
+import FeaturesBento from '../components/FeaturesBento';
+import IntegrationsStrip from '../components/IntegrationsStrip';
+import CompetitionFinalCTA from '../components/CompetitionFinalCTA';
+
+gsap.registerPlugin(ScrollTrigger);
+
+export const GeneratorPage = () => {
+    // Sync Lenis with GSAP ScrollTrigger & Refresh on Font/Image Load
+    useEffect(() => {
+        const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (isReducedMotion) {
+            ScrollTrigger.refresh();
+            return;
+        }
+
+        const lenis = new Lenis({
+            duration: 1.15,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+            wheelMultiplier: 0.95
+        });
+
+        // 1. Sync Lenis scroll with ScrollTrigger
+        lenis.on('scroll', ScrollTrigger.update);
+
+        // 2. Drive Lenis RAF from GSAP Ticker
+        const updateTicker = (time) => {
+            lenis.raf(time * 1000);
+        };
+        gsap.ticker.add(updateTicker);
+        gsap.ticker.lagSmoothing(0);
+
+        // 3. Call ScrollTrigger.refresh() after document.fonts.ready and image loads
+        const handleRefresh = () => {
+            ScrollTrigger.refresh();
+        };
+
+        if (document.fonts?.ready) {
+            document.fonts.ready.then(handleRefresh);
+        }
+        window.addEventListener('load', handleRefresh);
+        window.addEventListener('resize', handleRefresh);
+
+        // Safety layout settlement refresh
+        const settleTimer = setTimeout(handleRefresh, 300);
+
+        return () => {
+            clearTimeout(settleTimer);
+            window.removeEventListener('load', handleRefresh);
+            window.removeEventListener('resize', handleRefresh);
+            gsap.ticker.remove(updateTicker);
+            lenis.destroy();
+        };
+    }, []);
+
     return (
-        <div className="home-page tn-marketing-root">
-            {/* Subtle Vertical Workflow Indicator connecting chapters */}
-            <GlobalWorkflowIndicator />
+        <div className="tn-competition-root">
+            {/* 3% Film Grain Noise Overlay */}
+            <NoiseOverlay />
 
-            {/* Hero: Problem framing, core value proposition & authentic product canvas (PRESERVED EXACTLY) */}
-            <Hero />
+            {/* Awwwards Custom Cursor with Dynamic Ring & Labels */}
+            <CustomCursor />
 
-            {/* 1. First Storytelling Section — Requirement Intelligence with Timeline Anchor */}
-            <RequirementTransformation />
+            {/* Signature Concept: Absolutely Positioned Full-Page SVG Traceability Thread */}
+            <TraceThread />
 
-            {/* Dramatic Transition Statement 1 */}
-            <TypographicStatement
-                tag="[ SPECIFICATION RIGOR ]"
-                text="Every requirement has a purpose."
-            />
+            {/* 1. Hero with Live Interactive Typing Demo (max-width 1100px, 14px+ text) */}
+            <CompetitionHero />
 
-            {/* 2. Main Interactive Timeline (5-Stage Vention Charcoal #222426 Environment) */}
-            <InteractiveTimelineSection />
+            {/* 2. One Pinned Scroll-Driven Sticky Pipeline Scene (+=350%, anticipatePin: 1, scrub: 0.6) */}
+            <PipelineStickyScene />
 
-            {/* Dramatic Transition Statement 2 */}
-            <TypographicStatement
-                tag="[ AUDITABLE LINEAGE ]"
-                text="Every test needs a reason."
-            />
+            {/* 3. Proof Stats (Oversized 120px+ Numbers, heavy weight, green glow on 4/4) */}
+            <ProofStats />
 
-            {/* 3. Developer Pipeline & CI/CD Integrations */}
-            <IntegrationsChapter />
+            {/* 4. Features Bento Grid (Mixed Card Sizes, 3D Hover Tilt max 6deg, Cursor Border Glow) */}
+            <FeaturesBento />
 
-            {/* Dramatic Transition Statement 3 */}
-            <TypographicStatement
-                tag="[ ACCEPTANCE CRITERIA ]"
-                text="Quality must be verified."
-            />
+            {/* 5. Integrations Strip (Seamless Infinite Marquee with Left/Right Fade Masks & Pause on Hover) */}
+            <IntegrationsStrip />
 
-            {/* 4. Final Typographic Call to Action */}
-            <FinalCTA />
+            {/* 6. Controlled 2-Line Headline CTA + Clean 4-Column Footer */}
+            <CompetitionFinalCTA />
         </div>
     );
 };

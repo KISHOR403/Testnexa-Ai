@@ -1,0 +1,276 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TESTNEXA AI — TOTAL BLACK DESIGN SYSTEM TOKENS
+   Awwwards / CSSDA Competition Grade Specification
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── 1. Backgrounds & Surfaces (Total Black) ─────────────────────────── */
+  --tn-bg-pure: #000000;
+  --tn-surface: #050505;
+  --tn-surface-elevated: #0A0A0A;
+  --tn-border-subtle: rgba(255, 255, 255, 0.08);
+  --tn-border-active: rgba(255, 255, 255, 0.20);
+  --tn-border-glow: rgba(56, 189, 248, 0.35);
+
+  /* ─── 2. Text (Three Whites Only - Contrast Compliant) ───────────────── */
+  --tn-text-primary: #FFFFFF;
+  --tn-text-secondary: rgba(255, 255, 255, 0.76);
+  --tn-text-muted: rgba(255, 255, 255, 0.58);
+
+  /* ─── 3. Semantic Color (Meaning Only) ─────────────────────────────────── */
+  --tn-semantic-green: #22C55E;  /* verified / pass */
+  --tn-semantic-amber: #F59E0B;  /* ambiguity / gap / needs review */
+  --tn-semantic-red: #EF4444;    /* failure / defect */
+  --tn-semantic-cyan: #38BDF8;   /* active / AI-processing glow */
+
+  --tn-glow-cyan: rgba(56, 189, 248, 0.18);
+  --tn-glow-green: rgba(34, 197, 94, 0.35);
+  --tn-glow-amber: rgba(245, 158, 11, 0.20);
+
+  /* ─── 4. Typography ───────────────────────────────────────────────────── */
+  --tn-font-display: 'Space Grotesk', -apple-system, sans-serif;
+  --tn-font-serif: 'Instrument Serif', Georgia, serif;
+  --tn-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --tn-font-mono: 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  /* ─── 5. Motion & Transitions ─────────────────────────────────────────── */
+  --tn-ease-luxury: cubic-bezier(0.22, 1, 0.36, 1);
+  --tn-duration-fast: 200ms;
+  --tn-duration-normal: 350ms;
+  --tn-duration-reveal: 800ms;
+
+  /* ─── 6. Section Spacing: Controlled clamp(80px, 10vw, 140px) ────────── */
+  --tn-section-gap: clamp(80px, 10vw, 140px);
+}
+
+/* Base Body Application */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Pure Black Background throughout */
+body, .tn-competition-root {
+  background-color: var(--tn-bg-pure) !important;
+  color: var(--tn-text-primary);
+  font-family: var(--tn-font-body);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Noise overlay */
+.tn-film-grain {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Subtle Dot Grid Background in Hero */
+.tn-hero-dot-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 45%, #000 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 45%, #000 30%, transparent 85%);
+  pointer-events: none;
+  opacity: 0.65;
+  animation: tnDriftGrid 60s linear infinite;
+}
+
+@keyframes tnDriftGrid {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(28px); }
+}
+
+/* Custom Cursor */
+.tn-custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.25s var(--tn-ease-luxury), height 0.25s var(--tn-ease-luxury), background 0.2s ease, border 0.2s ease;
+  mix-blend-mode: difference;
+}
+
+.tn-custom-cursor.is-expanded {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: normal;
+}
+
+.tn-custom-cursor-label {
+  font-family: var(--tn-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+@media (pointer: coarse), (max-width: 900px) {
+  .tn-custom-cursor {
+    display: none !important;
+  }
+}
+
+/* Container */
+.tn-max-container {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 56px);
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Card Tilt & Border Glow */
+.tn-glow-card {
+  position: relative;
+  background: var(--tn-surface);
+  border: 1px solid var(--tn-border-subtle);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.3s ease, transform 0.3s var(--tn-ease-luxury);
+  will-change: transform;
+}
+
+.tn-glow-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Gradient Text Shimmer for Giant Final CTA */
+.tn-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #FFFFFF 0%,
+    rgba(255, 255, 255, 0.6) 25%,
+    #FFFFFF 50%,
+    rgba(255, 255, 255, 0.6) 75%,
+    #FFFFFF 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: tnTextShimmer 8s linear infinite;
+}
+
+@keyframes tnTextShimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Magnetic Button Shine Sweep */
+.tn-btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #FFFFFF;
+  color: #000000;
+  font-family: var(--tn-font-display);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 0.25s var(--tn-ease-luxury), box-shadow 0.25s ease;
+}
+
+.tn-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: rotate(25deg);
+  transition: left 0.6s var(--tn-ease-luxury);
+}
+
+.tn-btn-primary:hover::after {
+  left: 140%;
+}
+
+.tn-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.25);
+}
+
+.tn-btn-ghost {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: transparent;
+  color: var(--tn-text-secondary);
+  font-family: var(--tn-font-display);
+  font-weight: 500;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 3px;
+  border: 1px solid var(--tn-border-subtle);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.25s var(--tn-ease-luxury);
+}
+
+.tn-btn-ghost:hover {
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
+}
+
+/* Reduced Motion Safety */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+    scroll-behavior: auto !important;
+  }
+}

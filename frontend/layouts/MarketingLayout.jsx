@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ScrollToTop from '../components/ScrollToTop';
@@ -7,6 +7,9 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import CookieConsentBanner from '../components/CookieConsentBanner';
 
 const MarketingLayout = () => {
+    const location = useLocation();
+    const isHomePage = location.pathname === '/' || location.pathname === '/features' || location.pathname === '/solutions' || location.pathname === '/how-it-works' || location.pathname === '/audience';
+
     return (
         <div className="marketing-layout-root">
             <ScrollToTop />
@@ -16,7 +19,7 @@ const MarketingLayout = () => {
             <main className="marketing-content-wrapper">
                 <Outlet />
             </main>
-            <Footer />
+            {!isHomePage && <Footer />}
             <CookieConsentBanner />
         </div>
     );

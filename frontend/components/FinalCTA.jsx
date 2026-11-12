@@ -8,42 +8,54 @@ export const FinalCTA = () => {
     return (
         <section
             id="final-cta"
-            className="vt-cta-section"
+            className="vt-fullscreen-stage vt-final-cta-stage"
             aria-labelledby="final-cta-heading"
         >
             <div className="vt-container">
-                <div style={{ maxWidth: 940 }}>
-                    <div className="vt-eyebrow">
-                        <span className="vt-eyebrow-node" />
-                        <span>GET STARTED TODAY</span>
+                {/* Stage Indicator & Guide */}
+                <div className="vt-stage-connector-top">
+                    <div className="vt-stage-marker-circle">
+                        <span>07</span>
                     </div>
+                    <div className="vt-stage-stem-line" aria-hidden="true" />
+                </div>
 
-                    <h2 id="final-cta-heading" className="vt-cta-title">
-                        Start with a requirement.<br />
-                        <span className="vt-text-accent">Leave with a test suite.</span>
-                    </h2>
+                <div className="vt-eyebrow">
+                    <span className="vt-eyebrow-node" />
+                    <span>07 / PRODUCTION QUALITY</span>
+                </div>
 
-                    <p className="vt-lead-text">
-                        Turn natural language specifications into verified, traceable QA work. Ingest requirements, isolate implicit risks, and export to Playwright and CI/CD in minutes.
-                    </p>
+                {/* Oversized Typography - Exact user requirement */}
+                <h2 id="final-cta-heading" className="vt-editorial-heading vt-cta-massive-title">
+                    Start with a requirement.<br />
+                    <span className="vt-text-accent">Leave with a test suite.</span>
+                </h2>
 
-                    <div className="vt-cta-actions">
-                        <a
-                            href={getTargetUrl('/app/workspace')}
-                            className="vt-cta-button"
-                            id="final-cta-btn"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                handleWorkspaceEntry('/app/workspace');
-                            }}
-                        >
-                            <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
-                            <ArrowRight size={16} />
-                        </a>
+                <p className="vt-lead-text vt-cta-lead-text">
+                    Turn natural language specifications into verified, traceable QA work. Ingest requirements, isolate implicit risks, and export to Playwright and CI/CD in minutes.
+                </p>
 
-                        <span className="vt-cta-meta">
-                            Start free &bull; No credit card required &bull; Full workspace access
-                        </span>
+                {/* Minimal CTA Action: ONE jade-green button. NO CARD, NO BORDER FRAME, NO LARGE BACKGROUND PANEL */}
+                <div className="vt-cta-action-row">
+                    <a
+                        href={getTargetUrl('/app/workspace')}
+                        className="vt-jade-cta-button"
+                        id="final-cta-btn"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            handleWorkspaceEntry('/app/workspace');
+                        }}
+                    >
+                        <span>{isOpening ? 'Opening Workspace…' : 'Generate Test Suite'}</span>
+                        <ArrowRight size={16} />
+                    </a>
+
+                    <div className="vt-cta-fine-meta">
+                        <span>Start free</span>
+                        <span className="vt-cta-meta-dot">&bull;</span>
+                        <span>No credit card required</span>
+                        <span className="vt-cta-meta-dot">&bull;</span>
+                        <span>Full workspace access</span>
                     </div>
                 </div>
             </div>

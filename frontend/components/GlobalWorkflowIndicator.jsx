@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
 const CHAPTER_STAGES = [
-    { id: 'product-canvas', label: '01 Canvas' },
-    { id: 'transformation', label: '02 Intelligence' },
-    { id: 'workflow', label: '03 Timeline' },
-    { id: 'integrations', label: '04 Pipeline' }
+    { id: 'workflow', label: '00 Timeline' },
+    { id: 'understand', label: '01 Understand' },
+    { id: 'generate', label: '02 Generate' },
+    { id: 'review', label: '03 Review' },
+    { id: 'execute', label: '04 Execute' },
+    { id: 'verify', label: '05 Verify' },
+    { id: 'integrations', label: '06 Pipeline' }
 ];
 
 export const GlobalWorkflowIndicator = () => {
@@ -27,8 +30,7 @@ export const GlobalWorkflowIndicator = () => {
 
             if (finalCtaEl) {
                 const rect = finalCtaEl.getBoundingClientRect();
-                // If final CTA has entered the viewport at all, hide indicator
-                if (rect.top <= window.innerHeight) {
+                if (rect.top <= window.innerHeight * 0.7) {
                     isPastChapters = true;
                 }
             }
@@ -40,10 +42,9 @@ export const GlobalWorkflowIndicator = () => {
                 }
             }
 
-            // Also check if near bottom of page
             const isNearBottom = (window.innerHeight + scrollY) >= (document.documentElement.scrollHeight - 300);
 
-            // Only show after scrolling past top of hero and while strictly within chapters 1-6
+            // Only show after scrolling past hero and while strictly within timeline stages
             setIsVisible(scrollY > heroHeight && !isPastChapters && !isNearBottom);
 
             // Find current active section
@@ -63,38 +64,19 @@ export const GlobalWorkflowIndicator = () => {
         window.addEventListener('resize', handleScroll, { passive: true });
         window.addEventListener('hashchange', handleScroll, { passive: true });
 
-        // Initial check and periodic checks on mount to catch late anchor scroll jumps
         handleScroll();
-        const pollInterval = setInterval(handleScroll, 100);
-        const stopPollTimer = setTimeout(() => clearInterval(pollInterval), 3000);
-
-        // Native IntersectionObserver for immediate reactive visibility change
-        let observer;
-        const finalCtaEl = document.getElementById('final-cta');
-        const footerEl = document.querySelector('.tn-footer');
-        if (typeof IntersectionObserver !== 'undefined') {
-            observer = new IntersectionObserver(() => {
-                handleScroll();
-            }, { threshold: [0, 0.05, 0.1, 0.25, 0.5, 0.75, 1.0] });
-
-            if (finalCtaEl) observer.observe(finalCtaEl);
-            if (footerEl) observer.observe(footerEl);
-        }
 
         return () => {
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleScroll);
             window.removeEventListener('hashchange', handleScroll);
-            clearInterval(pollInterval);
-            clearTimeout(stopPollTimer);
-            if (observer) observer.disconnect();
         };
     }, []);
 
     const scrollTo = (id) => {
         const el = document.getElementById(id);
         if (el) {
-            const yOffset = -70;
+            const yOffset = -40;
             const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
             window.scrollTo({ top: y, behavior: 'smooth' });
         }
@@ -103,27 +85,27 @@ export const GlobalWorkflowIndicator = () => {
     if (!isVisible) return null;
 
     return (
-        <aside 
-            className="tn-global-workflow-indicator is-visible" 
-            aria-label="Page Chapter Navigator"
+        <aside
+            className="vt-global-workflow-indicator"
+            aria-label="Interactive QA Timeline Progress"
         >
-            <div className="tn-gwi-track" />
-            <div className="tn-gwi-steps">
-                {CHAPTER_STAGES.map((step) => {
-                    const isActive = activeSection === step.id;
+            <div className="vt-indicator-track">
+                {/* Continuous thin vertical line down the track */}
+                <div className="vt-indicator-axis-line" aria-hidden="true" />
+
+                {CHAPTER_STAGES.map((stage) => {
+                    const isActive = activeSection === stage.id;
                     return (
                         <button
-                            key={step.id}
+                            key={stage.id}
                             type="button"
-                            onClick={() => scrollTo(step.id)}
-                            className={`tn-gwi-step-btn ${isActive ? 'is-active' : ''}`}
-                            aria-label={`Jump to Chapter: ${step.label}`}
-                            aria-current={isActive ? 'true' : undefined}
+                            className={`vt-indicator-node ${isActive ? 'is-active' : ''}`}
+                            onClick={() => scrollTo(stage.id)}
+                            aria-label={`Jump to ${stage.label}`}
+                            aria-current={isActive ? 'step' : undefined}
                         >
-                            <span className="tn-gwi-dot">
-                                {isActive && <span className="tn-gwi-dot-inner" />}
-                            </span>
-                            <span className="tn-gwi-label">{step.label}</span>
+                            <span className="vt-indicator-bullet" />
+                            <span className="vt-indicator-label">{stage.label}</span>
                         </button>
                     );
                 })}
