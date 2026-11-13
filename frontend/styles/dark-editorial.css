@@ -601,6 +601,8 @@
   padding: clamp(32px, 5vh, 60px) 0;
   box-sizing: border-box;
   overflow: hidden;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .tn-pipeline-top-bar {
@@ -690,6 +692,33 @@
 
 .tn-pipeline-stage-copy {
   padding-top: 16px;
+  position: relative;
+}
+
+/* Zero-lag GPU Stacking for Copy */
+.tn-pipeline-copy-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  width: 100%;
+}
+
+.tn-pipeline-copy-pane {
+  grid-column: 1;
+  grid-row: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  visibility: hidden;
+  will-change: opacity, transform;
+}
+
+.tn-pipeline-copy-pane.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .tn-pipeline-subheadline {
@@ -719,7 +748,7 @@
   max-width: 480px;
 }
 
-/* Morphing Right Panel */
+/* Morphing Right Panel - GPU Accelerated */
 .tn-pipeline-right-panel {
   background: var(--tn-surface);
   border: 1px solid var(--tn-border-subtle);
@@ -729,6 +758,35 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transform: translateZ(0);
+  contain: paint;
+}
+
+/* Zero-lag GPU Stacking for Panels */
+.tn-pipeline-panels-stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  width: 100%;
+  align-items: center;
+}
+
+.tn-pipeline-stage-pane {
+  grid-column: 1;
+  grid-row: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.99);
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  visibility: hidden;
+  will-change: opacity, transform;
+}
+
+.tn-pipeline-stage-pane.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  visibility: visible;
 }
 
 .tn-morph-stage-view {
@@ -1017,6 +1075,15 @@
 
 .tn-log-tag {
   color: var(--tn-text-muted);
+}
+
+@keyframes tnFadeInLine {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.tn-fade-in-line {
+  animation: tnFadeInLine 0.22s ease forwards;
 }
 
 /* Stage 05: Verify */

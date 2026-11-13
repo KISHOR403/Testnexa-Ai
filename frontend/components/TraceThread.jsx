@@ -7,8 +7,8 @@ export const TraceThread = () => {
     const [nodes, setNodes] = useState([]);
     const pathRef = useRef(null);
     const containerRef = useRef(null);
-
-    const [scrollY, setScrollY] = useState(0);
+    const nodesLayerRef = useRef(null);
+    const pathLengthRef = useRef(0);
 
     // Measure anchors and page height
     const recalculateThread = useCallback(() => {
@@ -55,6 +55,7 @@ export const TraceThread = () => {
         // Update stroke dash array
         if (pathRef.current) {
             const length = pathRef.current.getTotalLength();
+            pathLengthRef.current = length;
             pathRef.current.style.strokeDasharray = `${length}`;
             const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
             const progress = maxScroll > 0 ? Math.min(1, Math.max(0, (window.scrollY || 0) / maxScroll)) : 0;
@@ -63,14 +64,40 @@ export const TraceThread = () => {
     }, []);
 
     useEffect(() => {
-        const handleScroll = () => {
+        let ticking = false;
+
+        const updateOnScroll = () => {
             const currentScroll = window.scrollY || window.pageYOffset;
-            setScrollY(currentScroll);
-            if (!pathRef.current) return;
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            const progress = maxScroll > 0 ? Math.min(1, Math.max(0, currentScroll / maxScroll)) : 0;
-            const length = pathRef.current.getTotalLength();
-            pathRef.current.style.strokeDashoffset = `${length * (1 - progress)}`;
+
+            // Update SVG line dashoffset
+            if (pathRef.current) {
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                const progress = maxScroll > 0 ? Math.min(1, Math.max(0, currentScroll / maxScroll)) : 0;
+                const length = pathLengthRef.current || (pathRef.current.getTotalLength ? pathRef.current.getTotalLength() : 6000);
+                pathRef.current.style.strokeDashoffset = `${length * (1 - progress)}`;
+            }
+
+            // Direct DOM update of lit nodes to prevent triggering React render tree on every scroll pixel
+            if (nodesLayerRef.current) {
+                const triggerY = currentScroll + window.innerHeight * 0.45;
+                const nodeEls = nodesLayerRef.current.querySelectorAll('.tn-thread-stage-node');
+                nodeEls.forEach((el) => {
+                    const top = parseFloat(el.getAttribute('data-top') || '0');
+                    if (triggerY >= top) {
+                        el.classList.add('is-lit');
+                    } else {
+                        el.classList.remove('is-lit');
+                    }
+                });
+            }
+            ticking = false;
+        };
+
+        const handleScroll = () => {
+            if (!ticking) {
+                requestAnimationFrame(updateOnScroll);
+                ticking = true;
+            }
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -140,21 +167,19 @@ export const TraceThread = () => {
             </svg>
 
             {/* Checkpoint Nodes along the Thread */}
-            <div className="tn-thread-nodes-layer">
-                {nodes.map((node) => {
-                    const isLit = (scrollY + (typeof window !== 'undefined' ? window.innerHeight * 0.45 : 400)) >= node.top;
-                    return (
-                        <div
-                            key={node.id}
-                            className={`tn-thread-stage-node ${isLit ? 'is-lit' : ''}`}
-                            style={{ top: `${node.top}px` }}
-                        >
-                            <div className="tn-node-core" />
-                            <div className="tn-node-pulse" />
-                            <span className="tn-node-tooltip">{node.name}</span>
-                        </div>
-                    );
-                })}
+            <div ref={nodesLayerRef} className="tn-thread-nodes-layer">
+                {nodes.map((node) => (
+                    <div
+                        key={node.id}
+                        data-top={node.top}
+                        className="tn-thread-stage-node"
+                        style={{ top: `${node.top}px` }}
+                    >
+                        <div className="tn-node-core" />
+                        <div className="tn-node-pulse" />
+                        <span className="tn-node-tooltip">{node.name}</span>
+                    </div>
+                ))}
             </div>
         </aside>
     );
