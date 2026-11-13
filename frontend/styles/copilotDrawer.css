@@ -11,12 +11,12 @@
   right: 24px;
   bottom: 24px;
   z-index: 900;
-  height: 48px;
-  padding: 0 18px;
-  background: #101112;
-  border: 1px solid #292D2D;
-  border-radius: 24px;
-  color: #F2F3F3;
+  height: 44px;
+  padding: 0 16px;
+  background: #080808;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  color: #FFFFFF;
   font-size: 0.82rem;
   font-weight: 600;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -24,20 +24,20 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 175, 154, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(125, 211, 252, 0.15);
   transition: all 180ms ease;
   user-select: none;
 }
 
 .tn-copilot-floating-trigger:hover {
-  background: #161819;
-  border-color: #8BAF9A;
+  background: #101010;
+  border-color: #7DD3FC;
   color: #FFFFFF;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.8), 0 0 20px rgba(125, 211, 252, 0.25);
 }
 
 .tn-copilot-floating-trigger__icon {
-  color: #8BAF9A;
+  color: #7DD3FC;
   display: flex;
   align-items: center;
   justify-content: center;

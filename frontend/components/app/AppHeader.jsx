@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, NavLink, useNavigate } from 'react-router-dom';
 import {
-    Menu, ChevronRight, HelpCircle, Check
+    Menu, ChevronRight, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -16,7 +16,8 @@ const AppHeader = ({ onToggleMobile }) => {
     const getBreadcrumb = () => {
         const path = location.pathname;
         if (path.includes('/app/workspace')) {
-            return { section: 'Workspace', current: 'AI Workspace', link: '/app/workspace' };
+            // Remove redundant duplicate of page title ("Create a Test Suite")
+            return { section: 'Workspace', current: null, link: '/app/workspace' };
         }
         if (path.includes('/app/test-suites/')) {
             const suiteSlug = path.split('/app/test-suites/')[1]?.split('?')[0] || '';
@@ -63,7 +64,7 @@ const AppHeader = ({ onToggleMobile }) => {
             };
             return { section: 'Settings', current: tabLabels[tab] || 'Profile', link: '/app/settings' };
         }
-        return { section: 'Application', current: 'Workspace', link: '/app/workspace' };
+        return { section: 'Application', current: null, link: '/app/workspace' };
     };
 
     const breadcrumb = getBreadcrumb();
@@ -76,7 +77,7 @@ const AppHeader = ({ onToggleMobile }) => {
                     type="button"
                     className="app-header__mobile-toggle"
                     onClick={onToggleMobile}
-                    aria-label="Open Navigation Menu"
+                    aria-label="Open navigation menu"
                 >
                     <Menu size={18} />
                 </button>
@@ -85,13 +86,17 @@ const AppHeader = ({ onToggleMobile }) => {
                     <NavLink to={breadcrumb.link} className="app-header__crumb-link">
                         {breadcrumb.section}
                     </NavLink>
-                    <ChevronRight size={13} style={{ opacity: 0.35 }} />
-                    <span className="app-header__crumb-current">{breadcrumb.current}</span>
+                    {breadcrumb.current && (
+                        <>
+                            <ChevronRight size={13} style={{ opacity: 0.35 }} />
+                            <span className="app-header__crumb-current">{breadcrumb.current}</span>
+                        </>
+                    )}
                 </div>
             </div>
 
             <div className="app-header__right">
-                <NavLink to="/help" className="app-header__btn" title="Documentation & Help">
+                <NavLink to="/help" className="app-header__btn" title="Documentation & Help" aria-label="Documentation & Help">
                     <HelpCircle size={16} />
                 </NavLink>
 
@@ -99,11 +104,12 @@ const AppHeader = ({ onToggleMobile }) => {
                     type="button"
                     className="app-header__btn"
                     title="Account Settings"
+                    aria-label="Account Settings"
                     onClick={() => navigate('/app/settings?tab=profile')}
                     style={{
-                        background: '#161819',
-                        border: '1px solid #292D2D',
-                        color: '#8BAF9A',
+                        background: 'rgba(125, 211, 252, 0.08)',
+                        border: '1px solid rgba(125, 211, 252, 0.25)',
+                        color: '#7DD3FC',
                         fontWeight: '600',
                         fontSize: '0.8rem',
                         cursor: 'pointer'
