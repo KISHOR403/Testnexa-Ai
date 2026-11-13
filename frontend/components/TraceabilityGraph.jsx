@@ -1,129 +1,79 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldCheck, CheckCircle2, Terminal, Sparkles, Cpu, Layers } from 'lucide-react';
-
-const REQUIREMENT_NODE = {
-    id: "PRD-AUTH-142",
-    title: "Password Recovery & Reset Protocol",
-    clause: "PRD §4.2.1: Users must reset passwords using verified email with zero token reuse or enumeration leakage."
-};
 
 const TEST_NODES = [
     {
-        id: "TC-SEC-01",
-        label: "Crypto Single-Use TTL",
-        tag: "P0 Security",
-        angle: 0,
-        distance: 220,
-        assertion: "expect(token.ttl).toBeLessThanOrEqual(900);",
-        rationale: "Resolves ambiguous 'reset' action: prevents persistent replay tokens and concurrent hijacking across devices."
+        id: "TC-01",
+        title: "Single-use reset token with strict 15m TTL",
+        rationale: "Prevents persistent replay attacks and unauthorized session takeover across client devices.",
+        x: 380,
+        y: 70,
+        path: "M 290 240 C 315 160, 355 110, 380 70"
     },
     {
-        id: "TC-TIME-02",
-        label: "Timing Invariant Delta",
-        tag: "P0 Anti-Enumeration",
-        angle: 36,
-        distance: 210,
-        assertion: "expect(Math.abs(t_valid - t_invalid)).toBeLessThanOrEqual(120);",
-        rationale: "Mitigates account probe attacks: enforces constant-time response delta whether email exists or not."
+        id: "TC-02",
+        title: "Constant-time API response delta (≤ 120ms)",
+        rationale: "Eliminates timing attack vectors that reveal whether an address exists in the database.",
+        x: 495,
+        y: 190,
+        path: "M 290 240 C 375 225, 440 205, 495 190"
     },
     {
-        id: "TC-SYN-03",
-        label: "RFC 5322 Normalization",
-        tag: "P1 Gateway Syntax",
-        angle: 72,
-        distance: 230,
-        assertion: "expect(res.status).toBe(422); expect(res.body.code).toBe('RFC_ERR');",
-        rationale: "Defends against malformed Unicode and multi-byte injections at the API edge before reaching DB."
+        id: "TC-03",
+        title: "Unregistered email gets a neutral reply",
+        rationale: "Prevents attackers from learning which emails have accounts.",
+        x: 495,
+        y: 310,
+        path: "M 290 240 C 385 260, 445 290, 495 310"
     },
     {
-        id: "TC-RATE-04",
-        label: "Burst Request Throttle",
-        tag: "P0 Anti-Abuse",
-        angle: 108,
-        distance: 200,
-        assertion: "expect(res_throttle.status).toBe(429); expect(res.headers['retry-after']).toBe('3600');",
-        rationale: "Prevents automated flooding of downstream transactional mail queues by client IP & target account."
+        id: "TC-04",
+        title: "Invalidate all concurrent active sessions",
+        rationale: "Revokes existing browser tokens immediately upon successful credential replacement.",
+        x: 380,
+        y: 410,
+        path: "M 290 240 C 325 320, 360 370, 380 410"
     },
     {
-        id: "TC-SESS-05",
-        label: "Global Session Revocation",
-        tag: "P0 Session Boundary",
-        angle: 144,
-        distance: 225,
-        assertion: "expect(activeSessions.filter(s => s.status === 'valid')).toHaveLength(0);",
-        rationale: "Invalidates all concurrent browser refresh tokens upon password change completion."
+        id: "TC-05",
+        title: "Strict client IP and account burst rate limiting",
+        rationale: "Blocks brute-force flooding of transactional email and password endpoints.",
+        x: 200,
+        y: 410,
+        path: "M 290 240 C 255 320, 220 370, 200 410"
     },
     {
-        id: "TC-AUD-06",
-        label: "Cryptographic Audit Lineage",
-        tag: "P1 Compliance",
-        angle: 180,
-        distance: 220,
-        assertion: "expect(sha256(executionTrace)).toEqual(expectedAuditSeal);",
-        rationale: "Generates tamper-evident cryptographic hash chain linking test artifact directly to source clause."
+        id: "TC-06",
+        title: "Reject malformed RFC 5322 payloads",
+        rationale: "Blocks edge-injection payloads and header-poisoning attempts at the API gateway.",
+        x: 85,
+        y: 310,
+        path: "M 290 240 C 195 260, 135 290, 85 310"
     },
     {
-        id: "TC-REPL-07",
-        label: "Concurrent Replay Guard",
-        tag: "P0 Idempotency",
-        angle: 216,
-        distance: 215,
-        assertion: "expect(res_second_call.status).toBe(409);",
-        rationale: "Asserts immediate atomic database lock: rejects dual parallel submission of the identical token."
+        id: "TC-07",
+        title: "Atomic database lock on token redemption",
+        rationale: "Rejects parallel race condition submissions attempting concurrent password reuse.",
+        x: 85,
+        y: 190,
+        path: "M 290 240 C 205 225, 140 205, 85 190"
     },
     {
-        id: "TC-GATE-08",
-        label: "Header Sanitization",
-        tag: "P1 Edge Defense",
-        angle: 252,
-        distance: 230,
-        assertion: "expect(headers['x-forwarded-host']).toBeNull();",
-        rationale: "Guarantees reset link URL host is bound strictly to whitelist, blocking host-header poison vectors."
-    },
-    {
-        id: "TC-NOTIF-09",
-        label: "Out-of-Band Notification",
-        tag: "P2 Notification",
-        angle: 288,
-        distance: 205,
-        assertion: "expect(audit_queue.contains('PASSWD_RESET_ALERT')).toBe(true);",
-        rationale: "Asserts parallel asynchronous security alert email dispatched to prevent unmonitored silent takeovers."
-    },
-    {
-        id: "TC-CLEAN-10",
-        label: "Ephemeral Token Scrubber",
-        tag: "P1 Reliability",
-        angle: 324,
-        distance: 225,
-        assertion: "expect(redis.exists(token_key)).toBe(0);",
-        rationale: "Verifies memory-resident transient credentials purge within 50ms of verification confirmation."
+        id: "TC-08",
+        title: "Cryptographic HMAC audit hash generation",
+        rationale: "Ensures tamper-evident compliance audit trail linking each run directly back to PRD-AUTH-004.",
+        x: 200,
+        y: 70,
+        path: "M 290 240 C 265 160, 225 110, 200 70"
     }
 ];
 
 export const TraceabilityGraph = () => {
+    // Default selected node to TC-03 to match reference design exactly
+    const [selectedNode, setSelectedNode] = useState(TEST_NODES[2]);
     const [hoveredNode, setHoveredNode] = useState(null);
-    const [clickedNode, setClickedNode] = useState(null);
-    const [pulseProgress, setPulseProgress] = useState(0);
 
-    const handleNodeClick = (node) => {
-        setClickedNode(node);
-        setPulseProgress(0);
-        let p = 0;
-        const interval = setInterval(() => {
-            p += 0.08;
-            if (p >= 1) {
-                setPulseProgress(1);
-                clearInterval(interval);
-            } else {
-                setPulseProgress(p);
-            }
-        }, 20);
-    };
-
-    // Calculate Cartesian coordinates from polar coordinates for SVG
-    const centerX = 360;
-    const centerY = 280;
+    const activeNode = hoveredNode || selectedNode || TEST_NODES[2];
 
     return (
         <section
@@ -143,235 +93,169 @@ export const TraceabilityGraph = () => {
                 </h2>
 
                 <p className="tn-graph-subtext">
-                    An interactive causality network. Hover any test node to trace its direct lineage
-                    to the acceptance clause, or click to verify the mathematical audit pulse.
+                    An interactive causality network. Select any test node to trace its direct lineage
+                    to the acceptance clause.
                 </p>
 
-                {/* Desktop Interactive SVG Graph (Hidden on mobile) */}
-                <div className="tn-graph-canvas-wrapper" data-cursor="Trace">
-                    <svg
-                        className="tn-graph-svg"
-                        viewBox="0 0 720 560"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <defs>
-                            <linearGradient id="tnPathGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#FFFFFF" />
-                                <stop offset="100%" stopColor="#7DD3FC" />
-                            </linearGradient>
-                            <filter id="tnGraphPulseGlow">
-                                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="rgba(125, 211, 252, 0.55)" />
-                            </filter>
-                        </defs>
+                {/* 2-Card Layout Matching Reference Exactly */}
+                <div className="tn-reference-graph-grid">
+                    {/* ─── LEFT CARD: Interactive Radial Graph with Curved Splines ─── */}
+                    <div className="tn-graph-card-left" data-cursor="Inspect">
+                        <svg
+                            className="tn-radial-graph-svg"
+                            viewBox="0 0 580 480"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <defs>
+                                <filter id="tnGraphLineGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="rgba(125, 211, 252, 0.7)" />
+                                </filter>
+                            </defs>
 
-                        {/* Background Radar Conic Guides */}
-                        <circle cx={centerX} cy={centerY} r="120" stroke="rgba(255, 255, 255, 0.04)" strokeDasharray="3 3" fill="none" />
-                        <circle cx={centerX} cy={centerY} r="220" stroke="rgba(255, 255, 255, 0.04)" strokeDasharray="4 4" fill="none" />
-
-                        {/* Connecting Line Paths */}
-                        {TEST_NODES.map((node) => {
-                            const rad = (node.angle * Math.PI) / 180;
-                            const x = centerX + Math.cos(rad) * node.distance;
-                            const y = centerY + Math.sin(rad) * node.distance;
-
-                            const isHovered = hoveredNode?.id === node.id;
-                            const isDimmed = hoveredNode && !isHovered;
-
-                            return (
-                                <g key={`path-${node.id}`}>
-                                    <line
-                                        x1={centerX}
-                                        y1={centerY}
-                                        x2={x}
-                                        y2={y}
-                                        stroke={isHovered ? "var(--accent)" : "rgba(255, 255, 255, 0.12)"}
-                                        strokeWidth={isHovered ? "2.5" : "1"}
-                                        strokeDasharray={isHovered ? "none" : "3 3"}
-                                        style={{
-                                            transition: "all 0.25s ease",
-                                            opacity: isDimmed ? 0.15 : 1,
-                                            filter: isHovered ? "url(#tnGraphPulseGlow)" : "none"
-                                        }}
-                                    />
-
-                                    {/* Click Animated Pulse Travelling from Center to Node */}
-                                    {clickedNode?.id === node.id && (
-                                        <circle
-                                            cx={centerX + (x - centerX) * pulseProgress}
-                                            cy={centerY + (y - centerY) * pulseProgress}
-                                            r="4"
-                                            fill="var(--accent)"
-                                            filter="url(#tnGraphPulseGlow)"
+                            {/* 8 Curved Connecting Spline Lines */}
+                            {TEST_NODES.map((node) => {
+                                const isActive = activeNode.id === node.id;
+                                return (
+                                    <g key={`spline-${node.id}`}>
+                                        <path
+                                            d={node.path}
+                                            fill="none"
+                                            stroke={isActive ? "#7DD3FC" : "rgba(255, 255, 255, 0.22)"}
+                                            strokeWidth={isActive ? "2" : "1"}
+                                            style={{
+                                                transition: "stroke 0.25s ease, stroke-width 0.25s ease",
+                                                filter: isActive ? "url(#tnGraphLineGlow)" : "none"
+                                            }}
                                         />
-                                    )}
-                                </g>
-                            );
-                        })}
 
-                        {/* 10 Test Nodes */}
-                        {TEST_NODES.map((node) => {
-                            const rad = (node.angle * Math.PI) / 180;
-                            const x = centerX + Math.cos(rad) * node.distance;
-                            const y = centerY + Math.sin(rad) * node.distance;
+                                        {/* Dynamic Travelling Pulse Particle when Node is Active */}
+                                        {isActive && (
+                                            <circle
+                                                r="3"
+                                                fill="#7DD3FC"
+                                                filter="url(#tnGraphLineGlow)"
+                                            >
+                                                <animateMotion
+                                                    path={node.path}
+                                                    dur="1.8s"
+                                                    repeatCount="indefinite"
+                                                />
+                                            </circle>
+                                        )}
+                                    </g>
+                                );
+                            })}
 
-                            const isHovered = hoveredNode?.id === node.id;
-                            const isDimmed = hoveredNode && !isHovered;
-
-                            return (
-                                <g
-                                    key={`node-${node.id}`}
-                                    className="tn-graph-node-group"
-                                    onMouseEnter={() => setHoveredNode(node)}
-                                    onMouseLeave={() => setHoveredNode(null)}
-                                    onClick={() => handleNodeClick(node)}
+                            {/* Central Requirement Node: Solid White Circle with Black Text */}
+                            <g className="tn-graph-center-group">
+                                <circle
+                                    cx="290"
+                                    cy="240"
+                                    r="38"
+                                    fill="#FFFFFF"
                                     style={{
-                                        cursor: "pointer",
-                                        transition: "opacity 0.25s ease",
-                                        opacity: isDimmed ? 0.2 : 1
+                                        filter: "drop-shadow(0 0 20px rgba(255, 255, 255, 0.25))"
                                     }}
+                                />
+                                <text
+                                    x="290"
+                                    y="235"
+                                    textAnchor="middle"
+                                    fill="#000000"
+                                    fontFamily="'JetBrains Mono', monospace"
+                                    fontSize="12"
+                                    fontWeight="700"
+                                    letterSpacing="0.04em"
+                                    style={{ pointerEvents: 'none', userSelect: 'none' }}
                                 >
-                                    {/* Outer Hover Ring */}
-                                    <circle
-                                        cx={x}
-                                        cy={y}
-                                        r={isHovered ? "20" : "14"}
-                                        fill="#050505"
-                                        stroke={isHovered ? "var(--accent)" : "rgba(255, 255, 255, 0.25)"}
-                                        strokeWidth={isHovered ? "2" : "1"}
-                                        style={{ transition: "all 0.2s ease" }}
-                                    />
+                                    PRD-AUTH
+                                </text>
+                                <text
+                                    x="290"
+                                    y="253"
+                                    textAnchor="middle"
+                                    fill="#000000"
+                                    fontFamily="'JetBrains Mono', monospace"
+                                    fontSize="12"
+                                    fontWeight="700"
+                                    letterSpacing="0.04em"
+                                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                                >
+                                    -004
+                                </text>
+                            </g>
 
-                                    {/* Inner Core */}
-                                    <circle
-                                        cx={x}
-                                        cy={y}
-                                        r={isHovered ? "7" : "5"}
-                                        fill={isHovered ? "var(--accent)" : "#FFFFFF"}
-                                        style={{ transition: "all 0.2s ease" }}
-                                    />
-
-                                    {/* Node ID Mono Label */}
-                                    <text
-                                        x={x}
-                                        y={y + (y > centerY ? 28 : -22)}
-                                        textAnchor="middle"
-                                        fill={isHovered ? "var(--accent)" : "rgba(255, 255, 255, 0.65)"}
-                                        fontFamily="'JetBrains Mono', monospace"
-                                        fontSize="11"
-                                        letterSpacing="0.06em"
-                                        style={{ transition: "fill 0.2s ease", pointerEvents: "none" }}
+                            {/* 8 Surrounding Test Nodes (TC-01 through TC-08) */}
+                            {TEST_NODES.map((node) => {
+                                const isActive = activeNode.id === node.id;
+                                return (
+                                    <g
+                                        key={`node-${node.id}`}
+                                        className="tn-test-node-item"
+                                        onClick={() => setSelectedNode(node)}
+                                        onMouseEnter={() => setHoveredNode(node)}
+                                        onMouseLeave={() => setHoveredNode(null)}
+                                        style={{ cursor: "pointer" }}
                                     >
-                                        {node.id}
-                                    </text>
-                                </g>
-                            );
-                        })}
-
-                        {/* Central Requirement Nexus Node */}
-                        <g className="tn-graph-center-node">
-                            <circle
-                                cx={centerX}
-                                cy={centerY}
-                                r="42"
-                                fill="#080808"
-                                stroke="var(--accent)"
-                                strokeWidth="2"
-                                filter="url(#tnGraphPulseGlow)"
-                            />
-                            <circle
-                                cx={centerX}
-                                cy={centerY}
-                                r="48"
-                                stroke="rgba(125, 211, 252, 0.3)"
-                                strokeWidth="1"
-                                strokeDasharray="4 4"
-                                fill="none"
-                            />
-                            <text
-                                x={centerX}
-                                y={centerY - 6}
-                                textAnchor="middle"
-                                fill="#FFFFFF"
-                                fontFamily="'Space Grotesk', sans-serif"
-                                fontSize="12"
-                                fontWeight="600"
-                            >
-                                PRD CLAUSE
-                            </text>
-                            <text
-                                x={centerX}
-                                y={centerY + 12}
-                                textAnchor="middle"
-                                fill="var(--accent)"
-                                fontFamily="'JetBrains Mono', monospace"
-                                fontSize="10"
-                                letterSpacing="0.08em"
-                            >
-                                §4.2 AUTH
-                            </text>
-                        </g>
-                    </svg>
-
-                    {/* Interactive Rationale Inspection Card */}
-                    <div className="tn-graph-detail-panel">
-                        <div className="tn-detail-header">
-                            <span className="tn-detail-tag">
-                                {hoveredNode ? hoveredNode.tag : "[ SELECT ANY NODE TO INSPECT CAUSALITY ]"}
-                            </span>
-                            <span className="tn-detail-id">
-                                {hoveredNode ? hoveredNode.id : REQUIREMENT_NODE.id}
-                            </span>
-                        </div>
-
-                        <div className="tn-detail-title">
-                            {hoveredNode ? hoveredNode.label : REQUIREMENT_NODE.title}
-                        </div>
-
-                        <div className="tn-detail-clause">
-                            <span className="tn-clause-k">ORIGIN:</span> {REQUIREMENT_NODE.clause}
-                        </div>
-
-                        {hoveredNode && (
-                            <>
-                                <div className="tn-detail-assertion">
-                                    <code>{hoveredNode.assertion}</code>
-                                </div>
-                                <div className="tn-detail-rationale">
-                                    <span className="tn-rationale-k">FORMAL REASON:</span> {hoveredNode.rationale}
-                                </div>
-                            </>
-                        )}
-
-                        <div className="tn-detail-status-bar">
-                            <div className="tn-audit-seal">
-                                <CheckCircle2 size={13} color="var(--ok)" />
-                                <span>100% Cryptographically Bound</span>
-                            </div>
-                            <span className="tn-audit-badge">Zero Orphan Tests</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Static Fallback (Single-Column High-Density List) */}
-                <div className="tn-graph-mobile-fallback">
-                    <div className="tn-mobile-req-card">
-                        <div className="tn-req-tag">ROOT CLAUSE: {REQUIREMENT_NODE.id}</div>
-                        <div className="tn-req-title">{REQUIREMENT_NODE.title}</div>
-                        <p className="tn-req-p">{REQUIREMENT_NODE.clause}</p>
+                                        <circle
+                                            cx={node.x}
+                                            cy={node.y}
+                                            r="23"
+                                            fill="#050505"
+                                            stroke={isActive ? "#7DD3FC" : "rgba(255, 255, 255, 0.28)"}
+                                            strokeWidth={isActive ? "1.75" : "1"}
+                                            style={{
+                                                transition: "all 0.2s ease",
+                                                filter: isActive ? "drop-shadow(0 0 12px rgba(125, 211, 252, 0.45))" : "none"
+                                            }}
+                                        />
+                                        <text
+                                            x={node.x}
+                                            y={node.y + 4}
+                                            textAnchor="middle"
+                                            fill={isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.85)"}
+                                            fontFamily="'JetBrains Mono', monospace"
+                                            fontSize="11"
+                                            fontWeight="600"
+                                            letterSpacing="0.04em"
+                                            style={{ pointerEvents: 'none', userSelect: 'none', transition: "fill 0.2s ease" }}
+                                        >
+                                            {node.id}
+                                        </text>
+                                    </g>
+                                );
+                            })}
+                        </svg>
                     </div>
 
-                    <div className="tn-mobile-nodes-list">
-                        {TEST_NODES.slice(0, 6).map((node) => (
-                            <div key={`m-${node.id}`} className="tn-mobile-test-card">
-                                <div className="tn-m-top">
-                                    <span className="tn-m-id">{node.id}</span>
-                                    <span className="tn-m-tag">{node.tag}</span>
-                                    <CheckCircle2 size={12} color="var(--ok)" style={{ marginLeft: "auto" }} />
+                    {/* ─── RIGHT CARD: Editorial Detail Panel Matching Reference ─── */}
+                    <div className="tn-graph-card-right">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeNode.id}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                                className="tn-graph-detail-inner"
+                            >
+                                <div className="tn-graph-meta-tag">
+                                    {activeNode.id} &rarr; PRD-AUTH-004
                                 </div>
-                                <div className="tn-m-title">{node.label}</div>
-                                <div className="tn-m-rationale">{node.rationale}</div>
-                            </div>
-                        ))}
+
+                                <h3 className="tn-graph-card-title">
+                                    {activeNode.title}
+                                </h3>
+
+                                <p className="tn-graph-card-desc">
+                                    {activeNode.rationale}
+                                </p>
+                            </motion.div>
+                        </AnimatePresence>
+
+                        <div className="tn-graph-card-prompt">
+                            Select a test node to read its rationale.
+                        </div>
                     </div>
                 </div>
             </div>
