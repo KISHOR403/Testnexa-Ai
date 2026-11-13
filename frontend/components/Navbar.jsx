@@ -13,7 +13,7 @@ import TestNexaLogo from './TestNexaLogo';
 const MARKETING_LINKS = [
     { type: 'scroll', id: 'product-canvas', label: 'Product' },
     { type: 'scroll', id: 'workflow', label: 'Workflow' },
-    { type: 'scroll', id: 'review-risk', label: 'Features' },
+    { type: 'scroll', id: 'features-bento', label: 'Features' },
     { type: 'route', path: '/help', label: 'Docs' },
     { type: 'route', path: '/api-reference', label: 'API' }
 ];
@@ -32,20 +32,42 @@ export const Navbar = ({ isMarketingLayout = true }) => {
     const navRef = useRef(null);
     const mobileDrawerRef = useRef(null);
 
-    // Smooth scroll helper for in-page anchors
+    // Smooth scroll helper for in-page anchors with Lenis support
     const handleScrollTo = useCallback((elementId) => {
         const doScroll = () => {
-            const el = document.getElementById(elementId);
+            const candidateIds = [
+                elementId,
+                elementId === 'product-canvas' ? 'product' : null,
+                elementId === 'product' ? 'product-canvas' : null,
+                elementId === 'workflow' ? 'pipeline-scene' : null,
+                elementId === 'pipeline-scene' ? 'workflow' : null,
+                elementId === 'features-bento' ? 'review-risk' : null,
+                elementId === 'review-risk' ? 'features-bento' : null
+            ].filter(Boolean);
+
+            let el = null;
+            for (const id of candidateIds) {
+                const found = document.getElementById(id);
+                if (found) {
+                    el = found;
+                    break;
+                }
+            }
+
             if (el) {
-                const yOffset = -75;
-                const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                window.scrollTo({ top: y, behavior: 'smooth' });
+                if (window.__lenis) {
+                    window.__lenis.scrollTo(el, { offset: -70 });
+                } else {
+                    const yOffset = -70;
+                    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }
             }
         };
 
         if (location.pathname !== '/') {
             navigate('/');
-            setTimeout(doScroll, 300);
+            setTimeout(doScroll, 350);
         } else {
             doScroll();
         }
@@ -111,7 +133,11 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                             onClick={(e) => {
                                 if (location.pathname === '/') {
                                     e.preventDefault();
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    if (window.__lenis) {
+                                        window.__lenis.scrollTo(0);
+                                    } else {
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }
                                 }
                             }}
                         >

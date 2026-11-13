@@ -136,13 +136,18 @@ export const CompetitionHero = () => {
         e.preventDefault();
         const target = document.getElementById('pipeline-scene') || document.getElementById('workflow');
         if (target) {
-            target.scrollIntoView({ behavior: 'smooth' });
+            if (window.__lenis) {
+                window.__lenis.scrollTo(target, { offset: -70 });
+            } else {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
         }
     };
 
     return (
         <section
             ref={heroRef}
+            id="product"
             className="tn-hero-competition"
             onMouseMove={handleMouseMove}
             aria-labelledby="hero-title"
@@ -154,7 +159,7 @@ export const CompetitionHero = () => {
             <div
                 className="tn-hero-glow"
                 style={{
-                    background: `radial-gradient(circle 500px at ${mousePos.x}% ${mousePos.y}%, rgba(56, 189, 248, 0.08), transparent 70%)`
+                    background: `radial-gradient(circle 500px at ${mousePos.x}% ${mousePos.y}%, rgba(125, 211, 252, 0.08), transparent 70%)`
                 }}
                 aria-hidden="true"
             />
@@ -171,7 +176,7 @@ export const CompetitionHero = () => {
                     {/* Mask Reveal Word by Word Headline */}
                     <h1 id="hero-title" className="tn-hero-headline">
                         {headlineWords.map((word, idx) => {
-                            const isGreen = word === "verified" || word.startsWith("acceptance");
+                            const isAccent = word === "verified" || word.startsWith("acceptance");
                             return (
                                 <span key={idx} className="tn-headline-word-mask">
                                     <motion.span
@@ -182,7 +187,7 @@ export const CompetitionHero = () => {
                                             delay: idx * 0.065,
                                             ease: [0.22, 1, 0.36, 1]
                                         }}
-                                        className={`tn-headline-word ${isGreen ? 'is-semantic-green' : ''}`}
+                                        className={`tn-headline-word ${isAccent ? 'is-gradient-accent' : ''}`}
                                     >
                                         {word}&nbsp;
                                     </motion.span>
@@ -225,7 +230,7 @@ export const CompetitionHero = () => {
                 </div>
 
                 {/* ─── 2. LIVE INTERACTIVE DEMO (Large & Centered) ─── */}
-                <div className="tn-hero-live-demo-wrap" data-cursor="Interactive">
+                <div id="product-canvas" className="tn-hero-live-demo-wrap" data-cursor="Interactive">
                     {/* Live Demo Frame */}
                     <div className="tn-live-demo-panel">
                         {/* Cyan Scanning Laser Line */}
@@ -307,7 +312,7 @@ export const CompetitionHero = () => {
 
                                             {/* d) Green Traced Check */}
                                             <div className="tn-traced-indicator">
-                                                <CheckCircle2 size={13} color="#22C55E" />
+                                                <CheckCircle2 size={13} color="#34D399" />
                                                 <span>TRACED</span>
                                             </div>
                                         </div>

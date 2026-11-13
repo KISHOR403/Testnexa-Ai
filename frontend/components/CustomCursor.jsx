@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 
 export const CustomCursor = () => {
     const [isHovered, setIsHovered] = useState(false);
+    const [isTextHidden, setIsTextHidden] = useState(false);
     const [cursorLabel, setCursorLabel] = useState('');
     const [isVisible, setIsVisible] = useState(false);
     const cursorRef = useRef(null);
@@ -21,9 +22,13 @@ export const CustomCursor = () => {
             mouseY = e.clientY;
             if (!isVisible) setIsVisible(true);
 
+            // Hide cursor over paragraph / body text so it never obstructs reading
+            const isParagraph = !!e.target.closest('p, .tn-hero-subtitle, .tn-pipeline-desc, .tn-bento-desc, .tn-stat-sub, .tn-marquee-desc, .tn-footer-brand-tagline, .tn-rationale-text');
+            setIsTextHidden(isParagraph);
+
             // Check if hovering interactive target
             const target = e.target.closest('button, a, input, [data-cursor], .tn-glow-card');
-            if (target) {
+            if (target && !isParagraph) {
                 setIsHovered(true);
                 const customLabel = target.getAttribute('data-cursor');
                 setCursorLabel(customLabel || '');
@@ -65,10 +70,10 @@ export const CustomCursor = () => {
     return (
         <div
             ref={cursorRef}
-            className={`tn-custom-cursor ${isHovered ? 'is-expanded' : ''}`}
+            className={`tn-custom-cursor ${isHovered ? 'is-expanded' : ''} ${isTextHidden ? 'is-hidden-text' : ''}`}
             aria-hidden="true"
         >
-            {cursorLabel && <span className="tn-custom-cursor-label">{cursorLabel}</span>}
+            {cursorLabel && !isTextHidden && <span className="tn-custom-cursor-label">{cursorLabel}</span>}
         </div>
     );
 };

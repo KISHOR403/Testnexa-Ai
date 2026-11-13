@@ -33,6 +33,9 @@ export const GeneratorPage = () => {
             wheelMultiplier: 0.95
         });
 
+        // Expose lenis instance globally for smooth navbar and anchor transitions
+        window.__lenis = lenis;
+
         // 1. Sync Lenis scroll with ScrollTrigger
         lenis.on('scroll', ScrollTrigger.update);
 
@@ -59,6 +62,7 @@ export const GeneratorPage = () => {
 
         return () => {
             clearTimeout(settleTimer);
+            delete window.__lenis;
             window.removeEventListener('load', handleRefresh);
             window.removeEventListener('resize', handleRefresh);
             gsap.ticker.remove(updateTicker);

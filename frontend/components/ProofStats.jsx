@@ -66,8 +66,11 @@ export const ProofStats = () => {
                     <div className="tn-stat-divider" aria-hidden="true" />
 
                     <div className="tn-stat-cell">
-                        <div className="tn-stat-number is-green">{approved}/4</div>
-                        <div className="tn-stat-label-mono">[ QUALITY GATES APPROVED ]</div>
+                        <div className="tn-stat-number has-accent-glow">{approved}/4</div>
+                        <div className="tn-stat-label-mono">
+                            <CheckCircle2 size={13} color="var(--ok)" style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: '6px' }} />
+                            [ QUALITY GATES APPROVED ]
+                        </div>
                         <p className="tn-stat-sub">Zero unreviewed tests deployed to CI/CD pipelines.</p>
                     </div>
 
@@ -122,7 +125,7 @@ export const ProofStats = () => {
                         <div className="tn-simulation-right">
                             <div className="tn-sim-terminal-screen">
                                 <div className="tn-sim-screen-header">
-                                    <Terminal size={12} color="#38BDF8" />
+                                    <Terminal size={12} color="var(--accent)" />
                                     <span>TRACED ARTIFACT EVIDENCE // SHA256:7f9a2b</span>
                                 </div>
                                 <div className="tn-sim-screen-body">
@@ -131,7 +134,7 @@ export const ProofStats = () => {
                                         &gt; [Browser]: Chromium 1280x720 Headless<br />
                                         &gt; [Coverage]: 4/4 PRD Clauses Verified<br />
                                         &gt; [Artifacts]: video.webm, trace.zip captured<br />
-                                        &gt; <span style={{ color: '#22C55E' }}>All 24 test cases passed with cryptographic audit lineage.</span>
+                                        &gt; <span style={{ color: 'var(--ok)' }}>All 24 test cases passed with cryptographic audit lineage.</span>
                                     </code>
                                 </div>
                             </div>

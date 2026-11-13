@@ -7,6 +7,8 @@ export const TraceThread = () => {
     const pathRef = useRef(null);
     const containerRef = useRef(null);
 
+    const [scrollY, setScrollY] = useState(0);
+
     // Measure anchors and page height
     const recalculateThread = useCallback(() => {
         const root = document.querySelector('.tn-competition-root') || document.body;
@@ -26,8 +28,8 @@ export const TraceThread = () => {
         anchors.forEach((item, index) => {
             if (item.el) {
                 const rect = item.el.getBoundingClientRect();
-                const scrollY = window.scrollY || window.pageYOffset;
-                const topPos = rect.top + scrollY + 40;
+                const currentScroll = window.scrollY || window.pageYOffset;
+                const topPos = rect.top + currentScroll + 40;
                 measuredNodes.push({
                     id: `node-${index}`,
                     name: item.name,
@@ -51,10 +53,11 @@ export const TraceThread = () => {
 
     useEffect(() => {
         const handleScroll = () => {
+            const currentScroll = window.scrollY || window.pageYOffset;
+            setScrollY(currentScroll);
             if (!pathRef.current) return;
             const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            const scrollY = window.scrollY || window.pageYOffset;
-            const progress = maxScroll > 0 ? Math.min(1, Math.max(0, scrollY / maxScroll)) : 0;
+            const progress = maxScroll > 0 ? Math.min(1, Math.max(0, currentScroll / maxScroll)) : 0;
             const length = pathRef.current.getTotalLength();
             pathRef.current.style.strokeDashoffset = `${length * (1 - progress)}`;
         };
@@ -113,11 +116,11 @@ export const TraceThread = () => {
                 <path
                     ref={pathRef}
                     d={`M 20 0 L 20 ${pageHeight}`}
-                    stroke="#22C55E"
+                    stroke="var(--accent, #7DD3FC)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     style={{
-                        filter: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.7))',
+                        filter: 'drop-shadow(0 0 8px var(--accent-glow, rgba(125, 211, 252, 0.25)))',
                         transition: 'stroke-dashoffset 0.08s linear'
                     }}
                 />
@@ -125,17 +128,20 @@ export const TraceThread = () => {
 
             {/* Checkpoint Nodes along the Thread */}
             <div className="tn-thread-nodes-layer">
-                {nodes.map((node) => (
-                    <div
-                        key={node.id}
-                        className="tn-thread-stage-node"
-                        style={{ top: `${node.top}px` }}
-                    >
-                        <div className="tn-node-core" />
-                        <div className="tn-node-pulse" />
-                        <span className="tn-node-tooltip">{node.name}</span>
-                    </div>
-                ))}
+                {nodes.map((node) => {
+                    const isLit = (scrollY + (typeof window !== 'undefined' ? window.innerHeight * 0.45 : 400)) >= node.top;
+                    return (
+                        <div
+                            key={node.id}
+                            className={`tn-thread-stage-node ${isLit ? 'is-lit' : ''}`}
+                            style={{ top: `${node.top}px` }}
+                        >
+                            <div className="tn-node-core" />
+                            <div className="tn-node-pulse" />
+                            <span className="tn-node-tooltip">{node.name}</span>
+                        </div>
+                    );
+                })}
             </div>
         </aside>
     );

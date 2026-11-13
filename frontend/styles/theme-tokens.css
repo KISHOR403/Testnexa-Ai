@@ -4,28 +4,43 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ─── 1. Backgrounds & Surfaces (Total Black) ─────────────────────────── */
-  --tn-bg-pure: #000000;
-  --tn-surface: #050505;
-  --tn-surface-elevated: #0A0A0A;
-  --tn-border-subtle: rgba(255, 255, 255, 0.08);
-  --tn-border-active: rgba(255, 255, 255, 0.20);
-  --tn-border-glow: rgba(56, 189, 248, 0.35);
+  /* ─── NEW COLOR TOKENS (Monochrome + Ice-Blue System) ───────────────────── */
+  --bg: #000000;
+  --surface: #050505;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --text-1: #FFFFFF;
+  --text-2: rgba(255, 255, 255, 0.72);
+  --text-3: rgba(255, 255, 255, 0.52);
+  --accent: #7DD3FC;          /* ice blue, active / AI / highlight */
+  --accent-soft: rgba(125, 211, 252, 0.12);
+  --accent-glow: rgba(125, 211, 252, 0.25);
+  
+  /* Semantic (tiny use only: dots, badges, check icons, never headlines) */
+  --ok: #34D399;
+  --warn: #FBBF24;
+  --fail: #F87171;
 
-  /* ─── 2. Text (Three Whites Only - Contrast Compliant) ───────────────── */
-  --tn-text-primary: #FFFFFF;
-  --tn-text-secondary: rgba(255, 255, 255, 0.76);
-  --tn-text-muted: rgba(255, 255, 255, 0.58);
+  /* ─── Backward Compatibility Aliases Mapped to New Tokens ────────────── */
+  --tn-bg-pure: var(--bg);
+  --tn-surface: var(--surface);
+  --tn-surface-elevated: #080808;
+  --tn-border-subtle: var(--border);
+  --tn-border-active: var(--border-strong);
+  --tn-border-glow: var(--accent-glow);
 
-  /* ─── 3. Semantic Color (Meaning Only) ─────────────────────────────────── */
-  --tn-semantic-green: #22C55E;  /* verified / pass */
-  --tn-semantic-amber: #F59E0B;  /* ambiguity / gap / needs review */
-  --tn-semantic-red: #EF4444;    /* failure / defect */
-  --tn-semantic-cyan: #38BDF8;   /* active / AI-processing glow */
+  --tn-text-primary: var(--text-1);
+  --tn-text-secondary: var(--text-2);
+  --tn-text-muted: var(--text-3);
 
-  --tn-glow-cyan: rgba(56, 189, 248, 0.18);
-  --tn-glow-green: rgba(34, 197, 94, 0.35);
-  --tn-glow-amber: rgba(245, 158, 11, 0.20);
+  --tn-semantic-green: var(--ok);
+  --tn-semantic-amber: var(--warn);
+  --tn-semantic-red: var(--fail);
+  --tn-semantic-cyan: var(--accent);
+
+  --tn-glow-cyan: var(--accent-glow);
+  --tn-glow-green: var(--accent-glow);
+  --tn-glow-amber: rgba(251, 191, 36, 0.20);
 
   /* ─── 4. Typography ───────────────────────────────────────────────────── */
   --tn-font-display: 'Space Grotesk', -apple-system, sans-serif;
@@ -106,7 +121,7 @@ body, .tn-competition-root {
   100% { transform: translateY(28px); }
 }
 
-/* Custom Cursor */
+/* Custom Cursor: mix-blend-mode difference so it never hides text, ring: --accent */
 .tn-custom-cursor {
   position: fixed;
   top: 0;
@@ -114,24 +129,30 @@ body, .tn-competition-root {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #FFFFFF;
+  background: var(--text-1);
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
-  transition: width 0.25s var(--tn-ease-luxury), height 0.25s var(--tn-ease-luxury), background 0.2s ease, border 0.2s ease;
-  mix-blend-mode: difference;
+  transition: width 0.25s var(--tn-ease-luxury), height 0.25s var(--tn-ease-luxury), opacity 0.2s ease, background 0.2s ease, border 0.2s ease;
+  mix-blend-mode: difference !important;
 }
 
 .tn-custom-cursor.is-expanded {
   width: 52px;
   height: 52px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
-  mix-blend-mode: normal;
+  mix-blend-mode: difference !important;
+}
+
+.tn-custom-cursor.is-hidden-text {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 .tn-custom-cursor-label {
@@ -246,13 +267,13 @@ body, .tn-competition-root {
   justify-content: center;
   gap: 10px;
   background: transparent;
-  color: var(--tn-text-secondary);
+  color: var(--text-1);
   font-family: var(--tn-font-display);
   font-weight: 500;
   font-size: 15px;
   padding: 14px 28px;
   border-radius: 3px;
-  border: 1px solid var(--tn-border-subtle);
+  border: 1px solid var(--border-strong);
   cursor: pointer;
   text-decoration: none;
   transition: all 0.25s var(--tn-ease-luxury);
@@ -260,9 +281,41 @@ body, .tn-competition-root {
 
 .tn-btn-ghost:hover {
   color: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+  background: var(--accent-soft);
   transform: translateY(-2px);
+}
+
+.tn-btn-nav-primary {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 3px !important;
+  font-family: var(--tn-font-display) !important;
+  font-weight: 600 !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.tn-btn-nav-primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.25) !important;
+}
+
+.tn-btn-nav-ghost {
+  background: transparent !important;
+  color: var(--text-1) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 3px !important;
+  font-family: var(--tn-font-display) !important;
+  transition: all 0.2s ease !important;
+}
+
+.tn-btn-nav-ghost:hover {
+  color: #FFFFFF !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
+  background: var(--accent-soft) !important;
 }
 
 /* Reduced Motion Safety */

@@ -226,7 +226,7 @@ export const PipelineStickyScene = () => {
                                     <span className="tn-stream-id">TC-FUNC-001</span>
                                     <span className="tn-priority-badge p0">P0</span>
                                     <span className="tn-stream-type">Functional</span>
-                                    <span className="tn-stream-check"><CheckCircle2 size={13} color="#22C55E" /></span>
+                                    <span className="tn-stream-check"><CheckCircle2 size={13} color="var(--ok)" /></span>
                                 </div>
                                 <div className="tn-stream-title">Submit registered email &amp; verify single-use token dispatch with 15m TTL</div>
                                 <div className="tn-stream-assertion">
@@ -238,7 +238,7 @@ export const PipelineStickyScene = () => {
                                     <span className="tn-stream-id">TC-NEG-002</span>
                                     <span className="tn-priority-badge p1">P1</span>
                                     <span className="tn-stream-type">Negative</span>
-                                    <span className="tn-stream-check"><CheckCircle2 size={13} color="#22C55E" /></span>
+                                    <span className="tn-stream-check"><CheckCircle2 size={13} color="var(--ok)" /></span>
                                 </div>
                                 <div className="tn-stream-title">Malformed RFC 5322 syntax rejection at client gateway</div>
                                 <div className="tn-stream-assertion">
@@ -250,7 +250,7 @@ export const PipelineStickyScene = () => {
                                     <span className="tn-stream-id">TC-SEC-003</span>
                                     <span className="tn-priority-badge p0">P0</span>
                                     <span className="tn-stream-type">Security</span>
-                                    <span className="tn-stream-check"><CheckCircle2 size={13} color="#22C55E" /></span>
+                                    <span className="tn-stream-check"><CheckCircle2 size={13} color="var(--ok)" /></span>
                                 </div>
                                 <div className="tn-stream-title">Account enumeration timing attack audit across 1,000 mixed probes</div>
                                 <div className="tn-stream-assertion">
@@ -294,12 +294,12 @@ export const PipelineStickyScene = () => {
                                 >
                                     {reviewToggled ? (
                                         <>
-                                            <Check size={14} color="#22C55E" />
+                                            <Check size={14} color="var(--ok)" />
                                             <span>Approved for CI/CD</span>
                                         </>
                                     ) : (
                                         <>
-                                            <AlertTriangle size={14} color="#F59E0B" />
+                                            <AlertTriangle size={14} color="var(--warn)" />
                                             <span>Needs QA Review</span>
                                         </>
                                     )}
@@ -319,7 +319,7 @@ export const PipelineStickyScene = () => {
                             <div className="tn-telemetry-meta-bar">
                                 <span>Session: prod-runner-alpha</span>
                                 <span>Duration: 1.42s</span>
-                                <span style={{ color: '#22C55E' }}>Status: 24/24 Passed</span>
+                                <span style={{ color: 'var(--ok)' }}>Status: 24/24 Passed</span>
                             </div>
                             <div className="tn-terminal-log-feed">
                                 <div className="tn-log-line pass">
@@ -405,7 +405,7 @@ export const PipelineStickyScene = () => {
                                     <span className="tn-trace-run">{row.run}</span>
                                     <ChevronRight size={13} color="rgba(255,255,255,0.2)" />
                                     <span className="tn-trace-verified-pill">
-                                        <CheckCircle2 size={13} color="#22C55E" />
+                                        <CheckCircle2 size={13} color="var(--ok)" />
                                         <span>Verified</span>
                                     </span>
                                 </motion.div>
@@ -414,7 +414,7 @@ export const PipelineStickyScene = () => {
                         <div className="tn-verify-coverage-bar-wrap">
                             <div className="tn-coverage-label-row">
                                 <span>PRD Clause Verification Integrity</span>
-                                <span style={{ color: '#22C55E', fontWeight: 600 }}>{coverageCounter}% Complete</span>
+                                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{coverageCounter}% Complete</span>
                             </div>
                             <div className="tn-coverage-progress-track">
                                 <motion.div
@@ -433,8 +433,8 @@ export const PipelineStickyScene = () => {
     // Reduced motion or no-JS: show all stages stacked normally
     if (isReducedMotion) {
         return (
-            <section id="pipeline-scene" className="tn-pipeline-reduced-motion-stack" aria-label="5-Stage QA Pipeline">
-                <div className="tn-max-container">
+            <section id="workflow" className="tn-pipeline-reduced-motion-stack" aria-label="5-Stage QA Pipeline">
+                <div id="pipeline-scene" className="tn-max-container">
                     <div className="tn-eyebrow-mono">
                         <span className="tn-eyebrow-ping" />
                         <span>CONTINUOUS QA PIPELINE // SPECIFICATION TO VERIFICATION</span>
@@ -459,11 +459,11 @@ export const PipelineStickyScene = () => {
     return (
         <section
             ref={sceneRef}
-            id="pipeline-scene"
+            id="workflow"
             className="tn-pipeline-scene-container"
             aria-label="Interactive 5-Stage QA Pipeline"
         >
-            <div ref={pinWrapRef} className="tn-pipeline-pinned-wrap">
+            <div ref={pinWrapRef} id="pipeline-scene" className="tn-pipeline-pinned-wrap">
                 <div className="tn-max-container">
                     {/* Clean single eyebrow header - no duplicate labels */}
                     <div className="tn-pipeline-top-bar">
