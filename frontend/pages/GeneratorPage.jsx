@@ -5,11 +5,14 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import CustomCursor from '../components/CustomCursor';
 import NoiseOverlay from '../components/NoiseOverlay';
+import BrandIntro from '../components/BrandIntro';
 import TraceThread from '../components/TraceThread';
 import CompetitionHero from '../components/CompetitionHero';
 import PipelineStickyScene from '../components/PipelineStickyScene';
-import ProofStats from '../components/ProofStats';
+import TraceabilityGraph from '../components/TraceabilityGraph';
+import ProofSection from '../components/ProofSection';
 import FeaturesBento from '../components/FeaturesBento';
+import DesignStory from '../components/DesignStory';
 import IntegrationsStrip from '../components/IntegrationsStrip';
 import CompetitionFinalCTA from '../components/CompetitionFinalCTA';
 
@@ -72,6 +75,9 @@ export const GeneratorPage = () => {
 
     return (
         <div className="tn-competition-root">
+            {/* 1-Second Skippable Brand Intro Animation */}
+            <BrandIntro />
+
             {/* 3% Film Grain Noise Overlay */}
             <NoiseOverlay />
 
@@ -81,22 +87,28 @@ export const GeneratorPage = () => {
             {/* Signature Concept: Absolutely Positioned Full-Page SVG Traceability Thread */}
             <TraceThread />
 
-            {/* 1. Hero with Live Interactive Typing Demo (max-width 1100px, 14px+ text) */}
+            {/* 1. Hook & Live Interactive Typing Demo */}
             <CompetitionHero />
 
-            {/* 2. One Pinned Scroll-Driven Sticky Pipeline Scene (+=350%, anticipatePin: 1, scrub: 0.6) */}
+            {/* 2. One Pinned Scroll-Driven Sticky Pipeline Scene */}
             <PipelineStickyScene />
 
-            {/* 3. Proof Stats (Oversized 120px+ Numbers, heavy weight, green glow on 4/4) */}
-            <ProofStats />
+            {/* 3. Signature Causality Visual: Interactive Traceability Graph */}
+            <TraceabilityGraph />
 
-            {/* 4. Features Bento Grid (Mixed Card Sizes, 3D Hover Tilt max 6deg, Cursor Border Glow) */}
+            {/* 4. Proof: Oversized Metrics, Before/After Slider, 16:9 Reel, Built in Public */}
+            <ProofSection />
+
+            {/* 5. Features Bento Grid (Mixed Card Sizes, 3D Hover Tilt, Cursor Glow) */}
             <FeaturesBento />
 
-            {/* 5. Integrations Strip (Seamless Infinite Marquee with Left/Right Fade Masks & Pause on Hover) */}
+            {/* 6. Design Story: Concept, Color, Motion, Lighthouse 95+ Audit */}
+            <DesignStory />
+
+            {/* 7. Integrations Strip (Seamless Infinite Marquee with Edge Fade Masks) */}
             <IntegrationsStrip />
 
-            {/* 6. Controlled 2-Line Headline CTA + Clean 4-Column Footer */}
+            {/* 8. Controlled 2-Line Headline CTA + Clean 4-Column Footer */}
             <CompetitionFinalCTA />
         </div>
     );

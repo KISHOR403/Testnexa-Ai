@@ -1,165 +1,378 @@
-import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, ShieldCheck, ChevronRight } from 'lucide-react';
-import useWorkspaceEntry from '../hooks/useWorkspaceEntry';
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ShieldCheck, CheckCircle2, Terminal, Sparkles, Cpu, Layers } from 'lucide-react';
 
-const TRACE_LINKS = [
+const REQUIREMENT_NODE = {
+    id: "PRD-AUTH-142",
+    title: "Password Recovery & Reset Protocol",
+    clause: "PRD §4.2.1: Users must reset passwords using verified email with zero token reuse or enumeration leakage."
+};
+
+const TEST_NODES = [
     {
-        id: 'LNK-1',
-        reqId: 'REQ-142.1',
-        reqName: 'Single-Use Token Dispatch Spec',
-        tcId: 'TC-FUNC-001',
-        tcName: 'Submit registered email & verify token',
-        executionResult: 'Run #842 · Passed · 42ms',
-        verificationCoverage: '100% Trace',
-        proofDetail: 'Cryptographic token generated with 256-bit entropy; verified in SMTP queue; active session preserved.'
+        id: "TC-SEC-01",
+        label: "Crypto Single-Use TTL",
+        tag: "P0 Security",
+        angle: 0,
+        distance: 220,
+        assertion: "expect(token.ttl).toBeLessThanOrEqual(900);",
+        rationale: "Resolves ambiguous 'reset' action: prevents persistent replay tokens and concurrent hijacking across devices."
     },
     {
-        id: 'LNK-2',
-        reqId: 'REQ-142.2',
-        reqName: 'RFC 5322 Syntax Boundary Rules',
-        tcId: 'TC-NEG-002',
-        tcName: 'Malformed email syntax rejection',
-        executionResult: 'Run #842 · Passed · 18ms',
-        verificationCoverage: '100% Trace',
-        proofDetail: 'Client input disabled trigger; direct API post returned HTTP 422 Unprocessable with code INVALID_EMAIL.'
+        id: "TC-TIME-02",
+        label: "Timing Invariant Delta",
+        tag: "P0 Anti-Enumeration",
+        angle: 36,
+        distance: 210,
+        assertion: "expect(Math.abs(t_valid - t_invalid)).toBeLessThanOrEqual(120);",
+        rationale: "Mitigates account probe attacks: enforces constant-time response delta whether email exists or not."
     },
     {
-        id: 'LNK-3',
-        reqId: 'REQ-142.3',
-        reqName: '15-Minute Token TTL Expiration',
-        tcId: 'TC-NEG-003',
-        tcName: 'Expired token replay assertion',
-        executionResult: 'Run #842 · Passed · 65ms',
-        verificationCoverage: '100% Trace',
-        proofDetail: 'Token timestamp > 900s rejected at gateway with 401 TOKEN_EXPIRED error payload; database unaltered.'
+        id: "TC-SYN-03",
+        label: "RFC 5322 Normalization",
+        tag: "P1 Gateway Syntax",
+        angle: 72,
+        distance: 230,
+        assertion: "expect(res.status).toBe(422); expect(res.body.code).toBe('RFC_ERR');",
+        rationale: "Defends against malformed Unicode and multi-byte injections at the API edge before reaching DB."
     },
     {
-        id: 'LNK-4',
-        reqId: 'REQ-142.4',
-        reqName: 'Anti-Abuse 5 Req/Hr Rate Limit',
-        tcId: 'TC-SEC-004',
-        tcName: 'Brute-force throttle enforcement',
-        executionResult: 'Run #842 · Passed · 94ms',
-        verificationCoverage: '100% Trace',
-        proofDetail: '6th request within 15m yielded HTTP 429 Too Many Requests with Retry-After: 3600 header.'
+        id: "TC-RATE-04",
+        label: "Burst Request Throttle",
+        tag: "P0 Anti-Abuse",
+        angle: 108,
+        distance: 200,
+        assertion: "expect(res_throttle.status).toBe(429); expect(res.headers['retry-after']).toBe('3600');",
+        rationale: "Prevents automated flooding of downstream transactional mail queues by client IP & target account."
+    },
+    {
+        id: "TC-SESS-05",
+        label: "Global Session Revocation",
+        tag: "P0 Session Boundary",
+        angle: 144,
+        distance: 225,
+        assertion: "expect(activeSessions.filter(s => s.status === 'valid')).toHaveLength(0);",
+        rationale: "Invalidates all concurrent browser refresh tokens upon password change completion."
+    },
+    {
+        id: "TC-AUD-06",
+        label: "Cryptographic Audit Lineage",
+        tag: "P1 Compliance",
+        angle: 180,
+        distance: 220,
+        assertion: "expect(sha256(executionTrace)).toEqual(expectedAuditSeal);",
+        rationale: "Generates tamper-evident cryptographic hash chain linking test artifact directly to source clause."
+    },
+    {
+        id: "TC-REPL-07",
+        label: "Concurrent Replay Guard",
+        tag: "P0 Idempotency",
+        angle: 216,
+        distance: 215,
+        assertion: "expect(res_second_call.status).toBe(409);",
+        rationale: "Asserts immediate atomic database lock: rejects dual parallel submission of the identical token."
+    },
+    {
+        id: "TC-GATE-08",
+        label: "Header Sanitization",
+        tag: "P1 Edge Defense",
+        angle: 252,
+        distance: 230,
+        assertion: "expect(headers['x-forwarded-host']).toBeNull();",
+        rationale: "Guarantees reset link URL host is bound strictly to whitelist, blocking host-header poison vectors."
+    },
+    {
+        id: "TC-NOTIF-09",
+        label: "Out-of-Band Notification",
+        tag: "P2 Notification",
+        angle: 288,
+        distance: 205,
+        assertion: "expect(audit_queue.contains('PASSWD_RESET_ALERT')).toBe(true);",
+        rationale: "Asserts parallel asynchronous security alert email dispatched to prevent unmonitored silent takeovers."
+    },
+    {
+        id: "TC-CLEAN-10",
+        label: "Ephemeral Token Scrubber",
+        tag: "P1 Reliability",
+        angle: 324,
+        distance: 225,
+        assertion: "expect(redis.exists(token_key)).toBe(0);",
+        rationale: "Verifies memory-resident transient credentials purge within 50ms of verification confirmation."
     }
 ];
 
 export const TraceabilityGraph = () => {
-    const [activeLinkId, setActiveLinkId] = useState('LNK-1');
-    const { handleWorkspaceEntry, getTargetUrl } = useWorkspaceEntry();
+    const [hoveredNode, setHoveredNode] = useState(null);
+    const [clickedNode, setClickedNode] = useState(null);
+    const [pulseProgress, setPulseProgress] = useState(0);
 
-    const activeLink = TRACE_LINKS.find((l) => l.id === activeLinkId) || TRACE_LINKS[0];
+    const handleNodeClick = (node) => {
+        setClickedNode(node);
+        setPulseProgress(0);
+        let p = 0;
+        const interval = setInterval(() => {
+            p += 0.08;
+            if (p >= 1) {
+                setPulseProgress(1);
+                clearInterval(interval);
+            } else {
+                setPulseProgress(p);
+            }
+        }, 20);
+    };
+
+    // Calculate Cartesian coordinates from polar coordinates for SVG
+    const centerX = 360;
+    const centerY = 280;
 
     return (
         <section
-            id="traceability"
-            className="de-section de-section-alt"
-            aria-labelledby="trace-heading"
+            id="traceability-graph"
+            className="tn-graph-section"
+            aria-label="Interactive Requirement Traceability Graph"
         >
-            <div className="de-container">
-                {/* ─── Editorial Header ─── */}
-                <div style={{ maxWidth: 760 }}>
-                    <div className="de-eyebrow">
-                        <span className="de-eyebrow-dot" />
-                        <span>04 / REQUIREMENT TRACEABILITY</span>
-                    </div>
-
-                    <h2 id="trace-heading" className="de-editorial-title">
-                        Every test has a reason to exist.
-                    </h2>
-
-                    <p className="de-lead">
-                        Zero orphan tests. Zero untested assumptions. Every generated assertion maintains a verifiable cryptographic chain of custody from specification clause to executed test run.
-                    </p>
+            <div className="tn-max-container">
+                {/* Section Header */}
+                <div className="tn-eyebrow-mono" style={{ justifyContent: 'center' }}>
+                    <span className="tn-eyebrow-ping" />
+                    <span>CRYPTOGRAPHIC AUDIT GRAPH // CAUSAL PROOFS</span>
                 </div>
 
-                {/* ─── Technical Data Ledger: Requirement → Test Case → Execution → Verification ─── */}
-                <div className="de-trace-ledger" aria-label="Bidirectional Traceability Ledger">
-                    {/* Header Columns */}
-                    <div className="de-trace-row-header">
-                        <span>01 / Requirement Clause</span>
-                        <span />
-                        <span>02 / Test Case</span>
-                        <span />
-                        <span>03 / Execution Result</span>
-                        <span />
-                        <span>04 / Verification</span>
-                    </div>
+                <h2 className="tn-graph-heading">
+                    Every test traces back to a reason.
+                </h2>
 
-                    {/* Trace Rows */}
-                    {TRACE_LINKS.map((link) => {
-                        const isActive = link.id === activeLinkId;
-                        return (
-                            <div
-                                key={link.id}
-                                className={`de-trace-row ${isActive ? 'is-active' : ''}`}
-                                onClick={() => setActiveLinkId(link.id)}
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`Inspect ${link.reqId} to ${link.tcId} traceability`}
-                            >
-                                <div>
-                                    <span className="de-trace-id">{link.reqId}</span>
-                                    <span className="de-trace-text">{link.reqName}</span>
-                                </div>
+                <p className="tn-graph-subtext">
+                    An interactive causality network. Hover any test node to trace its direct lineage
+                    to the acceptance clause, or click to verify the mathematical audit pulse.
+                </p>
 
-                                <div className="de-trace-arrow">
-                                    <ChevronRight size={14} />
-                                </div>
-
-                                <div>
-                                    <span className="de-trace-id">{link.tcId}</span>
-                                    <span className="de-trace-text">{link.tcName}</span>
-                                </div>
-
-                                <div className="de-trace-arrow">
-                                    <ChevronRight size={14} />
-                                </div>
-
-                                <div>
-                                    <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#BAC5BE' }}>
-                                        {link.executionResult}
-                                    </span>
-                                </div>
-
-                                <div className="de-trace-arrow">
-                                    <ChevronRight size={14} />
-                                </div>
-
-                                <div>
-                                    <span className="de-trace-pill">
-                                        <CheckCircle2 size={13} />
-                                        <span>{link.verificationCoverage}</span>
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Cryptographic Inspection Proof Callout */}
-                <div className="de-trace-proof-panel">
-                    <div>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--de-accent)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '4px' }}>
-                            Lineage Proof &bull; {activeLink.reqId} &rarr; {activeLink.tcId}
-                        </span>
-                        <span style={{ fontSize: '0.88rem', color: 'var(--de-text)' }}>
-                            {activeLink.proofDetail}
-                        </span>
-                    </div>
-
-                    <a
-                        href={getTargetUrl('/app/traceability')}
-                        className="de-inline-link"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            handleWorkspaceEntry('/app/traceability');
-                        }}
+                {/* Desktop Interactive SVG Graph (Hidden on mobile) */}
+                <div className="tn-graph-canvas-wrapper" data-cursor="Trace">
+                    <svg
+                        className="tn-graph-svg"
+                        viewBox="0 0 720 560"
+                        xmlns="http://www.w3.org/2000/svg"
                     >
-                        <span>Open coverage matrix</span>
-                        <ArrowRight size={13} />
-                    </a>
+                        <defs>
+                            <linearGradient id="tnPathGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#FFFFFF" />
+                                <stop offset="100%" stopColor="#7DD3FC" />
+                            </linearGradient>
+                            <filter id="tnGraphPulseGlow">
+                                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="rgba(125, 211, 252, 0.55)" />
+                            </filter>
+                        </defs>
+
+                        {/* Background Radar Conic Guides */}
+                        <circle cx={centerX} cy={centerY} r="120" stroke="rgba(255, 255, 255, 0.04)" strokeDasharray="3 3" fill="none" />
+                        <circle cx={centerX} cy={centerY} r="220" stroke="rgba(255, 255, 255, 0.04)" strokeDasharray="4 4" fill="none" />
+
+                        {/* Connecting Line Paths */}
+                        {TEST_NODES.map((node) => {
+                            const rad = (node.angle * Math.PI) / 180;
+                            const x = centerX + Math.cos(rad) * node.distance;
+                            const y = centerY + Math.sin(rad) * node.distance;
+
+                            const isHovered = hoveredNode?.id === node.id;
+                            const isDimmed = hoveredNode && !isHovered;
+
+                            return (
+                                <g key={`path-${node.id}`}>
+                                    <line
+                                        x1={centerX}
+                                        y1={centerY}
+                                        x2={x}
+                                        y2={y}
+                                        stroke={isHovered ? "var(--accent)" : "rgba(255, 255, 255, 0.12)"}
+                                        strokeWidth={isHovered ? "2.5" : "1"}
+                                        strokeDasharray={isHovered ? "none" : "3 3"}
+                                        style={{
+                                            transition: "all 0.25s ease",
+                                            opacity: isDimmed ? 0.15 : 1,
+                                            filter: isHovered ? "url(#tnGraphPulseGlow)" : "none"
+                                        }}
+                                    />
+
+                                    {/* Click Animated Pulse Travelling from Center to Node */}
+                                    {clickedNode?.id === node.id && (
+                                        <circle
+                                            cx={centerX + (x - centerX) * pulseProgress}
+                                            cy={centerY + (y - centerY) * pulseProgress}
+                                            r="4"
+                                            fill="var(--accent)"
+                                            filter="url(#tnGraphPulseGlow)"
+                                        />
+                                    )}
+                                </g>
+                            );
+                        })}
+
+                        {/* 10 Test Nodes */}
+                        {TEST_NODES.map((node) => {
+                            const rad = (node.angle * Math.PI) / 180;
+                            const x = centerX + Math.cos(rad) * node.distance;
+                            const y = centerY + Math.sin(rad) * node.distance;
+
+                            const isHovered = hoveredNode?.id === node.id;
+                            const isDimmed = hoveredNode && !isHovered;
+
+                            return (
+                                <g
+                                    key={`node-${node.id}`}
+                                    className="tn-graph-node-group"
+                                    onMouseEnter={() => setHoveredNode(node)}
+                                    onMouseLeave={() => setHoveredNode(null)}
+                                    onClick={() => handleNodeClick(node)}
+                                    style={{
+                                        cursor: "pointer",
+                                        transition: "opacity 0.25s ease",
+                                        opacity: isDimmed ? 0.2 : 1
+                                    }}
+                                >
+                                    {/* Outer Hover Ring */}
+                                    <circle
+                                        cx={x}
+                                        cy={y}
+                                        r={isHovered ? "20" : "14"}
+                                        fill="#050505"
+                                        stroke={isHovered ? "var(--accent)" : "rgba(255, 255, 255, 0.25)"}
+                                        strokeWidth={isHovered ? "2" : "1"}
+                                        style={{ transition: "all 0.2s ease" }}
+                                    />
+
+                                    {/* Inner Core */}
+                                    <circle
+                                        cx={x}
+                                        cy={y}
+                                        r={isHovered ? "7" : "5"}
+                                        fill={isHovered ? "var(--accent)" : "#FFFFFF"}
+                                        style={{ transition: "all 0.2s ease" }}
+                                    />
+
+                                    {/* Node ID Mono Label */}
+                                    <text
+                                        x={x}
+                                        y={y + (y > centerY ? 28 : -22)}
+                                        textAnchor="middle"
+                                        fill={isHovered ? "var(--accent)" : "rgba(255, 255, 255, 0.65)"}
+                                        fontFamily="'JetBrains Mono', monospace"
+                                        fontSize="11"
+                                        letterSpacing="0.06em"
+                                        style={{ transition: "fill 0.2s ease", pointerEvents: "none" }}
+                                    >
+                                        {node.id}
+                                    </text>
+                                </g>
+                            );
+                        })}
+
+                        {/* Central Requirement Nexus Node */}
+                        <g className="tn-graph-center-node">
+                            <circle
+                                cx={centerX}
+                                cy={centerY}
+                                r="42"
+                                fill="#080808"
+                                stroke="var(--accent)"
+                                strokeWidth="2"
+                                filter="url(#tnGraphPulseGlow)"
+                            />
+                            <circle
+                                cx={centerX}
+                                cy={centerY}
+                                r="48"
+                                stroke="rgba(125, 211, 252, 0.3)"
+                                strokeWidth="1"
+                                strokeDasharray="4 4"
+                                fill="none"
+                            />
+                            <text
+                                x={centerX}
+                                y={centerY - 6}
+                                textAnchor="middle"
+                                fill="#FFFFFF"
+                                fontFamily="'Space Grotesk', sans-serif"
+                                fontSize="12"
+                                fontWeight="600"
+                            >
+                                PRD CLAUSE
+                            </text>
+                            <text
+                                x={centerX}
+                                y={centerY + 12}
+                                textAnchor="middle"
+                                fill="var(--accent)"
+                                fontFamily="'JetBrains Mono', monospace"
+                                fontSize="10"
+                                letterSpacing="0.08em"
+                            >
+                                §4.2 AUTH
+                            </text>
+                        </g>
+                    </svg>
+
+                    {/* Interactive Rationale Inspection Card */}
+                    <div className="tn-graph-detail-panel">
+                        <div className="tn-detail-header">
+                            <span className="tn-detail-tag">
+                                {hoveredNode ? hoveredNode.tag : "[ SELECT ANY NODE TO INSPECT CAUSALITY ]"}
+                            </span>
+                            <span className="tn-detail-id">
+                                {hoveredNode ? hoveredNode.id : REQUIREMENT_NODE.id}
+                            </span>
+                        </div>
+
+                        <div className="tn-detail-title">
+                            {hoveredNode ? hoveredNode.label : REQUIREMENT_NODE.title}
+                        </div>
+
+                        <div className="tn-detail-clause">
+                            <span className="tn-clause-k">ORIGIN:</span> {REQUIREMENT_NODE.clause}
+                        </div>
+
+                        {hoveredNode && (
+                            <>
+                                <div className="tn-detail-assertion">
+                                    <code>{hoveredNode.assertion}</code>
+                                </div>
+                                <div className="tn-detail-rationale">
+                                    <span className="tn-rationale-k">FORMAL REASON:</span> {hoveredNode.rationale}
+                                </div>
+                            </>
+                        )}
+
+                        <div className="tn-detail-status-bar">
+                            <div className="tn-audit-seal">
+                                <CheckCircle2 size={13} color="var(--ok)" />
+                                <span>100% Cryptographically Bound</span>
+                            </div>
+                            <span className="tn-audit-badge">Zero Orphan Tests</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Static Fallback (Single-Column High-Density List) */}
+                <div className="tn-graph-mobile-fallback">
+                    <div className="tn-mobile-req-card">
+                        <div className="tn-req-tag">ROOT CLAUSE: {REQUIREMENT_NODE.id}</div>
+                        <div className="tn-req-title">{REQUIREMENT_NODE.title}</div>
+                        <p className="tn-req-p">{REQUIREMENT_NODE.clause}</p>
+                    </div>
+
+                    <div className="tn-mobile-nodes-list">
+                        {TEST_NODES.slice(0, 6).map((node) => (
+                            <div key={`m-${node.id}`} className="tn-mobile-test-card">
+                                <div className="tn-m-top">
+                                    <span className="tn-m-id">{node.id}</span>
+                                    <span className="tn-m-tag">{node.tag}</span>
+                                    <CheckCircle2 size={12} color="var(--ok)" style={{ marginLeft: "auto" }} />
+                                </div>
+                                <div className="tn-m-title">{node.label}</div>
+                                <div className="tn-m-rationale">{node.rationale}</div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

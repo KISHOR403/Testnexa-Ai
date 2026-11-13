@@ -189,7 +189,13 @@ export const CompetitionHero = () => {
                                         }}
                                         className={`tn-headline-word ${isAccent ? 'is-gradient-accent' : ''}`}
                                     >
-                                        {word}&nbsp;
+                                        {word === "acceptance." ? (
+                                            <>
+                                                acceptance<span id="hero-headline-period" className="tn-headline-period">.</span>
+                                            </>
+                                        ) : (
+                                            <>{word}&nbsp;</>
+                                        )}
                                     </motion.span>
                                 </span>
                             );

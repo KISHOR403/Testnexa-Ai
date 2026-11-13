@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 export const TraceThread = () => {
     const [pageHeight, setPageHeight] = useState(6000);
+    const [threadStartY, setThreadStartY] = useState(240);
     const [nodes, setNodes] = useState([]);
     const pathRef = useRef(null);
     const containerRef = useRef(null);
@@ -15,21 +16,31 @@ export const TraceThread = () => {
         const totalHeight = Math.max(root.scrollHeight, document.documentElement.scrollHeight);
         setPageHeight(totalHeight);
 
+        // Find starting period in hero headline
+        const periodEl = document.getElementById('hero-headline-period') || document.getElementById('hero-title');
+        const currentScroll = window.scrollY || window.pageYOffset;
+        let startY = 240;
+        if (periodEl) {
+            const rect = periodEl.getBoundingClientRect();
+            startY = rect.top + currentScroll + (rect.height / 2);
+            setThreadStartY(startY);
+        }
+
         const anchors = [
-            { el: document.getElementById('hero-title'), name: 'Requirement Spec' },
-            { el: document.getElementById('pipeline-scene'), name: 'Continuous Pipeline' },
-            { el: document.querySelector('.tn-proof-stats-section'), name: 'Verification Proof' },
-            { el: document.getElementById('features-bento'), name: 'Architecture' },
-            { el: document.getElementById('integrations-section'), name: 'CI/CD Runners' },
-            { el: document.getElementById('final-cta-section'), name: 'Production Suite' }
+            { el: periodEl, name: '01 Hook & Spec' },
+            { el: document.getElementById('pipeline-scene') || document.getElementById('workflow'), name: '02 Continuous Pipeline' },
+            { el: document.getElementById('traceability-graph'), name: '03 Causality Graph' },
+            { el: document.getElementById('proof-section'), name: '04 Verification Proof' },
+            { el: document.getElementById('features-bento'), name: '05 Architecture' },
+            { el: document.getElementById('design-story'), name: '06 Design Story' },
+            { el: document.getElementById('final-cta-section'), name: '07 Production Suite' }
         ];
 
         const measuredNodes = [];
         anchors.forEach((item, index) => {
             if (item.el) {
                 const rect = item.el.getBoundingClientRect();
-                const currentScroll = window.scrollY || window.pageYOffset;
-                const topPos = rect.top + currentScroll + 40;
+                const topPos = rect.top + currentScroll + (index === 0 ? 0 : 36);
                 measuredNodes.push({
                     id: `node-${index}`,
                     name: item.name,
@@ -74,12 +85,14 @@ export const TraceThread = () => {
         }
         window.addEventListener('load', recalculateThread);
 
-        const initialTimer = setTimeout(recalculateThread, 250);
-        const secondTimer = setTimeout(recalculateThread, 1000);
+        const initialTimer = setTimeout(recalculateThread, 200);
+        const secondTimer = setTimeout(recalculateThread, 800);
+        const thirdTimer = setTimeout(recalculateThread, 1800);
 
         return () => {
             clearTimeout(initialTimer);
             clearTimeout(secondTimer);
+            clearTimeout(thirdTimer);
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', recalculateThread);
             window.removeEventListener('load', recalculateThread);
@@ -93,7 +106,7 @@ export const TraceThread = () => {
             className="tn-trace-thread-container"
             aria-label="Traceability Thread Indicator"
         >
-            {/* SVG Path spanning the full computed page height */}
+            {/* SVG Path spanning from headline period down through full page */}
             <svg
                 className="tn-thread-svg"
                 style={{ height: `${pageHeight}px`, width: '40px' }}
@@ -104,7 +117,7 @@ export const TraceThread = () => {
                 {/* Background Dim Guide Track */}
                 <line
                     x1="20"
-                    y1="0"
+                    y1={threadStartY}
                     x2="20"
                     y2={pageHeight}
                     stroke="rgba(255, 255, 255, 0.08)"
@@ -112,10 +125,10 @@ export const TraceThread = () => {
                     strokeDasharray="4 4"
                 />
 
-                {/* Glowing Active Drawn Line */}
+                {/* Glowing Active Drawn Line starting from Hero Headline Period */}
                 <path
                     ref={pathRef}
-                    d={`M 20 0 L 20 ${pageHeight}`}
+                    d={`M 20 ${threadStartY} L 20 ${pageHeight}`}
                     stroke="var(--accent, #7DD3FC)"
                     strokeWidth="2"
                     strokeLinecap="round"

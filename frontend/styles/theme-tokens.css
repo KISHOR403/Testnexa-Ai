@@ -91,6 +91,21 @@ body, .tn-competition-root {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Typography Harmony: Balance headlines, pretty paragraphs */
+h1, h2, h3, h4, .tn-hero-headline, .tn-pipeline-heading, .tn-stats-heading, .tn-giant-cta-title, .tn-graph-heading, .tn-story-heading {
+  text-wrap: balance !important;
+}
+
+p, .tn-hero-subtitle, .tn-pipeline-desc, .tn-bento-desc, .tn-stat-sub, .tn-story-p, .tn-footer-brand-tagline {
+  text-wrap: pretty !important;
+}
+
+/* Visible Focus Rings for Keyboard Accessibility (WCAG AA) */
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px !important;
+}
+
 /* Noise overlay */
 .tn-film-grain {
   position: fixed;
