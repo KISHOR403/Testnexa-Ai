@@ -50,6 +50,9 @@ const AppHeader = ({ onToggleMobile }) => {
         if (path.includes('/app/history')) {
             return { section: 'Workspace', current: 'Generation History', link: '/app/history' };
         }
+        if (path.includes('/app/organization')) {
+            return { section: 'Workspace', current: 'Organization & Teams', link: '/app/organization' };
+        }
         if (path.includes('/app/settings')) {
             const searchParams = new URLSearchParams(location.search);
             const tab = searchParams.get('tab') || 'profile';
@@ -69,6 +72,7 @@ const AppHeader = ({ onToggleMobile }) => {
 
     const breadcrumb = getBreadcrumb();
     const initials = (user?.name || user?.displayName || user?.email || 'U').charAt(0).toUpperCase();
+    const userAvatar = user?.avatarUrl || user?.avatar;
 
     return (
         <header className="app-header">
@@ -100,7 +104,7 @@ const AppHeader = ({ onToggleMobile }) => {
                     <HelpCircle size={16} />
                 </NavLink>
 
-                {/* Strict B&W Avatar: White Circle, Black Initial */}
+                {/* Strict B&W Avatar: Photo if available, else White Circle, Black Initial */}
                 <button
                     type="button"
                     className="app-header__btn app-header__avatar-btn"
@@ -108,7 +112,11 @@ const AppHeader = ({ onToggleMobile }) => {
                     aria-label="Account Settings"
                     onClick={() => navigate('/app/settings?tab=profile')}
                 >
-                    {initials}
+                    {userAvatar ? (
+                        <img src={userAvatar} alt={user?.name || 'User'} className="app-header__avatar-img" />
+                    ) : (
+                        initials
+                    )}
                 </button>
             </div>
         </header>

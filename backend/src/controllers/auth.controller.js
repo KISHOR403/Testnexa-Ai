@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const Joi = require('joi');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/email.service');
 const { parseUserAgent, parseClientIp, getLocationFromIp } = require('../utils/deviceParser');
 const supabaseService = require('../services/supabaseData.service');
@@ -608,13 +609,13 @@ exports.updateProfile = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Not authorized' });
         }
 
-        const { name } = req.body;
-        const cleanName = (name || '').trim();
+        const { name, displayName, avatar } = req.body;
+        const updatePayload = {};
+        if (name !== undefined) updatePayload.name = String(name).trim();
+        if (displayName !== undefined) updatePayload.displayName = String(displayName).trim();
+        if (avatar !== undefined) updatePayload.avatar = avatar;
 
-        const updated = await supabaseService.updateProfile(userId, {
-            name: cleanName,
-            displayName: cleanName
-        });
+        const updated = await supabaseService.updateProfile(userId, updatePayload);
 
         res.json({
             success: true,
@@ -622,6 +623,7 @@ exports.updateProfile = async (req, res) => {
                 id: updated.id,
                 _id: updated.id,
                 name: updated.name || updated.display_name,
+                displayName: updated.display_name || updated.name,
                 email: updated.email,
                 avatar: updated.avatar,
                 provider: updated.provider || 'email',
@@ -749,6 +751,91 @@ exports.deleteAccount = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: error.message || 'An error occurred while deleting your account. Please try again or contact support@testnexa.ai.'
+        });
+    }
+};
+
+const exportDataQuerySchema = Joi.object({
+    format: Joi.string().valid('json').default('json')
+});
+
+exports.exportData = async (req, res) => {
+    try {
+        checkConnection();
+        const userId = req.user?.id || req.user?._id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Not authorized' });
+        }
+
+        const { error } = exportDataQuerySchema.validate(req.query || {});
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
+        }
+
+        const user = await supabaseService.findUserById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const [workspace, authSessions, generationSessions] = await Promise.allSettled([
+            supabaseService.getUserPrimaryWorkspace(userId, user.name || user.displayName, user.email),
+            supabaseService.listAuthSessions(userId),
+            supabaseService.listSessions({ userId, limit: 100 })
+        ]);
+
+        const exportPayload = {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            user: {
+                id: userId,
+                name: user.name || user.displayName || 'User',
+                displayName: user.displayName || user.name || 'User',
+                email: user.email,
+                role: user.role || 'user',
+                plan: user.plan || 'Pro',
+                jobTitle: user.jobTitle || '',
+                timezone: user.timezone || 'UTC',
+                language: user.language || 'en-US',
+                bio: user.bio || '',
+                createdAt: user.createdAt,
+                lastLogin: user.lastLogin,
+                totalTestsGenerated: user.totalTestsGenerated || 0
+            },
+            workspace: workspace.status === 'fulfilled' ? workspace.value : null,
+            activeSessions: authSessions.status === 'fulfilled' && Array.isArray(authSessions.value) ? authSessions.value.map(s => ({
+                id: s.id || s._id,
+                device: s.device,
+                browser: s.browser,
+                os: s.os,
+                ipAddress: s.ipAddress,
+                location: s.location,
+                createdAt: s.createdAt,
+                lastActiveAt: s.lastActiveAt
+            })) : [],
+            testGenerationHistory: generationSessions.status === 'fulfilled' && generationSessions.value?.sessions
+                ? generationSessions.value.sessions.map(g => ({
+                    id: g.id || g.sessionId,
+                    title: g.title || g.feature,
+                    status: g.status,
+                    createdAt: g.createdAt,
+                    updatedAt: g.updatedAt
+                }))
+                : []
+        };
+
+        const filename = `testnexa-export-${userId.toString().slice(0, 8)}-${Date.now()}.json`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/json');
+
+        return res.json({
+            success: true,
+            data: exportPayload
+        });
+    } catch (error) {
+        console.error('Export data error:', error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to export user data'
         });
     }
 };

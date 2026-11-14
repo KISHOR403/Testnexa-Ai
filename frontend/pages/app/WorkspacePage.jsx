@@ -9,6 +9,7 @@ import {
     Clock, Save, CornerDownLeft, Info, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { useHistory } from '../../hooks/useHistory';
 import { apiService } from '../../services/apiService';
 import { sessionService } from '../../services/sessionService';
@@ -114,22 +115,25 @@ const WorkspacePage = () => {
     const [titleTouched, setTitleTouched] = useState(false);
     const [descTouched, setDescTouched] = useState(false);
 
-    // Generation Configuration
-    const [settings, setSettings] = useState({
-        type: 'web',
-        level: 'Standard',
-        language: 'english'
-    });
+    // Consume User Preferences from SettingsContext
+    const { settings: globalSettings } = useSettings();
 
-    // Test Suite Includes (selectable categories)
-    const [selectedCategories, setSelectedCategories] = useState({
-        functional: true,
-        negative: true,
-        edge: true,
+    // Generation Configuration initialized from global user preferences
+    const [settings, setSettings] = useState(() => ({
+        type: (globalSettings?.defaultPlatform || 'web').toLowerCase(),
+        level: globalSettings?.defaultCoverageDepth || 'Standard',
+        language: globalSettings?.language || 'english'
+    }));
+
+    // Test Suite Includes (selectable categories) initialized from global user preferences
+    const [selectedCategories, setSelectedCategories] = useState(() => ({
+        functional: globalSettings?.defaultTestTypes?.functional ?? true,
+        negative: globalSettings?.defaultTestTypes?.negative ?? true,
+        edge: globalSettings?.defaultTestTypes?.edge ?? true,
         validation: true,
-        security: false,
+        security: globalSettings?.defaultTestTypes?.security ?? false,
         traceability: true
-    });
+    }));
 
     // Track whether categories were manually customized vs preset default
     const [isCategoriesCustomized, setIsCategoriesCustomized] = useState(false);

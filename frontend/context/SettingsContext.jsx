@@ -23,15 +23,19 @@ export const SettingsProvider = ({ children }) => {
                     compactMode: parsed.compactMode ?? false,
                     emailAlerts: parsed.emailAlerts ?? true,
                     weeklyDigest: parsed.weeklyDigest ?? false,
-                    defaultTestMix: parsed.defaultTestMix ?? {
+                    defaultPlatform: parsed.defaultPlatform ?? 'Web',
+                    defaultCoverageDepth: parsed.defaultCoverageDepth ?? 'Standard',
+                    defaultTestTypes: parsed.defaultTestTypes ?? {
                         functional: true,
                         negative: true,
                         edge: true,
-                        api: false,
-                        nonFunctional: false
+                        security: false,
+                        regression: true,
+                        performance: false
                     },
+                    defaultExportFormat: parsed.defaultExportFormat ?? 'Playwright',
+                    language: parsed.language ?? 'en-US',
                     minTestCaseCount: parsed.minTestCaseCount ?? 15,
-                    defaultExportFormat: parsed.defaultExportFormat ?? 'JSON',
                     defaultAutomationFramework: parsed.defaultAutomationFramework ?? 'Playwright'
                 };
             }
@@ -45,15 +49,19 @@ export const SettingsProvider = ({ children }) => {
             compactMode: false,
             emailAlerts: true,
             weeklyDigest: false,
-            defaultTestMix: {
+            defaultPlatform: 'Web',
+            defaultCoverageDepth: 'Standard',
+            defaultTestTypes: {
                 functional: true,
                 negative: true,
                 edge: true,
-                api: false,
-                nonFunctional: false
+                security: false,
+                regression: true,
+                performance: false
             },
+            defaultExportFormat: 'Playwright',
+            language: 'en-US',
             minTestCaseCount: 15,
-            defaultExportFormat: 'JSON',
             defaultAutomationFramework: 'Playwright'
         };
     });

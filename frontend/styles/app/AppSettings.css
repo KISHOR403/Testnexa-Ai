@@ -1,106 +1,52 @@
 /* ═══════════════════════════════════════════════════════════════════
-   TESTNEXA ENTERPRISE SETTINGS EXPERIENCE
-   Design System:
-     App background: #080909 | Primary surface: #101112 | Elevated: #161819
-     Borders: #292D2D        | Subtle divider: #1E2122
-     Text: #F2F3F3 / #A0A5A5 / #777E7E
-     Accent: muted jade #8BAF9A
-     Destructive: #E06C75
+   TESTNEXA SETTINGS EXPERIENCE — STRICT BLACK & WHITE THEME
+   Tokens:
+     --bg:            #000000
+     --surface:       #0A0A0A
+     --surface-2:     #111111
+     --line:          rgba(255, 255, 255, 0.10)
+     --line-hi:       rgba(255, 255, 255, 0.22)
+     --text-1:        #FFFFFF
+     --text-2:        rgba(255, 255, 255, 0.72)
+     --text-3:        rgba(255, 255, 255, 0.52)
    ═══════════════════════════════════════════════════════════════════ */
 
 .app-settings-page {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    max-width: 1160px;
     width: 100%;
     margin: 0 auto;
-    padding-bottom: 4rem;
-    color: #F2F3F3;
+    padding-bottom: 5rem;
+    color: var(--text-1);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     box-sizing: border-box;
-}
-
-/* ─── Breadcrumbs & Header ─── */
-.app-settings-header {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid #292D2D;
-}
-
-.app-settings-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    color: #777E7E;
-    margin-bottom: 0.25rem;
-}
-
-.app-settings-breadcrumb__item {
-    color: #A0A5A5;
-    text-decoration: none;
-    transition: color 0.15s ease;
-}
-
-.app-settings-breadcrumb__item:hover {
-    color: #8BAF9A;
-}
-
-.app-settings-breadcrumb__current {
-    color: #F2F3F3;
-    font-weight: 500;
-}
-
-.app-settings-header__title {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    letter-spacing: -0.02em;
-    margin: 0;
-    line-height: 1.2;
-}
-
-.app-settings-header__desc {
-    font-size: 0.88rem;
-    color: #A0A5A5;
-    margin: 0;
-    line-height: 1.45;
+    background: transparent;
 }
 
 /* ─── Main Settings Layout (Desktop 2-col) ─── */
 .app-settings-layout {
     display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 2.25rem;
+    grid-template-columns: 200px 1fr;
+    gap: 2.5rem;
     align-items: start;
+    width: 100%;
 }
 
 /* ─── Settings Navigation Sidebar ─── */
 .app-settings-nav {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
     position: sticky;
     top: 1rem;
+    padding-top: 0;
+    margin-top: 0;
 }
 
-.app-settings-nav__group {
+.app-settings-nav__list {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-}
-
-.app-settings-nav__group-label {
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #777E7E;
-    padding: 0.25rem 0.65rem;
-    margin-bottom: 0.2rem;
+    gap: 4px;
+    width: 100%;
 }
 
 .app-settings-nav__item {
@@ -108,9 +54,9 @@
     align-items: center;
     gap: 0.65rem;
     padding: 0.55rem 0.75rem;
-    font-size: 0.84rem;
+    font-size: 0.875rem;
     font-weight: 500;
-    color: #A0A5A5;
+    color: var(--text-2);
     border-radius: 6px;
     background: transparent;
     border: 1px solid transparent;
@@ -118,32 +64,43 @@
     text-align: left;
     transition: all 0.15s ease;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .app-settings-nav__item:hover {
-    color: #F2F3F3;
-    background: #161819;
+    color: var(--text-1);
+    background: var(--surface-2);
+    border-color: var(--line);
 }
 
+/* One active-state style app-wide: 1px white border + --surface-2 fill */
 .app-settings-nav__item.active {
-    color: #F2F3F3;
-    background: #161819;
-    border-color: #292D2D;
-    border-left: 3px solid #8BAF9A;
+    color: #FFFFFF;
+    background: var(--surface-2);
+    border: 1px solid #FFFFFF;
     font-weight: 600;
+}
+
+.app-settings-nav__item:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
 }
 
 .app-settings-nav__item-icon {
     flex-shrink: 0;
+    color: inherit;
 }
 
-/* ─── Mobile Navigation Pills ─── */
+/* ─── Mobile Navigation Tab Bar ─── */
 .app-settings-mobile-nav {
     display: none;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
+    align-items: center;
     gap: 0.4rem;
+    overflow-x: auto;
+    padding: 0.25rem 0 0.85rem 0;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--line);
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 }
 
@@ -152,94 +109,158 @@
 }
 
 .app-settings-mobile-pill {
-    padding: 0.5rem 0.85rem;
-    font-size: 0.82rem;
-    font-weight: 500;
-    border-radius: 6px;
-    background: #101112;
-    color: #A0A5A5;
-    border: 1px solid #292D2D;
-    white-space: nowrap;
-    cursor: pointer;
-    min-height: 40px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.45rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--text-2);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 9999px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: all 0.15s ease;
 }
 
+.app-settings-mobile-pill:hover {
+    color: var(--text-1);
+    border-color: var(--line-hi);
+}
+
 .app-settings-mobile-pill.active {
-    background: #161819;
-    color: #8BAF9A;
-    border-color: #8BAF9A;
+    color: #000000;
+    background: #FFFFFF;
+    border-color: #FFFFFF;
     font-weight: 600;
 }
 
-/* ─── Settings Content Container ─── */
+.app-settings-mobile-pill:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
+}
+
+/* ─── Settings Content Container (Max Width 720px) ─── */
 .app-settings-content {
     display: flex;
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 1.5rem;
+    max-width: 720px;
+    width: 100%;
     min-width: 0;
+    box-sizing: border-box;
+    padding-top: 0;
+    margin-top: 0;
 }
 
-.app-settings-section-header {
+/* ─── Content Page Header (Aligned with sub-nav first item) ─── */
+.app-settings-page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.app-settings-page-title {
+    font-size: 1.45rem;
+    font-weight: 600;
+    color: var(--text-1);
+    letter-spacing: -0.02em;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.app-settings-page-desc {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* ─── Universal Card Blocks ─── */
+.app-settings-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-sizing: border-box;
+    width: 100%;
+    transition: border-color 0.15s ease;
+}
+
+.app-settings-card:hover {
+    border-color: var(--line-hi);
+}
+
+.app-settings-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
-    padding-bottom: 0.85rem;
-    border-bottom: 1px solid #292D2D;
 }
 
-.app-settings-section-title {
-    font-size: 1.15rem;
+.app-settings-card-title {
+    font-size: 1.05rem;
     font-weight: 600;
-    color: #F2F3F3;
-    margin: 0;
+    color: var(--text-1);
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.01em;
 }
 
-.app-settings-section-desc {
-    font-size: 0.82rem;
-    color: #A0A5A5;
-    margin: 0.25rem 0 0;
+.app-settings-card-desc {
+    font-size: 0.85rem;
+    color: var(--text-2);
+    margin: 0;
     line-height: 1.45;
 }
 
-/* ─── Profile Identity Section (Cohesive Summary) ─── */
+/* ─── Identity Summary Card ─── */
 .app-settings-identity-card {
-    background: #101112;
-    border: 1px solid #292D2D;
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
 }
 
 .app-settings-identity-left {
     display: flex;
     align-items: center;
-    gap: 1.15rem;
+    gap: 1.25rem;
     min-width: 0;
 }
 
-.app-settings-avatar-large {
-    width: 52px;
-    height: 52px;
-    border-radius: 8px;
-    background: #161819;
-    border: 1px solid #292D2D;
-    color: #8BAF9A;
-    font-weight: 600;
-    font-size: 1.25rem;
+.app-settings-avatar-container {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: #FFFFFF;
+    cursor: pointer;
+}
+
+.app-settings-avatar-circle {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    overflow: hidden;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #000000;
+    background: #FFFFFF;
     user-select: none;
 }
 
@@ -247,6 +268,56 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+.app-settings-avatar-hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    border-radius: 50%;
+}
+
+.app-settings-avatar-container:hover .app-settings-avatar-hover-overlay {
+    opacity: 1;
+}
+
+.app-settings-avatar-overlay-btn {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+}
+
+.app-settings-avatar-overlay-btn:hover {
+    opacity: 0.85;
+}
+
+.app-settings-avatar-overlay-btn.is-remove {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    padding: 3px;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 50%;
+    border: 1px solid var(--line-hi);
 }
 
 .app-settings-identity-meta {
@@ -256,88 +327,811 @@
     min-width: 0;
 }
 
-.app-settings-identity-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.app-settings-identity-sub {
+.app-settings-identity-name-row {
     display: flex;
     align-items: center;
     gap: 0.65rem;
     flex-wrap: wrap;
 }
 
-.app-settings-identity-email {
-    font-size: 0.84rem;
-    color: #A0A5A5;
+.app-settings-identity-name {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-settings-plan-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-1);
+    background: var(--surface-2);
+    border: 1px solid var(--line-hi);
+    border-radius: 9999px;
+}
+
+.app-settings-identity-subtext {
+    font-size: 0.85rem;
+    color: var(--text-2);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ─── Form Fields & Grid ─── */
+.app-settings-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1rem;
+    width: 100%;
+}
+
+.app-settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.app-settings-field--full {
+    grid-column: 1 / -1;
+}
+
+.app-settings-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.app-settings-label {
+    font-size: 0.825rem;
+    font-weight: 500;
+    color: var(--text-2);
+}
+
+.app-settings-required {
+    color: var(--text-1);
+}
+
+.app-settings-char-count {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+}
+
+.app-settings-input,
+.app-settings-select,
+.app-settings-textarea {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--text-1);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-settings-input:focus-visible,
+.app-settings-select:focus-visible,
+.app-settings-textarea:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
+    border-color: #FFFFFF;
+}
+
+.app-settings-input.has-error,
+.app-settings-textarea.has-error {
+    border-color: #FFFFFF;
+}
+
+.app-settings-field-error {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    margin-top: 0.2rem;
+    line-height: 1.4;
+}
+
+.app-settings-textarea {
+    resize: vertical;
+    min-height: 72px;
+    line-height: 1.45;
+}
+
+/* ─── Email Card ─── */
+.app-settings-email-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+}
+
+.app-settings-email-info {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.app-settings-email-text-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.app-settings-inline-icon {
+    color: var(--text-3);
+    flex-shrink: 0;
+}
+
+.app-settings-email-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+/* ─── Status Pills (Shape & Icons Only, No Color) ─── */
+.app-settings-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    line-height: 1;
+}
+
+/* Verified / Complete: outlined pill + check icon */
+.app-settings-status-pill.is-verified {
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+    background: transparent;
+}
+
+/* Pending: dashed outline pill */
+.app-settings-status-pill.is-pending {
+    border: 1px dashed rgba(255, 255, 255, 0.4);
+    color: var(--text-2);
+    background: transparent;
+}
+
+/* ─── Sign-in Methods ─── */
+.app-settings-methods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.app-settings-method-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    box-sizing: border-box;
+}
+
+.app-settings-method-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.app-settings-method-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-1);
+    flex-shrink: 0;
+}
+
+.app-settings-method-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1);
+    line-height: 1.25;
+}
+
+.app-settings-method-sub {
+    font-size: 0.78rem;
+    color: var(--text-3);
+    margin-top: 2px;
+}
+
+/* 2FA Security Nudge */
+.app-settings-security-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line-hi);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.app-settings-nudge-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.app-settings-nudge-icon {
+    color: var(--text-1);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.app-settings-nudge-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1);
+    display: block;
+}
+
+.app-settings-nudge-desc {
+    font-size: 0.8rem;
+    color: var(--text-2);
+    margin: 2px 0 0 0;
+    line-height: 1.4;
+}
+
+/* ─── Usage & Quota Block ─── */
+.app-settings-usage-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1.15rem 1.25rem;
+}
+
+.app-settings-usage-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.app-settings-usage-plan-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.app-settings-usage-plan-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-1);
+}
+
+.app-settings-usage-stat {
+    font-size: 0.85rem;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+}
+
+.app-settings-progress-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.app-settings-progress-fill {
+    height: 100%;
+    background: #FFFFFF;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.app-settings-usage-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-3);
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--line);
+}
+
+.app-settings-usage-meta-row strong {
+    color: var(--text-1);
+}
+
+/* ─── Quiet Metadata Row ─── */
+.app-settings-quiet-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--text-3);
+    padding: 0.5rem 0.25rem;
+}
+
+.app-settings-quiet-item {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
 }
 
-.app-settings-verified-badge {
-    color: #8BAF9A;
-    display: inline-flex;
-    align-items: center;
+.app-settings-quiet-label {
+    color: var(--text-3);
 }
 
-.app-settings-identity-badge {
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #8BAF9A;
-    background: rgba(139, 175, 154, 0.08);
-    border: 1px solid rgba(139, 175, 154, 0.22);
-    padding: 0.15rem 0.5rem;
+.app-settings-quiet-val {
+    color: var(--text-2);
+}
+
+.app-settings-quiet-dot {
+    color: var(--line-hi);
+}
+
+.app-settings-quiet-code {
+    background: var(--surface-2);
+    padding: 0.1rem 0.4rem;
     border-radius: 4px;
-    letter-spacing: 0.03em;
+    border: 1px solid var(--line);
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: var(--text-2);
 }
 
-/* ─── Card Blocks & Information Rows ─── */
-.app-settings-card {
-    background: #101112;
-    border: 1px solid #292D2D;
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+/* ─── Danger Zone Card ─── */
+.app-settings-card.app-settings-danger-card {
+    border: 1px solid var(--line-hi);
+    background: var(--surface);
+    gap: 1rem;
 }
 
-.app-settings-card-header {
+.app-settings-danger-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #1E2122;
+    gap: 1.25rem;
 }
 
-.app-settings-card-title {
-    font-size: 0.95rem;
+.app-settings-danger-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.app-settings-danger-row-title {
+    font-size: 0.925rem;
     font-weight: 600;
-    color: #F2F3F3;
+    color: var(--text-1);
+}
+
+.app-settings-danger-row-desc {
+    font-size: 0.8rem;
+    color: var(--text-2);
+    line-height: 1.45;
+}
+
+.app-settings-danger-divider {
+    height: 1px;
+    background: var(--line);
+    width: 100%;
+}
+
+/* ─── Buttons (Strict Monochrome) ─── */
+.app-settings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    box-sizing: border-box;
+    font-family: inherit;
+    border: 1px solid transparent;
+}
+
+.app-settings-btn:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
+}
+
+/* Primary Button: White fill, black text */
+.app-settings-btn--primary {
+    background: #FFFFFF;
+    color: #000000;
+    border-color: #FFFFFF;
+    font-weight: 600;
+}
+
+.app-settings-btn--primary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
+.app-settings-btn--primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Secondary Button: Transparent, line-hi border, white text */
+.app-settings-btn--secondary {
+    background: transparent;
+    color: var(--text-1);
+    border: 1px solid var(--line-hi);
+}
+
+.app-settings-btn--secondary:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: #FFFFFF;
+}
+
+.app-settings-btn--secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Danger Button: Outlined monochrome */
+.app-settings-btn--danger-outline {
+    background: transparent;
+    color: var(--text-1);
+    border: 1px solid var(--line-hi);
+}
+
+.app-settings-btn--danger-outline:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: #FFFFFF;
+}
+
+.app-settings-btn--danger-solid {
+    background: #FFFFFF;
+    color: #000000;
+    border-color: #FFFFFF;
+    font-weight: 600;
+}
+
+.app-settings-btn--danger-solid:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.app-settings-btn--danger-solid:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ─── Sticky Bottom Save Bar (Dirty State) ─── */
+.app-settings-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 240px;
+    right: 0;
+    background: #000000;
+    border-top: 1px solid var(--line-hi);
+    padding: 0.85rem 2rem;
+    z-index: 90;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.8);
+    animation: slideUpBar 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-sidebar.is-collapsed ~ .app-shell-main .app-settings-sticky-bar {
+    left: 64px;
+}
+
+@media (max-width: 768px) {
+    .app-settings-sticky-bar {
+        left: 0;
+        padding: 0.85rem 1.25rem;
+    }
+}
+
+@keyframes slideUpBar {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.app-settings-sticky-inner {
+    max-width: 1160px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.app-settings-sticky-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.app-settings-sticky-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    display: inline-block;
+}
+
+.app-settings-sticky-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+.app-settings-sticky-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+/* ─── Toast Notifications ─── */
+.app-settings-toast {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: #0A0A0A;
+    border: 1px solid #FFFFFF;
+    border-radius: 6px;
+    padding: 0.75rem 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: #FFFFFF;
+    font-size: 0.875rem;
+    font-weight: 500;
+    z-index: 200;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9);
+    animation: fadeInToast 0.2s ease;
+}
+
+@keyframes fadeInToast {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── Modal Dialogs ─── */
+.app-settings-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 1rem;
+}
+
+.app-settings-modal {
+    background: #0A0A0A;
+    border: 1px solid var(--line-hi);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 480px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.9);
+    animation: modalIn 0.18s ease;
+    box-sizing: border-box;
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.app-settings-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.app-settings-modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-1);
     margin: 0;
 }
 
-.app-settings-card-desc {
-    font-size: 0.8rem;
-    color: #777E7E;
-    margin: 0.2rem 0 0;
+.app-settings-modal-desc {
+    font-size: 0.85rem;
+    color: var(--text-2);
+    margin: 0.35rem 0 0 0;
+    line-height: 1.45;
+}
+
+.app-settings-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+}
+
+.app-settings-modal-close:hover {
+    color: var(--text-1);
+}
+
+.app-settings-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+}
+
+/* Warning block inside modal */
+.app-settings-warning-block {
+    background: var(--surface-2);
+    border: 1px solid var(--line-hi);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    font-size: 0.825rem;
+    color: var(--text-2);
+    line-height: 1.45;
+}
+
+.app-settings-warning-block strong {
+    color: var(--text-1);
+}
+
+/* ─── Crop & Preview Modal Content ─── */
+.app-settings-crop-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.app-settings-crop-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #FFFFFF;
+    background: #000000;
+}
+
+.app-settings-crop-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* ─── Loading Skeletons ─── */
+.app-settings-skeleton-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.app-settings-skeleton-line {
+    height: 16px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.10) 50%, rgba(255, 255, 255, 0.04) 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: skeletonShimmer 1.8s infinite;
+}
+
+@keyframes skeletonShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.app-settings-spin {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Preferences, Security, Workspace, Members, Integrations styling ─── */
+.app-settings-section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.app-settings-section-title {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.app-settings-section-desc {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    margin: 0.25rem 0 0 0;
 }
 
 .app-settings-info-list {
     display: flex;
     flex-direction: column;
-    background: #101112;
-    border: 1px solid #292D2D;
+    border: 1px solid var(--line);
     border-radius: 8px;
+    background: var(--surface);
     overflow: hidden;
 }
 
@@ -345,9 +1139,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid #1E2122;
-    gap: 1.5rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.875rem;
 }
 
 .app-settings-info-row:last-child {
@@ -355,700 +1149,58 @@
 }
 
 .app-settings-info-label {
-    font-size: 0.84rem;
-    font-weight: 500;
-    color: #A0A5A5;
-    flex-shrink: 0;
+    color: var(--text-2);
 }
 
 .app-settings-info-value {
-    font-size: 0.88rem;
+    color: var(--text-1);
     font-weight: 500;
-    color: #F2F3F3;
-    text-align: right;
-    word-break: break-all;
 }
 
-/* Inline Edit Form */
-.app-settings-edit-card {
-    background: #101112;
-    border: 1px solid #292D2D;
-    border-radius: 8px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-.app-settings-edit-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    margin: 0 0 0.25rem;
-}
-
-.app-settings-edit-desc {
-    font-size: 0.82rem;
-    color: #A0A5A5;
-    margin: 0;
-}
-
-.app-settings-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
-.app-settings-label {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: #F2F3F3;
-}
-
-.app-settings-input {
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 0.65rem 0.85rem;
-    color: #F2F3F3;
-    font-size: 0.88rem;
-    width: 100%;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.app-settings-input:focus {
-    border-color: #8BAF9A;
-    box-shadow: 0 0 0 1px #8BAF9A;
-}
-
-.app-settings-input:disabled {
-    background: #101112;
-    color: #777E7E;
-    border-color: #202323;
-    cursor: not-allowed;
-}
-
-.app-settings-input-hint {
-    font-size: 0.76rem;
-    color: #777E7E;
-    line-height: 1.4;
-}
-
-.app-settings-edit-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-}
-
-/* ─── Feedback Banners ─── */
-.app-settings-feedback {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    font-size: 0.84rem;
-    line-height: 1.45;
-}
-
-.app-settings-feedback.success {
-    background: rgba(139, 175, 154, 0.1);
-    border: 1px solid rgba(139, 175, 154, 0.28);
-    color: #8BAF9A;
-}
-
-.app-settings-feedback.error {
-    background: rgba(224, 108, 117, 0.1);
-    border: 1px solid rgba(224, 108, 117, 0.28);
-    color: #F87171;
-}
-
-/* ─── Buttons ─── */
-.app-settings-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    padding: 0.45rem 0.95rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-decoration: none;
-    white-space: nowrap;
-    min-height: 36px;
-    font-family: inherit;
-    border: 1px solid transparent;
-}
-
-.app-settings-btn:focus-visible {
-    outline: 2px solid #8BAF9A;
-    outline-offset: 2px;
-}
-
-.app-settings-btn--primary {
-    background: #8BAF9A;
-    color: #080909;
-    border-color: #8BAF9A;
-}
-
-.app-settings-btn--primary:hover:not(:disabled) {
-    background: #9DBFAD;
-    border-color: #9DBFAD;
-}
-
-.app-settings-btn--primary:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-}
-
-.app-settings-btn--secondary {
-    background: #161819;
-    color: #F2F3F3;
-    border-color: #292D2D;
-}
-
-.app-settings-btn--secondary:hover:not(:disabled) {
-    background: #1C1E20;
-    border-color: #383D3D;
-}
-
-.app-settings-btn--danger {
-    background: rgba(224, 108, 117, 0.1);
-    color: #E06C75;
-    border-color: rgba(224, 108, 117, 0.3);
-}
-
-.app-settings-btn--danger:hover:not(:disabled) {
-    background: rgba(224, 108, 117, 0.2);
-    border-color: #E06C75;
-}
-
-.app-settings-btn--danger:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ─── Danger Zone (Delete Account) ─── */
-.app-settings-danger-card {
-    background: #101112;
-    border: 1px solid rgba(224, 108, 117, 0.28);
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-}
-
-.app-settings-danger-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-.app-settings-danger-title {
-    font-size: 0.96rem;
-    font-weight: 600;
-    color: #E06C75;
-    margin: 0;
-}
-
-.app-settings-danger-desc {
-    font-size: 0.82rem;
-    color: #A0A5A5;
-    margin: 0;
-    line-height: 1.45;
-    max-width: 580px;
-}
-
-/* ─── Modal Dialog (Delete Account Confirmation & Modals) ─── */
-.app-settings-modal-backdrop,
-.app-settings-confirm-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-}
-
-.app-settings-modal,
-.app-settings-confirm-box {
-    background: #101112;
-    border: 1px solid #292D2D;
-    border-radius: 8px;
-    max-width: 480px;
-    width: 100%;
-    padding: 1.75rem;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    animation: tnModalFade 0.15s ease-out;
-}
-
-.app-settings-confirm-title {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    margin: 0;
-}
-
-.app-settings-confirm-desc {
-    font-size: 0.84rem;
-    color: #A0A5A5;
-    margin: 0;
-    line-height: 1.5;
-}
-
-.app-settings-confirm-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-}
-
-/* ─── Delete Account Questionnaire Styles ─── */
-.app-settings-survey-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin: 0.75rem 0;
-}
-
-.app-settings-survey-option {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 0.65rem 0.85rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    user-select: none;
-}
-
-.app-settings-survey-option:hover {
-    border-color: #383E3E;
-    background: #1A1C1E;
-}
-
-.app-settings-survey-option.selected {
-    border-color: #E06C75;
-    background: rgba(224, 108, 117, 0.08);
-}
-
-.app-settings-survey-radio {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1.5px solid #777E7E;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s ease;
-}
-
-.app-settings-survey-option.selected .app-settings-survey-radio {
-    border-color: #E06C75;
-}
-
-.app-settings-survey-radio-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #E06C75;
-}
-
-.app-settings-survey-text {
-    font-size: 0.82rem;
-    color: #F2F3F3;
-    line-height: 1.4;
-}
-
-.app-settings-survey-textarea {
-    width: 100%;
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 0.65rem 0.85rem;
-    color: #F2F3F3;
-    font-size: 0.82rem;
-    font-family: inherit;
-    resize: vertical;
-    min-height: 60px;
-    outline: none;
-    transition: border-color 0.15s ease;
-    box-sizing: border-box;
-}
-
-.app-settings-survey-textarea:focus {
-    border-color: #8BAF9A;
-}
-
-.app-settings-survey-step-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #777E7E;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.25rem;
-}
-
-@keyframes tnModalFade {
-    from { opacity: 0; transform: scale(0.97); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-.app-settings-modal-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-}
-
-.app-settings-modal-icon-danger {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    background: rgba(224, 108, 117, 0.12);
-    border: 1px solid rgba(224, 108, 117, 0.3);
-    color: #E06C75;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.app-settings-modal-title {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    margin: 0 0 0.25rem 0;
-}
-
-.app-settings-modal-subtitle {
-    font-size: 0.82rem;
-    color: #A0A5A5;
-    margin: 0;
-    line-height: 1.45;
-}
-
-.app-settings-modal-consequences {
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 0.85rem 1rem;
-    font-size: 0.8rem;
-    color: #A0A5A5;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.app-settings-modal-consequences strong {
-    color: #F2F3F3;
-    display: block;
-    margin-bottom: 0.2rem;
-}
-
-.app-settings-modal-consequences ul {
-    margin: 0;
-    padding-left: 1.2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.app-settings-modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-}
-/* ─── Security Tab Components ─── */
-.app-settings-security-block {
-    background: #101112;
-    border: 1px solid #292D2D;
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.15rem;
-    margin-bottom: 1.25rem;
-}
-
-.app-settings-security-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.25rem;
-    flex-wrap: wrap;
-}
-
-.app-settings-security-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-}
-
-.app-settings-security-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 8px;
-    background: #161819;
-    border: 1px solid #292D2D;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #8BAF9A;
-    flex-shrink: 0;
-}
-
-.app-settings-security-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.app-settings-security-info h4 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.app-settings-security-info p {
-    font-size: 0.82rem;
-    color: #A0A5A5;
-    margin: 0;
-    line-height: 1.45;
-}
-
-/* Session Cards */
-.app-settings-session-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-}
-
-.app-settings-session-card {
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 0.85rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    transition: border-color 0.15s ease;
-}
-
-.app-settings-session-card:hover {
-    border-color: #383E3E;
-}
-
-.app-settings-session-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-}
-
-.app-settings-session-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    background: #101112;
-    border: 1px solid #292D2D;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.app-settings-session-title {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: #F2F3F3;
-    margin: 0;
-}
-
-.app-settings-session-subtitle {
-    font-size: 0.76rem;
-    color: #A0A5A5;
-    margin-top: 0.15rem;
-}
-
-.app-settings-password-form {
-    background: #161819;
-    border: 1px solid #292D2D;
-    border-radius: 6px;
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    margin-top: 0.25rem;
-    animation: tnModalFade 0.15s ease-out;
-}
-
-/* ─── Usage Progress Bar ─── */
-.app-settings-usage-box {
-    background: #101112;
-    border: 1px solid #292D2D;
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-}
-
-.app-settings-usage-top {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-}
-
-.app-settings-usage-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #F2F3F3;
-}
-
-.app-settings-usage-metric {
-    font-size: 0.85rem;
-    color: #A0A5A5;
-}
-
-.app-settings-usage-metric strong {
-    color: #F2F3F3;
-}
-
-.app-settings-progress-track {
-    width: 100%;
-    height: 6px;
-    background: #161819;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.app-settings-progress-bar {
-    height: 100%;
-    background: #8BAF9A;
-    border-radius: 999px;
-    transition: width 0.3s ease;
-}
-
-.app-settings-usage-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.74rem;
-    color: #777E7E;
-}
-
-/* ─── Tables (Billing / Members) ─── */
 .app-settings-table-wrap {
-    width: 100%;
-    overflow-x: auto;
-    border: 1px solid #292D2D;
+    border: 1px solid var(--line);
     border-radius: 8px;
-    background: #101112;
+    overflow-x: auto;
+    background: var(--surface);
 }
 
 .app-settings-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     text-align: left;
 }
 
 .app-settings-table th {
-    background: #161819;
     padding: 0.75rem 1rem;
-    font-size: 0.72rem;
+    background: var(--surface-2);
+    color: var(--text-2);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #777E7E;
-    border-bottom: 1px solid #292D2D;
+    border-bottom: 1px solid var(--line);
 }
 
 .app-settings-table td {
-    padding: 0.85rem 1rem;
-    color: #F2F3F3;
-    border-bottom: 1px solid #202323;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--line);
+    color: var(--text-1);
 }
 
 .app-settings-table tr:last-child td {
     border-bottom: none;
 }
 
-.app-settings-table tr:hover td {
-    background: #161819;
-}
-
-.app-settings-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.12rem 0.45rem;
-    border-radius: 4px;
-}
-
-.app-settings-status-badge.active {
-    background: rgba(139, 175, 154, 0.12);
-    color: #8BAF9A;
-    border: 1px solid rgba(139, 175, 154, 0.28);
-}
-
-.app-settings-status-badge.invited {
-    background: rgba(229, 192, 123, 0.1);
-    color: #E5C07B;
-    border: 1px solid rgba(229, 192, 123, 0.25);
-}
-
-/* ─── Active Sessions Cards ─── */
-.app-settings-session-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    background: #161819;
-    border: 1px solid #292D2D;
-    gap: 1rem;
-}
-
-.app-settings-session-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
 /* ─── Responsive Media Queries ─── */
 @media (max-width: 900px) {
     .app-settings-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: 180px 1fr;
         gap: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-settings-layout {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
     }
 
     .app-settings-nav {
@@ -1058,11 +1210,13 @@
     .app-settings-mobile-nav {
         display: flex;
     }
-}
 
-@media (max-width: 600px) {
-    .app-settings-page {
-        padding-bottom: 3rem;
+    .app-settings-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-settings-card {
+        padding: 1.15rem;
     }
 
     .app-settings-identity-card {
@@ -1070,55 +1224,45 @@
         align-items: flex-start;
     }
 
-    .app-settings-identity-card .app-settings-btn {
-        width: 100%;
-    }
-
-    .app-settings-info-row {
+    .app-settings-danger-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.25rem;
-    }
-
-    .app-settings-info-value {
-        text-align: left;
-    }
-
-    .app-settings-danger-card {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .app-settings-danger-card .app-settings-btn--danger {
-        width: 100%;
-    }
-
-    .app-settings-edit-actions {
-        flex-direction: column-reverse;
-        width: 100%;
-    }
-
-    .app-settings-edit-actions .app-settings-btn {
-        width: 100%;
-    }
-
-    .app-settings-modal-footer {
-        flex-direction: column-reverse;
-        width: 100%;
-    }
-
-    .app-settings-modal-footer .app-settings-btn {
-        width: 100%;
+        gap: 0.75rem;
     }
 }
 
-@media (max-width: 360px) {
-    .app-settings-header__title {
-        font-size: 1.4rem;
+@media (max-width: 390px) {
+    .app-settings-page {
+        padding-left: 0;
+        padding-right: 0;
     }
 
     .app-settings-identity-left {
         flex-direction: column;
         align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .app-settings-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .app-settings-usage-plan-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+    }
+
+    .app-settings-sticky-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.65rem;
+    }
+
+    .app-settings-sticky-actions {
+        width: 100%;
+        justify-content: flex-end;
     }
 }

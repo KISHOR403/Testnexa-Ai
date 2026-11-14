@@ -1,18 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AppSidebar from '../components/app/AppSidebar';
 import AppHeader from '../components/app/AppHeader';
 import ScrollToTop from '../components/ScrollToTop';
-import AnimatedBackground from '../components/AnimatedBackground';
 import ErrorBoundary from '../components/ErrorBoundary';
+import SettingsModal from '../components/app/SettingsModal';
+import KeyboardShortcutsModal from '../components/app/KeyboardShortcutsModal';
+import { SettingsModalProvider, useSettingsModal } from '../context/SettingsModalContext';
 import '../styles/app/AppSidebar.css';
 import '../styles/app/WorkspaceDesignSystem.css';
 
-const AppLayout = () => {
+const AppLayoutInner = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const userBtnRef = useRef(null);
+    const { openSettings } = useSettingsModal();
+
     const [isCollapsed, setIsCollapsed] = useState(() => {
         return localStorage.getItem('testnexa_sidebar_collapsed') === 'true';
     });
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
     const handleToggleCollapse = () => {
         setIsCollapsed(prev => {
@@ -25,6 +33,18 @@ const AppLayout = () => {
     // Close mobile drawer on route change
     useEffect(() => {
         setIsMobileOpen(false);
+    }, [location.pathname]);
+
+    // Global keyboard shortcut: Ctrl/Cmd + / opens keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                e.preventDefault();
+                setIsShortcutsOpen(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
     return (
@@ -43,6 +63,9 @@ const AppLayout = () => {
                 onToggleCollapse={handleToggleCollapse}
                 isMobileOpen={isMobileOpen}
                 onCloseMobile={() => setIsMobileOpen(false)}
+                onOpenSettings={(sec) => openSettings(sec, userBtnRef.current)}
+                onOpenShortcuts={() => setIsShortcutsOpen(true)}
+                userBtnRef={userBtnRef}
             />
 
             {/* Main Application Area */}
@@ -54,7 +77,25 @@ const AppLayout = () => {
                     </ErrorBoundary>
                 </main>
             </div>
+
+            {/* Settings Modal — Rendered ONCE at app layout root, outside sidebar and popover */}
+            <SettingsModal />
+
+            {/* Keyboard Shortcuts Dialog */}
+            <KeyboardShortcutsModal
+                isOpen={isShortcutsOpen}
+                onClose={() => setIsShortcutsOpen(false)}
+                triggerRef={userBtnRef}
+            />
         </div>
+    );
+};
+
+export const AppLayout = () => {
+    return (
+        <SettingsModalProvider>
+            <AppLayoutInner />
+        </SettingsModalProvider>
     );
 };
 

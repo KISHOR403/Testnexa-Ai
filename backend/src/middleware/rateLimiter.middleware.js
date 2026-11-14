@@ -90,11 +90,18 @@ const contactRateLimiter = createRateLimiter({
     message: 'Too many message submissions from this connection. Please wait 15 minutes before trying again.'
 });
 
+const authExportRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: 'Too many data export requests. Please wait 15 minutes before trying again.'
+});
+
 module.exports = {
     createRateLimiter,
     copilotRateLimiter,
     authLoginRateLimiter,
     authRegisterRateLimiter,
     authPasswordResetRateLimiter,
-    contactRateLimiter
+    contactRateLimiter,
+    authExportRateLimiter
 };

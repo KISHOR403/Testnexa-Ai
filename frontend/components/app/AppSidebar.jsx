@@ -4,10 +4,11 @@ import {
     FileText, Layers, ShieldCheck, AlertTriangle, GitBranch, ClipboardList,
     Settings, HelpCircle, ChevronLeft, ChevronRight, ChevronDown, Plus,
     Home, X, History, Clock, User, Award, LogOut, ArrowRight, ChevronUp,
-    PlayCircle, Activity, BarChart3, Sparkles, Wrench, Users
+    PlayCircle, Activity, BarChart3, Sparkles, Wrench, Users, Keyboard
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
+import { useSettingsModal } from '../../context/SettingsModalContext';
 import TestNexaLogo from '../TestNexaLogo';
 import '../../styles/app/AppSidebar.css';
 
@@ -27,11 +28,24 @@ const formatTimeAgo = (dateInput) => {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
-const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) => {
+const AppSidebar = ({
+    isCollapsed,
+    onToggleCollapse,
+    isMobileOpen,
+    onCloseMobile,
+    onOpenSettings,
+    onOpenShortcuts,
+    userBtnRef
+}) => {
     const { user, logout, isSigningOut, currentWorkspace } = useAuth();
     const { history, recentSessions } = useHistory();
     const location = useLocation();
     const navigate = useNavigate();
+
+    let modalContext = null;
+    try {
+        modalContext = useSettingsModal();
+    } catch (e) {}
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const userMenuRef = useRef(null);
@@ -392,15 +406,22 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                         <span>Team & Org</span>
                     </NavLink>
 
-                    <NavLink
-                        to="/app/settings"
-                        className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
-                        onClick={handleNavClick}
+                    <button
+                        type="button"
+                        className={`app-sidebar__item ${location.pathname.startsWith('/app/settings') ? 'active' : ''}`}
+                        onClick={(e) => {
+                            handleNavClick();
+                            if (modalContext?.openSettings) {
+                                modalContext.openSettings('account', e.currentTarget);
+                            } else {
+                                onOpenSettings?.('account');
+                            }
+                        }}
                         title="Settings"
                     >
                         <Settings size={17} className="app-sidebar__item-icon" />
                         <span>Settings</span>
-                    </NavLink>
+                    </button>
 
                     <NavLink
                         to="/help"
@@ -447,100 +468,22 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                         <button
                             type="button"
                             className="gpt-profile-popup-item"
-                            onClick={() => {
+                            onClick={(e) => {
                                 setIsMenuOpen(false);
-                                navigate('/app/settings?tab=profile');
-                                if (onCloseMobile) onCloseMobile();
-                            }}
-                        >
-                            <div className="gpt-popup-icon-wrap">
-                                <User size={15} />
-                            </div>
-                            <span>Profile</span>
-                            <ArrowRight size={13} className="gpt-popup-arrow" />
-                        </button>
-
-                        <button
-                            type="button"
-                            className="gpt-profile-popup-item"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                navigate('/app/settings?tab=preferences');
+                                if (modalContext?.openSettings) {
+                                    modalContext.openSettings('account', userBtnRef?.current || e.currentTarget);
+                                } else {
+                                    onOpenSettings?.('account');
+                                }
                                 if (onCloseMobile) onCloseMobile();
                             }}
                         >
                             <div className="gpt-popup-icon-wrap">
                                 <Settings size={15} />
                             </div>
-                            <span>Preferences</span>
+                            <span>Settings</span>
                             <ArrowRight size={13} className="gpt-popup-arrow" />
                         </button>
-
-                        <button
-                            type="button"
-                            className="gpt-profile-popup-item gpt-upgrade-item"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                navigate('/app/settings?tab=billing');
-                                if (onCloseMobile) onCloseMobile();
-                            }}
-                        >
-                            <div className="gpt-popup-icon-wrap gpt-upgrade-icon">
-                                <Award size={15} />
-                            </div>
-                            <span style={{ color: '#7DD3FC', fontWeight: 600 }}>Billing & Usage</span>
-                            <ArrowRight size={13} className="gpt-popup-arrow" />
-                        </button>
-
-                        <button
-                            type="button"
-                            className="gpt-profile-popup-item"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                navigate('/app/settings?tab=security');
-                                if (onCloseMobile) onCloseMobile();
-                            }}
-                        >
-                            <div className="gpt-popup-icon-wrap">
-                                <ShieldCheck size={15} />
-                            </div>
-                            <span>Security</span>
-                            <ArrowRight size={13} className="gpt-popup-arrow" />
-                        </button>
-
-                        <button
-                            type="button"
-                            className="gpt-profile-popup-item"
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                navigate('/app/settings?tab=workspace');
-                                if (onCloseMobile) onCloseMobile();
-                            }}
-                        >
-                            <div className="gpt-popup-icon-wrap">
-                                <Settings size={15} />
-                            </div>
-                            <span>Workspace Settings</span>
-                            <ArrowRight size={13} className="gpt-popup-arrow" />
-                        </button>
-
-                        {(user?.role === 'admin' || user?.role === 'super_admin') && (
-                            <button
-                                type="button"
-                                className="gpt-profile-popup-item"
-                                onClick={() => {
-                                    setIsMenuOpen(false);
-                                    navigate('/admin');
-                                    if (onCloseMobile) onCloseMobile();
-                                }}
-                            >
-                                <div className="gpt-popup-icon-wrap">
-                                    <ShieldCheck size={15} />
-                                </div>
-                                <span style={{ fontWeight: 600 }}>Admin Console</span>
-                                <ArrowRight size={13} className="gpt-popup-arrow" />
-                            </button>
-                        )}
 
                         <button
                             type="button"
@@ -555,6 +498,22 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                 <HelpCircle size={15} />
                             </div>
                             <span>Help & Docs</span>
+                            <ArrowRight size={13} className="gpt-popup-arrow" />
+                        </button>
+
+                        <button
+                            type="button"
+                            className="gpt-profile-popup-item"
+                            onClick={() => {
+                                setIsMenuOpen(false);
+                                onOpenShortcuts?.();
+                                if (onCloseMobile) onCloseMobile();
+                            }}
+                        >
+                            <div className="gpt-popup-icon-wrap">
+                                <Keyboard size={15} />
+                            </div>
+                            <span>Keyboard shortcuts</span>
                             <ArrowRight size={13} className="gpt-popup-arrow" />
                         </button>
 
@@ -584,7 +543,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                     <LogOut size={15} />
                                 )}
                             </div>
-                            <span>{isSigningOut ? 'Signing out…' : 'Log out'}</span>
+                            <span>{isSigningOut ? 'Signing out…' : 'Sign out'}</span>
                         </button>
                     </div>
                 )}
@@ -593,13 +552,18 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                 <button
                     type="button"
                     className="app-sidebar__user-btn"
+                    ref={userBtnRef}
                     onClick={() => setIsMenuOpen(prev => !prev)}
                     aria-expanded={isMenuOpen}
                     aria-label="User Account Menu"
                     title={user?.email || 'User Menu'}
                 >
                     <div className="app-sidebar__avatar">
-                        <span>{initials}</span>
+                        {user?.avatarUrl || user?.avatar ? (
+                            <img src={user?.avatarUrl || user?.avatar} alt={user?.name || 'User'} className="app-sidebar__avatar-img" />
+                        ) : (
+                            <span>{initials}</span>
+                        )}
                     </div>
 
                     {!isCollapsed && (
@@ -608,8 +572,13 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                 <span className="app-sidebar__user-name">
                                     {user?.name || user?.email?.split('@')[0] || 'Enterprise QA'}
                                 </span>
-                                <span className="app-sidebar__user-role">
-                                    {currentWorkspace?.name ? currentWorkspace.name.toUpperCase() : 'PRO WORKSPACE'}
+                                <span
+                                    className="app-sidebar__user-role"
+                                    title={currentWorkspace?.name || 'Pro workspace'}
+                                >
+                                    {currentWorkspace?.name
+                                        ? currentWorkspace.name.charAt(0).toUpperCase() + currentWorkspace.name.slice(1).toLowerCase()
+                                        : 'Pro workspace'}
                                 </span>
                             </div>
                             <ChevronRight size={14} className="app-sidebar__user-chevron" />

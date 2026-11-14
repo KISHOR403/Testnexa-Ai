@@ -375,7 +375,7 @@ export const AuditLogView = ({ activeOrg, workspaces = [] }) => {
                     </div>
                 ) : events.length === 0 ? (
                     <div className="cicd-empty" style={{ padding: '4rem 2rem' }}>
-                        <Clock size={44} className="cicd-empty__icon" style={{ color: '#8BAF9A', opacity: 0.7 }} />
+                        <Clock size={44} className="cicd-empty__icon" style={{ color: 'rgba(255, 255, 255, 0.4)' }} />
                         <h4 className="cicd-empty__title">No audit events match your criteria</h4>
                         <p className="cicd-empty__desc">
                             Try adjusting your search query, outcome filter, or date range.

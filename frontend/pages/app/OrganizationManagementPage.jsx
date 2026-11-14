@@ -388,7 +388,7 @@ const OrganizationManagementPage = () => {
             <div className="org-header">
                 <div className="org-header__title-area">
                     <h1>
-                        <Building2 size={24} color="#8BAF9A" />
+                        <Building2 size={24} color="#FFFFFF" />
                         Team & Organization Management
                     </h1>
                     <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -424,7 +424,7 @@ const OrganizationManagementPage = () => {
                                 <div className="org-dropdown-divider" />
                                 <div
                                     className="org-dropdown-item"
-                                    style={{ color: '#8BAF9A', fontWeight: 500 }}
+                                    style={{ color: '#FFFFFF', fontWeight: 500 }}
                                     onClick={() => {
                                         setShowOrgDropdown(false);
                                         setShowCreateOrgModal(true);
@@ -446,7 +446,7 @@ const OrganizationManagementPage = () => {
                         title="Refresh organization data"
                     >
                         <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
-                        Refresh
+                        <span>Refresh</span>
                     </button>
                     {isAdminOrOwner && (
                         <button
@@ -457,7 +457,7 @@ const OrganizationManagementPage = () => {
                             }}
                         >
                             <UserPlus size={14} />
-                            Invite Member
+                            <span>Invite Member</span>
                         </button>
                     )}
                 </div>
@@ -465,7 +465,7 @@ const OrganizationManagementPage = () => {
 
             {/* Notification Banners */}
             {errorMessage && (
-                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#F87171', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.28)', color: '#F87171', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.875rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <AlertTriangle size={16} />
                         <span>{errorMessage}</span>
@@ -480,7 +480,7 @@ const OrganizationManagementPage = () => {
                 </div>
             )}
             {successMessage && (
-                <div style={{ backgroundColor: 'rgba(139, 175, 154, 0.15)', border: '1px solid rgba(139, 175, 154, 0.3)', color: '#8BAF9A', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#FFFFFF', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
                     <CheckCircle2 size={16} />
                     <span>{successMessage}</span>
                 </div>
@@ -545,7 +545,7 @@ const OrganizationManagementPage = () => {
                     <div className="org-card__header">
                         <div>
                             <h3 className="org-card__title">Organization Workspaces</h3>
-                            <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>
+                            <span style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.55)' }}>
                                 Workspaces provide isolated environments for specific test suites, runs, and Playwright mappings.
                             </span>
                         </div>
@@ -555,7 +555,7 @@ const OrganizationManagementPage = () => {
                                 onClick={() => setShowCreateWsModal(true)}
                             >
                                 <Plus size={14} />
-                                New Workspace
+                                <span>New Workspace</span>
                             </button>
                         )}
                     </div>
@@ -578,14 +578,14 @@ const OrganizationManagementPage = () => {
                                     <tr key={ws.id}>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <strong style={{ color: '#F8FAFC' }}>{ws.name}</strong>
+                                                <strong style={{ color: '#FFFFFF', fontWeight: 600 }}>{ws.name}</strong>
                                                 {isCurrent && (
-                                                    <span className="cicd-badge cicd-badge--active" style={{ fontSize: '0.7rem' }}>Current Active</span>
+                                                    <span className="cicd-badge cicd-badge--active" style={{ fontSize: '0.6875rem' }}>Current Active</span>
                                                 )}
                                             </div>
-                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{ws.id}</span>
+                                            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'var(--tn-font-mono, monospace)' }}>{ws.id}</span>
                                         </td>
-                                        <td>{ws.description || <span style={{ color: '#64748B' }}>None</span>}</td>
+                                        <td>{ws.description || <span style={{ color: 'rgba(255, 255, 255, 0.35)' }}>None</span>}</td>
                                         <td>
                                             <span className="cicd-badge cicd-badge--disconnected" style={{ textTransform: 'capitalize' }}>
                                                 {ws.visibility || 'organization'}
@@ -603,7 +603,7 @@ const OrganizationManagementPage = () => {
                                                     className="cicd-btn cicd-btn--secondary cicd-btn--sm"
                                                     onClick={() => handleArchiveWorkspace(ws.id, ws.isArchived)}
                                                 >
-                                                    {ws.isArchived ? 'Unarchive' : 'Archive'}
+                                                    <span>{ws.isArchived ? 'Unarchive' : 'Archive'}</span>
                                                 </button>
                                             )}
                                         </td>
@@ -621,7 +621,7 @@ const OrganizationManagementPage = () => {
                     <div className="org-card__header">
                         <div>
                             <h3 className="org-card__title">Team Members & Role-Based Access</h3>
-                            <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>
+                            <span style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.55)' }}>
                                 Manage roles across Owner, Admin, QA Manager, QA Engineer, and Viewer.
                             </span>
                         </div>
@@ -634,7 +634,7 @@ const OrganizationManagementPage = () => {
                                 }}
                             >
                                 <UserPlus size={14} />
-                                Invite Member
+                                <span>Invite Member</span>
                             </button>
                         )}
                     </div>
@@ -655,9 +655,9 @@ const OrganizationManagementPage = () => {
                                 return (
                                     <tr key={m.userId}>
                                         <td>
-                                            <strong style={{ color: '#F8FAFC' }}>{m.name || m.email || m.userId}</strong>
-                                            {m.email && <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{m.email}</div>}
-                                            {isSelf && <span style={{ fontSize: '0.7rem', color: '#8BAF9A' }}>(You)</span>}
+                                            <strong style={{ color: '#FFFFFF', fontWeight: 600 }}>{m.name || m.email || m.userId}</strong>
+                                            {m.email && <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>{m.email}</div>}
+                                            {isSelf && <span style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.55)' }}>(You)</span>}
                                         </td>
                                         <td>
                                             {isAdminOrOwner && !isSelf && m.role !== 'owner' ? (
@@ -677,7 +677,7 @@ const OrganizationManagementPage = () => {
                                                 </span>
                                             )}
                                         </td>
-                                        <td style={{ color: '#94A3B8', fontSize: '0.75rem' }}>
+                                        <td style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem' }}>
                                             {m.role === 'owner' && 'Full organization authority & billing'}
                                             {m.role === 'admin' && 'Manage team members, workspaces, & integrations'}
                                             {m.role === 'qa_manager' && 'Manage test suites, cases, & workflow approval'}
@@ -692,7 +692,7 @@ const OrganizationManagementPage = () => {
                                                     onClick={() => handleRemoveMember(m.userId, m.name || m.email)}
                                                     title="Remove Member"
                                                 >
-                                                    Remove
+                                                    <span>Remove</span>
                                                 </button>
                                             )}
                                         </td>
@@ -710,7 +710,7 @@ const OrganizationManagementPage = () => {
                     <div className="org-card__header">
                         <div>
                             <h3 className="org-card__title">Pending Organization Invitations</h3>
-                            <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>
+                            <span style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.55)' }}>
                                 Invited colleagues can join this organization and its workspaces using secure one-time invite tokens.
                             </span>
                         </div>
@@ -723,7 +723,7 @@ const OrganizationManagementPage = () => {
                                 }}
                             >
                                 <UserPlus size={14} />
-                                Send New Invite
+                                <span>Send New Invite</span>
                             </button>
                         )}
                     </div>
@@ -751,7 +751,7 @@ const OrganizationManagementPage = () => {
                                 {invitations.map(inv => (
                                     <tr key={inv.id}>
                                         <td>
-                                            <strong style={{ color: '#F8FAFC' }}>{inv.email}</strong>
+                                            <strong style={{ color: '#FFFFFF', fontWeight: 600 }}>{inv.email}</strong>
                                         </td>
                                         <td>
                                             <span className={`org-role-badge org-role-badge--${inv.role}`}>
@@ -773,13 +773,13 @@ const OrganizationManagementPage = () => {
                                                         className="cicd-btn cicd-btn--secondary cicd-btn--sm"
                                                         onClick={() => handleResendInvitation(inv.id)}
                                                     >
-                                                        Resend
+                                                        <span>Resend</span>
                                                     </button>
                                                     <button
                                                         className="cicd-btn cicd-btn--danger cicd-btn--sm"
                                                         onClick={() => handleCancelInvitation(inv.id)}
                                                     >
-                                                        Cancel
+                                                        <span>Cancel</span>
                                                     </button>
                                                 </div>
                                             )}
@@ -891,7 +891,7 @@ const OrganizationManagementPage = () => {
                                     className="cicd-btn cicd-btn--secondary"
                                     onClick={() => setShowTransferModal(true)}
                                 >
-                                    Transfer Ownership
+                                    <span>Transfer Ownership</span>
                                 </button>
                             </div>
 
@@ -904,7 +904,7 @@ const OrganizationManagementPage = () => {
                                     className="cicd-btn cicd-btn--danger"
                                     onClick={handleDeleteOrg}
                                 >
-                                    Delete Organization
+                                    <span>Delete Organization</span>
                                 </button>
                             </div>
                         </div>
@@ -949,14 +949,14 @@ const OrganizationManagementPage = () => {
                                     className="cicd-btn cicd-btn--secondary"
                                     onClick={() => setShowCreateOrgModal(false)}
                                 >
-                                    Cancel
+                                    <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
                                     className="cicd-btn cicd-btn--primary"
                                     disabled={actionLoading}
                                 >
-                                    {actionLoading ? 'Creating...' : 'Create Organization'}
+                                    <span>{actionLoading ? 'Creating...' : 'Create Organization'}</span>
                                 </button>
                             </div>
                         </form>
@@ -1001,14 +1001,14 @@ const OrganizationManagementPage = () => {
                                     className="cicd-btn cicd-btn--secondary"
                                     onClick={() => setShowCreateWsModal(false)}
                                 >
-                                    Cancel
+                                    <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
                                     className="cicd-btn cicd-btn--primary"
                                     disabled={actionLoading}
                                 >
-                                    {actionLoading ? 'Creating...' : 'Create Workspace'}
+                                    <span>{actionLoading ? 'Creating...' : 'Create Workspace'}</span>
                                 </button>
                             </div>
                         </form>
@@ -1062,11 +1062,11 @@ const OrganizationManagementPage = () => {
                                 </div>
 
                                 {generatedInviteLink && (
-                                    <div style={{ backgroundColor: '#161D23', padding: '0.75rem', borderRadius: '6px', marginTop: '1rem' }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#8BAF9A', fontWeight: 600, marginBottom: '0.25rem' }}>
+                                    <div style={{ backgroundColor: '#111111', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '0.75rem', borderRadius: '6px', marginTop: '1rem' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#FFFFFF', fontWeight: 600, marginBottom: '0.25rem' }}>
                                             Invitation Link Generated:
                                         </div>
-                                        <code style={{ fontSize: '0.75rem', color: '#F8FAFC', wordBreak: 'break-all' }}>
+                                        <code style={{ fontSize: '0.75rem', color: '#FFFFFF', wordBreak: 'break-all', fontFamily: 'var(--tn-font-mono, monospace)' }}>
                                             {generatedInviteLink}
                                         </code>
                                     </div>
@@ -1078,14 +1078,14 @@ const OrganizationManagementPage = () => {
                                     className="cicd-btn cicd-btn--secondary"
                                     onClick={() => setShowInviteModal(false)}
                                 >
-                                    Close
+                                    <span>Close</span>
                                 </button>
                                 <button
                                     type="submit"
                                     className="cicd-btn cicd-btn--primary"
                                     disabled={actionLoading}
                                 >
-                                    {actionLoading ? 'Generating...' : 'Generate Invitation'}
+                                    <span>{actionLoading ? 'Generating...' : 'Generate Invitation'}</span>
                                 </button>
                             </div>
                         </form>
@@ -1130,14 +1130,14 @@ const OrganizationManagementPage = () => {
                                     className="cicd-btn cicd-btn--secondary"
                                     onClick={() => setShowTransferModal(false)}
                                 >
-                                    Cancel
+                                    <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
                                     className="cicd-btn cicd-btn--danger"
                                     disabled={actionLoading || !transferTargetId}
                                 >
-                                    {actionLoading ? 'Transferring...' : 'Confirm Ownership Transfer'}
+                                    <span>{actionLoading ? 'Transferring...' : 'Confirm Ownership Transfer'}</span>
                                 </button>
                             </div>
                         </form>

@@ -203,8 +203,9 @@ function AppContent() {
             <Route path="integrations/cicd" element={<CiCdIntegrationsPage />} />
             <Route path="organization" element={<OrganizationManagementPage />} />
             <Route path="settings/organization" element={<OrganizationManagementPage />} />
-            <Route path="settings" element={<AppSettingsPage />} />
-            <Route path="billing" element={<Navigate to="/app/settings?tab=billing" replace />} />
+            <Route path="settings" element={<WorkspacePage />} />
+            <Route path="settings/:section" element={<WorkspacePage />} />
+            <Route path="billing" element={<Navigate to="/app/settings/billing" replace />} />
           </Route>
 
           {/* ─── DEDICATED ADMINISTRATOR LOGIN ─── */}

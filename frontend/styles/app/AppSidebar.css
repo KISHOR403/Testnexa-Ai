@@ -495,6 +495,15 @@
     font-weight: 700;
     font-size: 13px;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.app-sidebar__avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
 }
 
 .app-sidebar__user-info {
@@ -517,11 +526,12 @@
 .app-sidebar__user-role {
     font-size: 11px;
     color: var(--text-3);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    text-transform: none;
+    letter-spacing: normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 140px;
 }
 
 .app-sidebar__user-chevron {
@@ -753,6 +763,17 @@
     font-weight: 700;
     font-size: 13px;
     border: none;
+    overflow: hidden;
+    padding: 0;
+}
+
+.app-header__avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
     cursor: pointer;
     transition: opacity 0.15s ease;
 }

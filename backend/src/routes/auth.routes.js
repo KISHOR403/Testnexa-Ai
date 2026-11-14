@@ -5,7 +5,8 @@ const { protect, optionalProtect } = require('../middleware/auth.middleware');
 const {
     authLoginRateLimiter,
     authRegisterRateLimiter,
-    authPasswordResetRateLimiter
+    authPasswordResetRateLimiter,
+    authExportRateLimiter
 } = require('../middleware/rateLimiter.middleware');
 const router = express.Router();
 
@@ -138,6 +139,9 @@ router.get('/me', protect, authController.getMe);
 // Update Profile & Password
 router.put('/update-profile', protect, authController.updateProfile);
 router.put('/change-password', protect, authController.changePassword);
+
+// Data Export Route
+router.get('/export-data', protect, authExportRateLimiter, authController.exportData);
 
 // Delete Account Route
 router.delete('/account', protect, authController.deleteAccount);

@@ -7,64 +7,64 @@ const TEST_NODES = [
         title: "Single-use reset token with strict 15m TTL",
         rationale: "Prevents persistent replay attacks and unauthorized session takeover across client devices.",
         x: 380,
-        y: 70,
-        path: "M 290 240 C 315 160, 355 110, 380 70"
+        y: 75,
+        path: "M 280 240 C 295 150, 335 95, 380 75"
     },
     {
         id: "TC-02",
         title: "Constant-time API response delta (≤ 120ms)",
         rationale: "Eliminates timing attack vectors that reveal whether an address exists in the database.",
-        x: 495,
-        y: 190,
-        path: "M 290 240 C 375 225, 440 205, 495 190"
+        x: 485,
+        y: 170,
+        path: "M 280 240 C 355 260, 425 210, 485 170"
     },
     {
         id: "TC-03",
         title: "Unregistered email gets a neutral reply",
         rationale: "Prevents attackers from learning which emails have accounts.",
-        x: 495,
+        x: 485,
         y: 310,
-        path: "M 290 240 C 385 260, 445 290, 495 310"
+        path: "M 280 240 C 355 220, 425 270, 485 310"
     },
     {
         id: "TC-04",
         title: "Invalidate all concurrent active sessions",
         rationale: "Revokes existing browser tokens immediately upon successful credential replacement.",
         x: 380,
-        y: 410,
-        path: "M 290 240 C 325 320, 360 370, 380 410"
+        y: 405,
+        path: "M 280 240 C 295 330, 335 385, 380 405"
     },
     {
         id: "TC-05",
         title: "Strict client IP and account burst rate limiting",
         rationale: "Blocks brute-force flooding of transactional email and password endpoints.",
-        x: 200,
-        y: 410,
-        path: "M 290 240 C 255 320, 220 370, 200 410"
+        x: 180,
+        y: 405,
+        path: "M 280 240 C 265 330, 225 385, 180 405"
     },
     {
         id: "TC-06",
         title: "Reject malformed RFC 5322 payloads",
         rationale: "Blocks edge-injection payloads and header-poisoning attempts at the API gateway.",
-        x: 85,
+        x: 75,
         y: 310,
-        path: "M 290 240 C 195 260, 135 290, 85 310"
+        path: "M 280 240 C 205 220, 135 270, 75 310"
     },
     {
         id: "TC-07",
         title: "Atomic database lock on token redemption",
         rationale: "Rejects parallel race condition submissions attempting concurrent password reuse.",
-        x: 85,
-        y: 190,
-        path: "M 290 240 C 205 225, 140 205, 85 190"
+        x: 75,
+        y: 170,
+        path: "M 280 240 C 205 260, 135 210, 75 170"
     },
     {
         id: "TC-08",
         title: "Cryptographic HMAC audit hash generation",
         rationale: "Ensures tamper-evident compliance audit trail linking each run directly back to PRD-AUTH-004.",
-        x: 200,
-        y: 70,
-        path: "M 290 240 C 265 160, 225 110, 200 70"
+        x: 180,
+        y: 75,
+        path: "M 280 240 C 265 150, 225 95, 180 75"
     }
 ];
 
@@ -103,67 +103,41 @@ export const TraceabilityGraph = () => {
                     <div className="tn-graph-card-left" data-cursor="Inspect">
                         <svg
                             className="tn-radial-graph-svg"
-                            viewBox="0 0 580 480"
+                            viewBox="0 0 560 480"
                             xmlns="http://www.w3.org/2000/svg"
                         >
-                            <defs>
-                                <filter id="tnGraphLineGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="rgba(125, 211, 252, 0.7)" />
-                                </filter>
-                            </defs>
-
                             {/* 8 Curved Connecting Spline Lines */}
                             {TEST_NODES.map((node) => {
                                 const isActive = activeNode.id === node.id;
                                 return (
-                                    <g key={`spline-${node.id}`}>
-                                        <path
-                                            d={node.path}
-                                            fill="none"
-                                            stroke={isActive ? "#7DD3FC" : "rgba(255, 255, 255, 0.22)"}
-                                            strokeWidth={isActive ? "2" : "1"}
-                                            style={{
-                                                transition: "stroke 0.25s ease, stroke-width 0.25s ease",
-                                                filter: isActive ? "url(#tnGraphLineGlow)" : "none"
-                                            }}
-                                        />
-
-                                        {/* Dynamic Travelling Pulse Particle when Node is Active */}
-                                        {isActive && (
-                                            <circle
-                                                r="3"
-                                                fill="#7DD3FC"
-                                                filter="url(#tnGraphLineGlow)"
-                                            >
-                                                <animateMotion
-                                                    path={node.path}
-                                                    dur="1.8s"
-                                                    repeatCount="indefinite"
-                                                />
-                                            </circle>
-                                        )}
-                                    </g>
+                                    <path
+                                        key={`spline-${node.id}`}
+                                        d={node.path}
+                                        fill="none"
+                                        stroke={isActive ? "rgba(255, 255, 255, 0.45)" : "rgba(255, 255, 255, 0.22)"}
+                                        strokeWidth={isActive ? "1.2" : "1"}
+                                        style={{
+                                            transition: "stroke 0.2s ease, stroke-width 0.2s ease"
+                                        }}
+                                    />
                                 );
                             })}
 
                             {/* Central Requirement Node: Solid White Circle with Black Text */}
                             <g className="tn-graph-center-group">
                                 <circle
-                                    cx="290"
+                                    cx="280"
                                     cy="240"
-                                    r="38"
+                                    r="36"
                                     fill="#FFFFFF"
-                                    style={{
-                                        filter: "drop-shadow(0 0 20px rgba(255, 255, 255, 0.25))"
-                                    }}
                                 />
                                 <text
-                                    x="290"
+                                    x="280"
                                     y="235"
                                     textAnchor="middle"
                                     fill="#000000"
                                     fontFamily="'JetBrains Mono', monospace"
-                                    fontSize="12"
+                                    fontSize="11"
                                     fontWeight="700"
                                     letterSpacing="0.04em"
                                     style={{ pointerEvents: 'none', userSelect: 'none' }}
@@ -171,12 +145,12 @@ export const TraceabilityGraph = () => {
                                     PRD-AUTH
                                 </text>
                                 <text
-                                    x="290"
-                                    y="253"
+                                    x="280"
+                                    y="252"
                                     textAnchor="middle"
                                     fill="#000000"
                                     fontFamily="'JetBrains Mono', monospace"
-                                    fontSize="12"
+                                    fontSize="11"
                                     fontWeight="700"
                                     letterSpacing="0.04em"
                                     style={{ pointerEvents: 'none', userSelect: 'none' }}
@@ -200,22 +174,21 @@ export const TraceabilityGraph = () => {
                                         <circle
                                             cx={node.x}
                                             cy={node.y}
-                                            r="23"
+                                            r="20"
                                             fill="#050505"
-                                            stroke={isActive ? "#7DD3FC" : "rgba(255, 255, 255, 0.28)"}
-                                            strokeWidth={isActive ? "1.75" : "1"}
+                                            stroke={isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.28)"}
+                                            strokeWidth={isActive ? "1.5" : "1"}
                                             style={{
-                                                transition: "all 0.2s ease",
-                                                filter: isActive ? "drop-shadow(0 0 12px rgba(125, 211, 252, 0.45))" : "none"
+                                                transition: "all 0.2s ease"
                                             }}
                                         />
                                         <text
                                             x={node.x}
                                             y={node.y + 4}
                                             textAnchor="middle"
-                                            fill={isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.85)"}
+                                            fill={isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.88)"}
                                             fontFamily="'JetBrains Mono', monospace"
-                                            fontSize="11"
+                                            fontSize="10.5"
                                             fontWeight="600"
                                             letterSpacing="0.04em"
                                             style={{ pointerEvents: 'none', userSelect: 'none', transition: "fill 0.2s ease" }}
