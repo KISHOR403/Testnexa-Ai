@@ -5,39 +5,42 @@
    Accent: #8BAF9A | Primary: #F2F3F3 | Secondary: #A0A5A5 | Muted: #777E7E
    ========================================================================== */
 
-/* ─── 1. Floating Trigger Button (Bottom-Right) ─── */
+/* ─── 1. Floating Trigger Button (Bottom-Right, 44px Icon-Only) ─── */
 .tn-copilot-floating-trigger {
   position: fixed;
   right: 24px;
   bottom: 24px;
   z-index: 900;
+  width: 44px;
   height: 44px;
-  padding: 0 16px;
-  background: #080808;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 22px;
+  padding: 0;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
   color: #FFFFFF;
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(125, 211, 252, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
   transition: all 180ms ease;
   user-select: none;
 }
 
 .tn-copilot-floating-trigger:hover {
-  background: #101010;
-  border-color: #7DD3FC;
+  background: #111111;
+  border-color: #FFFFFF;
   color: #FFFFFF;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.8), 0 0 20px rgba(125, 211, 252, 0.25);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.9);
+}
+
+.tn-copilot-floating-trigger:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
 }
 
 .tn-copilot-floating-trigger__icon {
-  color: #7DD3FC;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,24 +49,23 @@
 }
 
 .tn-copilot-floating-trigger__text {
-  display: inline-block;
-  white-space: nowrap;
+  display: none !important;
 }
 
 .tn-copilot-floating-trigger.is-open {
   background: #111111;
-  border-color: #383838;
-  color: #D4D4D4;
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .tn-copilot-floating-trigger.is-open:hover {
-  border-color: #EF4444;
+  border-color: #FFFFFF;
   color: #FFFFFF;
 }
 
 .tn-copilot-floating-trigger.is-open .tn-copilot-floating-trigger__icon {
-  color: #EF4444;
+  color: #FFFFFF;
 }
 
 /* ─── Mobile Backdrop Overlay ─── */
@@ -917,43 +919,40 @@
     to { opacity: 1; }
   }
 
-  /* Floating Trigger Button on Mobile */
+  /* Floating Trigger Button on Mobile (44px Icon-Only) */
   .tn-copilot-floating-trigger {
     right: 16px;
     bottom: 16px;
+    width: 44px;
     height: 44px;
-    padding: 0 16px;
-    border-radius: 22px;
-    background: #121212;
-    border: 1px solid #2E2E2E;
-    color: #F5F5F5;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 14px rgba(139, 175, 154, 0.25);
+    padding: 0;
+    border-radius: 50%;
+    background: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #FFFFFF;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
     z-index: 9990;
     display: flex;
     align-items: center;
-    gap: 7px;
+    justify-content: center;
   }
 
   .tn-copilot-floating-trigger__icon {
     display: flex !important;
-    color: #8BAF9A !important;
+    color: #FFFFFF !important;
   }
 
   .tn-copilot-floating-trigger__text {
-    display: inline-block !important;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #FFFFFF;
-    white-space: nowrap;
+    display: none !important;
   }
 
   .tn-copilot-floating-trigger.is-open {
-    background: #1C1C1C;
-    border-color: #444444;
+    background: #111111;
+    border-color: rgba(255, 255, 255, 0.4);
   }
 
   .tn-copilot-floating-trigger.is-open .tn-copilot-floating-trigger__icon {
-    color: #EF4444 !important;
+    color: #FFFFFF !important;
   }
 
   /* Mobile Sheet Drag Handle */

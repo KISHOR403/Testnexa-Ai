@@ -249,20 +249,17 @@ const QaCopilotDrawer = ({
                 />
             )}
 
-            {/* ─── 1. Floating Trigger Button (Bottom-Right) ─── */}
+            {/* ─── 1. Floating Trigger Button (Bottom-Right, 44px icon-only) ─── */}
             {showFloatingTrigger && (
                 <button
                     className={`tn-copilot-floating-trigger ${isOpen ? 'is-open' : ''}`}
                     onClick={handleTriggerClick}
-                    aria-label={isOpen ? "Close QA Copilot" : "Open QA Copilot"}
+                    aria-label={isOpen ? "Close QA Copilot" : "Ask Testnexa QA Copilot"}
                     aria-expanded={isOpen}
                     title={isOpen ? "Close QA Copilot (Esc)" : "Ask Testnexa QA Copilot"}
                 >
                     <span className="tn-copilot-floating-trigger__icon">
-                        {isOpen ? <X size={16} /> : <MessageSquare size={16} />}
-                    </span>
-                    <span className="tn-copilot-floating-trigger__text">
-                        {isOpen ? 'Close' : 'Ask Testnexa'}
+                        {isOpen ? <X size={20} /> : <MessageSquare size={20} />}
                     </span>
                 </button>
             )}

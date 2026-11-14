@@ -1,6 +1,6 @@
 /* ==========================================================================
    WORKSPACE SESSION RESUMPTION & THREAD STYLES
-   Pure #000000 Theme | Monochrome + Ice-Blue System
+   Strict Black & White System
    ========================================================================== */
 
 /* ─── Top Session Status Bar ─── */
@@ -8,26 +8,26 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.85rem;
-    background: #080808;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
     border-radius: 8px;
-    padding: 0.65rem 1rem;
+    padding: 10px 16px;
     flex-wrap: wrap;
 }
 
 .app-workspace-session-info {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 10px;
     flex-wrap: wrap;
     min-width: 0;
 }
 
 .app-workspace-session-title {
-    font-size: 0.88rem;
+    font-size: 14px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: var(--text-1);
     max-width: 320px;
     white-space: nowrap;
     overflow: hidden;
@@ -35,81 +35,79 @@
 }
 
 .app-workspace-version-pill {
-    font-size: 0.68rem;
+    font-size: 11px;
     font-weight: 600;
-    padding: 0.15rem 0.45rem;
+    padding: 2px 6px;
     border-radius: 4px;
-    background: rgba(125, 211, 252, 0.1);
-    color: #7DD3FC;
-    border: 1px solid rgba(125, 211, 252, 0.25);
-    letter-spacing: 0.04em;
+    background: var(--surface-2);
+    color: var(--text-2);
+    border: 1px solid var(--line);
+    font-family: ui-monospace, monospace;
 }
 
 .app-workspace-status-badge {
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 0.15rem 0.45rem;
+    padding: 2px 8px;
     border-radius: 4px;
-    background: #000000;
-    color: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--line-hi);
 }
 
 .app-workspace-status-badge.generated,
 .app-workspace-status-badge.approved {
-    background: rgba(52, 211, 153, 0.12);
-    color: #34D399;
-    border: 1px solid rgba(52, 211, 153, 0.3);
+    border: 1px solid var(--line-hi);
+    color: var(--text-1);
 }
 
 .app-workspace-status-badge.draft {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px dashed var(--line-hi);
+    color: var(--text-2);
 }
 
 /* ─── Auto-Save Indicator ─── */
 .app-workspace-save-indicator {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.74rem;
+    gap: 6px;
+    font-size: 12px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.52);
-    padding: 0.25rem 0.6rem;
+    color: var(--text-3);
+    padding: 4px 10px;
     border-radius: 4px;
-    background: #000000;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
 }
 
 .app-workspace-save-indicator.saving {
-    color: #7DD3FC;
-    border-color: rgba(125, 211, 252, 0.25);
+    color: var(--text-1);
+    border-color: var(--line-hi);
 }
 
 .app-workspace-save-indicator.saved {
-    color: #34D399;
+    color: var(--text-1);
 }
 
 .app-workspace-session-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
     margin-left: auto;
 }
 
 .app-workspace-session-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.78rem;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
-    background: #000000;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-2);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
     border-radius: 6px;
     cursor: pointer;
     text-decoration: none;
@@ -117,9 +115,14 @@
 }
 
 .app-workspace-session-btn:hover {
-    color: #FFFFFF;
-    background: #080808;
-    border-color: #7DD3FC;
+    color: var(--text-1);
+    background: var(--surface);
+    border-color: var(--line-hi);
+}
+
+.app-workspace-session-btn:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
 }
 
 .app-workspace-session-btn.primary {
@@ -137,28 +140,28 @@
 .app-workspace-thread {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
-    background: #050505;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
     border-radius: 8px;
-    padding: 1.15rem;
+    padding: 16px;
 }
 
 .app-workspace-thread-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 0.65rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
 }
 
 .app-workspace-thread-title {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    font-size: 0.82rem;
+    gap: 8px;
+    font-size: 13px;
     font-weight: 600;
-    color: #7DD3FC;
+    color: var(--text-1);
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
@@ -166,29 +169,29 @@
 .app-workspace-thread-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 12px;
     max-height: 280px;
     overflow-y: auto;
-    padding-right: 0.35rem;
+    padding-right: 6px;
 }
 
 .app-workspace-turn {
     display: flex;
-    gap: 0.65rem;
-    padding: 0.65rem 0.85rem;
+    gap: 10px;
+    padding: 10px 14px;
     border-radius: 6px;
-    font-size: 0.82rem;
-    line-height: 1.45;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .app-workspace-turn.user {
-    background: #080808;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
 }
 
 .app-workspace-turn.assistant {
-    background: #050505;
-    border: 1px solid rgba(125, 211, 252, 0.2);
+    background: var(--bg);
+    border: 1px solid var(--line-hi);
 }
 
 .app-workspace-turn-avatar {
@@ -198,19 +201,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     flex-shrink: 0;
 }
 
 .app-workspace-turn.user .app-workspace-turn-avatar {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-2);
     color: #FFFFFF;
+    border: 1px solid var(--line);
 }
 
 .app-workspace-turn.assistant .app-workspace-turn-avatar {
-    background: rgba(125, 211, 252, 0.15);
-    color: #7DD3FC;
+    background: #FFFFFF;
+    color: #000000;
 }
 
 .app-workspace-turn-content {
@@ -222,22 +226,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.2rem;
+    margin-bottom: 4px;
 }
 
 .app-workspace-turn-role {
     font-weight: 600;
-    font-size: 0.76rem;
-    color: #FFFFFF;
+    font-size: 12px;
+    color: var(--text-1);
 }
 
 .app-workspace-turn-time {
-    font-size: 0.68rem;
-    color: rgba(255, 255, 255, 0.52);
+    font-size: 11px;
+    color: var(--text-3);
 }
 
 .app-workspace-turn-text {
-    color: rgba(255, 255, 255, 0.72);
+    color: var(--text-2);
     margin: 0;
     word-break: break-word;
 }
@@ -247,46 +251,46 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    background: #050505;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
     border-radius: 8px;
-    padding: 1rem 1.25rem;
+    padding: 16px 20px;
     flex-wrap: wrap;
 }
 
 .app-workspace-suite-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 4px;
 }
 
 .app-workspace-suite-title {
-    font-size: 1.05rem;
+    font-size: 16px;
     font-weight: 600;
-    color: #FFFFFF;
+    color: var(--text-1);
     margin: 0;
 }
 
 .app-workspace-suite-meta {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.52);
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-3);
     flex-wrap: wrap;
 }
 
 .app-workspace-suite-meta strong {
-    color: #7DD3FC;
+    color: var(--text-1);
 }
 
 /* Loading skeleton */
 .app-workspace-loading-skeleton {
     height: 180px;
-    background: linear-gradient(90deg, #050505 25%, #0d0d0d 50%, #050505 75%);
+    background: linear-gradient(90deg, #050505 25%, #111111 50%, #050505 75%);
     background-size: 200% 100%;
     animation: skeleton-pulse 1.6s infinite ease-in-out;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--line);
 }

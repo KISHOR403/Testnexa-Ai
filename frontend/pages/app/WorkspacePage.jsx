@@ -6,7 +6,7 @@ import {
     Layers, Shield, GitBranch, RefreshCw, FileText, CheckCircle2,
     SlidersHorizontal, Sparkles, XCircle, Edit3, ArrowLeft,
     CheckSquare, Square, AlertCircle, Upload, FileCode,
-    Clock, Save, CornerDownLeft, Info
+    Clock, Save, CornerDownLeft, Info, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
@@ -908,30 +908,23 @@ const WorkspacePage = () => {
 
     return (
         <div className="app-workspace-container">
-            {/* ─── 1. PAGE HEADER ─── */}
+            {/* ─── 1. PAGE HEADER (TITLE + DRAFT LEFT, AUTOSAVE STATUS RIGHT) ─── */}
             <header className="app-workspace-header">
-                <div className="app-workspace-header__meta">
-                    <div className="app-workspace-header__title-row">
-                        <h1 className="app-workspace-header__title">Create a test suite</h1>
-                        <span className={`app-workspace-status-tag ${sessionStatus.toLowerCase()}`}>
-                            {sessionStatus.toUpperCase() === 'DRAFT' ? 'Draft' : sessionStatus}
-                        </span>
-                        {currentVersion > 1 && (
-                            <span className="app-workspace-version-tag">v{currentVersion}</span>
-                        )}
-                    </div>
-                    <p className="app-workspace-header__subtitle">
-                        Specify software requirements to isolate ambiguities, calibrate coverage depth, and synthesize deterministic test suites.
-                    </p>
+                <div className="app-workspace-header__title-row">
+                    <h1 className="app-workspace-header__title">Create a test suite</h1>
+                    <span className="app-workspace-status-tag draft">Draft</span>
+                    {currentVersion > 1 && (
+                        <span className="app-workspace-version-tag">v{currentVersion}</span>
+                    )}
                 </div>
 
                 {/* Autosave Status Pill */}
                 <div className="app-workspace-header__status">
                     <div className={`app-workspace-saved-pill ${saveStatus}`}>
                         {saveStatus === 'saving' && <InlineTestSignal size={12} />}
-                        {saveStatus === 'saved' && <Check size={13} strokeWidth={2.5} color="var(--ok, #34D399)" />}
-                        {saveStatus === 'failed' && <AlertCircle size={13} color="#EF4444" />}
-                        {saveStatus === 'empty' && <Clock size={13} color="rgba(255, 255, 255, 0.4)" />}
+                        {saveStatus === 'saved' && <Check size={13} strokeWidth={2.5} />}
+                        {saveStatus === 'failed' && <AlertCircle size={13} />}
+                        {saveStatus === 'empty' && <Clock size={13} />}
                         <span>{saveLabel}</span>
                     </div>
                 </div>
@@ -1037,11 +1030,11 @@ const WorkspacePage = () => {
                 </div>
             )}
 
-            {/* Restored Draft Alert Banner (Ice-Blue / White Tokens) */}
+            {/* Restored Draft Alert Banner (Strict B&W) */}
             {hasDraftRestored && workflowStage === 'requirement' && (
                 <div className="app-workspace-restored-banner" role="status">
                     <div className="app-workspace-restored-content">
-                        <Sparkles size={15} color="#7DD3FC" />
+                        <Sparkles size={15} color="#FFFFFF" />
                         <span>Restored previous draft from this browser session.</span>
                     </div>
                     <button
@@ -1071,13 +1064,13 @@ const WorkspacePage = () => {
                 <div className="app-workspace-analysis-panel">
                     <div className="app-workspace-analysis-header">
                         <div className="app-workspace-analysis-title">
-                            <Sparkles size={16} color="#7DD3FC" />
+                            <Sparkles size={16} color="#FFFFFF" />
                             <span>Requirement analysis: {analysisData.feature}</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.72)' }}>Ambiguity rating:</span>
-                            <span className={`app-workspace-ambiguity-badge ${(analysisData.ambiguityAnalysis?.level || 'low').toLowerCase()}`}>
+                            <span className="app-workspace-ambiguity-badge">
                                 {analysisData.ambiguityAnalysis?.level || 'Low'} ambiguity
                             </span>
                         </div>
@@ -1087,7 +1080,7 @@ const WorkspacePage = () => {
                         {/* Extracted Business Rules */}
                         <div className="app-workspace-analysis-card">
                             <span className="app-workspace-analysis-card-title">
-                                <Check size={14} color="var(--ok, #34D399)" /> Extracted business rules ({analysisData.businessRules?.length || 0})
+                                <Check size={14} color="#FFFFFF" /> Extracted business rules ({analysisData.businessRules?.length || 0})
                             </span>
                             <ul className="app-workspace-analysis-list">
                                 {(analysisData.businessRules || []).map((rule, idx) => (
@@ -1098,17 +1091,17 @@ const WorkspacePage = () => {
 
                         {/* Ambiguities & Missing Info */}
                         <div className="app-workspace-analysis-card">
-                            <span className="app-workspace-analysis-card-title warn">
-                                <AlertTriangle size={14} color="#F59E0B" /> Ambiguities & unstated conditions ({analysisData.ambiguities?.length || 0})
+                            <span className="app-workspace-analysis-card-title">
+                                <AlertTriangle size={14} color="#FFFFFF" /> Ambiguities & unstated conditions ({analysisData.ambiguities?.length || 0})
                             </span>
                             {analysisData.ambiguities?.length > 0 ? (
-                                <ul className="app-workspace-analysis-list warn">
+                                <ul className="app-workspace-analysis-list">
                                     {analysisData.ambiguities.map((amb, idx) => (
                                         <li key={idx}>{amb}</li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p style={{ fontSize: '0.8rem', color: 'var(--ok, #34D399)', margin: 0 }}>
+                                <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.72)', margin: 0 }}>
                                     ✓ No critical ambiguities detected. Requirement has clear acceptance boundaries.
                                 </p>
                             )}
@@ -1117,7 +1110,7 @@ const WorkspacePage = () => {
                         {/* Grounded Assumptions */}
                         <div className="app-workspace-analysis-card">
                             <span className="app-workspace-analysis-card-title">
-                                <FileText size={14} color="#7DD3FC" /> Grounded assumptions
+                                <FileText size={14} color="#FFFFFF" /> Grounded assumptions
                             </span>
                             <ul className="app-workspace-analysis-list">
                                 {(analysisData.missingInformation || []).map((item, idx) => (
@@ -1129,12 +1122,12 @@ const WorkspacePage = () => {
                         {/* Planned Scope */}
                         <div className="app-workspace-analysis-card">
                             <span className="app-workspace-analysis-card-title">
-                                <Layers size={14} color="#7DD3FC" /> Target suite scope
+                                <Layers size={14} color="#FFFFFF" /> Target suite scope
                             </span>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', color: 'rgba(255, 255, 255, 0.72)' }}>
                                 <div>Platform: <strong style={{ color: '#FFFFFF', textTransform: 'capitalize' }}>{settings.type}</strong></div>
                                 <div>Depth tier: <strong style={{ color: '#FFFFFF' }}>{settings.level}</strong> (~{analysisData.scopeSummary?.estimatedCases || 18} test cases)</div>
-                                <div>Active categories: <strong style={{ color: '#7DD3FC' }}>{Object.keys(selectedCategories).filter(k => selectedCategories[k]).join(', ')}</strong></div>
+                                <div>Active categories: <strong style={{ color: '#FFFFFF' }}>{Object.keys(selectedCategories).filter(k => selectedCategories[k]).join(', ')}</strong></div>
                             </div>
                         </div>
                     </div>
@@ -1167,7 +1160,7 @@ const WorkspacePage = () => {
                     <div className="app-workspace-review-top-bar">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <CheckCircle2 size={16} color="var(--ok, #34D399)" />
+                                <CheckCircle2 size={16} color="#FFFFFF" />
                                 <strong style={{ fontSize: '1.05rem', color: '#FFFFFF' }}>
                                     {suiteData?.testSuiteName || suiteData?.feature || requirementTitle || 'Generated Test Suite'}
                                 </strong>
@@ -1179,8 +1172,8 @@ const WorkspacePage = () => {
 
                         <div className="app-workspace-review-stats">
                             <span className="app-workspace-review-stat-pill">Total: <strong>{reviewMetrics.total}</strong></span>
-                            <span className="app-workspace-review-stat-pill" style={{ color: 'var(--ok, #34D399)' }}>Approved: <strong>{reviewMetrics.approved}</strong></span>
-                            <span className="app-workspace-review-stat-pill" style={{ color: '#EF4444' }}>Rejected: <strong>{reviewMetrics.rejected}</strong></span>
+                            <span className="app-workspace-review-stat-pill">Approved: <strong>{reviewMetrics.approved}</strong></span>
+                            <span className="app-workspace-review-stat-pill">Rejected: <strong>{reviewMetrics.rejected}</strong></span>
                             <span className="app-workspace-review-stat-pill">Unreviewed: <strong>{reviewMetrics.unreviewed}</strong></span>
                         </div>
                     </div>
@@ -1214,7 +1207,7 @@ const WorkspacePage = () => {
                                 onClick={handleApproveAll}
                                 title="Mark all unreviewed test cases as approved"
                             >
-                                <Check size={13} color="var(--ok, #34D399)" />
+                                <Check size={13} color="#FFFFFF" />
                                 <span>Approve all</span>
                             </button>
                         </div>
@@ -1474,52 +1467,54 @@ const WorkspacePage = () => {
                                         Requirement description <span className="req-required">*</span>
                                     </label>
 
-                                    {/* Action Shortcuts Toolbar */}
+                                    {/* Action Shortcuts Toolbar: Segmented Control */}
                                     <div className="app-workspace-input-toolbar">
-                                        <button
-                                            type="button"
-                                            className="app-workspace-toolbar-btn"
-                                            onClick={handlePaste}
-                                            title="Paste text from clipboard"
-                                            aria-label="Paste from clipboard"
-                                        >
-                                            <Clipboard size={12} />
-                                            <span>Paste</span>
-                                        </button>
+                                        <div className="app-workspace-tool-segmented">
+                                            <button
+                                                type="button"
+                                                className="app-workspace-tool-seg-btn"
+                                                onClick={handlePaste}
+                                                title="Paste text from clipboard"
+                                                aria-label="Paste from clipboard"
+                                            >
+                                                <Clipboard size={12} />
+                                                <span>Paste</span>
+                                            </button>
 
-                                        <button
-                                            type="button"
-                                            className="app-workspace-toolbar-btn"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            title="Upload requirement file (PDF, DOCX, TXT)"
-                                            aria-label="Upload requirement file"
-                                        >
-                                            <Upload size={12} />
-                                            <span>Upload file</span>
-                                        </button>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".txt,.pdf,.docx,.doc,.md"
-                                            style={{ display: 'none' }}
-                                            onChange={handleFileUpload}
-                                        />
+                                            <button
+                                                type="button"
+                                                className="app-workspace-tool-seg-btn"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                title="Upload requirement file (PDF, DOCX, TXT)"
+                                                aria-label="Upload requirement file"
+                                            >
+                                                <Upload size={12} />
+                                                <span>Upload file</span>
+                                            </button>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept=".txt,.pdf,.docx,.doc,.md"
+                                                style={{ display: 'none' }}
+                                                onChange={handleFileUpload}
+                                            />
 
-                                        <button
-                                            type="button"
-                                            className="app-workspace-toolbar-btn"
-                                            onClick={handleJiraImport}
-                                            title="Import Jira user story template"
-                                            aria-label="Import from Jira"
-                                        >
-                                            <FileCode size={12} />
-                                            <span>Import Jira</span>
-                                        </button>
+                                            <button
+                                                type="button"
+                                                className="app-workspace-tool-seg-btn"
+                                                onClick={handleJiraImport}
+                                                title="Import Jira user story template"
+                                                aria-label="Import from Jira"
+                                            >
+                                                <FileCode size={12} />
+                                                <span>Import Jira</span>
+                                            </button>
+                                        </div>
 
                                         {charCount > 0 && (
                                             <button
                                                 type="button"
-                                                className="app-workspace-toolbar-btn is-danger"
+                                                className="app-workspace-toolbar-clear-btn"
                                                 onClick={() => setRequirement('')}
                                                 title="Clear requirement text"
                                                 aria-label="Clear requirement"
@@ -1527,11 +1522,6 @@ const WorkspacePage = () => {
                                                 <Trash2 size={12} />
                                             </button>
                                         )}
-
-                                        {/* Character Counter (turns amber at 90%, red at 100%) */}
-                                        <span className={`app-workspace-char-count ${charCount >= maxLength ? 'is-overflow' : charCount >= maxLength * 0.9 ? 'is-warning' : ''}`}>
-                                            {charCount} / {maxLength}
-                                        </span>
                                     </div>
                                 </div>
 
@@ -1551,6 +1541,10 @@ const WorkspacePage = () => {
                                         aria-describedby={!isDescValid ? "req-desc-error" : undefined}
                                         rows={8}
                                     />
+                                    {/* 0 / 3000 counter moved to bottom-right inside textarea wrap */}
+                                    <span className="app-workspace-textarea-counter">
+                                        {charCount} / {maxLength}
+                                    </span>
                                 </div>
 
                                 {!isDescValid && (
@@ -1559,11 +1553,11 @@ const WorkspacePage = () => {
                                     </span>
                                 )}
 
-                                {/* Live Ambiguity Detection Inspector */}
+                                {/* Live Ambiguity Detection Inspector (Monochrome White Wavy Underline) */}
                                 {detectedAmbiguities.length > 0 && (
                                     <div className="app-workspace-ambiguity-inspector" role="status">
                                         <div className="app-workspace-ambiguity-inspector-title">
-                                            <AlertTriangle size={13} color="#F59E0B" />
+                                            <AlertTriangle size={13} color="#FFFFFF" />
                                             <span>
                                                 {detectedAmbiguities.length} {detectedAmbiguities.length === 1 ? 'ambiguity hint' : 'ambiguity hints'} detected in description:
                                             </span>
@@ -1590,7 +1584,7 @@ const WorkspacePage = () => {
                                     aria-expanded={showCriteriaField}
                                 >
                                     <div className="app-workspace-collapsible-title-wrap">
-                                        <CheckSquare size={15} color="#7DD3FC" />
+                                        <CheckSquare size={15} color="#FFFFFF" />
                                         <div>
                                             <span className="app-workspace-collapsible-title">Acceptance criteria</span>
                                             <span className="app-workspace-collapsible-hint">Define concrete pass/fail conditions to enforce strict test assertions</span>
@@ -1629,7 +1623,7 @@ const WorkspacePage = () => {
                                     aria-expanded={showContextField}
                                 >
                                     <div className="app-workspace-collapsible-title-wrap">
-                                        <SlidersHorizontal size={15} color="#7DD3FC" />
+                                        <SlidersHorizontal size={15} color="#FFFFFF" />
                                         <div>
                                             <span className="app-workspace-collapsible-title">Additional context & constraints</span>
                                             <span className="app-workspace-collapsible-hint">Specify technical constraints, target environments, and compliance scope</span>
@@ -1668,7 +1662,7 @@ const WorkspacePage = () => {
                                 <span className="app-workspace-card-label">Generation configuration</span>
                             </div>
 
-                            {/* Target Platform Selector (Recolored to Ice-Blue with Check Icon) */}
+                            {/* Target Platform Selector (Strict B&W) */}
                             <div className="app-workspace-field">
                                 <label className="app-workspace-field-label">Target platform</label>
                                 <div className="app-workspace-segmented" role="radiogroup" aria-label="Target platform">
@@ -1689,7 +1683,11 @@ const WorkspacePage = () => {
                                             >
                                                 <Icon size={14} />
                                                 <span>{label}</span>
-                                                {isSelected && <Check size={12} color="#7DD3FC" className="app-workspace-check-icon" />}
+                                                {isSelected && (
+                                                    <div className="app-workspace-check-dot">
+                                                        <Check size={10} color="#000000" strokeWidth={3} />
+                                                    </div>
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -1739,7 +1737,11 @@ const WorkspacePage = () => {
                                                 <div className="app-workspace-depth-card__top">
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                         <span className="app-workspace-depth-name">{label}</span>
-                                                        {isSelected && <Check size={13} color="#7DD3FC" />}
+                                                        {isSelected && (
+                                                            <div className="app-workspace-check-dot">
+                                                                <Check size={10} color="#000000" strokeWidth={3} />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     {isRecommended && (
                                                         <span className="app-workspace-recommended-badge">RECOMMENDED</span>
@@ -1768,7 +1770,7 @@ const WorkspacePage = () => {
 
                                 {isCategoriesCustomized && (
                                     <div className="app-workspace-customized-note">
-                                        <Info size={12} color="#7DD3FC" />
+                                        <Info size={12} color="var(--text-2)" />
                                         <span>Customized: differs from {settings.level} preset</span>
                                     </div>
                                 )}
@@ -1793,7 +1795,7 @@ const WorkspacePage = () => {
                                                 aria-checked={isChecked}
                                             >
                                                 <div className={`app-workspace-fake-checkbox ${isChecked ? 'is-checked' : ''}`}>
-                                                    {isChecked && <Check size={11} strokeWidth={3} />}
+                                                    {isChecked && <Check size={11} color="#000000" strokeWidth={3} />}
                                                 </div>
                                                 <span>{label}</span>
                                             </button>
@@ -1901,29 +1903,46 @@ const WorkspacePage = () => {
                                         to={isDraft ? `/app/workspace/${item.sessionId || item.id}` : `/app/test-suites/${item.sessionId || item.id}`}
                                         className="app-workspace-recent-card"
                                     >
-                                        <div className="app-workspace-recent-card-top">
-                                            <span className="app-workspace-recent-card-title">
+                                        {/* Line 1: Title */}
+                                        <div className="app-workspace-recent-card-row1">
+                                            <span className="app-workspace-recent-card-title" title={item.title || item.feature || 'Untitled Suite'}>
                                                 {item.title || item.feature || 'Untitled Suite'}
                                             </span>
-                                            <div className="app-workspace-recent-chips">
-                                                <span className="app-workspace-recent-card-context">
-                                                    {platformLabel} · {reqCode}
-                                                </span>
-                                                {isFailed ? (
-                                                    <span className="app-sidebar__status-chip is-failed">Failed</span>
-                                                ) : isDraft ? (
-                                                    <span className="app-sidebar__status-chip is-draft">Draft</span>
-                                                ) : (
-                                                    <span className="app-sidebar__status-chip is-complete">Complete</span>
-                                                )}
-                                            </div>
                                         </div>
-                                        <div className="app-workspace-recent-card-meta">
-                                            <span>{testCount} test cases</span>
-                                            <span>·</span>
-                                            <span>{coverage}</span>
-                                            <span>·</span>
-                                            <span>Updated {formatTimeAgo(item.date || item.updatedAt)}</span>
+
+                                        {/* Line 2: Badges */}
+                                        <div className="app-workspace-recent-card-row2">
+                                            <span className="app-workspace-recent-tag">{platformLabel}</span>
+                                            <span className="app-workspace-recent-tag">{reqCode}</span>
+                                            {isFailed ? (
+                                                <span className="app-workspace-status-pill is-failed">
+                                                    <X size={10} strokeWidth={2.5} /> Failed
+                                                </span>
+                                            ) : isDraft ? (
+                                                <span className="app-workspace-status-pill is-draft">
+                                                    Draft
+                                                </span>
+                                            ) : (
+                                                <span className="app-workspace-status-pill is-complete">
+                                                    <Check size={10} strokeWidth={2.5} /> Complete
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Line 3: Fixed 3-column row with small labels above values */}
+                                        <div className="app-workspace-recent-stats-row">
+                                            <div className="app-workspace-recent-stat-col">
+                                                <span className="app-workspace-recent-stat-label">TEST CASES</span>
+                                                <span className="app-workspace-recent-stat-val">{testCount}</span>
+                                            </div>
+                                            <div className="app-workspace-recent-stat-col">
+                                                <span className="app-workspace-recent-stat-label">COVERAGE</span>
+                                                <span className="app-workspace-recent-stat-val">{coverage}</span>
+                                            </div>
+                                            <div className="app-workspace-recent-stat-col">
+                                                <span className="app-workspace-recent-stat-label">UPDATED</span>
+                                                <span className="app-workspace-recent-stat-val">{formatTimeAgo(item.date || item.updatedAt)}</span>
+                                            </div>
                                         </div>
                                     </NavLink>
                                 );

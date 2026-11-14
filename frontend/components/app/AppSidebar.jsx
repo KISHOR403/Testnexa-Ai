@@ -221,63 +221,17 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     {!isCollapsed && uniqueRecentSessions.length > 0 ? (
                         <div className="app-sidebar__history-list">
                             {uniqueRecentSessions.slice(0, 4).map((session) => {
-                                const dataObj = session.suiteData || session.suite_data || session.suite || session.data;
-                                let totalTests = 0;
-                                if (dataObj && typeof dataObj === 'object') {
-                                    if (Array.isArray(dataObj.testCases) && dataObj.testCases.length > 0) {
-                                        totalTests = dataObj.testCases.length;
-                                    } else if (Array.isArray(dataObj.tests) && dataObj.tests.length > 0) {
-                                        totalTests = dataObj.tests.length;
-                                    } else {
-                                        totalTests = (dataObj.functional?.length || 0) +
-                                            (dataObj.negative?.length || 0) +
-                                            (dataObj.edge?.length || 0) +
-                                            (dataObj.security?.length || 0) +
-                                            (dataObj.apiChecklist?.length || 0) +
-                                            (dataObj.api?.length || 0) +
-                                            (dataObj.nonFunctional?.length || 0);
-                                    }
-                                }
-                                if (totalTests === 0 && session.summary && typeof session.summary === 'object') {
-                                    if (typeof session.summary.total === 'number' && session.summary.total > 0) {
-                                        totalTests = session.summary.total;
-                                    } else {
-                                        totalTests = (session.summary.functional || 0) +
-                                            (session.summary.negative || 0) +
-                                            (session.summary.edge || 0) +
-                                            (session.summary.security || 0) +
-                                            (session.summary.nonFunctional || 0) +
-                                            (session.summary.apiChecklist || 0) +
-                                            (session.summary.api || 0);
-                                    }
-                                }
-                                if (totalTests === 0) {
-                                    totalTests = session.totalCases || session.totalTests || 0;
-                                }
-
-                                const targetUrl = (session.status === 'Draft' && !session.suite && totalTests === 0)
-                                    ? `/app/workspace/${session.id}`
-                                    : `/app/test-suites/${session.id}`;
-
+                                const targetUrl = `/app/test-suites/${session.id}`;
                                 return (
                                     <NavLink
                                         key={session.id}
                                         to={targetUrl}
-                                        className={({ isActive }) => `app-sidebar__history-item ${isActive ? 'active' : ''}`}
+                                        className={({ isActive }) => `app-sidebar__history-row ${isActive ? 'active' : ''}`}
                                         onClick={handleNavClick}
                                         title={session.title}
                                     >
-                                        <div className="app-sidebar__history-item-top">
-                                            <span className="app-sidebar__history-item-title">{session.title}</span>
-                                            {getStatusChip(session, totalTests)}
-                                        </div>
-                                        <div className="app-sidebar__history-item-meta">
-                                            <span className="app-sidebar__history-context">{session.context || 'web'}</span>
-                                            <span>•</span>
-                                            <span>{totalTests} tests</span>
-                                            <span>•</span>
-                                            <span>{formatTimeAgo(session.date || session.updatedAt)}</span>
-                                        </div>
+                                        <span className="app-sidebar__history-row-title">{session.title}</span>
+                                        <span className="app-sidebar__history-row-time">{formatTimeAgo(session.date || session.updatedAt)}</span>
                                     </NavLink>
                                 );
                             })}
@@ -286,7 +240,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                 className="app-sidebar__view-all-link"
                                 onClick={handleNavClick}
                             >
-                                View All →
+                                View all →
                             </NavLink>
                         </div>
                     ) : (
@@ -574,14 +528,13 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                             <button
                                 type="button"
                                 className="gpt-profile-popup-item"
-                                style={{ color: '#7DD3FC' }}
                                 onClick={() => {
                                     setIsMenuOpen(false);
                                     navigate('/admin');
                                     if (onCloseMobile) onCloseMobile();
                                 }}
                             >
-                                <div className="gpt-popup-icon-wrap" style={{ color: '#7DD3FC' }}>
+                                <div className="gpt-popup-icon-wrap">
                                     <ShieldCheck size={15} />
                                 </div>
                                 <span style={{ fontWeight: 600 }}>Admin Console</span>
@@ -622,8 +575,8 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                     <div style={{
                                         width: '13px',
                                         height: '13px',
-                                        border: '2px solid rgba(239, 68, 68, 0.2)',
-                                        borderTopColor: '#EF4444',
+                                        border: '2px solid rgba(255, 255, 255, 0.2)',
+                                        borderTopColor: '#FFFFFF',
                                         borderRadius: '50%',
                                         animation: 'spin 0.8s linear infinite'
                                     }} />
@@ -636,7 +589,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                     </div>
                 )}
 
-                {/* Footer Trigger Button */}
+                {/* Footer Trigger Button (Pinned Row: Avatar Left, Stacked Name/Role, Chevron Right) */}
                 <button
                     type="button"
                     className="app-sidebar__user-btn"
@@ -659,7 +612,7 @@ const AppSidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile
                                     {currentWorkspace?.name ? currentWorkspace.name.toUpperCase() : 'PRO WORKSPACE'}
                                 </span>
                             </div>
-                            <ChevronUp size={14} className="app-sidebar__user-chevron" />
+                            <ChevronRight size={14} className="app-sidebar__user-chevron" />
                         </>
                     )}
                 </button>

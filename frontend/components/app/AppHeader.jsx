@@ -100,20 +100,13 @@ const AppHeader = ({ onToggleMobile }) => {
                     <HelpCircle size={16} />
                 </NavLink>
 
+                {/* Strict B&W Avatar: White Circle, Black Initial */}
                 <button
                     type="button"
-                    className="app-header__btn"
+                    className="app-header__btn app-header__avatar-btn"
                     title="Account Settings"
                     aria-label="Account Settings"
                     onClick={() => navigate('/app/settings?tab=profile')}
-                    style={{
-                        background: 'rgba(125, 211, 252, 0.08)',
-                        border: '1px solid rgba(125, 211, 252, 0.25)',
-                        color: '#7DD3FC',
-                        fontWeight: '600',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer'
-                    }}
                 >
                     {initials}
                 </button>
