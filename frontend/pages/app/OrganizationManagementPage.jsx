@@ -440,7 +440,7 @@ const OrganizationManagementPage = () => {
 
                 <div className="org-header__actions">
                     <button
-                        className="cicd-btn cicd-btn--secondary"
+                        className="org-btn org-btn--secondary"
                         onClick={() => activeOrg && loadOrgData(activeOrg.id)}
                         disabled={isLoading}
                         title="Refresh organization data"
@@ -450,7 +450,7 @@ const OrganizationManagementPage = () => {
                     </button>
                     {isAdminOrOwner && (
                         <button
-                            className="cicd-btn cicd-btn--primary"
+                            className="org-btn org-btn--primary"
                             onClick={() => {
                                 setGeneratedInviteLink('');
                                 setShowInviteModal(true);
@@ -551,7 +551,7 @@ const OrganizationManagementPage = () => {
                         </div>
                         {isAdminOrOwner && (
                             <button
-                                className="cicd-btn cicd-btn--primary cicd-btn--sm"
+                                className="org-btn org-btn--primary org-btn--sm"
                                 onClick={() => setShowCreateWsModal(true)}
                             >
                                 <Plus size={14} />
@@ -577,22 +577,22 @@ const OrganizationManagementPage = () => {
                                 return (
                                     <tr key={ws.id}>
                                         <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                                                 <strong style={{ color: '#FFFFFF', fontWeight: 600 }}>{ws.name}</strong>
                                                 {isCurrent && (
-                                                    <span className="cicd-badge cicd-badge--active" style={{ fontSize: '0.6875rem' }}>Current Active</span>
+                                                    <span className="org-badge org-badge--active" style={{ fontSize: '0.6875rem' }}>Current Active</span>
                                                 )}
                                             </div>
-                                            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'var(--tn-font-mono, monospace)' }}>{ws.id}</span>
+                                            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'var(--tn-font-mono, monospace)', display: 'block', marginTop: '3px' }}>{ws.id}</span>
                                         </td>
                                         <td>{ws.description || <span style={{ color: 'rgba(255, 255, 255, 0.35)' }}>None</span>}</td>
                                         <td>
-                                            <span className="cicd-badge cicd-badge--disconnected" style={{ textTransform: 'capitalize' }}>
+                                            <span className="org-badge org-badge--disconnected" style={{ textTransform: 'capitalize' }}>
                                                 {ws.visibility || 'organization'}
                                             </span>
                                         </td>
                                         <td>
-                                            <span className={`cicd-badge ${ws.isArchived ? 'cicd-badge--disconnected' : 'cicd-badge--active'}`}>
+                                            <span className={`org-badge ${ws.isArchived ? 'org-badge--disconnected' : 'org-badge--active'}`}>
                                                 {ws.isArchived ? 'Archived' : 'Active'}
                                             </span>
                                         </td>
@@ -600,7 +600,7 @@ const OrganizationManagementPage = () => {
                                         <td style={{ textAlign: 'right' }}>
                                             {isAdminOrOwner && (
                                                 <button
-                                                    className="cicd-btn cicd-btn--secondary cicd-btn--sm"
+                                                    className="org-btn org-btn--secondary org-btn--sm"
                                                     onClick={() => handleArchiveWorkspace(ws.id, ws.isArchived)}
                                                 >
                                                     <span>{ws.isArchived ? 'Unarchive' : 'Archive'}</span>
@@ -627,7 +627,7 @@ const OrganizationManagementPage = () => {
                         </div>
                         {isAdminOrOwner && (
                             <button
-                                className="cicd-btn cicd-btn--primary cicd-btn--sm"
+                                className="org-btn org-btn--primary org-btn--sm"
                                 onClick={() => {
                                     setGeneratedInviteLink('');
                                     setShowInviteModal(true);
@@ -688,7 +688,7 @@ const OrganizationManagementPage = () => {
                                         <td style={{ textAlign: 'right' }}>
                                             {isAdminOrOwner && !isSelf && m.role !== 'owner' && (
                                                 <button
-                                                    className="cicd-btn cicd-btn--danger cicd-btn--sm"
+                                                    className="org-btn org-btn--danger org-btn--sm"
                                                     onClick={() => handleRemoveMember(m.userId, m.name || m.email)}
                                                     title="Remove Member"
                                                 >
@@ -716,7 +716,7 @@ const OrganizationManagementPage = () => {
                         </div>
                         {isAdminOrOwner && (
                             <button
-                                className="cicd-btn cicd-btn--primary cicd-btn--sm"
+                                className="org-btn org-btn--primary org-btn--sm"
                                 onClick={() => {
                                     setGeneratedInviteLink('');
                                     setShowInviteModal(true);
@@ -729,10 +729,10 @@ const OrganizationManagementPage = () => {
                     </div>
 
                     {invitations.length === 0 ? (
-                        <div className="cicd-empty">
-                            <Mail size={40} className="cicd-empty__icon" />
-                            <h4 className="cicd-empty__title">No pending invitations</h4>
-                            <p className="cicd-empty__desc">
+                        <div className="org-empty">
+                            <Mail size={40} className="org-empty__icon" />
+                            <h4 className="org-empty__title">No pending invitations</h4>
+                            <p className="org-empty__desc">
                                 All sent invitations have been accepted or expired.
                             </p>
                         </div>
@@ -759,7 +759,7 @@ const OrganizationManagementPage = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            <span className={`cicd-badge ${inv.status === 'pending' ? 'cicd-badge--active' : 'cicd-badge--disconnected'}`}>
+                                            <span className={`org-badge ${inv.status === 'pending' ? 'org-badge--active' : 'org-badge--disconnected'}`}>
                                                 {inv.status}
                                             </span>
                                         </td>
@@ -770,13 +770,13 @@ const OrganizationManagementPage = () => {
                                             {isAdminOrOwner && (
                                                 <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                                                     <button
-                                                        className="cicd-btn cicd-btn--secondary cicd-btn--sm"
+                                                        className="org-btn org-btn--secondary org-btn--sm"
                                                         onClick={() => handleResendInvitation(inv.id)}
                                                     >
                                                         <span>Resend</span>
                                                     </button>
                                                     <button
-                                                        className="cicd-btn cicd-btn--danger cicd-btn--sm"
+                                                        className="org-btn org-btn--danger org-btn--sm"
                                                         onClick={() => handleCancelInvitation(inv.id)}
                                                     >
                                                         <span>Cancel</span>
@@ -888,7 +888,7 @@ const OrganizationManagementPage = () => {
                                     <p>Transfer organization ownership to another active member. You will become an Administrator.</p>
                                 </div>
                                 <button
-                                    className="cicd-btn cicd-btn--secondary"
+                                    className="org-btn org-btn--secondary"
                                     onClick={() => setShowTransferModal(true)}
                                 >
                                     <span>Transfer Ownership</span>
@@ -901,7 +901,7 @@ const OrganizationManagementPage = () => {
                                     <p>Permanently remove this organization and its team memberships. Workspaces and tests will be safely unlinked.</p>
                                 </div>
                                 <button
-                                    className="cicd-btn cicd-btn--danger"
+                                    className="org-btn org-btn--danger"
                                     onClick={handleDeleteOrg}
                                 >
                                     <span>Delete Organization</span>
@@ -946,14 +946,14 @@ const OrganizationManagementPage = () => {
                             <div className="org-modal__footer">
                                 <button
                                     type="button"
-                                    className="cicd-btn cicd-btn--secondary"
+                                    className="org-btn org-btn--secondary"
                                     onClick={() => setShowCreateOrgModal(false)}
                                 >
                                     <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
-                                    className="cicd-btn cicd-btn--primary"
+                                    className="org-btn org-btn--primary"
                                     disabled={actionLoading}
                                 >
                                     <span>{actionLoading ? 'Creating...' : 'Create Organization'}</span>
@@ -998,14 +998,14 @@ const OrganizationManagementPage = () => {
                             <div className="org-modal__footer">
                                 <button
                                     type="button"
-                                    className="cicd-btn cicd-btn--secondary"
+                                    className="org-btn org-btn--secondary"
                                     onClick={() => setShowCreateWsModal(false)}
                                 >
                                     <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
-                                    className="cicd-btn cicd-btn--primary"
+                                    className="org-btn org-btn--primary"
                                     disabled={actionLoading}
                                 >
                                     <span>{actionLoading ? 'Creating...' : 'Create Workspace'}</span>
@@ -1075,14 +1075,14 @@ const OrganizationManagementPage = () => {
                             <div className="org-modal__footer">
                                 <button
                                     type="button"
-                                    className="cicd-btn cicd-btn--secondary"
+                                    className="org-btn org-btn--secondary"
                                     onClick={() => setShowInviteModal(false)}
                                 >
                                     <span>Close</span>
                                 </button>
                                 <button
                                     type="submit"
-                                    className="cicd-btn cicd-btn--primary"
+                                    className="org-btn org-btn--primary"
                                     disabled={actionLoading}
                                 >
                                     <span>{actionLoading ? 'Generating...' : 'Generate Invitation'}</span>
@@ -1127,14 +1127,14 @@ const OrganizationManagementPage = () => {
                             <div className="org-modal__footer">
                                 <button
                                     type="button"
-                                    className="cicd-btn cicd-btn--secondary"
+                                    className="org-btn org-btn--secondary"
                                     onClick={() => setShowTransferModal(false)}
                                 >
                                     <span>Cancel</span>
                                 </button>
                                 <button
                                     type="submit"
-                                    className="cicd-btn cicd-btn--danger"
+                                    className="org-btn org-btn--danger"
                                     disabled={actionLoading || !transferTargetId}
                                 >
                                     <span>{actionLoading ? 'Transferring...' : 'Confirm Ownership Transfer'}</span>

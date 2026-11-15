@@ -75,150 +75,171 @@
     flex-shrink: 0;
 }
 
-/* ─── Buttons: Universal cicd-btn and org-btn styles ─── */
-.cicd-btn,
+/* ─── Buttons: Universal org-btn styles (Strict Black & White) ─── */
 .org-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    height: 36px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    text-decoration: none;
-    box-sizing: border-box;
-    line-height: 1;
-    font-family: inherit;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    padding: 0 1rem !important;
+    height: 36px !important;
+    border-radius: 6px !important;
+    border: 1px solid transparent !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    line-height: 1 !important;
+    font-family: inherit !important;
+    flex-shrink: 0 !important;
 }
 
-.cicd-btn svg,
 .org-btn svg {
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
 }
 
-.cicd-btn--primary,
 .org-btn--primary {
-    background-color: #FFFFFF;
-    color: #000000;
-    border-color: #FFFFFF;
-    font-weight: 600;
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    border: 1px solid #FFFFFF !important;
+    font-weight: 600 !important;
 }
 
-.cicd-btn--primary:hover,
 .org-btn--primary:hover {
-    background-color: rgba(255, 255, 255, 0.88);
-    border-color: rgba(255, 255, 255, 0.88);
+    background-color: rgba(255, 255, 255, 0.88) !important;
+    border-color: rgba(255, 255, 255, 0.88) !important;
 }
 
-.cicd-btn--secondary,
 .org-btn--secondary {
-    background-color: #111111;
-    color: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: #111111 !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
 }
 
-.cicd-btn--secondary:hover,
 .org-btn--secondary:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.28);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
 }
 
-.cicd-btn--danger,
 .org-btn--danger {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #F87171;
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
 }
 
-.cicd-btn--danger:hover,
 .org-btn--danger:hover {
-    background-color: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.4);
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
 }
 
-.cicd-btn--sm,
 .org-btn--sm {
-    padding: 0.35rem 0.75rem;
-    height: 30px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    padding: 0 0.75rem !important;
+    height: 30px !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
 }
 
 /* ─── Badges ─── */
-.cicd-badge,
 .org-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.2rem 0.55rem;
-    border-radius: 9999px;
-    white-space: nowrap;
-    line-height: 1.1;
-    border: 1px solid transparent;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    padding: 0.2rem 0.55rem !important;
+    border-radius: 9999px !important;
+    white-space: nowrap !important;
+    line-height: 1.1 !important;
+    border: 1px solid transparent !important;
 }
 
-.cicd-badge--active,
 .org-badge--active {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-    border-color: rgba(255, 255, 255, 0.22);
+    background-color: rgba(255, 255, 255, 0.10) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(255, 255, 255, 0.24) !important;
 }
 
-.cicd-badge--disconnected,
 .org-badge--disconnected {
-    background-color: transparent;
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.52) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    border-style: dashed !important;
+}
+
+/* ─── Empty States ─── */
+.org-empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.org-empty__icon {
+    color: rgba(255, 255, 255, 0.25);
+    margin-bottom: 1rem;
+}
+
+.org-empty__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin: 0 0 0.35rem 0;
+}
+
+.org-empty__desc {
+    font-size: 0.8125rem;
     color: rgba(255, 255, 255, 0.52);
-    border-color: rgba(255, 255, 255, 0.12);
-    border-style: dashed;
+    margin: 0;
 }
 
 /* Tabs */
 .org-tabs {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    margin-bottom: 1.75rem;
-    overflow-x: auto;
-    scrollbar-width: none;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+    margin-bottom: 1.75rem !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
 }
 
 .org-tabs::-webkit-scrollbar {
-    display: none;
+    display: none !important;
 }
 
 .org-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.15rem;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1.15rem !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
 }
 
 .org-tab:hover {
-    color: #FFFFFF;
+    color: #FFFFFF !important;
 }
 
 .org-tab.active {
-    color: #FFFFFF;
-    border-bottom-color: #FFFFFF;
-    font-weight: 600;
+    color: #FFFFFF !important;
+    border-bottom: 2px solid #FFFFFF !important;
+    border-bottom-color: #FFFFFF !important;
+    font-weight: 600 !important;
 }
 
 /* Cards & Sections */
@@ -541,7 +562,7 @@
 
 /* ==========================================================================
    Phase 4 Step 3: Enterprise Audit Logs & Detail Drawer Styles
-   Mineral dark aesthetic (#0B0F12 canvas, #8BAF9A jade green accent)
+   Mineral dark aesthetic (#0A0A0A canvas, #FFFFFF jade green accent)
    ========================================================================== */
 
 .audit-container {
@@ -588,8 +609,8 @@
 
 /* Toolbar & Filters */
 .audit-toolbar {
-    background-color: #13191E;
-    border: 1px solid #232D36;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     padding: 1rem 1.25rem;
     display: flex;
@@ -613,8 +634,8 @@
 
 .audit-search__input {
     width: 100%;
-    background-color: #0B0F12;
-    border: 1px solid #232D36;
+    background-color: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     padding: 0.55rem 2.25rem 0.55rem 2.25rem;
     color: #F8FAFC;
@@ -624,7 +645,7 @@
 }
 
 .audit-search__input:focus {
-    border-color: #8BAF9A;
+    border-color: #FFFFFF;
 }
 
 .audit-search__clear {
@@ -659,8 +680,8 @@
 }
 
 .audit-filter-item select {
-    background-color: #0B0F12;
-    border: 1px solid #232D36;
+    background-color: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     padding: 0.4rem 0.6rem;
     color: #E2E8F0;
@@ -670,13 +691,13 @@
 }
 
 .audit-filter-item select:focus {
-    border-color: #8BAF9A;
+    border-color: #FFFFFF;
 }
 
 /* Audit Table */
 .audit-table-card {
-    background-color: #13191E;
-    border: 1px solid #232D36;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -693,14 +714,14 @@
 }
 
 .audit-table th {
-    background-color: #1A2229;
+    background-color: #141414;
     color: #94A3B8;
     font-weight: 600;
     font-size: 0.725rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #232D36;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     white-space: nowrap;
 }
 
@@ -717,7 +738,7 @@
 }
 
 .audit-row:hover {
-    background-color: #1A2229;
+    background-color: #141414;
 }
 
 .audit-col--time {
@@ -763,10 +784,10 @@
     font-family: monospace;
     font-size: 0.75rem;
     color: #E2E8F0;
-    background-color: #0B0F12;
+    background-color: #0A0A0A;
     padding: 0.15rem 0.35rem;
     border-radius: 4px;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .audit-act-pill {
@@ -780,7 +801,7 @@
 }
 
 .audit-act-pill--auth { background-color: rgba(99, 102, 241, 0.15); color: #A5B4FC; border-color: rgba(99, 102, 241, 0.3); }
-.audit-act-pill--org { background-color: rgba(139, 175, 154, 0.15); color: #8BAF9A; border-color: rgba(139, 175, 154, 0.3); }
+.audit-act-pill--org { background-color: rgba(255, 255, 255, 0.1); color: #FFFFFF; border-color: rgba(255, 255, 255, 0.1); }
 .audit-act-pill--workspace { background-color: rgba(56, 189, 248, 0.15); color: #7DD3FC; border-color: rgba(56, 189, 248, 0.3); }
 .audit-act-pill--qa { background-color: rgba(168, 85, 247, 0.15); color: #D8B4FE; border-color: rgba(168, 85, 247, 0.3); }
 .audit-act-pill--execution { background-color: rgba(245, 158, 11, 0.15); color: #FCD34D; border-color: rgba(245, 158, 11, 0.3); }
@@ -824,7 +845,7 @@
 
 .audit-scope-global {
     font-size: 0.725rem;
-    color: #8BAF9A;
+    color: #FFFFFF;
     font-weight: 500;
 }
 
@@ -842,7 +863,7 @@
 
 .audit-badge--success {
     background-color: rgba(16, 185, 129, 0.12);
-    color: #34D399;
+    color: #FFFFFF;
     border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
@@ -861,17 +882,17 @@
 .audit-source-tag {
     font-size: 0.725rem;
     color: #94A3B8;
-    background-color: #0B0F12;
+    background-color: #0A0A0A;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .audit-view-btn {
     background-color: transparent;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 4px;
-    color: #8BAF9A;
+    color: #FFFFFF;
     font-size: 0.725rem;
     padding: 0.25rem 0.55rem;
     cursor: pointer;
@@ -879,9 +900,9 @@
 }
 
 .audit-view-btn:hover {
-    background-color: #8BAF9A;
-    color: #0B0F12;
-    border-color: #8BAF9A;
+    background-color: #FFFFFF;
+    color: #0A0A0A;
+    border-color: #FFFFFF;
 }
 
 .audit-loading {
@@ -901,8 +922,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.85rem 1.25rem;
-    background-color: #1A2229;
-    border-top: 1px solid #232D36;
+    background-color: #141414;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     font-size: 0.8125rem;
     color: #94A3B8;
 }
@@ -917,8 +938,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background-color: #13191E;
-    border: 1px solid #232D36;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 5px;
     color: #E2E8F0;
     padding: 0.35rem 0.65rem;
@@ -927,7 +948,7 @@
 }
 
 .audit-page-btn:hover:not(:disabled) {
-    border-color: #8BAF9A;
+    border-color: #FFFFFF;
     color: #F8FAFC;
 }
 
@@ -959,8 +980,8 @@
     width: 520px;
     max-width: 100%;
     height: 100%;
-    background-color: #13191E;
-    border-left: 1px solid #232D36;
+    background-color: #111111;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
@@ -977,7 +998,7 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #232D36;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     background-color: #161D24;
 }
 
@@ -986,7 +1007,7 @@
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.05em;
-    color: #8BAF9A;
+    color: #FFFFFF;
     display: block;
     margin-bottom: 0.2rem;
 }
@@ -1010,7 +1031,7 @@
 
 .audit-drawer__close:hover {
     color: #F8FAFC;
-    background-color: #232D36;
+    background-color: rgba(255, 255, 255, 0.12);
 }
 
 .audit-drawer__body {
@@ -1026,8 +1047,8 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    background-color: #0B0F12;
-    border: 1px solid #232D36;
+    background-color: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     padding: 1rem;
 }
@@ -1093,13 +1114,13 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.775rem;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     overflow: hidden;
 }
 
 .audit-diff-table th {
-    background-color: #1A2229;
+    background-color: #141414;
     color: #94A3B8;
     padding: 0.5rem 0.75rem;
     text-align: left;
@@ -1109,7 +1130,7 @@
 
 .audit-diff-table td {
     padding: 0.5rem 0.75rem;
-    border-top: 1px solid #232D36;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     vertical-align: top;
 }
 
@@ -1131,12 +1152,12 @@
 
 .audit-diff-val--after {
     background-color: rgba(16, 185, 129, 0.08);
-    color: #34D399;
+    color: #FFFFFF;
 }
 
 .audit-json-box {
-    background-color: #0B0F12;
-    border: 1px solid #232D36;
+    background-color: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     padding: 0.75rem;
     color: #CBD5E1;
@@ -1149,7 +1170,7 @@
 
 .audit-drawer__footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid #232D36;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     background-color: #161D24;
     display: flex;
     justify-content: flex-end;
@@ -1171,7 +1192,7 @@
     top: 6px;
     bottom: 6px;
     width: 2px;
-    background-color: #232D36;
+    background-color: rgba(255, 255, 255, 0.12);
 }
 
 .audit-timeline__item {
@@ -1185,13 +1206,13 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background-color: #13191E;
-    border: 2px solid #8BAF9A;
+    background-color: #111111;
+    border: 2px solid #FFFFFF;
 }
 
 .audit-timeline__content {
-    background-color: #0B0F12;
-    border: 1px solid #232D36;
+    background-color: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     padding: 0.75rem;
     display: flex;
@@ -1222,7 +1243,7 @@
 .audit-timeline__changes {
     margin-top: 0.35rem;
     padding-top: 0.35rem;
-    border-top: 1px dashed #232D36;
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
     font-size: 0.725rem;
 }
 
@@ -1236,7 +1257,7 @@
 }
 
 .diff-new {
-    color: #34D399;
+    color: #FFFFFF;
 }
 
 /* ==============================================================================
@@ -1250,8 +1271,8 @@
 }
 
 .usage-header-card {
-    background-color: #13191E;
-    border: 1px solid #232D36;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     padding: 1.5rem;
 }
@@ -1293,9 +1314,9 @@
 }
 
 .usage-plan-badge--pro {
-    background-color: rgba(139, 175, 154, 0.15);
-    color: #8BAF9A;
-    border: 1px solid rgba(139, 175, 154, 0.35);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .usage-plan-badge--enterprise {
@@ -1307,10 +1328,10 @@
 .usage-interval-pill {
     font-size: 0.725rem;
     color: #64748B;
-    background-color: #0B0F12;
+    background-color: #0A0A0A;
     padding: 0.15rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .usage-header-title {
@@ -1335,16 +1356,16 @@
 }
 
 .usage-upgrade-btn {
-    background-color: #8BAF9A;
-    color: #0B0F12;
+    background-color: #FFFFFF;
+    color: #0A0A0A;
     font-weight: 600;
     border: none;
-    box-shadow: 0 2px 8px rgba(139, 175, 154, 0.2);
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
     transition: all 0.15s ease;
 }
 
 .usage-upgrade-btn:hover {
-    background-color: #9ec1ad;
+    background-color: rgba(255, 255, 255, 0.8);
     transform: translateY(-1px);
 }
 
@@ -1355,7 +1376,7 @@
     gap: 1.5rem;
     margin-top: 1.25rem;
     padding-top: 1.25rem;
-    border-top: 1px solid #232D36;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     flex-wrap: wrap;
 }
 
@@ -1367,7 +1388,7 @@
 }
 
 .usage-cycle-icon {
-    color: #8BAF9A;
+    color: #FFFFFF;
 }
 
 .usage-cycle-label {
@@ -1380,8 +1401,8 @@
 }
 
 .usage-cycle-badge {
-    background-color: rgba(139, 175, 154, 0.12);
-    color: #8BAF9A;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
     padding: 0.15rem 0.45rem;
     border-radius: 4px;
     font-weight: 600;
@@ -1438,7 +1459,7 @@
 }
 
 .usage-warning-btn {
-    background-color: #232D36;
+    background-color: rgba(255, 255, 255, 0.12);
     color: #F1F5F9;
     border: 1px solid #334155;
     white-space: nowrap;
@@ -1452,8 +1473,8 @@
 }
 
 .usage-metric-card {
-    background-color: #13191E;
-    border: 1px solid #232D36;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     padding: 1.15rem;
     display: flex;
@@ -1482,8 +1503,8 @@
     width: 32px;
     height: 32px;
     border-radius: 6px;
-    background-color: #0B0F12;
-    border: 1px solid #232D36;
+    background-color: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1498,7 +1519,7 @@
 }
 
 .usage-metric-icon--org {
-    color: #8BAF9A;
+    color: #FFFFFF;
 }
 
 .usage-metric-icon--storage {
@@ -1523,7 +1544,7 @@
 .usage-metric-percentage {
     font-size: 0.875rem;
     font-weight: 700;
-    color: #8BAF9A;
+    color: #FFFFFF;
 }
 
 .usage-metric-percentage.warning {
@@ -1538,7 +1559,7 @@
 .usage-bar-track {
     width: 100%;
     height: 6px;
-    background-color: #0B0F12;
+    background-color: #0A0A0A;
     border-radius: 9999px;
     overflow: hidden;
     margin-bottom: 0.85rem;
@@ -1552,7 +1573,7 @@
 }
 
 .usage-bar--normal {
-    background-color: #8BAF9A;
+    background-color: #FFFFFF;
 }
 
 .usage-bar--warning {
@@ -1588,15 +1609,15 @@
 .usage-metric-reserved-pill {
     margin-top: 0.65rem;
     padding-top: 0.5rem;
-    border-top: 1px dashed #232D36;
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
     font-size: 0.7rem;
-    color: #8BAF9A;
+    color: #FFFFFF;
 }
 
 /* History Card */
 .usage-history-card {
-    background-color: #13191E;
-    border: 1px solid #232D36;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     padding: 1.5rem;
 }
@@ -1618,11 +1639,11 @@
 }
 
 .usage-metric-table-badge {
-    background-color: #0B0F12;
+    background-color: #0A0A0A;
     color: #CBD5E1;
     padding: 0.15rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     font-size: 0.75rem;
     font-weight: 500;
 }
@@ -1635,22 +1656,22 @@
 
 .usage-table-qty {
     font-weight: 600;
-    color: #8BAF9A;
+    color: #FFFFFF;
     font-size: 0.8125rem;
 }
 
 .usage-table-op code {
-    background-color: #0B0F12;
+    background-color: #0A0A0A;
     color: #94A3B8;
     padding: 0.1rem 0.35rem;
     border-radius: 4px;
     font-size: 0.7rem;
-    border: 1px solid #232D36;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .usage-status-pill.committed {
     background-color: rgba(16, 185, 129, 0.12);
-    color: #34D399;
+    color: #FFFFFF;
     padding: 0.15rem 0.45rem;
     border-radius: 9999px;
     font-size: 0.7rem;
@@ -1664,7 +1685,7 @@
 }
 
 .usage-empty-icon {
-    color: #8BAF9A;
+    color: #FFFFFF;
     opacity: 0.5;
     margin-bottom: 0.75rem;
 }
@@ -1682,7 +1703,7 @@
 }
 
 .skeleton-bar {
-    background: linear-gradient(90deg, #1E293B 25%, #232D36 50%, #1E293B 75%);
+    background: linear-gradient(90deg, #1E293B 25%, rgba(255, 255, 255, 0.12) 50%, #1E293B 75%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
     border-radius: 4px;

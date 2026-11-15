@@ -70,6 +70,11 @@ export const SettingsModal = (props) => {
     useEffect(() => {
         if (contentPaneRef.current) {
             contentPaneRef.current.scrollTop = 0;
+            requestAnimationFrame(() => {
+                if (contentPaneRef.current) {
+                    contentPaneRef.current.scrollTop = 0;
+                }
+            });
         }
     }, [activeSection, isOpen]);
 
@@ -747,9 +752,9 @@ export const SettingsModal = (props) => {
                                             readOnly
                                             disabled
                                             title={user?.email || 'alex.morgan@testnexa.ai'}
-                                            style={{ cursor: 'not-allowed', color: 'var(--text-2)' }}
+                                            style={{ flex: '1 1 auto', minWidth: 0, cursor: 'not-allowed', color: 'var(--text-2)' }}
                                         />
-                                        <span className="tn-settings-pill tn-settings-pill--verified" title="Email verified">
+                                        <span className="tn-settings-pill tn-settings-pill--verified" title="Email verified" style={{ flexShrink: 0 }}>
                                             <Check size={11} /> Verified
                                         </span>
                                     </div>

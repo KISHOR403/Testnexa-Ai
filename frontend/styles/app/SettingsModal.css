@@ -288,20 +288,14 @@
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    padding: 24px 32px 64px;
-    scroll-padding-block: 24px;
+    padding: 24px 32px 84px;
+    scroll-padding-top: 24px;
+    scroll-padding-bottom: 56px;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
     position: relative;
     color: var(--text-1);
-    /* Soft top & bottom scroll edge fades */
-    background-image: 
-        linear-gradient(to bottom, #0A0A0A, transparent 20px),
-        linear-gradient(to top, #0A0A0A, transparent 24px);
-    background-attachment: local, local;
-    background-repeat: no-repeat;
-    background-size: 100% 20px, 100% 24px;
-    background-position: top center, bottom center;
+    background-image: none;
 }
 
 .tn-settings-modal__content::-webkit-scrollbar {
@@ -760,7 +754,7 @@
 
 .tn-settings-table th,
 .tn-settings-table td {
-    padding: 12px 16px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--line);
     vertical-align: middle;
     box-sizing: border-box;
@@ -781,30 +775,43 @@
 }
 
 /* Table Column Widths */
-.tn-settings-table--members .col-name { min-width: 160px; }
-.tn-settings-table--members .col-email { min-width: 220px; }
-.tn-settings-table--members .col-role { min-width: 90px; white-space: nowrap; }
-.tn-settings-table--members .col-joined { min-width: 120px; white-space: nowrap; text-align: right; }
+.tn-settings-table--members .col-name { min-width: 140px; }
+.tn-settings-table--members .col-email { min-width: 180px; }
+.tn-settings-table--members .col-role { min-width: 80px; white-space: nowrap; }
+.tn-settings-table--members .col-joined { min-width: 100px; white-space: nowrap; text-align: right; }
 
 .tn-settings-table--sessions .col-device {
-    min-width: 170px;
-    white-space: nowrap;
+    min-width: 140px;
+    white-space: nowrap !important;
 }
 .tn-settings-table--sessions .col-device span {
-    white-space: nowrap;
+    white-space: nowrap !important;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 220px;
+    max-width: 180px;
     display: inline-block;
     vertical-align: middle;
 }
-.tn-settings-table--sessions .col-location { min-width: 140px; }
-.tn-settings-table--sessions .col-signedin { min-width: 100px; white-space: nowrap; }
-.tn-settings-table--sessions .col-lastactive { min-width: 100px; white-space: nowrap; }
-.tn-settings-table--sessions .col-action { min-width: 90px; text-align: right; }
+.tn-settings-table--sessions .col-location {
+    min-width: 110px;
+    white-space: nowrap !important;
+}
+.tn-settings-table--sessions .col-signedin {
+    min-width: 90px;
+    white-space: nowrap !important;
+}
+.tn-settings-table--sessions .col-lastactive {
+    min-width: 90px;
+    white-space: nowrap !important;
+}
+.tn-settings-table--sessions .col-action {
+    min-width: 80px;
+    white-space: nowrap !important;
+    text-align: right;
+}
 
 .tn-truncate-cell {
-    white-space: nowrap;
+    white-space: nowrap !important;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
@@ -817,7 +824,7 @@
     width: 100%;
 }
 
-/* ─── 14. Mobile Responsive Stacked Cards (Container <= 560px) ─── */
+/* ─── 14. Mobile Responsive Stacked Cards (Container <= 640px) ─── */
 .tn-settings-cards-fallback {
     display: none;
     flex-direction: column;
@@ -825,7 +832,7 @@
     width: 100%;
 }
 
-@container sc (max-width: 560px) {
+@container sc (max-width: 640px) {
     .tn-settings-table-wrapper {
         display: none !important;
     }
