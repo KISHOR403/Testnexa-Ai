@@ -1,36 +1,110 @@
 /* ==========================================================================
-   TESTNEXA AUTHENTICATION — B2B SaaS & Developer-Tool Design System
-   Background: #050505 | Surface: #0A0A0A | Elevated: #111111 | Border: #1C1C1C
-   Primary: #F5F5F5 | Secondary: #A3A3A3 | Muted: #737373 | Accent: #4F8CFF
+   TESTNEXA AI — AUTHENTICATION & LOGIN REDESIGN
+   Strict Black-and-White Theme:
+   --bg:#000; --surface:#0A0A0A; --surface-2:#111;
+   --line:rgba(255,255,255,.10); --line-hi:rgba(255,255,255,.22);
+   --text-1:#fff; --text-2:rgba(255,255,255,.72); --text-3:rgba(255,255,255,.56).
+   Fonts: Inter (UI), Instrument Serif (Headline), JetBrains Mono (IDs/Code).
+   NO blue, green, amber, red or yellow anywhere.
    ========================================================================== */
 
-/* ─── 1. Shell & Layout Structure ─── */
-.tn-auth-shell {
+:root {
+  --bg: #000000;
+  --surface: #0A0A0A;
+  --surface-2: #111111;
+  --line: rgba(255, 255, 255, 0.10);
+  --line-hi: rgba(255, 255, 255, 0.22);
+  --text-1: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.72);
+  --text-3: rgba(255, 255, 255, 0.56);
+  --focus-ring: 2px solid #ffffff;
+}
+
+/* ─── 0. Base Reset for Auth Shell ─── */
+.tn-auth-viewport {
+  width: 100%;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #050505;
-  color: #F5F5F5;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100dvh;
+  height: 100dvh;
+  background-color: var(--bg);
+  color: var(--text-1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark scrollbar */
+.tn-auth-viewport * {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) var(--bg);
+}
+
+.tn-auth-viewport *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.tn-auth-viewport *::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+.tn-auth-viewport *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+}
+
+.tn-auth-viewport *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* ─── 1. Two-Column Layout ─── */
+.tn-auth-layout-grid {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
   box-sizing: border-box;
 }
 
-.tn-auth-header {
-  height: 64px;
+/* ─── 2. Left Column (Form) ─── */
+.tn-auth-form-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--bg);
+  padding: 0;
+  position: relative;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Top bar: logo top-left (24px padding), back to website top-right */
+.tn-auth-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
-  border-bottom: 1px solid #141414;
+  padding: 24px 32px;
+  width: 100%;
   flex-shrink: 0;
+  box-sizing: border-box;
+  z-index: 10;
 }
 
 .tn-auth-brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: #F5F5F5;
+  color: var(--text-1);
   transition: opacity 120ms ease;
 }
 
@@ -39,135 +113,126 @@
 }
 
 .tn-auth-brand-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+  flex-shrink: 0;
 }
 
-.tn-auth-brand-text {
-  font-size: 1rem;
+.tn-auth-brand-wordmark {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: #F5F5F5;
+  color: var(--text-1);
 }
 
 .tn-auth-back-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #737373;
-  font-size: 0.8rem;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
   font-weight: 500;
+  color: var(--text-3);
   text-decoration: none;
-  transition: color 120ms ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 140ms ease;
+  min-height: 36px;
 }
 
-.tn-auth-back-link:hover {
-  color: #4F8CFF;
+@media (hover: hover) {
+  .tn-auth-back-link:hover {
+    color: var(--text-1);
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
-.tn-auth-main {
-  flex: 1;
+.tn-auth-back-link:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Tablet 3-step strip */
+.tn-auth-tablet-strip {
+  display: none;
+}
+
+/* Form Centered Block: max-width 400px centered */
+.tn-auth-form-center {
+  flex: 1 1 auto;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  padding: 40px 20px;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 24px 20px 32px;
   box-sizing: border-box;
 }
 
-.tn-auth-footer {
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  border-top: 1px solid #141414;
-  color: #555555;
-  font-size: 0.76rem;
-  flex-shrink: 0;
-}
-
-.tn-auth-footer-links {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tn-auth-footer-links a {
-  color: #737373;
-  text-decoration: none;
-  transition: color 120ms ease;
-}
-
-.tn-auth-footer-links a:hover {
-  color: #4F8CFF;
-}
-
-.tn-auth-footer-sep {
-  color: #333333;
-}
-
-/* ─── 2. Compact Auth Card Container ─── */
 .tn-auth-card {
   width: 100%;
-  max-width: 420px;
-  background: #0A0A0A;
-  border: 1px solid #1C1C1C;
-  border-radius: 12px;
-  padding: 32px 32px 28px 32px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-  box-sizing: border-box;
 }
 
-/* ─── 3. Header & Typography ─── */
+/* Typography */
 .tn-auth-title {
-  font-size: 1.35rem;
-  font-weight: 600;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(32px, 3.5vw, 40px);
+  font-weight: 400;
+  line-height: 1.12;
   letter-spacing: -0.02em;
-  color: #F5F5F5;
-  margin: 0 0 6px 0;
-  text-align: left;
+  color: var(--text-1);
+  margin: 0 0 8px 0;
 }
 
 .tn-auth-subtitle {
-  font-size: 0.84rem;
-  color: #A3A3A3;
-  margin: 0 0 24px 0;
-  line-height: 1.45;
-  text-align: left;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-2);
+  margin: 0 0 28px 0;
 }
 
-/* ─── 4. Social Authentication Buttons ─── */
+/* Social Login Buttons: 48px outlined, 1px --line-hi, hover white */
 .tn-auth-social-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .tn-auth-social-btn {
   width: 100%;
-  height: 46px;
-  background: #111111;
-  border: 1px solid #1C1C1C;
-  border-radius: 8px;
-  color: #F5F5F5;
-  font-size: 0.84rem;
-  font-weight: 500;
+  height: 48px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
+  background-color: transparent;
+  color: var(--text-1);
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease;
+  transition: all 150ms ease;
   user-select: none;
   box-sizing: border-box;
 }
 
-.tn-auth-social-btn:hover:not(:disabled) {
-  background: #161616;
-  border-color: #2E2E2E;
+@media (hover: hover) {
+  .tn-auth-social-btn:hover:not(:disabled) {
+    border-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.tn-auth-social-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .tn-auth-social-btn:disabled {
@@ -176,71 +241,103 @@
 }
 
 .tn-auth-social-icon {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  color: #ffffff;
 }
 
-/* ─── 5. Divider ─── */
+.tn-auth-social-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: #ffffff;
+}
+
+/* Divider: "or continue with email" at 13px, --text-3, real lines */
 .tn-auth-divider {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin: 20px 0;
-  color: #737373;
-  font-size: 0.74rem;
-  text-transform: lowercase;
+  width: 100%;
+  margin: 0 0 24px 0;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 400;
+  user-select: none;
 }
 
 .tn-auth-divider::before,
 .tn-auth-divider::after {
-  content: "";
+  content: '';
   flex: 1;
   height: 1px;
-  background: #1C1C1C;
+  background-color: var(--line);
 }
 
-/* ─── 6. Form Fields & Inputs ─── */
+.tn-auth-divider span {
+  padding: 0 14px;
+}
+
+/* Form Container */
 .tn-auth-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   width: 100%;
 }
 
+/* Fields & Labels */
 .tn-auth-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   width: 100%;
+  position: relative;
 }
 
 .tn-auth-field-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 7px;
 }
 
 .tn-auth-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #D4D4D4;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 7px;
+  display: block;
+}
+
+.tn-auth-field-header .tn-auth-label {
+  margin-bottom: 0;
 }
 
 .tn-auth-forgot-link {
-  font-size: 0.78rem;
-  color: #A3A3A3;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-3);
   text-decoration: none;
-  transition: color 120ms ease;
+  transition: color 140ms ease;
 }
 
-.tn-auth-forgot-link:hover {
-  color: #4F8CFF;
+@media (hover: hover) {
+  .tn-auth-forgot-link:hover {
+    color: var(--text-1);
+    text-decoration: underline;
+  }
 }
 
+.tn-auth-forgot-link:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Input Wrapper & Inputs: 48px high */
 .tn-auth-input-wrapper {
   position: relative;
   display: flex;
@@ -250,231 +347,728 @@
 
 .tn-auth-input {
   width: 100%;
-  height: 46px;
-  background: #111111;
-  border: 1px solid #1C1C1C;
-  border-radius: 8px;
-  color: #F5F5F5;
-  font-size: 0.84rem;
+  height: 48px;
+  min-height: 48px;
   padding: 0 14px;
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; /* 16px prevents iOS zoom */
+  line-height: 48px;
   outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
   box-sizing: border-box;
-  transition: border-color 140ms ease, background-color 140ms ease;
-}
-
-.tn-auth-input:hover {
-  border-color: #2E2E2E;
-}
-
-.tn-auth-input:focus {
-  border-color: #4F8CFF;
-  background: #0E0E0E;
-}
-
-.tn-auth-input.is-error {
-  border-color: #EF4444;
 }
 
 .tn-auth-input::placeholder {
-  color: #555555;
+  color: var(--text-3);
+  opacity: 1; /* WCAG AA contrast requirement >= 0.56 */
 }
 
-.tn-auth-password-toggle {
-  position: absolute;
-  right: 10px;
-  background: transparent;
-  border: 0;
-  color: #737373;
-  cursor: pointer;
-  padding: 4px;
-  display: grid;
-  place-items: center;
-  border-radius: 4px;
-  transition: color 120ms ease;
+.tn-auth-input:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff;
 }
 
-.tn-auth-password-toggle:hover {
-  color: #F5F5F5;
+.tn-auth-input.is-error {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff;
 }
 
-.tn-auth-field-error {
-  font-size: 0.74rem;
-  color: #F87171;
-  margin-top: 2px;
-}
-
-/* ─── 7. Remember Me Checkbox ─── */
-.tn-auth-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: #A3A3A3;
-  cursor: pointer;
-  user-select: none;
-  margin-top: -2px;
-}
-
-.tn-auth-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: #4F8CFF;
-  cursor: pointer;
-}
-
-/* ─── 8. Primary CTA Button ─── */
-.tn-auth-btn-primary {
-  width: 100%;
-  height: 46px;
-  background: #4F8CFF;
-  border: 1px solid #4F8CFF;
-  border-radius: 8px;
-  color: #050505;
-  font-size: 0.86rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: opacity 140ms ease, background-color 140ms ease;
-  user-select: none;
-  margin-top: 6px;
-  box-sizing: border-box;
-}
-
-.tn-auth-btn-primary:hover:not(:disabled) {
-  opacity: 0.92;
-}
-
-.tn-auth-btn-primary:disabled {
-  opacity: 0.6;
+.tn-auth-input:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* ─── 9. Form Error / Status Banners ─── */
-.tn-auth-error-banner {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 8px;
-  padding: 10px 14px;
-  color: #FCA5A5;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  margin-bottom: 4px;
+/* Autofill Fix: Dark background and white text preserved */
+.tn-auth-input:-webkit-autofill,
+.tn-auth-input:-webkit-autofill:hover,
+.tn-auth-input:-webkit-autofill:focus,
+.tn-auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0A0A0A inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 16px !important;
 }
 
-.tn-auth-success-banner {
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+/* Password Toggle Button */
+.tn-auth-password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 140ms ease;
+}
+
+@media (hover: hover) {
+  .tn-auth-password-toggle:hover {
+    color: var(--text-1);
+  }
+}
+
+.tn-auth-password-toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* Validation Error Message: In white with alert icon (NO RED) */
+.tn-auth-field-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #ffffff;
+  margin-top: 6px;
+}
+
+.tn-auth-field-error svg {
+  flex-shrink: 0;
+  stroke: #ffffff;
+}
+
+/* Caps Lock Warning Banner */
+.tn-auth-caps-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+  width: fit-content;
+}
+
+/* Custom Checkbox: 18px (white border, white fill with black tick) */
+.tn-auth-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-2);
+  min-height: 44px; /* touch target requirement */
+  margin-top: 2px;
+}
+
+.tn-auth-checkbox-native {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  pointer-events: none;
+}
+
+.tn-auth-checkbox-custom {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--line-hi);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 140ms ease;
+}
+
+.tn-auth-checkbox-native:checked + .tn-auth-checkbox-custom {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.tn-auth-checkbox-native:focus-visible + .tn-auth-checkbox-custom {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.tn-auth-checkbox-text {
+  line-height: 1.4;
+}
+
+/* Server Error Alert Box: Role="alert", above button */
+.tn-auth-server-alert {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface-2);
+  border: 1px solid #ffffff;
   border-radius: 8px;
   padding: 12px 14px;
-  color: #6EE7B7;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  margin-bottom: 4px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  outline: none;
 }
 
-/* ─── 10. Live Password Checklist ─── */
+.tn-auth-server-alert:focus {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.tn-auth-alert-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tn-auth-alert-content svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  stroke: #ffffff;
+}
+
+.tn-auth-alert-retry-btn {
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 120ms ease;
+}
+
+.tn-auth-alert-retry-btn:hover {
+  opacity: 0.9;
+}
+
+.tn-auth-alert-retry-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Password Rules Checklist in strict B&W */
 .tn-auth-pwd-checklist {
-  background: #0E0E0E;
-  border: 1px solid #1C1C1C;
-  border-radius: 8px;
-  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  font-size: 0.74rem;
-  color: #737373;
-  margin-top: 2px;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 4px;
 }
 
 .tn-auth-pwd-item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  transition: color 120ms ease;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-3);
+  transition: color 140ms ease;
 }
 
 .tn-auth-pwd-item.is-valid {
-  color: #10B981;
+  color: #ffffff;
 }
 
 .tn-auth-pwd-icon {
-  font-size: 0.72rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
-/* ─── 11. Terms & Privacy Note ─── */
+.tn-auth-pwd-item.is-valid .tn-auth-pwd-icon svg {
+  stroke: #ffffff;
+}
+
 .tn-auth-terms-note {
-  font-size: 0.74rem;
-  color: #737373;
-  line-height: 1.4;
-  margin-top: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-3);
+  margin: 0;
 }
 
 .tn-auth-terms-note a {
-  color: #A3A3A3;
+  color: var(--text-2);
   text-decoration: underline;
-  text-underline-offset: 2px;
-  transition: color 120ms ease;
 }
 
 .tn-auth-terms-note a:hover {
-  color: #4F8CFF;
+  color: #ffffff;
 }
 
-/* ─── 12. Switch Prompt / Footer ─── */
+/* Success / Status Banner in strict B&W */
+.tn-auth-success-banner {
+  background: var(--surface-2);
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tn-auth-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-hi);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+}
+
+/* Primary Button "Sign in": WHITE fill, black text, 48px, full width */
+.tn-auth-btn-primary {
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+@media (hover: hover) {
+  .tn-auth-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
+    filter: brightness(1.05);
+  }
+}
+
+.tn-auth-btn-primary:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.tn-auth-btn-primary:disabled {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: none;
+}
+
+/* Loading State: width unchanged */
+.tn-auth-btn-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tn-auth-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #000000;
+  border-radius: 50%;
+  animation: tnSpin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.tn-auth-spinner-light {
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+}
+
+@keyframes tnSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer Prompt Line: Don't have an account? Create account */
 .tn-auth-prompt {
   text-align: center;
-  font-size: 0.82rem;
-  color: #737373;
-  margin-top: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-2);
+  margin-top: 24px;
 }
 
-.tn-auth-prompt a {
-  color: #F5F5F5;
-  font-weight: 600;
+.tn-auth-prompt a,
+.tn-auth-prompt-link {
+  color: #ffffff;
   text-decoration: none;
-  margin-left: 4px;
+  font-weight: 500;
+  transition: text-decoration 120ms ease;
+}
+
+@media (hover: hover) {
+  .tn-auth-prompt a:hover,
+  .tn-auth-prompt-link:hover {
+    text-decoration: underline;
+  }
+}
+
+.tn-auth-prompt a:focus-visible,
+.tn-auth-prompt-link:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Footer: Privacy, Terms at the bottom in 12px */
+.tn-auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.tn-auth-copyright {
+  color: var(--text-3);
+}
+
+.tn-auth-legal-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tn-auth-legal-link {
+  color: var(--text-3);
+  text-decoration: none;
   transition: color 120ms ease;
+  padding: 4px 6px;
+  border-radius: 4px;
 }
 
-.tn-auth-prompt a:hover {
-  color: #4F8CFF;
+@media (hover: hover) {
+  .tn-auth-legal-link:hover {
+    color: var(--text-1);
+    text-decoration: underline;
+  }
 }
 
-/* ─── 13. Responsive Breakpoints ─── */
-@media (max-width: 768px) {
-  .tn-auth-header {
-    padding: 0 16px;
+.tn-auth-legal-link:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.tn-auth-legal-sep {
+  color: var(--text-3);
+  user-select: none;
+}
+
+/* ─── 3. Right Column (Showcase Animation) ─── */
+.tn-auth-showcase-col {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  background-color: #050505;
+  border-left: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Subtle dot grid: rgba(255,255,255,.08), 28px, radial mask */
+.tn-auth-showcase-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.25px, transparent 1.25px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 50%, #000000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000000 30%, transparent 80%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Soft white radial glow: max 6% opacity, drifting slowly */
+.tn-auth-showcase-glow {
+  position: absolute;
+  width: 580px;
+  height: 580px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(50px);
+  pointer-events: none;
+  z-index: 2;
+  animation: tnDriftingGlow 20s ease-in-out infinite alternate;
+}
+
+@keyframes tnDriftingGlow {
+  0% { transform: translate(-12%, -15%) scale(1); }
+  50% { transform: translate(15%, 10%) scale(1.15); }
+  100% { transform: translate(-5%, 18%) scale(0.95); }
+}
+
+/* Reserved space for 0 CLS during React.lazy loading */
+.tn-showcase-fallback {
+  width: 100%;
+  max-width: 560px;
+  height: 540px;
+  min-height: 540px;
+  border-radius: 14px;
+}
+
+/* ─── 4. Responsive Breakpoints ─── */
+
+/* 2560 and 1920: scale cleanly with clamp */
+@media (min-width: 1920px) {
+  .tn-auth-layout-grid {
+    grid-template-columns: 42% 58%;
+  }
+  .tn-auth-form-center {
+    max-width: 420px;
+  }
+  .tn-showcase-container {
+    max-width: clamp(560px, 32vw, 640px);
+  }
+}
+
+/* 1024px to 1279px: 50% / 50% */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .tn-auth-layout-grid {
+    grid-template-columns: 50% 50%;
+  }
+  .tn-auth-showcase-col {
+    padding: 24px;
+  }
+  .tn-showcase-container {
+    max-width: 480px;
+  }
+  .tn-auth-topbar,
+  .tn-auth-footer {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+/* 768px to 1023px (Tablets): Hide right column, form in centered card, 3-step strip under logo */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tn-auth-layout-grid {
+    grid-template-columns: 100%;
+  }
+  .tn-auth-showcase-col {
+    display: none !important;
+  }
+  .tn-auth-form-col {
+    width: 100%;
+    align-items: center;
+    padding: 0;
+  }
+  .tn-auth-topbar {
+    max-width: 720px;
+    padding: 24px 32px 12px;
+  }
+
+  /* Compact 3-step strip under logo */
+  .tn-auth-tablet-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 440px;
+    margin: 8px auto 16px;
+    padding: 10px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+
+  .tn-strip-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .tn-strip-step.is-active {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .tn-strip-num {
+    opacity: 0.6;
+  }
+
+  .tn-strip-line {
+    width: 24px;
+    height: 1px;
+    background: var(--line-hi);
+  }
+
+  .tn-auth-form-center {
+    max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 36px 32px;
+    margin: 12px auto;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
   }
 
   .tn-auth-footer {
-    padding: 0 16px;
-    flex-direction: column;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px 32px 24px;
+  }
+}
+
+/* Phones 320px to 430px (and < 768px): Single column, no animation panel, 20px padding */
+@media (max-width: 767px) {
+  .tn-auth-viewport {
     height: auto;
-    padding: 16px;
-    gap: 8px;
-    text-align: center;
+    min-height: 100dvh;
+    overflow-y: auto;
   }
 
-  .tn-auth-main {
-    padding: 24px 16px;
+  .tn-auth-layout-grid {
+    grid-template-columns: 100%;
+    height: auto;
+    min-height: 100dvh;
   }
 
-  .tn-auth-card {
+  .tn-auth-showcase-col {
+    display: none !important;
+  }
+
+  .tn-auth-form-col {
+    height: auto;
+    min-height: 100dvh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tn-auth-topbar {
+    padding: 16px 20px;
+  }
+
+  .tn-auth-back-text {
+    display: none;
+  }
+
+  .tn-auth-back-link {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .tn-auth-form-center {
     max-width: 100%;
-    padding: 24px 20px 20px 20px;
-    border-radius: 10px;
+    padding: 12px 20px 24px;
+    margin: 0;
   }
 
   .tn-auth-title {
-    font-size: 1.25rem;
+    font-size: 32px;
   }
 
   .tn-auth-subtitle {
-    font-size: 0.8rem;
-    margin-bottom: 20px;
+    font-size: 15px;
+    margin-bottom: 22px;
+  }
+
+  .tn-auth-footer {
+    padding: 16px 20px 24px;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+
+/* Landscape phones and short windows (height < 600px): Form column scrolls, header compact */
+@media (max-height: 600px) {
+  .tn-auth-viewport {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+  .tn-auth-layout-grid {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .tn-auth-form-col {
+    height: auto;
+    overflow-y: visible;
+  }
+  .tn-auth-topbar {
+    padding: 12px 24px;
+  }
+  .tn-auth-form-center {
+    padding: 12px 20px 20px;
+  }
+  .tn-auth-footer {
+    padding: 12px 24px;
+  }
+  .tn-auth-showcase-col {
+    display: none !important;
+  }
+}
+
+/* Touch targets on (pointer: coarse) */
+@media (pointer: coarse) {
+  .tn-auth-social-btn,
+  .tn-auth-input,
+  .tn-auth-btn-primary,
+  .tn-auth-checkbox-label {
+    min-height: 48px;
+  }
+  .tn-auth-password-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .tn-auth-back-link {
+    min-height: 44px;
   }
 }

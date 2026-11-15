@@ -1,0 +1,737 @@
+/* ==========================================================================
+   TESTNEXA AUTHENTICATION — ANIMATED PRODUCT SHOWCASE
+   Loop: ~12s | Pure CSS Keyframes | Hardware-accelerated (transform & opacity)
+   Strict Black-and-White Theme: #000, #0A0A0A, #111, rgba(255,255,255,*)
+   ========================================================================== */
+
+/* ─── 1. Showcase Wrapper & Typography ─── */
+.tn-showcase-container {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.tn-showcase-panel {
+  position: relative;
+  width: 100%;
+  background: #0A0A0A;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Master Loop Fade for the 12s cycle */
+.tn-showcase-panel {
+  animation: tnMasterFadeLoop 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes tnMasterFadeLoop {
+  0% { opacity: 0.95; }
+  95% { opacity: 1; }
+  98.5% { opacity: 0; }
+  100% { opacity: 0.95; }
+}
+
+/* Scan-line sweep during card streaming (4.5s - 8s => 37.5% - 66.7%) */
+.tn-showcase-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0;
+  transform: translateY(-100%);
+  animation: tnScanlineSweep 12s linear infinite;
+}
+
+@keyframes tnScanlineSweep {
+  0%, 37% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  38% {
+    opacity: 1;
+    transform: translateY(-10%);
+  }
+  66% {
+    opacity: 1;
+    transform: translateY(480px);
+  }
+  67%, 100% {
+    opacity: 0;
+    transform: translateY(480px);
+  }
+}
+
+/* ─── 2. Top Header Bar ─── */
+.tn-showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 20px;
+}
+
+.tn-showcase-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tn-showcase-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  animation: tnLivePulse 2s ease-in-out infinite;
+}
+
+@keyframes tnLivePulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+.tn-showcase-title-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: -0.01em;
+}
+
+.tn-showcase-badge-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 2px 7px;
+  letter-spacing: 0.04em;
+}
+
+/* ─── 3. Requirement Section (0-3s typing, 3-4.5s ambiguous underline & tooltip) ─── */
+.tn-showcase-requirement-box {
+  position: relative;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+.tn-showcase-req-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.56);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.tn-showcase-req-text {
+  position: relative;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #ffffff;
+  display: inline-block;
+}
+
+/* Typing reveal effect 0s - 3s (0% - 25% of 12s) */
+.tn-showcase-req-typed {
+  display: inline;
+  clip-path: inset(0 100% 0 0);
+  animation: tnTypewriterReveal 12s steps(48, end) infinite;
+}
+
+@keyframes tnTypewriterReveal {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+  25%, 95% {
+    clip-path: inset(0 0% 0 0);
+  }
+  98.5%, 100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+/* Ambiguous wavy underlines 3s - 4.5s (25% - 37.5%) */
+.tn-ambiguous-word {
+  position: relative;
+  display: inline-block;
+  animation: tnWavyUnderline 12s ease-in-out infinite;
+}
+
+@keyframes tnWavyUnderline {
+  0%, 24.9% {
+    text-decoration: none;
+    text-shadow: none;
+  }
+  25%, 95% {
+    text-decoration: underline wavy rgba(255, 255, 255, 0.95);
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1.5px;
+  }
+  98.5%, 100% {
+    text-decoration: none;
+  }
+}
+
+/* Tooltip Chip appearing at 3s - 4.5s and staying through thread draw */
+.tn-showcase-tooltip {
+  position: absolute;
+  top: -12px;
+  right: 14px;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #ffffff;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: tnTooltipAppear 12s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  z-index: 20;
+}
+
+.tn-showcase-tooltip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+@keyframes tnTooltipAppear {
+  0%, 25% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  28%, 95% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  98.5%, 100% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ─── 4. Test Case Cards Container (4.5s - 8s) ─── */
+.tn-showcase-cards {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+.tn-showcase-card {
+  position: relative;
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: translateY(8px);
+  filter: blur(4px);
+  transition: border-color 150ms ease;
+}
+
+/* Streaming blur-to-sharp + translateY(8px) -> 0 */
+.tn-showcase-card-1 {
+  animation: tnCardStream1 12s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+.tn-showcase-card-2 {
+  animation: tnCardStream2 12s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+.tn-showcase-card-3 {
+  animation: tnCardStream3 12s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* 4.5s = 37.5%, 5.3s = 44.1%, 6.1s = 50.8% */
+@keyframes tnCardStream1 {
+  0%, 37.5% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  43%, 95% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  98.5%, 100% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+}
+
+@keyframes tnCardStream2 {
+  0%, 44% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  49.5%, 95% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  98.5%, 100% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+}
+
+@keyframes tnCardStream3 {
+  0%, 50.5% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  56%, 95% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  98.5%, 100% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+}
+
+.tn-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tn-card-id-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tn-card-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.tn-card-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  padding: 1px 5px;
+  letter-spacing: 0.04em;
+}
+
+.tn-card-traced-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tn-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 3px;
+}
+
+.tn-card-rationale {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.56);
+  line-height: 1.4;
+}
+
+/* ─── 5. Traceability Thread SVG Overlay (8s - 10.5s => 66.7% - 87.5%) ─── */
+.tn-showcase-threads-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 8;
+  overflow: visible;
+}
+
+.tn-trace-path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.25;
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: tnDrawThread 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes tnDrawThread {
+  0%, 66.6% {
+    stroke-dashoffset: 500;
+    opacity: 0;
+  }
+  67% {
+    opacity: 1;
+  }
+  86%, 95% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  98.5%, 100% {
+    stroke-dashoffset: 500;
+    opacity: 0;
+  }
+}
+
+/* Pulse traveling along each thread */
+.tn-trace-pulse {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 4px #ffffff);
+  opacity: 0;
+  animation: tnThreadPulse 12s linear infinite;
+}
+
+@keyframes tnThreadPulse {
+  0%, 72% {
+    opacity: 0;
+  }
+  74%, 86% {
+    opacity: 1;
+  }
+  88%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ─── 6. Stats Row (10.5s - 12s => 87.5% - 100%) ─── */
+.tn-showcase-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+  z-index: 10;
+  position: relative;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: tnStatsAppear 12s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes tnStatsAppear {
+  0%, 87% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  89%, 95% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  98.5%, 100% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.tn-showcase-stat-box {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.tn-showcase-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  display: block;
+}
+
+.tn-showcase-stat-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.56);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  display: block;
+}
+
+/* ─── 7. Headline & Caption Under Mock Panel ─── */
+.tn-showcase-footer {
+  text-align: center;
+  max-width: 480px;
+  padding: 0 16px;
+}
+
+.tn-showcase-quote {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 400;
+  line-height: 1.25;
+  color: #ffffff;
+  text-wrap: balance;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.tn-showcase-caption {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.56);
+  margin: 0;
+}
+
+/* Responsive caption shortening on 1024-1279px */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .tn-showcase-caption-full {
+    display: none;
+  }
+  .tn-showcase-caption-short {
+    display: inline;
+  }
+}
+@media (min-width: 1280px) {
+  .tn-showcase-caption-short {
+    display: none;
+  }
+  .tn-showcase-caption-full {
+    display: inline;
+  }
+}
+
+/* ─── 8. Hover & Tab-Hidden Pausing ─── */
+.tn-showcase-panel:hover,
+.tn-showcase-panel:hover *,
+.tn-showcase-panel:hover .tn-showcase-scanline,
+.tn-showcase-panel:hover .tn-trace-path,
+.tn-showcase-panel:hover .tn-trace-pulse {
+  animation-play-state: paused !important;
+}
+
+.tn-showcase-panel.is-paused,
+.tn-showcase-panel.is-paused *,
+.tn-showcase-panel.is-paused .tn-showcase-scanline,
+.tn-showcase-panel.is-paused .tn-trace-path,
+.tn-showcase-panel.is-paused .tn-trace-pulse {
+  animation-play-state: paused !important;
+}
+
+/* ─── 9. prefers-reduced-motion: Final Static Frame ─── */
+@media (prefers-reduced-motion: reduce) {
+  .tn-showcase-panel,
+  .tn-showcase-panel *,
+  .tn-showcase-scanline,
+  .tn-trace-path,
+  .tn-trace-pulse {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .tn-showcase-scanline,
+  .tn-trace-pulse {
+    display: none !important;
+  }
+
+  .tn-ambiguous-word {
+    text-decoration: underline wavy rgba(255, 255, 255, 0.85) !important;
+    text-underline-offset: 4px !important;
+  }
+
+  .tn-showcase-tooltip,
+  .tn-showcase-card,
+  .tn-showcase-stats-row {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .tn-trace-path {
+    stroke-dashoffset: 0 !important;
+    opacity: 0.8 !important;
+  }
+}
+
+/* Deterministic Test & Screenshot Overrides */
+[data-static-frame="true"] .tn-showcase-panel,
+[data-static-frame="true"] .tn-showcase-panel *,
+[data-static-frame="true"] .tn-showcase-scanline,
+[data-static-frame="true"] .tn-trace-path,
+[data-static-frame="true"] .tn-trace-pulse {
+  animation: none !important;
+  transition: none !important;
+}
+[data-static-frame="true"] .tn-showcase-scanline,
+[data-static-frame="true"] .tn-trace-pulse {
+  display: none !important;
+}
+[data-static-frame="true"] .tn-showcase-req-typed {
+  clip-path: none !important;
+}
+[data-static-frame="true"] .tn-ambiguous-word {
+  text-decoration: underline wavy rgba(255, 255, 255, 0.9) !important;
+  text-underline-offset: 4px !important;
+}
+[data-static-frame="true"] .tn-showcase-tooltip,
+[data-static-frame="true"] .tn-showcase-card,
+[data-static-frame="true"] .tn-showcase-stats-row {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+[data-static-frame="true"] .tn-trace-path {
+  stroke-dashoffset: 0 !important;
+  opacity: 0.8 !important;
+}
+
+/* Frame 0s Override */
+[data-time-frame="0s"] .tn-showcase-panel * {
+  animation: none !important;
+}
+[data-time-frame="0s"] .tn-showcase-req-typed {
+  clip-path: inset(0 80% 0 0) !important;
+}
+[data-time-frame="0s"] .tn-ambiguous-word {
+  text-decoration: none !important;
+}
+[data-time-frame="0s"] .tn-showcase-tooltip,
+[data-time-frame="0s"] .tn-showcase-card,
+[data-time-frame="0s"] .tn-showcase-stats-row,
+[data-time-frame="0s"] .tn-trace-path,
+[data-time-frame="0s"] .tn-showcase-scanline {
+  opacity: 0 !important;
+  display: none !important;
+}
+
+/* Frame 5s Override (Cards streaming, scanline active) */
+[data-time-frame="5s"] .tn-showcase-panel * {
+  animation: none !important;
+}
+[data-time-frame="5s"] .tn-showcase-req-typed {
+  clip-path: none !important;
+}
+[data-time-frame="5s"] .tn-ambiguous-word {
+  text-decoration: underline wavy rgba(255, 255, 255, 0.9) !important;
+  text-underline-offset: 4px !important;
+}
+[data-time-frame="5s"] .tn-showcase-tooltip {
+  opacity: 1 !important;
+  transform: none !important;
+}
+[data-time-frame="5s"] .tn-showcase-card-1 {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+[data-time-frame="5s"] .tn-showcase-card-2 {
+  opacity: 0.8 !important;
+  transform: translateY(3px) !important;
+  filter: blur(1.5px) !important;
+}
+[data-time-frame="5s"] .tn-showcase-card-3 {
+  opacity: 0 !important;
+  transform: translateY(8px) !important;
+}
+[data-time-frame="5s"] .tn-showcase-scanline {
+  opacity: 1 !important;
+  transform: translateY(180px) !important;
+}
+[data-time-frame="5s"] .tn-showcase-stats-row,
+[data-time-frame="5s"] .tn-trace-path {
+  opacity: 0 !important;
+}
+
+/* Frame 9s Override (All cards sharp, lines drawing with pulse) */
+[data-time-frame="9s"] .tn-showcase-panel * {
+  animation: none !important;
+}
+[data-time-frame="9s"] .tn-showcase-req-typed {
+  clip-path: none !important;
+}
+[data-time-frame="9s"] .tn-ambiguous-word {
+  text-decoration: underline wavy rgba(255, 255, 255, 0.9) !important;
+  text-underline-offset: 4px !important;
+}
+[data-time-frame="9s"] .tn-showcase-tooltip {
+  opacity: 1 !important;
+  transform: none !important;
+}
+[data-time-frame="9s"] .tn-showcase-card {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+[data-time-frame="9s"] .tn-trace-path {
+  stroke-dashoffset: 0 !important;
+  opacity: 0.8 !important;
+}
+[data-time-frame="9s"] .tn-trace-pulse {
+  opacity: 1 !important;
+}
+[data-time-frame="9s"] .tn-showcase-stats-row {
+  opacity: 0 !important;
+}
