@@ -31,7 +31,7 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    padding-bottom: 40px;
+    padding-bottom: 0;
     animation: tnFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     box-sizing: border-box;
     width: 100%;
@@ -1039,7 +1039,8 @@
     background: #000000;
     border-top: 1px solid var(--line-hi);
     box-shadow: 0 -12px 12px -8px #000000;
-    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1048,7 +1049,6 @@
     width: 100%;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-}
 }
 
 .app-workspace-action-left {
@@ -1063,16 +1063,20 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    height: 44px;
+    min-height: 44px;
     background: #FFFFFF;
     color: #000000;
     font-size: 14px;
     font-weight: 600;
-    padding: 10px 18px;
+    padding: 0 18px;
     border-radius: 6px;
     border: 1px solid #FFFFFF;
     cursor: pointer;
     transition: all 0.15s ease;
     white-space: nowrap;
+    box-sizing: border-box;
+    line-height: 1;
 }
 
 .app-workspace-primary-btn:hover:not(:disabled) {
@@ -1104,16 +1108,21 @@
 .app-workspace-btn-secondary {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    min-height: 44px;
     background: transparent;
     border: 1px solid var(--line-hi);
     color: var(--text-1);
     font-size: 13px;
     font-weight: 500;
-    padding: 10px 16px;
+    padding: 0 16px;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
+    box-sizing: border-box;
+    line-height: 1;
 }
 
 .app-workspace-btn-secondary:hover:not(:disabled) {
@@ -1136,6 +1145,9 @@
 .app-workspace-disabled-reason {
     font-size: 13px;
     color: var(--text-3);
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
@@ -1681,7 +1693,7 @@
     }
 
     .app-workspace-sticky-action-bar {
-        flex-direction: column;
+        flex-direction: column-reverse;
         align-items: stretch;
         gap: 12px;
         padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
@@ -1697,11 +1709,19 @@
 
     .app-workspace-primary-btn {
         width: 100%;
+        height: 44px;
+        min-height: 44px;
     }
 
     .app-workspace-btn-secondary {
         width: 100%;
+        height: 44px;
+        min-height: 44px;
         justify-content: center;
+    }
+
+    .app-workspace-disabled-reason {
+        display: none !important;
     }
 
     .app-workspace-action-right {
@@ -1710,6 +1730,8 @@
 
     .app-workspace-btn-direct-gen {
         width: 100%;
+        height: 44px;
+        min-height: 44px;
         text-align: center;
         justify-content: center;
     }
@@ -1756,6 +1778,23 @@
     .app-workspace-primary-btn,
     .app-workspace-btn-secondary {
         width: 100%;
+    }
+}
+
+/* ─── Short Viewports (height under 700px): compact stepper labels & 48px height ─── */
+@media (max-height: 700px) {
+    :root {
+        --stepper-h: 48px;
+    }
+
+    .app-workspace-workflow-stepper-wrap {
+        height: 48px;
+    }
+
+    .app-workspace-step-chip {
+        min-height: 36px;
+        padding: 4px 10px;
+        font-size: 12px;
     }
 }
 

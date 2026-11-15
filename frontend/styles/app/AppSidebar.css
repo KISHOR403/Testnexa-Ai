@@ -59,11 +59,18 @@
 
 .app-page-content {
     flex: 1;
-    padding: 24px 40px 48px;
+    padding: 24px 40px 0;
     max-width: 1440px;
     width: 100%;
     margin: 0 auto;
     box-sizing: border-box;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    min-height: auto !important;
+    padding-top: 0 !important;
+    position: static !important;
+    z-index: auto !important;
 }
 
 /* ─── Sidebar ─── */
