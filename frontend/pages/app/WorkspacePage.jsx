@@ -596,7 +596,11 @@ const WorkspacePage = () => {
 
     // ─── STAGE 2: ANALYZE REQUIREMENT ───
     const handleAnalyze = useCallback(async () => {
-        if (!requirement.trim() || requirement.trim().length < 15) return;
+        if (!requirement.trim() || requirement.trim().length < 15) {
+            textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            textareaRef.current?.focus({ preventScroll: true });
+            return;
+        }
         setIsAnalyzing(true);
         setError(null);
 
@@ -727,7 +731,12 @@ const WorkspacePage = () => {
         const handleKeyDown = (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
-                if (workflowStage === 'requirement' && requirement.trim().length >= 15 && !isAnalyzing) {
+                if (workflowStage === 'requirement' && !isAnalyzing) {
+                    if (!requirement.trim() || requirement.trim().length < 15) {
+                        textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        textareaRef.current?.focus({ preventScroll: true });
+                        return;
+                    }
                     handleAnalyze();
                 }
             }
@@ -952,7 +961,9 @@ const WorkspacePage = () => {
                                 <span className="app-workspace-step-dot" />
                             )}
                         </div>
-                        <span className="app-workspace-step-label">01 Requirement</span>
+                        <span className="app-workspace-step-label">
+                            <span className="step-num">01 </span>Requirement
+                        </span>
                     </button>
 
                     <span className="app-workspace-step-divider">/</span>
@@ -972,7 +983,9 @@ const WorkspacePage = () => {
                                 <span className="app-workspace-step-dot" />
                             )}
                         </div>
-                        <span className="app-workspace-step-label">02 Analyze</span>
+                        <span className="app-workspace-step-label">
+                            <span className="step-num">02 </span>Analyze
+                        </span>
                     </button>
 
                     <span className="app-workspace-step-divider">/</span>
@@ -991,7 +1004,9 @@ const WorkspacePage = () => {
                                 <span className="app-workspace-step-dot" />
                             )}
                         </div>
-                        <span className="app-workspace-step-label">03 Generate</span>
+                        <span className="app-workspace-step-label">
+                            <span className="step-num">03 </span>Generate
+                        </span>
                     </button>
 
                     <span className="app-workspace-step-divider">/</span>
@@ -1007,7 +1022,9 @@ const WorkspacePage = () => {
                         <div className="app-workspace-step-indicator">
                             <span className="app-workspace-step-dot" />
                         </div>
-                        <span className="app-workspace-step-label">04 Review</span>
+                        <span className="app-workspace-step-label">
+                            <span className="step-num">04 </span>Review
+                        </span>
                     </button>
                 </div>
             </nav>
@@ -1385,7 +1402,8 @@ const WorkspacePage = () => {
 
             {/* ─── STAGE 1: TWO-COLUMN SPECIFICATION & CONFIGURATION WORKBENCH ─── */}
             {workflowStage === 'requirement' && !isGenerating && (
-                <div className="app-workspace-2col-layout">
+                <div className="app-workspace-form-wrapper">
+                    <div className="app-workspace-2col-layout">
                     {/* LEFT COLUMN: Requirement Specification */}
                     <div className="app-workspace-col-main">
                         <div className="app-workspace-card">
@@ -1810,57 +1828,56 @@ const WorkspacePage = () => {
                         </div>
                     </div>
                 </div>
-            )}
 
-            {/* ─── P0. STICKY BOTTOM ACTION BAR (INSIDE FORM VIEW) ─── */}
-            {workflowStage === 'requirement' && !isGenerating && (
-                <div className="app-workspace-sticky-action-bar" role="region" aria-label="Requirement actions">
-                    <div className="app-workspace-action-left">
-                        <button
-                            type="button"
-                            className="app-workspace-primary-btn"
-                            onClick={handleAnalyze}
-                            disabled={!isInputValid || isAnalyzing}
-                            id="workspace-analyze-btn"
-                        >
-                            {isAnalyzing ? (
-                                <span>Analyzing requirement…</span>
-                            ) : (
-                                <>
-                                    <span>Analyze requirement</span>
-                                    <kbd className="app-workspace-kbd">Ctrl ↵</kbd>
-                                </>
+                    {/* ─── P0. STICKY BOTTOM ACTION BAR (INSIDE FORM VIEW) ─── */}
+                    <div className="app-workspace-sticky-action-bar" role="region" aria-label="Requirement actions">
+                        <div className="app-workspace-action-left">
+                            <button
+                                type="button"
+                                className="app-workspace-primary-btn"
+                                onClick={handleAnalyze}
+                                disabled={!isInputValid || isAnalyzing}
+                                id="workspace-analyze-btn"
+                            >
+                                {isAnalyzing ? (
+                                    <span>Analyzing requirement…</span>
+                                ) : (
+                                    <>
+                                        <span>Analyze requirement</span>
+                                        <kbd className="app-workspace-kbd">Ctrl ↵</kbd>
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                type="button"
+                                className="app-workspace-btn-secondary"
+                                onClick={handleManualSaveDraft}
+                                disabled={!requirement.trim()}
+                            >
+                                <Save size={13} />
+                                <span>Save draft</span>
+                            </button>
+
+                            {/* Disabled State Reason Text */}
+                            {disabledReason && (
+                                <span className="app-workspace-disabled-reason" role="status">
+                                    {disabledReason}
+                                </span>
                             )}
-                        </button>
+                        </div>
 
-                        <button
-                            type="button"
-                            className="app-workspace-btn-secondary"
-                            onClick={handleManualSaveDraft}
-                            disabled={!requirement.trim()}
-                        >
-                            <Save size={13} />
-                            <span>Save draft</span>
-                        </button>
-
-                        {/* Disabled State Reason Text */}
-                        {disabledReason && (
-                            <span className="app-workspace-disabled-reason" role="status">
-                                {disabledReason}
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="app-workspace-action-right">
-                        <button
-                            type="button"
-                            onClick={handleGenerate}
-                            disabled={!isInputValid || isGenerating}
-                            className="app-workspace-btn-direct-gen"
-                            title="Bypass requirement analysis stage and immediately generate the suite"
-                        >
-                            <span>Skip to direct generation →</span>
-                        </button>
+                        <div className="app-workspace-action-right">
+                            <button
+                                type="button"
+                                onClick={handleGenerate}
+                                disabled={!isInputValid || isGenerating}
+                                className="app-workspace-btn-direct-gen"
+                                title="Bypass requirement analysis stage and immediately generate the suite"
+                            >
+                                <span>Skip to direct generation →</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

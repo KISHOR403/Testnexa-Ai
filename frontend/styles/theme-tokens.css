@@ -4,6 +4,11 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
+  /* ─── HEIGHT VARIABLES FOR FIXED / STICKY REGIONS ─────────────────────── */
+  --header-h: 64px;
+  --stepper-h: 64px;
+  --actionbar-h: 72px;
+
   /* ─── NEW COLOR TOKENS (Monochrome + Ice-Blue System) ───────────────────── */
   --bg: #000000;
   --surface: #050505;

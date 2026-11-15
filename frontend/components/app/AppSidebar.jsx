@@ -406,23 +406,6 @@ const AppSidebar = ({
                         <span>Team & Org</span>
                     </NavLink>
 
-                    <button
-                        type="button"
-                        className={`app-sidebar__item ${location.pathname.startsWith('/app/settings') ? 'active' : ''}`}
-                        onClick={(e) => {
-                            handleNavClick();
-                            if (modalContext?.openSettings) {
-                                modalContext.openSettings('account', e.currentTarget);
-                            } else {
-                                onOpenSettings?.('account');
-                            }
-                        }}
-                        title="Settings"
-                    >
-                        <Settings size={17} className="app-sidebar__item-icon" />
-                        <span>Settings</span>
-                    </button>
-
                     <NavLink
                         to="/help"
                         className="app-sidebar__item"

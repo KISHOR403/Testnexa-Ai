@@ -12,6 +12,9 @@
    ========================================================================== */
 
 :root {
+    --header-h: 64px;
+    --stepper-h: 64px;
+    --actionbar-h: 72px;
     --bg: #000000;
     --surface: #0A0A0A;
     --surface-2: #111111;
@@ -37,11 +40,9 @@
 @keyframes tnFadeIn {
     from {
         opacity: 0;
-        transform: translateY(6px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
     }
 }
 
@@ -141,16 +142,23 @@
     border-color: #FFFFFF;
 }
 
-/* ─── 2. Sticky Workflow Stepper (Background --bg, 1px Border Only) ─── */
+/* ─── 2. Sticky Workflow Stepper (SOLID #000, 1px Border Only, Soft Shadow) ─── */
 .app-workspace-workflow-stepper-wrap {
+    position: -webkit-sticky;
     position: sticky;
-    top: 56px;
-    z-index: 25;
-    background: var(--bg);
-    padding: 12px 0;
+    top: var(--header-h);
+    z-index: 30;
+    height: var(--stepper-h);
+    background: #000000;
+    padding: 0;
     border-bottom: 1px solid var(--line);
+    box-shadow: 0 12px 12px -8px #000000;
     width: 100%;
     box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .app-workspace-workflow-stepper {
@@ -159,6 +167,7 @@
     gap: 8px;
     overflow-x: auto;
     scrollbar-width: none;
+    width: 100%;
 }
 
 .app-workspace-workflow-stepper::-webkit-scrollbar {
@@ -355,12 +364,23 @@
     outline-offset: 2px;
 }
 
-/* ─── 5. Two-Column Workbench Layout ─── */
+/* ─── 5. Form Wrapper & Two-Column Workbench Layout ─── */
+.app-workspace-form-wrapper {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .app-workspace-2col-layout {
     display: grid;
     grid-template-columns: 1fr 380px;
     gap: 24px;
     align-items: start;
+    padding-bottom: 24px;
+    position: relative;
+    z-index: 0;
 }
 
 @media (max-width: 1024px) {
@@ -379,6 +399,8 @@
 
 /* ─── Cards (24px Padding, Surface #0A0A0A) ─── */
 .app-workspace-card {
+    position: relative;
+    z-index: 0;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -388,6 +410,10 @@
     gap: 20px;
     box-sizing: border-box;
     width: 100%;
+    transform: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .app-workspace-card-header {
@@ -1003,20 +1029,26 @@
     color: #000000;
 }
 
-/* ─── P0. Sticky Bottom Action Bar (Background --bg, 1px Border Only) ─── */
+/* ─── P0. Sticky Bottom Action Bar (SOLID #000, 1px Border, Soft Shadow) ─── */
 .app-workspace-sticky-action-bar {
+    position: -webkit-sticky;
     position: sticky;
     bottom: 0;
-    z-index: 35;
-    background: var(--bg);
-    border-top: 1px solid var(--line);
-    padding: 16px 20px;
+    z-index: 30;
+    min-height: var(--actionbar-h);
+    background: #000000;
+    border-top: 1px solid var(--line-hi);
+    box-shadow: 0 -12px 12px -8px #000000;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     box-sizing: border-box;
     width: 100%;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
 }
 
 .app-workspace-action-left {
@@ -1630,7 +1662,7 @@
     to { transform: rotate(360deg); }
 }
 
-/* ─── 9. Responsive Rules (1440, 1024, 390px) ─── */
+/* ─── 9. Responsive Rules (1440, 1024, 768, 430, 320px & Short Viewports) ─── */
 @media (max-width: 1024px) {
     .app-workspace-sticky-action-bar {
         padding: 12px 16px;
@@ -1652,11 +1684,24 @@
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
     }
 
     .app-workspace-action-left {
         width: 100%;
-        justify-content: space-between;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .app-workspace-primary-btn {
+        width: 100%;
+    }
+
+    .app-workspace-btn-secondary {
+        width: 100%;
+        justify-content: center;
     }
 
     .app-workspace-action-right {
@@ -1666,13 +1711,14 @@
     .app-workspace-btn-direct-gen {
         width: 100%;
         text-align: center;
+        justify-content: center;
     }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 430px) {
     .app-workspace-container {
         gap: 16px;
-        padding-bottom: 40px;
+        padding-bottom: 32px;
     }
 
     .app-workspace-header__title {
@@ -1687,8 +1733,54 @@
         grid-template-columns: 1fr;
     }
 
+    /* Stepper on phones: horizontal scroll-snap row, 44px min touch height, edge fade */
+    .app-workspace-workflow-stepper {
+        scroll-snap-type: x mandatory;
+        padding: 0 4px;
+        mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent);
+    }
+
+    .app-workspace-step-chip {
+        scroll-snap-align: start;
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    .app-workspace-step-chip .step-num {
+        display: none;
+    }
+
     .app-workspace-primary-btn,
     .app-workspace-btn-secondary {
         width: 100%;
+    }
+}
+
+/* ─── Short Viewports (height under 500px, e.g. landscape phones) ─── */
+@media (max-height: 500px) {
+    .app-workspace-workflow-stepper-wrap {
+        position: static !important;
+        top: auto;
+        height: auto;
+        padding: 8px 0;
+        box-shadow: none;
+    }
+
+    .app-workspace-sticky-action-bar {
+        position: -webkit-sticky;
+        position: sticky;
+        bottom: 0;
+        min-height: auto;
+        padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -8px 8px -6px #000000;
+    }
+
+    .app-workspace-primary-btn,
+    .app-workspace-btn-secondary {
+        padding: 6px 12px;
+        font-size: 12px;
     }
 }
