@@ -70,7 +70,7 @@ code {
 }
 
 /* Accessible focus ring for keyboard navigation */
-:focus-visible {
+body:not(:has(.tn-auth-viewport)) :focus-visible {
   outline: 2px solid #4F8CFF;
   outline-offset: 2px;
 }

@@ -45,7 +45,8 @@ import {
     MoreHorizontal,
     ArrowLeft,
     Copy as CopyIcon,
-    Play
+    Play,
+    Circle
 } from 'lucide-react';
 import RefineRegeneratePanel from './RefineRegeneratePanel';
 import QaCopilotDrawer from './copilot/QaCopilotDrawer';
@@ -55,31 +56,69 @@ import NewTestRunModal from './execution/NewTestRunModal';
 import { testSuiteService } from '../services/sessionService';
 import '../styles/app/WorkspaceDesignSystem.css';
 
-// ─── Status Badge Component ───
+// ─── Status Badge Component (B&W System: Shape & Icon, Never Hue) ───
 const StatusBadge = ({ status }) => {
-    const s = (status || 'Needs Review').toLowerCase().replace(/\s+/g, '-');
-    const isApproved = s.includes('approved');
-    const isReady = s.includes('ready');
-    const isReview = s.includes('review');
-
+    const s = String(status || '').toLowerCase().trim();
+    if (s.includes('fail')) {
+        return (
+            <span className="tn-status-pill tn-status-pill--failed" title="Failed">
+                <X size={11} strokeWidth={2.5} />
+                <span>Failed</span>
+            </span>
+        );
+    }
+    if (s.includes('pass') || s.includes('approved')) {
+        return (
+            <span className="tn-status-pill tn-status-pill--passed" title="Passed">
+                <Check size={11} strokeWidth={2.5} />
+                <span>{s.includes('approved') ? 'Approved' : 'Passed'}</span>
+            </span>
+        );
+    }
+    if (s.includes('review') || s.includes('need')) {
+        return (
+            <span className="tn-status-pill tn-status-pill--review" title="Needs review">
+                <HelpCircle size={11} />
+                <span>Needs review</span>
+            </span>
+        );
+    }
     return (
-        <span className={`tn-status-pill tn-status-pill--${isApproved ? 'approved' : isReady ? 'ready' : isReview ? 'review' : 'generated'}`}>
-            <span className="tn-status-dot" />
-            {isApproved ? '✓ Approved' : status || 'Needs Review'}
+        <span className="tn-status-pill tn-status-pill--not-executed" title="Not executed">
+            <Circle size={10} strokeWidth={2} />
+            <span>Not executed</span>
         </span>
     );
 };
 
-// ─── Priority Badge Component ───
+// ─── Priority Badge Component (B&W System) ───
 const PriorityBadge = ({ priority }) => {
-    const p = (priority || 'Medium').toLowerCase();
-    return <span className={`tn-prio-tag tn-prio-tag--${p}`}>{priority || 'Medium'}</span>;
+    const p = String(priority || 'Medium').toLowerCase().trim();
+    const isHigh = p === 'high' || p === 'critical';
+    const isLow = p === 'low' || p === 'trivial';
+    return (
+        <span className={`tn-prio-tag tn-prio-tag--${isHigh ? 'high' : isLow ? 'low' : 'medium'}`}>
+            {isHigh ? 'High' : isLow ? 'Low' : 'Medium'}
+        </span>
+    );
 };
 
-// ─── Type Badge Component ───
+// ─── Type Badge Component (B&W System with Icon) ───
 const TypeBadge = ({ type }) => {
-    const t = (type || 'Functional').toLowerCase().replace(/\s+/g, '');
-    return <span className={`tn-type-tag tn-type-tag--${t}`}>{type || 'Functional'}</span>;
+    const rawType = String(type || 'Functional').trim();
+    const t = rawType.toLowerCase().replace(/\s+/g, '');
+    let Icon = FileText;
+    if (t.includes('sec')) Icon = Shield;
+    else if (t.includes('edge')) Icon = Zap;
+    else if (t.includes('neg')) Icon = AlertCircle;
+    else if (t.includes('api')) Icon = GitBranch;
+
+    return (
+        <span className={`tn-type-tag tn-type-tag--${t}`}>
+            <Icon size={11} className="tn-type-tag__icon" />
+            <span className="tn-type-tag__text">{rawType}</span>
+        </span>
+    );
 };
 
 // ─── Collapsible Section Component ───
@@ -125,12 +164,15 @@ const hasTestCases = (data) => {
 // ─── Security test case heuristic ───
 const isSecurityCase = (tc) => {
     if (!tc || typeof tc !== 'object') return false;
+    const id = String(tc.id || tc.testCaseId || '');
+    if (/^TC[_-]?FUNC/i.test(id)) return false; // Contract: Functional ID prefix is NEVER Security
     const rawType = String(tc.type || '').toLowerCase();
     if (rawType === 'security') return true;
     if (tc.riskType === 'Security' || tc.businessImpact === 'Security' || tc.concept === 'Security Testing') return true;
     if (tc.id && /_sec_/i.test(tc.id)) return true;
     const text = `${tc.title || ''} ${tc.testScenario || ''} ${tc.scenario || ''} ${tc.module || ''} ${tc.expectedResult || ''} ${Array.isArray(tc.steps) ? tc.steps.map(s => typeof s === 'object' ? `${s.action} ${s.expected}` : String(s)).join(' ') : ''}`.toLowerCase();
-    return /security|auth|token|breach|sql\s*injection|injection|csrf|xss|vulnerab|sanitiz|unauthoriz|permission|access\s*control|privilege|credential|encrypt|brute\s*force|rate\s*limit|tamper|bypass|replay|session\s*fixation|dos|ddos/i.test(text);
+    if (/login|auth|sign\s*in/i.test(text) && /success|valid credentials|happy path/i.test(text)) return false;
+    return /breach|sql\s*injection|injection|csrf|xss|vulnerab|sanitiz|unauthoriz|privilege\s*escalation|tamper|bypass|replay|session\s*fixation|dos|ddos/i.test(text);
 };
 
 // ─── Edge case heuristic ───
@@ -149,6 +191,21 @@ const flattenAllTestCases = (result) => {
     if (!result) return [];
 
     try {
+        // If result itself already provides canonical test cases array
+        if (Array.isArray(result.testCases) && result.testCases.length > 0) {
+            const pool = [];
+            const seenIds = new Set();
+            result.testCases.forEach((tc) => {
+                if (tc && typeof tc === 'object') {
+                    const id = tc.id || `TC-${String(pool.length + 1).padStart(3, '0')}`;
+                    if (seenIds.has(id)) return;
+                    seenIds.add(id);
+                    pool.push(tc);
+                }
+            });
+            return pool;
+        }
+
         // Unwrap if result wraps suiteData / data / suite
         const target = (result.suiteData && typeof result.suiteData === 'object' && hasTestCases(result.suiteData))
             ? (result.suiteData.suiteData || result.suiteData.suite || result.suiteData.data || result.suiteData)
@@ -260,13 +317,26 @@ const formatGherkin = (tc) => {
 };
 
 // ─── Main Results Section Content ───
-const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, suiteId = null, accessRole = null, initialTestCaseId = null, initialExecute = false }) => {
+const ResultsSectionContent = ({
+    result,
+    canonicalTests = null,
+    hideHeaderStats = false,
+    onRefineRegenerate,
+    isLatest = true,
+    suiteId = null,
+    accessRole = null,
+    initialTestCaseId = null,
+    initialExecute = false
+}) => {
 
     const resolvedSuiteId = suiteId || result?.id || result?._id || result?.sessionId || result?.suiteId;
     const effectiveRole = accessRole || result?.accessRole || (result?.isShared ? 'reviewer' : 'owner');
 
     // ─── Interactive State ───
-    const [testCases, setTestCases] = useState(() => flattenAllTestCases(result));
+    const [testCases, setTestCases] = useState(() => {
+        if (Array.isArray(canonicalTests) && canonicalTests.length > 0) return canonicalTests;
+        return flattenAllTestCases(result);
+    });
     const [suiteStatus, setSuiteStatus] = useState('Needs Review');
     const [activeTab, setActiveTab] = useState('tests');
     const [selectedTcId, setSelectedTcId] = useState(() => testCases[0]?.id || 'TC-001');
@@ -362,9 +432,13 @@ const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, su
 
     // Keep test cases synced if incoming result prop changes completely
     useEffect(() => {
-        setTestCases(flattenAllTestCases(result));
+        if (Array.isArray(canonicalTests) && canonicalTests.length > 0) {
+            setTestCases(canonicalTests);
+        } else {
+            setTestCases(flattenAllTestCases(result));
+        }
         setSuiteStatus('Needs Review');
-    }, [result]);
+    }, [result, canonicalTests]);
 
     // Close detail more menu on outside click
     useEffect(() => {
@@ -582,10 +656,11 @@ const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, su
     }, [testCases]);
 
     const securityWarningTc = useMemo(() => {
-        return testCases.find(tc =>
-            (tc.type || '').toLowerCase().includes('sec') ||
-            (tc.severity || '').toLowerCase() === 'critical'
-        ) || null;
+        return testCases.find(tc => {
+            const isSec = (tc.type || '').toLowerCase() === 'security' || /^TC[_-]?SEC/i.test(tc.id || '');
+            const isCritical = (tc.severity || '').toLowerCase() === 'critical';
+            return isSec && isCritical;
+        }) || null;
     }, [testCases]);
 
     // Selected Test Case Index for prev / next navigation
@@ -633,6 +708,50 @@ const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, su
         setTestCases(prev => prev.map(tc => selectedRows.includes(tc.id) ? { ...tc, priority: newPriority } : tc));
         setSelectedRows([]);
     };
+
+    // ─── Keyboard Navigation (J/K, Enter, Esc, Space) ───
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const tagName = e.target?.tagName?.toLowerCase();
+            if (tagName === 'input' || tagName === 'textarea' || tagName === 'select' || e.target?.isContentEditable) {
+                return;
+            }
+
+            if (e.key === 'j' || e.key === 'J') {
+                e.preventDefault();
+                if (!filteredTests.length) return;
+                const currentIndex = filteredTests.findIndex(tc => tc.id === selectedTcId);
+                const nextIndex = currentIndex < filteredTests.length - 1 ? currentIndex + 1 : 0;
+                setSelectedTcId(filteredTests[nextIndex].id);
+            } else if (e.key === 'k' || e.key === 'K') {
+                e.preventDefault();
+                if (!filteredTests.length) return;
+                const currentIndex = filteredTests.findIndex(tc => tc.id === selectedTcId);
+                const prevIndex = currentIndex > 0 ? currentIndex - 1 : filteredTests.length - 1;
+                setSelectedTcId(filteredTests[prevIndex].id);
+            } else if (e.key === 'Enter') {
+                if (selectedTcId) {
+                    e.preventDefault();
+                    setIsDetailOpen(true);
+                    setMobileShowDetail(true);
+                }
+            } else if (e.key === 'Escape') {
+                if (isDetailOpen || mobileShowDetail) {
+                    e.preventDefault();
+                    setIsDetailOpen(false);
+                    setMobileShowDetail(false);
+                }
+            } else if (e.key === ' ') {
+                if (selectedTcId) {
+                    e.preventDefault();
+                    toggleRowSelect(selectedTcId);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [filteredTests, selectedTcId, isDetailOpen, mobileShowDetail]);
 
     // ─── Single Test Approval Handler ───
     const handleApproveSingle = (id) => {
@@ -1288,6 +1407,7 @@ const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, su
                             <span className="tn-meta-label">Severity</span>
                             <div className="tn-meta-value">
                                 <span className={`tn-sev-tag tn-sev-tag--${(selectedTc.severity || 'Major').toLowerCase()}`}>
+                                    {(selectedTc.severity || 'Major').toLowerCase() === 'critical' && <AlertTriangle size={11} style={{ marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }} />}
                                     {selectedTc.severity || 'Major'}
                                 </span>
                             </div>
@@ -1402,125 +1522,126 @@ const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, su
 
     return (
         <div className="tn-app-workspace">
-            {/* ─── 1. Top Suite Header ─── */}
-            <div className="tn-app-header">
-                <div className="tn-app-header__identity">
-                    <h2 className="tn-suite-title">{result.feature || result.testSuiteName || 'Test Suite Specification'}</h2>
-                    <div className="tn-app-header__tags">
-                        <span className="tn-tag tn-tag--req">{testCases[0]?.reqId || 'REQ-001'}</span>
-                        <span className={`tn-tag ${suiteStatus === 'Approved' ? 'tn-tag--ready' : 'tn-tag--alert'}`}>
-                            <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? 'Approved' : 'Needs Review'}
-                        </span>
-                    </div>
-                </div>
+            {/* ─── 1. Top Suite Header & Summary Bar (Hidden when integrated into Test Suite Detail Page) ─── */}
+            {!hideHeaderStats && (
+                <>
+                    <div className="tn-app-header">
+                        <div className="tn-app-header__identity">
+                            <h2 className="tn-suite-title">{result.feature || result.testSuiteName || 'Test Suite Specification'}</h2>
+                            <div className="tn-app-header__tags">
+                                <span className="tn-tag tn-tag--req">{testCases[0]?.reqId || 'REQ-001'}</span>
+                                <span className={`tn-tag ${suiteStatus === 'Approved' ? 'tn-tag--ready' : 'tn-tag--alert'}`}>
+                                    <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? 'Approved' : 'Needs Review'}
+                                </span>
+                            </div>
+                        </div>
 
-                <div className="tn-app-header__actions">
-                    <button
-                        type="button"
-                        className="tn-app-btn tn-app-btn--primary"
-                        onClick={() => setShowRunModal(true)}
-                        title="Create and execute a test run (Manual, Playwright, or Mixed)"
-                        data-testid="execute-suite-btn"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                        <Play size={13} fill="currentColor" />
-                        <span>Execute Run</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        className="tn-app-btn tn-app-btn--secondary"
-                        onClick={() => setShowShareModal(true)}
-                        title="Share test suite"
-                        data-testid="share-suite-btn"
-                    >
-                        <Share2 size={14} />
-                        <span>Share</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        className="tn-app-btn tn-app-btn--secondary"
-                        onClick={() => setShowExportModal(true)}
-                        title="Export suite to CSV, JSON, Excel"
-                        data-testid="export-suite-btn"
-                    >
-                        <Download size={14} />
-                        <span>Export</span>
-                    </button>
-
-                    {/* Approve Suite CTA (Hidden if viewer) */}
-                    {effectiveRole !== 'viewer' && (
-                        suiteStatus !== 'Approved' ? (
+                        <div className="tn-app-header__actions">
                             <button
                                 type="button"
                                 className="tn-app-btn tn-app-btn--primary"
-                                onClick={() => setShowApproveModal(true)}
-                                title="Approve all test cases for execution"
-                                data-testid="approve-suite-btn"
+                                onClick={() => setShowRunModal(true)}
+                                title="Create and execute a test run (Manual, Playwright, or Mixed)"
+                                data-testid="execute-suite-btn"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                             >
-                                <CheckCheck size={14} />
-                                <span>Approve Suite</span>
+                                <Play size={13} fill="currentColor" />
+                                <span>Execute Run</span>
                             </button>
-                        ) : (
-                            <span className="tn-app-approved-tag">
-                                <Check size={14} /> Ready for Execution
-                            </span>
-                        )
-                    )}
-                </div>
-            </div>
 
-            {/* ─── 2. Compact Secondary Summary Metric Row ─── */}
-            <div className="tn-app-summary-bar">
-                <div className="tn-app-stat">
-                    <span className="tn-app-stat__num">{totalCount}</span>
-                    <span className="tn-app-stat__label">Total Test Cases</span>
-                </div>
-                <div className="tn-app-stat-divider" />
-                <div className="tn-app-stat">
-                    <span className="tn-app-stat__num tn-app-stat__num--cyan">{coverageConfidence}%</span>
-                    <span className="tn-app-stat__label">Requirement Coverage</span>
-                </div>
-                <div className="tn-app-stat-divider" />
-                <div className="tn-app-stat">
-                    <span className="tn-app-stat__num tn-app-stat__num--amber">{highPriorityCount}</span>
-                    <span className="tn-app-stat__label">High Priority</span>
-                </div>
-                <div className="tn-app-stat-divider" />
-                <div className="tn-app-stat">
-                    <span className="tn-app-stat__num">{edgeAndSecurityCount}</span>
-                    <span className="tn-app-stat__label">Edge & Security</span>
-                </div>
-                <div className="tn-app-stat-divider" />
-                <div className="tn-app-stat">
-                    <span className="tn-app-stat__num tn-app-stat__num--emerald">{approvedCount} / {totalCount}</span>
-                    <span className="tn-app-stat__label">Approved Cases</span>
-                </div>
-            </div>
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--secondary"
+                                onClick={() => setShowShareModal(true)}
+                                title="Share test suite"
+                                data-testid="share-suite-btn"
+                            >
+                                <Share2 size={14} />
+                                <span>Share</span>
+                            </button>
 
-            {/* ─── 3. Suite-Level AI Insights Bar ─── */}
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--secondary"
+                                onClick={() => setShowExportModal(true)}
+                                title="Export suite to CSV, JSON, Excel"
+                                data-testid="export-suite-btn"
+                            >
+                                <Download size={14} />
+                                <span>Export</span>
+                            </button>
+
+                            {/* Approve Suite CTA (Hidden if viewer) */}
+                            {effectiveRole !== 'viewer' && (
+                                suiteStatus !== 'Approved' ? (
+                                    <button
+                                        type="button"
+                                        className="tn-app-btn tn-app-btn--primary"
+                                        onClick={() => setShowApproveModal(true)}
+                                        title="Approve all test cases for execution"
+                                        data-testid="approve-suite-btn"
+                                    >
+                                        <CheckCheck size={14} />
+                                        <span>Approve Suite</span>
+                                    </button>
+                                ) : (
+                                    <span className="tn-app-approved-tag">
+                                        <Check size={14} /> Ready for Execution
+                                    </span>
+                                )
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ─── 2. Compact Secondary Summary Metric Row ─── */}
+                    <div className="tn-app-summary-bar">
+                        <div className="tn-app-stat">
+                            <span className="tn-app-stat__num">{totalCount}</span>
+                            <span className="tn-app-stat__label">Total Test Cases</span>
+                        </div>
+                        <div className="tn-app-stat-divider" />
+                        <div className="tn-app-stat">
+                            <span className="tn-app-stat__num">{coverageConfidence}%</span>
+                            <span className="tn-app-stat__label">Requirement Coverage</span>
+                        </div>
+                        <div className="tn-app-stat-divider" />
+                        <div className="tn-app-stat">
+                            <span className="tn-app-stat__num">{highPriorityCount}</span>
+                            <span className="tn-app-stat__label">High Priority</span>
+                        </div>
+                        <div className="tn-app-stat-divider" />
+                        <div className="tn-app-stat">
+                            <span className="tn-app-stat__num">{edgeAndSecurityCount}</span>
+                            <span className="tn-app-stat__label">Edge & Security</span>
+                        </div>
+                        <div className="tn-app-stat-divider" />
+                        <div className="tn-app-stat">
+                            <span className="tn-app-stat__num">{approvedCount} / {totalCount}</span>
+                            <span className="tn-app-stat__label">Approved Cases</span>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* ─── 3. Suite-Level AI Insights Bar (Separate Chips with Counts & Actions) ─── */}
             <div className="tn-ai-insights-bar">
                 <div className="tn-ai-insights-bar__left">
                     <span className="tn-ai-sparkle-pill"><Lightbulb size={12} /> INSIGHTS</span>
-                    <div className="tn-ai-insights-content">
+                    <div className="tn-ai-insights-chips">
                         {uncoveredCount > 0 && (
                             <button
                                 type="button"
-                                className="tn-insight-link"
+                                className="tn-insight-chip"
                                 onClick={() => setActiveTab('coverage')}
                                 title="View uncovered requirement gaps"
                             >
-                                {uncoveredCount} coverage {uncoveredCount === 1 ? 'gap' : 'gaps'} detected &rarr;
+                                <span>{uncoveredCount} coverage {uncoveredCount === 1 ? 'gap' : 'gaps'}, Review &rarr;</span>
                             </button>
-                        )}
-                        {uncoveredCount > 0 && securityWarningTc && (
-                            <span className="tn-insight-sep">&bull;</span>
                         )}
                         {securityWarningTc && (
                             <button
                                 type="button"
-                                className="tn-insight-link"
+                                className="tn-insight-chip"
                                 onClick={() => {
                                     setSelectedTcId(securityWarningTc.id);
                                     setIsDetailOpen(true);
@@ -1528,11 +1649,11 @@ const ResultsSectionContent = ({ result, onRefineRegenerate, isLatest = true, su
                                 }}
                                 title={`Navigate to ${securityWarningTc.id}`}
                             >
-                                Security scenario ({securityWarningTc.id}) needs verification &rarr;
+                                <span>1 case needs verification, Open ({securityWarningTc.id}) &rarr;</span>
                             </button>
                         )}
                         {!uncoveredCount && !securityWarningTc && (
-                            <span className="tn-ai-insights-text">All requirements verified &bull; Suite is consistent and ready for execution.</span>
+                            <span className="tn-insight-chip tn-insight-chip--ready">All requirements verified &bull; Suite is consistent</span>
                         )}
                     </div>
                 </div>

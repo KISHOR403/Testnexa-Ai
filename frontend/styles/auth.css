@@ -57,16 +57,36 @@ body {
 }
 
 /* Problem 2: Strict Black-and-White Focus Ring (No blue, green, amber, red or yellow) */
+.tn-auth-viewport input:focus,
 .tn-auth-viewport input:focus-visible,
+.tn-auth-viewport button:focus,
 .tn-auth-viewport button:focus-visible,
+.tn-auth-viewport a:focus,
 .tn-auth-viewport a:focus-visible,
+.tn-auth-viewport [tabindex]:focus,
 .tn-auth-viewport [tabindex]:focus-visible,
+.tn-auth-viewport select:focus,
 .tn-auth-viewport select:focus-visible,
+.tn-auth-viewport textarea:focus,
 .tn-auth-viewport textarea:focus-visible,
-input:focus-visible,
-button:focus-visible,
-a:focus-visible,
-[tabindex]:focus-visible {
+.tn-auth-input:focus,
+.tn-auth-input:focus-visible,
+.tn-auth-social-btn:focus,
+.tn-auth-social-btn:focus-visible,
+.tn-auth-btn-primary:focus,
+.tn-auth-btn-primary:focus-visible,
+.tn-auth-forgot-link:focus,
+.tn-auth-forgot-link:focus-visible,
+.tn-auth-prompt a:focus,
+.tn-auth-prompt a:focus-visible,
+.tn-auth-legal-link:focus,
+.tn-auth-legal-link:focus-visible,
+.tn-auth-back-link:focus,
+.tn-auth-back-link:focus-visible,
+.tn-auth-password-toggle:focus,
+.tn-auth-password-toggle:focus-visible,
+.tn-auth-checkbox:focus,
+.tn-auth-checkbox:focus-visible {
   outline: 2px solid #ffffff !important;
   outline-offset: 2px !important;
   border-color: #ffffff !important;
@@ -116,7 +136,16 @@ a:focus-visible,
   background-color: var(--bg);
   padding: 0;
   position: relative;
-  overflow: visible;
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: visible !important;
+  scrollbar-width: none;
+}
+
+.tn-auth-form-col::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Top bar: logo top-left (padding clamp), back to website top-right */
@@ -124,7 +153,7 @@ a:focus-visible,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(14px, 2.5vh, 24px) clamp(20px, 3.5vw, 32px);
+  padding: clamp(12px, 1.8vh, 20px) clamp(20px, 3.5vw, 32px);
   width: 100%;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -198,7 +227,7 @@ a:focus-visible,
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
-  padding: clamp(16px, 4vh, 48px) clamp(20px, 4vw, 40px);
+  padding: clamp(14px, 2.8vh, 36px) clamp(20px, 4vw, 40px);
   box-sizing: border-box;
 }
 
@@ -209,29 +238,29 @@ a:focus-visible,
 /* Typography */
 .tn-auth-title {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: clamp(30px, 3.5vw, 40px);
+  font-size: clamp(28px, 3.2vw, 40px);
   font-weight: 400;
   line-height: 1.12;
   letter-spacing: -0.02em;
   color: var(--text-1);
-  margin: 0 0 clamp(4px, 1vh, 8px) 0;
+  margin: 0 0 clamp(2px, 0.6vh, 6px) 0;
 }
 
 .tn-auth-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(14px, 1.5vw, 16px);
-  line-height: 1.5;
+  font-size: clamp(14px, 1.4vw, 16px);
+  line-height: 1.4;
   color: var(--text-2);
-  margin: 0 0 clamp(16px, 2.5vh, 28px) 0;
+  margin: 0 0 clamp(10px, 1.8vh, 20px) 0;
 }
 
 /* Social Login Buttons: 48px outlined, 1px --line-hi, hover white */
 .tn-auth-social-group {
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.2vh, 10px);
+  gap: clamp(6px, 1vh, 10px);
   width: 100%;
-  margin-bottom: clamp(14px, 2vh, 22px);
+  margin-bottom: clamp(10px, 1.6vh, 18px);
 }
 
 .tn-auth-social-btn {
@@ -295,7 +324,7 @@ a:focus-visible,
   display: flex;
   align-items: center;
   width: 100%;
-  margin: 0 0 clamp(14px, 2vh, 24px) 0;
+  margin: 0 0 clamp(10px, 1.6vh, 18px) 0;
   color: var(--text-3);
   font-size: 13px;
   font-weight: 400;
@@ -318,7 +347,7 @@ a:focus-visible,
 .tn-auth-form {
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 1.8vh, 18px);
+  gap: clamp(10px, 1.4vh, 16px);
   width: 100%;
 }
 
@@ -334,7 +363,7 @@ a:focus-visible,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 7px;
+  margin-bottom: 5px;
 }
 
 .tn-auth-label {
@@ -342,7 +371,7 @@ a:focus-visible,
   font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
-  margin-bottom: 7px;
+  margin-bottom: 5px;
   display: block;
 }
 
@@ -442,6 +471,9 @@ a:focus-visible,
   transition: background-color 5000s ease-in-out 0s;
   font-family: 'Inter', sans-serif !important;
   font-size: 16px !important;
+  outline: 2px solid #ffffff !important;
+  outline-offset: 2px !important;
+  border-color: #ffffff !important;
 }
 
 /* Password Toggle Button */
@@ -774,7 +806,7 @@ a:focus-visible,
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: var(--text-2);
-  margin-top: clamp(14px, 2vh, 24px);
+  margin-top: clamp(10px, 1.6vh, 18px);
 }
 
 .tn-auth-prompt a,
@@ -805,7 +837,7 @@ a:focus-visible,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(12px, 2vh, 20px) clamp(20px, 3.5vw, 32px);
+  padding: clamp(10px, 1.5vh, 16px) clamp(20px, 3.5vw, 32px);
   width: 100%;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
@@ -918,7 +950,7 @@ a:focus-visible,
 @media (min-width: 1920px) {
   .tn-auth-layout-grid,
   .auth {
-    grid-template-columns: minmax(0, 42fr) minmax(0, 58fr);
+    grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
   }
   .tn-auth-form-center {
     max-width: 400px;

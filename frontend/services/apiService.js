@@ -22,6 +22,7 @@ export const apiService = {
                 'Content-Type': 'application/json',
             };
             if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (settings && settings.idempotencyKey) headers['Idempotency-Key'] = settings.idempotencyKey;
 
             const response = await fetch(`${API_BASE_URL}/generate`, {
                 method: 'POST',

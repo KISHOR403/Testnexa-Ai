@@ -57,6 +57,13 @@
     scroll-padding-bottom: calc(var(--actionbar-h) + 16px);
 }
 
+@media (min-width: 1024px) and (min-height: 601px) {
+    .app-shell-main--test-cases,
+    .app-shell-main:has(.tc-page) {
+        overflow-y: hidden !important;
+    }
+}
+
 .app-page-content {
     flex: 1;
     padding: 24px 40px 0;
@@ -235,8 +242,6 @@
     scrollbar-width: thin;
     scrollbar-color: var(--line) transparent;
     -webkit-overflow-scrolling: touch;
-    mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 16px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 16px), transparent 100%);
 }
 
 .app-sidebar__nav::-webkit-scrollbar {
@@ -414,9 +419,9 @@
 
 .app-sidebar__history-row.active {
     color: var(--text-1);
-    font-weight: 600;
-    background: var(--surface-2);
-    border-color: #FFFFFF;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--line-hi);
 }
 
 .app-sidebar__history-row:focus-visible {

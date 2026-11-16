@@ -53,7 +53,7 @@ export const useHistory = () => {
         // 2. Fetch fresh sessions from backend
         try {
             setIsLoading(true);
-            const response = await sessionService.list({ limit: 50 });
+            const response = await sessionService.list({ limit: 50, hasCases: true });
             if (response.success && Array.isArray(response.data)) {
                 const remoteData = response.data.map(item => {
                     const totalCases = item.summary?.total ?? (
@@ -192,33 +192,8 @@ export const useHistory = () => {
             return;
         }
 
-        try {
-            if (existingSessionId && existingSessionId !== 'null' && existingSessionId !== 'undefined') {
-                await sessionService.update(existingSessionId, {
-                    requirement,
-                    title: resolvedTitle,
-                    context: settings?.type || 'web',
-                    depth: settings?.level || 'Standard',
-                    suiteData: result,
-                    summary: summaryData,
-                    status: 'Generated'
-                });
-            } else {
-                await sessionService.create({
-                    requirement,
-                    context: settings?.type || 'web',
-                    depth: settings?.level || 'Standard',
-                    title: resolvedTitle,
-                    suiteData: result,
-                    summary: summaryData,
-                    status: 'Generated'
-                });
-            }
-        } catch (err) {
-            console.error('Failed to persist session to backend:', err);
-        }
-
-        // Always update local cache & notify
+        // For authenticated users, backend /generate creates the suite and test cases atomically.
+        // Reload history to synchronize client state without duplicate writers.
         await loadHistory();
         notifyUpdate();
     };
@@ -263,9 +238,9 @@ export const useHistory = () => {
         }
     };
 
-    // Filter recent active sessions for sidebar display
+    // Filter recent active suites for sidebar display (only suites with at least one test case)
     const recentSessions = history
-        .filter(item => item.status !== 'Archived')
+        .filter(item => (Number(item.totalCases) > 0) && String(item.status).toLowerCase() !== 'archived')
         .slice(0, 4);
 
     return {

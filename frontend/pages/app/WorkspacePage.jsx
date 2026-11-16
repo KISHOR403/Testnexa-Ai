@@ -411,7 +411,8 @@ const WorkspacePage = () => {
             }));
         } catch (e) {}
 
-        if (!isAuthenticated || isLoadingSession || isGenerating) return;
+        // Stateless client-side auto-save: persist draft strictly to localStorage (never backend database)
+        if (isLoadingSession || isGenerating) return;
 
         const currentSettingsStr = JSON.stringify({ type: settings.type, level: settings.level });
         if (
@@ -422,52 +423,22 @@ const WorkspacePage = () => {
             return;
         }
 
-        const timer = setTimeout(async () => {
+        const timer = setTimeout(() => {
             try {
-                setSaveStatus('saving');
-                const resolvedTitle = requirementTitle.trim() ||
-                    requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) ||
-                    'New Test Suite';
-
-                if (currentSessionId) {
-                    await sessionService.update(currentSessionId, {
-                        title: resolvedTitle,
-                        requirement,
-                        context: settings.type,
-                        depth: settings.level
-                    });
-                    lastSavedData.current = { title: requirementTitle, requirement, settings: currentSettingsStr };
-                    setSaveStatus('saved');
-                    setLastSavedTime(new Date());
-                    refreshSidebarHistory();
-                } else if (requirement.trim().length > 15 || requirementTitle.trim().length > 2) {
-                    const createRes = await sessionService.create({
-                        title: resolvedTitle,
-                        requirement,
-                        context: settings.type,
-                        depth: settings.level
-                    });
-                    if (createRes.success && createRes.data?._id) {
-                        setCurrentSessionId(createRes.data._id);
-                        setSessionStatus('Draft');
-                        window.history.replaceState(null, '', `/app/workspace/${createRes.data._id}`);
-                        lastSavedData.current = { title: requirementTitle, requirement, settings: currentSettingsStr };
-                        setSaveStatus('saved');
-                        setLastSavedTime(new Date());
-                        refreshSidebarHistory();
-                    }
-                }
+                lastSavedData.current = { title: requirementTitle, requirement, settings: currentSettingsStr };
+                setSaveStatus('saved');
+                setLastSavedTime(new Date());
             } catch (saveErr) {
-                console.warn('Auto-save error:', saveErr);
+                console.warn('Local draft cache error:', saveErr);
                 setSaveStatus('failed');
             }
         }, 1000);
 
         return () => clearTimeout(timer);
-    }, [requirementTitle, requirementId, requirement, acceptanceCriteria, additionalContext, settings, selectedCategories, isAuthenticated, currentSessionId, isLoadingSession, isGenerating, workflowStage, refreshSidebarHistory]);
+    }, [requirementTitle, requirementId, requirement, acceptanceCriteria, additionalContext, settings, selectedCategories, isLoadingSession, isGenerating, workflowStage]);
 
-    // Manual Save Draft Action
-    const handleManualSaveDraft = async () => {
+    // Manual Save Draft Action: strictly local-only persistence
+    const handleManualSaveDraft = () => {
         if (!requirement.trim()) return;
         setSaveStatus('saving');
         try {
@@ -481,32 +452,6 @@ const WorkspacePage = () => {
                 selectedCategories,
                 savedAt: new Date().toISOString()
             }));
-
-            if (isAuthenticated) {
-                const resolvedTitle = requirementTitle.trim() ||
-                    requirement.split(/[.!?\n]/)[0].trim().slice(0, 45) ||
-                    'New Test Suite';
-                if (currentSessionId) {
-                    await sessionService.update(currentSessionId, {
-                        title: resolvedTitle,
-                        requirement,
-                        context: settings.type,
-                        depth: settings.level
-                    });
-                } else {
-                    const createRes = await sessionService.create({
-                        title: resolvedTitle,
-                        requirement,
-                        context: settings.type,
-                        depth: settings.level
-                    });
-                    if (createRes.success && createRes.data?._id) {
-                        setCurrentSessionId(createRes.data._id);
-                        window.history.replaceState(null, '', `/app/workspace/${createRes.data._id}`);
-                    }
-                }
-                refreshSidebarHistory();
-            }
             setSaveStatus('saved');
             setLastSavedTime(new Date());
         } catch (e) {
@@ -654,7 +599,9 @@ const WorkspacePage = () => {
 
             const enabledCategoriesList = Object.keys(selectedCategories).filter(k => selectedCategories[k]);
 
+            const genIdempotencyKey = `gen_idem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
             const result = await apiService.generateTestSuite(requirement, {
+                idempotencyKey: genIdempotencyKey,
                 ...settings,
                 requirementId: requirementId || undefined,
                 acceptanceCriteria: acceptanceCriteria || undefined,

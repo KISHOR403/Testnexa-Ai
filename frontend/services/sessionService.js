@@ -273,3 +273,46 @@ export const testSuiteService = {
     }
 };
 
+export const testCaseService = {
+    /**
+     * List only genuine generated and persisted test cases.
+     * Excludes requirement drafts, incomplete jobs, and failed generation outputs.
+     */
+    list: async ({ suiteId, search, status, lifecycle, priority, type, method, executionStatus, page = 1, limit = 50, sort } = {}) => {
+        const params = new URLSearchParams();
+        if (suiteId) params.set('suiteId', suiteId);
+        if (search) params.set('search', search);
+        if (status) params.set('status', status);
+        if (lifecycle) params.set('lifecycle', lifecycle);
+        if (priority) params.set('priority', priority);
+        if (type) params.set('type', type);
+        if (method) params.set('method', method);
+        if (executionStatus) params.set('executionStatus', executionStatus);
+        if (sort) params.set('sort', sort);
+        params.set('page', page);
+        params.set('limit', limit);
+
+        const response = await fetch(`${API_BASE_URL}/test-cases?${params}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Get single test case with execution outcome
+     */
+    get: async (id, { suiteId } = {}) => {
+        const params = new URLSearchParams();
+        if (suiteId) params.set('suiteId', suiteId);
+        const queryStr = params.toString() ? `?${params.toString()}` : '';
+        const response = await fetch(`${API_BASE_URL}/test-cases/${id}${queryStr}`, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include',
+        });
+        return handleResponse(response);
+    }
+};
+

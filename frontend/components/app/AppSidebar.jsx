@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
 import { useSettingsModal } from '../../context/SettingsModalContext';
+import { useFeature } from '../../config/features';
 import TestNexaLogo from '../TestNexaLogo';
 import '../../styles/app/AppSidebar.css';
 
@@ -39,6 +40,7 @@ const AppSidebar = ({
 }) => {
     const { user, logout, isSigningOut, currentWorkspace } = useAuth();
     const { history, recentSessions } = useHistory();
+    const { enabled: testRunsEnabled } = useFeature('testRuns');
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -93,13 +95,10 @@ const AppSidebar = ({
     // Helper to resolve status chip
     const getStatusChip = (session, totalTests) => {
         const status = (session.status || '').toLowerCase();
-        if (status === 'failed') {
-            return <span className="app-sidebar__status-chip is-failed">Failed</span>;
+        if (status === 'archived') {
+            return <span className="app-sidebar__status-chip is-archived">Archived</span>;
         }
-        if (status === 'approved' || status === 'completed' || status === 'generated' || totalTests > 0) {
-            return <span className="app-sidebar__status-chip is-complete">Complete</span>;
-        }
-        return <span className="app-sidebar__status-chip is-draft">Draft</span>;
+        return <span className="app-sidebar__status-chip is-complete">Active</span>;
     };
 
     // Close menu when clicking outside or pressing Escape
@@ -225,7 +224,14 @@ const AppSidebar = ({
                         title="Test Runs"
                     >
                         <PlayCircle size={17} className="app-sidebar__item-icon" />
-                        <span>Test Runs</span>
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '6px' }}>
+                            <span>Test Runs</span>
+                            {!testRunsEnabled && !isCollapsed && (
+                                <span className="cs-tag-soon" style={{ fontSize: '10px', padding: '0px 4px' }}>
+                                    Soon
+                                </span>
+                            )}
+                        </span>
                     </NavLink>
                 </div>
 
@@ -304,7 +310,7 @@ const AppSidebar = ({
                                 to="/app/intelligence"
                                 className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
                                 onClick={handleNavClick}
-                                title="Execution Intelligence"
+                                title="Intelligence"
                             >
                                 <BarChart3 size={17} className="app-sidebar__item-icon" />
                                 <span>Intelligence</span>

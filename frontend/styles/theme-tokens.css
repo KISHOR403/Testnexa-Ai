@@ -106,9 +106,9 @@ p, .tn-hero-subtitle, .tn-pipeline-desc, .tn-bento-desc, .tn-stat-sub, .tn-story
 }
 
 /* Visible Focus Rings for Keyboard Accessibility (WCAG AA) */
-a:focus-visible, button:focus-visible, input:focus-visible {
-  outline: 2px solid var(--accent) !important;
-  outline-offset: 3px !important;
+body:not(:has(.tn-auth-viewport)) :is(a:focus-visible, button:focus-visible, input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* Noise overlay */

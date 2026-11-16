@@ -2,6 +2,7 @@ const supabaseService = require('../services/supabaseData.service');
 const auditService = require('../services/auditService');
 const logger = require('../utils/logger');
 const { validateTestCaseMutation } = require('../utils/testCaseManagement.validation');
+const { invalidateIntelligenceCache } = require('../services/intelligence.service');
 
 const suiteCaseArrays = ['testCases', 'tests', 'functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist', 'api'];
 const unwrapSuiteData = (record) => {
@@ -64,7 +65,9 @@ const listSessions = async (req, res) => {
             limit,
             status: req.query.status,
             search: req.query.search,
-            sort: req.query.sort
+            sort: req.query.sort,
+            hasCases: req.query.hasCases === 'true',
+            onlyGenerated: req.query.onlyGenerated === 'true'
         });
 
         return res.json({
@@ -85,6 +88,7 @@ const listSessions = async (req, res) => {
 
 /**
  * CREATE a new session
+ * Rejects creation of drafts or suites with zero test cases.
  * POST /api/v1/sessions
  */
 const createSession = async (req, res) => {
@@ -92,13 +96,33 @@ const createSession = async (req, res) => {
         const userId = req.user._id || req.user.id;
         const { requirement, context, depth, title, suiteData, summary, quality, status, generationId } = req.body;
 
+        // Count test cases in suiteData
+        const dataObj = unwrapSuiteData(suiteData);
+        let casesCount = 0;
+        if (dataObj && typeof dataObj === 'object') {
+            for (const key of suiteCaseArrays) {
+                if (Array.isArray(dataObj[key])) casesCount += dataObj[key].length;
+            }
+            if (Array.isArray(dataObj.testCaseRefs)) casesCount += dataObj.testCaseRefs.length;
+        }
+
+        if (casesCount === 0 || String(status || '').toLowerCase() === 'draft') {
+            return res.status(422).json({
+                success: false,
+                code: 'ZERO_TEST_CASES',
+                message: 'Drafts cannot be stored: a suite may only be created together with its test cases after successful generation.'
+            });
+        }
+
+        const normalizedStatus = String(status || 'active').toLowerCase() === 'archived' ? 'archived' : 'active';
+
         const session = await supabaseService.createSession({
             userId,
             title: title || generateTitle(requirement),
             requirement: requirement || '',
             context: context || 'web',
             depth: depth || 'Standard',
-            status: status || 'Draft',
+            status: normalizedStatus,
             suiteData: suiteData || null,
             summary: summary || {},
             quality: quality || {},
@@ -122,7 +146,8 @@ const createSession = async (req, res) => {
         });
     } catch (error) {
         logger.error('Error creating session', error);
-        res.status(500).json({ success: false, message: error.message });
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ success: false, code: error.code || 'SERVER_ERROR', message: error.message });
     }
 };
 
@@ -247,6 +272,7 @@ const updateSession = async (req, res) => {
             }
 
             const updated = await supabaseService.updateSession(sessionId, null, updates);
+            invalidateIntelligenceCache(userId, sessionId);
             return res.json({ success: true, data: { ...updated, accessRole } });
         }
 
@@ -274,6 +300,18 @@ const updateSession = async (req, res) => {
             }
         }
 
+        if (updates.status !== undefined) {
+            const nextStatus = String(updates.status).toLowerCase();
+            if (nextStatus === 'draft') {
+                return res.status(422).json({
+                    success: false,
+                    code: 'INVALID_STATUS',
+                    message: 'Draft status is not permitted. Allowed statuses are "active" and "archived".'
+                });
+            }
+            updates.status = nextStatus === 'archived' ? 'archived' : 'active';
+        }
+
         if (updates.suiteData && !updates.summary) {
             const suite = unwrapSuiteData(updates.suiteData);
             const counts = {};
@@ -297,6 +335,7 @@ const updateSession = async (req, res) => {
         }
 
         const updated = await supabaseService.updateSession(sessionId, null, updates);
+        invalidateIntelligenceCache(userId, sessionId);
         return res.json({ success: true, data: { ...updated, accessRole } });
     } catch (error) {
         logger.error('Error updating session', error);
@@ -324,6 +363,7 @@ const deleteSession = async (req, res) => {
         }
 
         await supabaseService.deleteSession(sessionId, userId);
+        invalidateIntelligenceCache(userId, sessionId);
         return res.json({ success: true, message: 'Session deleted' });
     } catch (error) {
         logger.error('Error deleting session', error);

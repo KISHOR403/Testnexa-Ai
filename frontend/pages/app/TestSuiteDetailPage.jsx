@@ -1,7 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useLocation, NavLink, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldAlert, AlertCircle, RefreshCw, Layers, Lock, ShieldCheck, Share2, Plus, Play, Archive, Pencil, ExternalLink, Search, Sparkles } from 'lucide-react';
+import {
+    ArrowLeft, ShieldAlert, AlertCircle, RefreshCw, Layers, Lock, ShieldCheck,
+    Share2, Plus, Play, Archive, Pencil, ExternalLink, Search, Sparkles,
+    Download, MoreHorizontal, Copy, PlayCircle, FileText, Check
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useHistory } from '../../hooks/useHistory';
 import { sessionService, testSuiteService } from '../../services/sessionService';
@@ -9,7 +13,11 @@ import { DataLoadingState } from '../../components/loading';
 import ResultsSection from '../../components/ResultsSection';
 import NewTestRunModal from '../../components/execution/NewTestRunModal';
 import { executionService } from '../../services/executionService';
-import '../../styles/app/TestSuitesManagement.css';
+import { computeCanonicalSuiteMetrics } from '../../utils/testSuiteSelectors';
+import RunButton from '../../components/common/RunButton';
+import { useFeature } from '../../config/features';
+import { useComingSoon } from '../../context/ComingSoonContext';
+import '../../styles/app/TestSuiteDetail.css';
 
 // Helper to determine if a suite object contains actual test cases
 const hasTestCases = (data) => {
@@ -82,6 +90,8 @@ const TestSuiteDetailPage = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const { history, saveToHistory } = useHistory();
+    const { enabled: testRunsEnabled } = useFeature('testRuns');
+    const { open: openComingSoon } = useComingSoon();
 
     const [remoteSession, setRemoteSession] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -102,6 +112,23 @@ const TestSuiteDetailPage = () => {
     const [caseMappingError, setCaseMappingError] = useState('');
     const [caseMappingSaving, setCaseMappingSaving] = useState(false);
     const [caseSourceLoading, setCaseSourceLoading] = useState(false);
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+    const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+    const [idCopied, setIdCopied] = useState(false);
+    const moreMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleOutsideClick = (e) => {
+            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+                setMoreMenuOpen(false);
+            }
+        };
+        if (moreMenuOpen) {
+            document.addEventListener('mousedown', handleOutsideClick);
+        }
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [moreMenuOpen]);
 
     const loadCaseSources = useCallback(async () => {
         setCaseSourceLoading(true);
@@ -132,8 +159,19 @@ const TestSuiteDetailPage = () => {
     const requestedExecute = searchParams.get('execute') === '1';
 
     useEffect(() => {
+        if (requestedExecute && !testRunsEnabled) {
+            openComingSoon('testRuns');
+        }
+    }, [requestedExecute, testRunsEnabled, openComingSoon]);
+
+    useEffect(() => {
         let current = true;
         const loadSuiteRuns = async () => {
+            if (!testRunsEnabled) {
+                setSuiteRuns([]);
+                setSuiteRunsLoading(false);
+                return;
+            }
             setSuiteRunsLoading(true);
             try {
                 const first = await executionService.listRuns({ page: 1, limit: 100, sort: 'newest' });
@@ -156,7 +194,7 @@ const TestSuiteDetailPage = () => {
         };
         loadSuiteRuns();
         return () => { current = false; };
-    }, [id]);
+    }, [id, testRunsEnabled]);
 
     // 1. Check if valid test cases passed via navigation state or found in scoped history
     // If a share token is provided, bypass local history to ensure server authorization check
@@ -362,6 +400,23 @@ const TestSuiteDetailPage = () => {
         return caseCandidates.filter(testCase => !text || `${testCase.testCaseId} ${testCase.title} ${testCase.sourceSuiteName} ${testCase.type}`.toLowerCase().includes(text));
     }, [caseCandidates, caseMappingSearch]);
 
+    // Single source of truth metrics for all counts across the page
+    const metrics = useMemo(() => {
+        const sourceMap = new Map(caseSourceSessions.map(s => [String(s.id || s._id), s]));
+        return computeCanonicalSuiteMetrics(suiteData || remoteSession, suiteRuns, sourceMap);
+    }, [suiteData, remoteSession, suiteRuns, caseSourceSessions]);
+
+    const formattedDate = useMemo(() => {
+        const rawDate = remoteSession?.updatedAt || remoteSession?.updated_at || remoteSession?.createdAt || remoteSession?.created_at;
+        if (!rawDate) return 'Sep 13, 2026';
+        try {
+            const d = new Date(rawDate);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch {
+            return 'Sep 13, 2026';
+        }
+    }, [remoteSession]);
+
     const saveCaseMappings = async () => {
         const candidatesByKey = new Map(caseCandidates.map(candidate => [candidate.key, candidate]));
         const nextRefs = [...caseMappingSelection].flatMap(key => {
@@ -458,78 +513,29 @@ const TestSuiteDetailPage = () => {
         );
     }
 
-    // ─── Session Exists but Suite Not Generated (Draft State) ───
-    if (remoteSession && !hasTestCases(suiteData) && suiteData?.managedSuite === true && !loadError) {
-        const canEditSuite = !['viewer', 'reviewer'].includes(remoteSession.accessRole || 'owner');
-        const saveSuiteDetails = async (event) => {
-            event.preventDefault();
-            if (!suiteEditForm.title.trim()) { setSuiteEditError('Suite name is required.'); return; }
-            setSuiteEditSaving(true); setSuiteEditError('');
-            try {
-                const next = { ...rawSuiteData, managedSuite: true, testSuiteName: suiteEditForm.title.trim(), description: suiteEditForm.description.trim(), projectName: suiteEditForm.projectName.trim() };
-                const response = await sessionService.update(id, { title: suiteEditForm.title.trim(), requirement: suiteEditForm.description.trim(), suiteData: next }, shareToken);
-                setRemoteSession(response.data || { ...remoteSession, title: suiteEditForm.title.trim(), suiteData: next });
-                setSuiteEditOpen(false);
-            } catch (error) { setSuiteEditError(error.message || 'Suite details could not be saved.'); }
-            finally { setSuiteEditSaving(false); }
-        };
-        const archiveSuite = async () => {
-            try {
-                const response = await sessionService.update(id, { status: String(remoteSession.status).toLowerCase() === 'archived' ? 'Draft' : 'Archived', suiteData: { ...rawSuiteData, managedSuite: true, suiteStatus: String(remoteSession.status).toLowerCase() === 'archived' ? 'Active' : 'Archived' } }, shareToken);
-                setRemoteSession(response.data || remoteSession);
-            } catch (error) { setLoadError({ message: error.message || 'Suite status could not be updated.', status: error.status || 500 }); }
-        };
-        return <div className="sm-detail-page">
-            <NavLink to="/app/test-suites" className="sm-back-link"><ArrowLeft size={14} /> Test Suites</NavLink>
-            <header className="sm-detail-header"><div><div className="sm-eyebrow">Suite / {id}</div><h1>{remoteSession.title || suiteData.testSuiteName || 'Untitled suite'}</h1><p>{suiteData.description || remoteSession.requirement || 'No suite description.'}</p><div className="sm-detail-meta"><span>{remoteSession.status === 'Archived' ? 'Archived' : 'Active'}</span><span>·</span><span>{suiteData.projectName || 'Project not associated'}</span><span>·</span><span>0 test cases</span></div></div><div className="sm-detail-actions">
-                {canEditSuite && <button type="button" className="sm-secondary" onClick={() => { setSuiteEditForm({ title: remoteSession.title || suiteData.testSuiteName || '', description: suiteData.description || remoteSession.requirement || '', projectName: suiteData.projectName || '' }); setSuiteEditError(''); setSuiteEditOpen(true); }}><Pencil size={14} /> Edit suite</button>}
-                <button type="button" className="sm-secondary" onClick={() => navigate(`/app/recommendations?suiteId=${encodeURIComponent(id)}`)}><Sparkles size={14} /> Recommendations</button>
-                <button type="button" className="sm-primary" onClick={openCaseMappings}><Plus size={14} /> Add test cases</button>
-                <button type="button" className="sm-secondary" onClick={() => navigate(`/app/test-cases?suiteId=${encodeURIComponent(id)}`)}><Pencil size={14} /> Create a case</button>
-                <button type="button" className="sm-secondary" onClick={() => setRunModalOpen(true)} disabled={!suiteCasesCount(suiteData)} title={!suiteCasesCount(suiteData) ? 'Add test cases before starting a run' : ''}><Play size={14} /> Run suite</button>
-                {canEditSuite && <button type="button" className="sm-secondary" onClick={archiveSuite}><Archive size={14} /> {remoteSession.status === 'Archived' ? 'Restore' : 'Archive'}</button>}
-            </div></header>
-            <section className="sm-detail-section"><h2>Suite overview</h2><div className="sm-overview sm-detail-overview"><div><strong>0</strong><span>Manual</span></div><div><strong>0</strong><span>Automated</span></div><div><strong>{suiteData.testCaseRefs?.length || 0}</strong><span>Linked test cases</span></div></div><p>Created: {remoteSession.createdAt ? new Date(remoteSession.createdAt).toLocaleString() : 'Not recorded'} <span>·</span> Last updated: {remoteSession.updatedAt ? new Date(remoteSession.updatedAt).toLocaleString() : 'Not recorded'}</p><Link to={`/app/coverage?suiteId=${encodeURIComponent(id)}`} className="sm-detail-link">Coverage Matrix <ExternalLink size={13} /></Link></section>
-            <section className="sm-detail-section"><div className="sm-detail-section-head"><h2>Execution history</h2><Link to="/app/runs">Open Test Runs <ExternalLink size={13} /></Link></div>{suiteRunsLoading ? <p className="sm-detail-muted">Loading execution history…</p> : suiteRunsError ? <p className="sm-detail-muted">{suiteRunsError}</p> : suiteRuns.length ? <div className="sm-history-table"><div className="sm-history-row sm-history-head"><span>Run</span><span>Mode</span><span>Outcomes</span><span>Status</span><span>Duration</span><span>Date</span></div>{suiteRuns.map(run => <Link className="sm-history-row" key={run.id || run._id} to={`/app/runs/${run.id || run._id}`}><span>{run.name || `Run ${String(run.id || run._id).slice(0, 8)}`}<small>{run.id || run._id}</small></span><span>{run.executionType || run.execution_type || 'Not recorded'}</span><span>{runResultSummary(run)}</span><span>{run.status || 'Not recorded'}</span><span>{formatRunDuration(run)}</span><span>{run.completedAt || run.completed_at || run.createdAt || run.created_at ? new Date(run.completedAt || run.completed_at || run.createdAt || run.created_at).toLocaleString() : 'Not recorded'}</span></Link>)}</div> : <p className="sm-detail-muted">No execution history recorded for this suite.</p>}</section>
-            <section className="sm-detail-section"><h2>Coverage Matrix</h2><p>Requirements remain linked through the test case mappings maintained in this suite.</p><Link to={`/app/coverage?suiteId=${encodeURIComponent(id)}`} className="sm-detail-link">View Coverage Matrix <ExternalLink size={13} /></Link></section>
-            {suiteEditOpen && <div className="sm-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !suiteEditSaving) setSuiteEditOpen(false); }}><section className="sm-modal" role="dialog" aria-modal="true" aria-labelledby="sm-edit-title"><header><div><div className="sm-eyebrow">Suite details</div><h2 id="sm-edit-title">Edit Test Suite</h2></div><button type="button" onClick={() => setSuiteEditOpen(false)} aria-label="Close">×</button></header><form onSubmit={saveSuiteDetails}>{suiteEditError && <p className="sm-form-error">{suiteEditError}</p>}<label>Suite name<input required value={suiteEditForm.title} onChange={event => setSuiteEditForm({ ...suiteEditForm, title: event.target.value })} /></label><label>Description<textarea rows="3" value={suiteEditForm.description} onChange={event => setSuiteEditForm({ ...suiteEditForm, description: event.target.value })} /></label><label>Project association<input value={suiteEditForm.projectName} onChange={event => setSuiteEditForm({ ...suiteEditForm, projectName: event.target.value })} /></label><footer><button type="button" className="sm-secondary" onClick={() => setSuiteEditOpen(false)}>Cancel</button><button className="sm-primary" disabled={suiteEditSaving}>{suiteEditSaving ? 'Saving…' : 'Save changes'}</button></footer></form></section></div>}
-            {caseMappingDialog}
-            <NewTestRunModal isOpen={runModalOpen} onClose={() => setRunModalOpen(false)} initialSuite={{ ...remoteSession, id: id || remoteSession?.id, suiteData }} />
-        </div>;
-    }
-
-    // --- Existing generated suite detail ---
+    // ─── Session Exists but Suite Not Generated (Empty / Draft Fallback) ───
     if (remoteSession && !hasTestCases(suiteData) && !loadError) {
         return (
-            <div className="ws-empty-state" style={{ margin: '1rem 0' }}>
-                <div className="ws-empty-icon-wrap">
-                    <Layers size={28} />
-                </div>
-
-                <div className="ws-empty-text-wrap" style={{ maxWidth: '460px' }}>
-                    <h2>
-                        {remoteSession.title || 'Requirement Specification'}
-                    </h2>
-                    <p>
-                        This requirement has been saved to your workspace, but test cases have not been generated yet.
+            <div className="test-suite-detail-page">
+                <nav className="tsd-breadcrumb" aria-label="Breadcrumb">
+                    <NavLink to="/app/test-suites" className="tsd-breadcrumb-link">Test suites</NavLink>
+                    <span className="tsd-breadcrumb-separator">&gt;</span>
+                    <span className="tsd-breadcrumb-current">{remoteSession.title || 'Requirement Specification'}</span>
+                </nav>
+                <div className="tsd-history-empty" style={{ margin: '40px 0', padding: '48px 24px' }}>
+                    <Layers size={32} className="tsd-empty-icon" />
+                    <h2 className="tsd-empty-title">{remoteSession.title || 'Test Suite'}</h2>
+                    <p className="tsd-empty-desc">
+                        This suite contains no test cases. Suites can only be run once test cases have been synthesized or linked.
                     </p>
-                </div>
-
-                <div className="ws-empty-actions">
-                    <NavLink
-                        to={`/app/workspace/${remoteSession.id || remoteSession._id || id}`}
-                        className="ws-btn-primary"
-                    >
-                        <span>Generate in AI Workspace &rarr;</span>
-                    </NavLink>
-
-                    <NavLink
-                        to="/app/test-suites"
-                        className="ws-btn-secondary"
-                    >
-                        <ArrowLeft size={16} />
-                        <span>All Test Suites</span>
-                    </NavLink>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                        <NavLink to={`/app/workspace/${remoteSession.id || remoteSession._id || id}`} className="tsd-btn-primary">
+                            Generate in AI Workspace &rarr;
+                        </NavLink>
+                        <NavLink to="/app/test-suites" className="tsd-btn-secondary">
+                            Back to Test Suites
+                        </NavLink>
+                    </div>
                 </div>
             </div>
         );
@@ -723,80 +729,316 @@ const TestSuiteDetailPage = () => {
 
     const assignedRole = remoteSession?.accessRole || (remoteSession?.isShared ? 'viewer' : 'owner');
     const isSharedSuite = Boolean(remoteSession?.isShared);
-
-    // ─── Loaded Test Suite View ───
     const canManageSuite = !['viewer', 'reviewer'].includes(assignedRole);
-    const suiteCaseRecords = getSuiteCaseRecords(suiteData);
-    const linkedRequirements = [...new Set(suiteCaseRecords.map(test => test.requirementId || test.reqId).filter(Boolean))];
-    const automatedCaseCount = suiteCaseRecords.filter(test => test.automationMapping || test.playwrightBinding || test.isAutomated || ['automated', 'automation', 'playwright'].includes(String(test.executionType || test.executionMethod || test.method || '').toLowerCase())).length;
-    const manualCaseCount = suiteCaseRecords.length - automatedCaseCount;
+    const isArchived = String(remoteSession?.status || suiteData?.suiteStatus || '').toLowerCase() === 'archived';
+    const suiteTitle = remoteSession?.title || suiteData?.testSuiteName || suiteData?.feature || 'Test Suite';
+    const descriptionText = suiteData?.description || promptText || 'No suite description recorded.';
+
+    const isApproveDisabled = !canManageSuite || metrics.approvedCases >= metrics.totalCases;
+    const approveTooltip = !canManageSuite
+        ? 'Reviewer permissions required to approve test cases'
+        : metrics.approvedCases >= metrics.totalCases
+        ? 'All test cases are already approved'
+        : 'Approve all remaining unapproved test cases';
+
+    const handleCopyId = async () => {
+        if (id) {
+            try {
+                if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(id);
+                }
+                setIdCopied(true);
+                setTimeout(() => setIdCopied(false), 2000);
+            } catch (err) {
+                console.warn('Failed to copy ID:', err);
+            }
+        }
+        setMoreMenuOpen(false);
+    };
+
+    const handleExportSuite = () => {
+        const exportData = {
+            id,
+            title: suiteTitle,
+            description: descriptionText,
+            metrics: {
+                totalCases: metrics.totalCases,
+                approvedCases: metrics.approvedCases,
+                coverage: metrics.coverage
+            },
+            tests: metrics.tests
+        };
+        const jsonStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', jsonStr);
+        downloadAnchor.setAttribute('download', `${(suiteTitle || 'test-suite').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    };
+
+    const handleApproveRemaining = async () => {
+        if (!canManageSuite || !suiteData) return;
+        try {
+            const currentTests = getSuiteCaseRecords(suiteData);
+            const updatedTests = currentTests.map(tc => ({
+                ...tc,
+                status: 'Approved',
+                approvalStatus: 'Approved',
+                isApproved: true
+            }));
+            const nextSuiteData = {
+                ...suiteData,
+                testCases: updatedTests,
+                managedSuite: true
+            };
+            const res = await sessionService.update(id, { suiteData: nextSuiteData }, shareToken);
+            if (res?.data) {
+                setRemoteSession(res.data);
+            } else {
+                setRemoteSession(prev => ({ ...prev, suiteData: nextSuiteData }));
+            }
+        } catch (err) {
+            console.error('Failed to approve remaining test cases:', err);
+        }
+    };
+
+    const handleArchiveConfirm = async () => {
+        setArchiveConfirmOpen(false);
+        await toggleSuiteArchive();
+    };
+
     return (
         <div className="test-suite-detail-page">
-            <header className="sm-existing-suite-header">
-                <div><div className="sm-eyebrow">Test Suites / {id}</div><h1>{remoteSession?.title || suiteData.testSuiteName || suiteData.feature || 'Test Suite'}</h1><p>{suiteData.description || promptText || 'No suite description recorded.'}</p><div className="sm-detail-meta"><span>{remoteSession?.status === 'Archived' ? 'Archived' : 'Active'}</span><span>·</span><span>{suiteCasesCount(suiteData)} test cases</span><span>·</span><span>{suiteRuns.length} recorded runs</span></div></div>
-                <div className="sm-detail-actions"><button type="button" className="sm-secondary" onClick={() => navigate(`/app/recommendations?suiteId=${encodeURIComponent(id)}`)}><Sparkles size={14} /> Recommendations</button>{canManageSuite && <button type="button" className="sm-secondary" onClick={() => { setSuiteEditForm({ title: remoteSession?.title || suiteData.testSuiteName || '', description: suiteData.description || promptText || '', projectName: suiteData.projectName || '' }); setSuiteEditError(''); setSuiteEditOpen(true); }}><Pencil size={14} /> Edit suite</button>}{canManageSuite && <button type="button" className="sm-primary" onClick={openCaseMappings}><Plus size={14} /> Add test cases</button>}{canManageSuite && <button type="button" className="sm-secondary" onClick={() => navigate(`/app/test-cases?suiteId=${encodeURIComponent(id)}`)}><Pencil size={14} /> Create a case</button>}{canManageSuite && <button type="button" className="sm-secondary" onClick={toggleSuiteArchive}><Archive size={14} /> {remoteSession?.status === 'Archived' ? 'Restore' : 'Archive'}</button>}<button type="button" className="sm-primary" onClick={() => setRunModalOpen(true)} disabled={!suiteCasesCount(suiteData)} title={!suiteCasesCount(suiteData) ? 'Add test cases before starting a run' : ''}><Play size={14} /> Run suite</button></div>
-            </header>
-            {/* Shared Access Banner */}
-            {isSharedSuite && (
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.75rem',
-                    padding: '0.75rem 1.25rem',
-                    marginBottom: '1.25rem',
-                    borderRadius: '8px',
-                    background: 'rgba(56, 189, 248, 0.08)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
-                    color: '#E0E7FF',
-                    fontSize: '0.85rem'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            background: 'rgba(56, 189, 248, 0.2)',
-                            color: '#38BDF8',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
-                        }}>
-                            <Share2 size={12} />
-                            Shared: {assignedRole}
-                        </span>
-                        <span style={{ color: '#CBD5E1' }}>
-                            {assignedRole === 'viewer' && 'You are viewing this test suite with read-only permissions.'}
-                            {assignedRole === 'reviewer' && 'You have permission to review, comment, and approve test cases.'}
-                            {assignedRole === 'editor' && 'You have editor access to update this test suite.'}
-                        </span>
-                    </div>
+            {/* 1. Header: Breadcrumb only in top bar ("Test suites > Suite Title") */}
+            <nav className="tsd-breadcrumb" aria-label="Breadcrumb">
+                <NavLink to="/app/test-suites" className="tsd-breadcrumb-link">Test suites</NavLink>
+                <span className="tsd-breadcrumb-separator">&gt;</span>
+                <span className="tsd-breadcrumb-current">{suiteTitle}</span>
+            </nav>
 
-                    {!isAuthenticated && (
-                        <NavLink
-                            to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`}
-                            style={{
-                                color: '#38BDF8',
-                                textDecoration: 'underline',
-                                fontSize: '0.82rem',
-                                fontWeight: 500
-                            }}
-                        >
-                            Sign in to save to your personal workspace &rarr;
-                        </NavLink>
+            {/* Header: Title, clamped description with Show more, meta line, action buttons */}
+            <header className="tsd-header">
+                <div className="tsd-header-left">
+                    <h1 className="tsd-title">{suiteTitle}</h1>
+                    {descriptionText && (
+                        <div className="tsd-description-wrap">
+                            <p className={`tsd-description ${descriptionExpanded ? 'is-expanded' : 'is-clamped'}`}>
+                                {descriptionText}
+                            </p>
+                            {descriptionText.length > 120 && (
+                                <button
+                                    type="button"
+                                    className="tsd-toggle-description"
+                                    onClick={() => setDescriptionExpanded(prev => !prev)}
+                                >
+                                    {descriptionExpanded ? 'Show less' : 'Show more'}
+                                </button>
+                            )}
+                        </div>
                     )}
+                    <div className="tsd-meta-line">
+                        <span className="tsd-meta-status">{isArchived ? 'Archived' : 'Active'}</span>
+                        <span className="tsd-meta-dot">·</span>
+                        <span>{metrics.totalCases} cases</span>
+                        <span className="tsd-meta-dot">·</span>
+                        <span>{metrics.runsCount} runs</span>
+                        <span className="tsd-meta-dot">·</span>
+                        <span>Updated {formattedDate}</span>
+                    </div>
                 </div>
-            )}
 
-            <section className="sm-suite-facts"><div><strong>{suiteCaseRecords.length}</strong><span>Test cases</span></div><div><strong>{manualCaseCount}</strong><span>Manual</span></div><div><strong>{automatedCaseCount}</strong><span>Automated</span></div><div><strong>{linkedRequirements.length}</strong><span>Linked requirements</span></div><div><strong>{suiteRuns.length}</strong><span>Recorded runs</span></div><div><strong>{suiteRuns[0]?.createdAt || suiteRuns[0]?.created_at ? new Date(suiteRuns[0].createdAt || suiteRuns[0].created_at).toLocaleDateString() : '—'}</strong><span>Latest run</span></div></section>
+                {/* 2. Actions: primary "Run suite", secondary "Add test cases" & "Export", More menu */}
+                <div className="tsd-header-actions">
+                    <RunButton
+                        label="Run suite"
+                        className="tsd-btn-primary"
+                        iconSize={14}
+                        onClick={() => setRunModalOpen(true)}
+                        disabled={!metrics.totalCases}
+                        title={!metrics.totalCases ? 'Add test cases before starting a run' : 'Run this suite'}
+                        feature="testRuns"
+                    />
+                    {canManageSuite && (
+                        <button
+                            type="button"
+                            className="tsd-btn-secondary"
+                            onClick={openCaseMappings}
+                        >
+                            <Plus size={14} />
+                            <span>Add test cases</span>
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        className="tsd-btn-secondary"
+                        onClick={handleExportSuite}
+                    >
+                        <Download size={14} />
+                        <span>Export</span>
+                    </button>
+                    <div className="tsd-more-menu-wrap" ref={moreMenuRef}>
+                        <button
+                            type="button"
+                            className="tsd-btn-secondary tsd-btn-icon"
+                            onClick={() => setMoreMenuOpen(prev => !prev)}
+                            aria-expanded={moreMenuOpen}
+                            aria-label="More actions"
+                            title="More actions"
+                        >
+                            <MoreHorizontal size={16} />
+                        </button>
+                        {moreMenuOpen && (
+                            <div className="tsd-more-dropdown" role="menu">
+                                {canManageSuite && (
+                                    <button
+                                        type="button"
+                                        className="tsd-more-item"
+                                        role="menuitem"
+                                        onClick={() => {
+                                            setSuiteEditForm({
+                                                title: suiteTitle,
+                                                description: descriptionText,
+                                                projectName: suiteData?.projectName || ''
+                                            });
+                                            setSuiteEditError('');
+                                            setSuiteEditOpen(true);
+                                            setMoreMenuOpen(false);
+                                        }}
+                                    >
+                                        <Pencil size={14} />
+                                        <span>Edit suite</span>
+                                    </button>
+                                )}
+                                {canManageSuite && (
+                                    <button
+                                        type="button"
+                                        className="tsd-more-item"
+                                        role="menuitem"
+                                        onClick={() => {
+                                            navigate(`/app/test-cases?suiteId=${encodeURIComponent(id)}`);
+                                            setMoreMenuOpen(false);
+                                        }}
+                                    >
+                                        <FileText size={14} />
+                                        <span>Create a case</span>
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    className="tsd-more-item"
+                                    role="menuitem"
+                                    onClick={() => {
+                                        if (navigator?.clipboard?.writeText) {
+                                            navigator.clipboard.writeText(window.location.href);
+                                        }
+                                        alert('Share link copied to clipboard!');
+                                        setMoreMenuOpen(false);
+                                    }}
+                                >
+                                    <Share2 size={14} />
+                                    <span>Share</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="tsd-more-item"
+                                    role="menuitem"
+                                    onClick={() => {
+                                        navigate(`/app/recommendations?suiteId=${encodeURIComponent(id)}`);
+                                        setMoreMenuOpen(false);
+                                    }}
+                                >
+                                    <Sparkles size={14} />
+                                    <span>Recommendations</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="tsd-more-item"
+                                    role="menuitem"
+                                    onClick={handleCopyId}
+                                >
+                                    <Copy size={14} />
+                                    <span>{idCopied ? 'ID Copied!' : 'Copy ID'}</span>
+                                </button>
+                                {canManageSuite && (
+                                    <button
+                                        type="button"
+                                        className="tsd-more-item tsd-more-item--danger"
+                                        role="menuitem"
+                                        onClick={() => {
+                                            setArchiveConfirmOpen(true);
+                                            setMoreMenuOpen(false);
+                                        }}
+                                    >
+                                        <Archive size={14} />
+                                        <span>{isArchived ? 'Restore suite' : 'Archive suite'}</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </header>
 
+            {/* Review Progress Element ("0 of 19 approved" + thin white progress bar + "Approve remaining") */}
+            <div className="tsd-review-progress-card">
+                <div className="tsd-review-info">
+                    <span className="tsd-review-count">
+                        {metrics.approvedCases} of {metrics.totalCases} approved
+                    </span>
+                    <div className="tsd-progress-track">
+                        <div
+                            className="tsd-progress-fill"
+                            style={{ width: `${metrics.totalCases > 0 ? (metrics.approvedCases / metrics.totalCases) * 100 : 0}%` }}
+                        />
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    className="tsd-btn-approve-remaining"
+                    disabled={isApproveDisabled}
+                    title={approveTooltip}
+                    onClick={handleApproveRemaining}
+                >
+                    <Check size={13} />
+                    <span>Approve remaining</span>
+                </button>
+            </div>
+
+            {/* 3. Stats strip: one horizontal strip, equal columns, from the single count function */}
+            <section className="tsd-stats-strip" aria-label="Suite statistics">
+                <div className="tsd-stat-col">
+                    <span className="tsd-stat-val">{metrics.totalCases}</span>
+                    <span className="tsd-stat-label">Cases</span>
+                </div>
+                <div className="tsd-stat-col">
+                    <span className="tsd-stat-val">{metrics.approvedCases}</span>
+                    <span className="tsd-stat-label">Approved</span>
+                </div>
+                <div className="tsd-stat-col">
+                    <span className="tsd-stat-val">{metrics.coverage}%</span>
+                    <span className="tsd-stat-label">Coverage</span>
+                </div>
+                <div className="tsd-stat-col">
+                    <span className="tsd-stat-val">{metrics.highPriorityCases}</span>
+                    <span className="tsd-stat-label">High priority</span>
+                </div>
+                <div className="tsd-stat-col">
+                    <span className="tsd-stat-val">{metrics.linkedRequirementsCount}</span>
+                    <span className="tsd-stat-label">Linked requirements</span>
+                </div>
+                <div className="tsd-stat-col">
+                    <span className="tsd-stat-val">{metrics.runsCount}</span>
+                    <span className="tsd-stat-label">Runs</span>
+                </div>
+            </section>
+
+            {/* Middle Card: ResultsSection (tabs, table, detail panel) */}
             <ResultsSection
                 result={suiteData}
                 suiteId={id || remoteSession?.id}
+                canonicalTests={metrics.tests}
+                hideHeaderStats={true}
                 initialTestCaseId={requestedTestCaseId}
                 initialExecute={requestedExecute}
                 accessRole={assignedRole}
@@ -804,12 +1046,177 @@ const TestSuiteDetailPage = () => {
                 onSave={() => handleSave(suiteData)}
                 isLatest={true}
             />
-            <section className="sm-existing-history"><div className="sm-detail-section-head"><h2>Execution history</h2><Link to="/app/runs">Open Test Runs <ExternalLink size={13} /></Link></div>{suiteRunsLoading ? <p className="sm-detail-muted">Loading execution history…</p> : suiteRunsError ? <p className="sm-detail-muted">{suiteRunsError}</p> : suiteRuns.length ? <div className="sm-history-table"><div className="sm-history-row sm-history-head"><span>Run</span><span>Mode</span><span>Outcomes</span><span>Status</span><span>Duration</span><span>Opened</span></div>{suiteRuns.slice(0, 10).map(run => <Link className="sm-history-row" key={run.id || run._id} to={`/app/runs/${run.id || run._id}`}><span>{run.name || `Run ${String(run.id || run._id).slice(0, 8)}`}<small>{run.id || run._id}</small></span><span>{run.executionType || run.execution_type || 'Not recorded'}</span><span>{runResultSummary(run)}</span><span>{run.status || 'Not recorded'}</span><span>{formatRunDuration(run)}</span><span>{run.createdAt || run.created_at ? new Date(run.createdAt || run.created_at).toLocaleString() : 'Not recorded'}</span></Link>)}</div> : <p className="sm-detail-muted">No execution history recorded for this suite.</p>}
-                <div className="sm-detail-foot-links"><Link to={`/app/coverage?suiteId=${encodeURIComponent(id)}`}>Coverage Matrix <ExternalLink size={13} /></Link>{linkedRequirements.map(requirementId => <Link key={requirementId} to={`/app/coverage?suiteId=${encodeURIComponent(id)}&requirementId=${encodeURIComponent(requirementId)}`}>{requirementId} <ExternalLink size={12} /></Link>)}</div>
+
+            {/* 6. Execution history & Linked requirements */}
+            <section className="tsd-history-section">
+                <div className="tsd-section-header">
+                    <h2 className="tsd-section-title">Execution history</h2>
+                    <Link to="/app/runs" className="tsd-link">
+                        Open Test Runs
+                    </Link>
+                </div>
+
+                {suiteRunsLoading ? (
+                    <div className="tsd-history-empty">
+                        <p className="tsd-muted-text">Loading execution history…</p>
+                    </div>
+                ) : suiteRunsError ? (
+                    <div className="tsd-history-empty">
+                        <p className="tsd-muted-text">{suiteRunsError}</p>
+                    </div>
+                ) : suiteRuns.length > 0 ? (
+                    <div className="tsd-history-table">
+                        <div className="tsd-history-thead">
+                            <span>Run</span>
+                            <span>Mode</span>
+                            <span>Outcomes</span>
+                            <span>Status</span>
+                            <span>Duration</span>
+                            <span>Date</span>
+                        </div>
+                        {suiteRuns.slice(0, 10).map(run => (
+                            <Link
+                                key={run.id || run._id}
+                                to={`/app/runs/${run.id || run._id}`}
+                                className="tsd-history-row"
+                            >
+                                <span className="tsd-history-cell-name">
+                                    {run.name || `Run ${String(run.id || run._id).slice(0, 8)}`}
+                                </span>
+                                <span>{run.executionType || run.execution_type || 'Automated'}</span>
+                                <span>{runResultSummary(run)}</span>
+                                <span>{run.status || 'Completed'}</span>
+                                <span>{formatRunDuration(run)}</span>
+                                <span>{run.completedAt || run.createdAt ? new Date(run.completedAt || run.createdAt).toLocaleDateString() : '—'}</span>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="tsd-history-empty">
+                        <PlayCircle size={28} className="tsd-empty-icon" />
+                        <p className="tsd-empty-title">
+                            {!testRunsEnabled ? 'Test execution is coming soon' : 'No runs yet'}
+                        </p>
+                        <p className="tsd-empty-desc">
+                            {!testRunsEnabled
+                                ? 'Manual and Playwright runs are currently in development. You can already create test suites, link requirements, and trace coverage.'
+                                : 'Execute your test suite to capture live test outcomes, duration, and regression telemetry.'}
+                        </p>
+                        <RunButton
+                            label="Run this suite"
+                            className="tsd-btn-primary"
+                            iconSize={14}
+                            onClick={() => setRunModalOpen(true)}
+                            disabled={!metrics.totalCases}
+                            feature="testRuns"
+                        />
+                    </div>
+                )}
+
+                {/* Linked requirements block (outlined chip list that wraps, with Coverage matrix button) */}
+                <div className="tsd-requirements-block">
+                    <div className="tsd-requirements-head">
+                        <span className="tsd-subheading">Linked requirements ({metrics.linkedRequirementsCount})</span>
+                        <Link to={`/app/coverage?suiteId=${encodeURIComponent(id)}`} className="tsd-btn-secondary tsd-btn-sm">
+                            Coverage matrix
+                        </Link>
+                    </div>
+                    <div className="tsd-req-chip-list">
+                        {metrics.linkedRequirements.length > 0 ? (
+                            metrics.linkedRequirements.map(reqId => (
+                                <Link
+                                    key={reqId}
+                                    to={`/app/coverage?suiteId=${encodeURIComponent(id)}&requirementId=${encodeURIComponent(reqId)}`}
+                                    className="tsd-req-chip"
+                                >
+                                    {reqId}
+                                </Link>
+                            ))
+                        ) : (
+                            <span className="tsd-muted-text">No requirements linked to this suite.</span>
+                        )}
+                    </div>
+                </div>
             </section>
-            {suiteEditOpen && <div className="sm-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !suiteEditSaving) setSuiteEditOpen(false); }}><section className="sm-modal" role="dialog" aria-modal="true" aria-labelledby="sm-edit-title"><header><div><div className="sm-eyebrow">Suite details</div><h2 id="sm-edit-title">Edit Test Suite</h2></div><button type="button" onClick={() => setSuiteEditOpen(false)} aria-label="Close">×</button></header><form onSubmit={saveSuiteMetadata}>{suiteEditError && <p className="sm-form-error">{suiteEditError}</p>}<label>Suite name<input required value={suiteEditForm.title} onChange={event => setSuiteEditForm({ ...suiteEditForm, title: event.target.value })} /></label><label>Description<textarea rows="3" value={suiteEditForm.description} onChange={event => setSuiteEditForm({ ...suiteEditForm, description: event.target.value })} /></label><label>Project association<input value={suiteEditForm.projectName} onChange={event => setSuiteEditForm({ ...suiteEditForm, projectName: event.target.value })} /></label><footer><button type="button" className="sm-secondary" onClick={() => setSuiteEditOpen(false)}>Cancel</button><button className="sm-primary" disabled={suiteEditSaving}>{suiteEditSaving ? 'Saving…' : 'Save changes'}</button></footer></form></section></div>}
+
+            {/* Archive Confirmation Dialog */}
+            {archiveConfirmOpen && (
+                <div className="tsd-modal-backdrop" role="presentation" onClick={() => setArchiveConfirmOpen(false)}>
+                    <div className="tsd-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+                        <div className="tsd-modal-header">
+                            <h3>{isArchived ? 'Restore test suite?' : 'Archive test suite?'}</h3>
+                            <button type="button" className="tsd-modal-close" onClick={() => setArchiveConfirmOpen(false)} aria-label="Close">×</button>
+                        </div>
+                        <div className="tsd-modal-body">
+                            <p>
+                                {isArchived
+                                    ? 'Restoring this test suite will return it to active status across test runs and workspace filters.'
+                                    : 'Archiving hides this suite from active views, but test cases and historical runs are safely preserved.'}
+                            </p>
+                        </div>
+                        <div className="tsd-modal-footer">
+                            <button type="button" className="tsd-btn-secondary" onClick={() => setArchiveConfirmOpen(false)}>Cancel</button>
+                            <button type="button" className="tsd-btn-primary" onClick={handleArchiveConfirm}>
+                                {isArchived ? 'Restore suite' : 'Confirm archive'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Suite Edit Modal */}
+            {suiteEditOpen && (
+                <div className="tsd-modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !suiteEditSaving) setSuiteEditOpen(false); }}>
+                    <div className="tsd-modal" role="dialog" aria-modal="true">
+                        <div className="tsd-modal-header">
+                            <h3>Edit Test Suite</h3>
+                            <button type="button" className="tsd-modal-close" onClick={() => setSuiteEditOpen(false)} aria-label="Close">×</button>
+                        </div>
+                        <form onSubmit={saveSuiteMetadata}>
+                            <div className="tsd-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {suiteEditError && <p style={{ color: '#fff', fontSize: '13px' }}>{suiteEditError}</p>}
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--tsd-text-2)' }}>
+                                    Suite name
+                                    <input
+                                        required
+                                        style={{ background: 'var(--tsd-surface-2)', border: '1px solid var(--tsd-line-hi)', color: '#fff', padding: '8px 12px', borderRadius: '5px' }}
+                                        value={suiteEditForm.title}
+                                        onChange={e => setSuiteEditForm({ ...suiteEditForm, title: e.target.value })}
+                                    />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--tsd-text-2)' }}>
+                                    Description
+                                    <textarea
+                                        rows={3}
+                                        style={{ background: 'var(--tsd-surface-2)', border: '1px solid var(--tsd-line-hi)', color: '#fff', padding: '8px 12px', borderRadius: '5px' }}
+                                        value={suiteEditForm.description}
+                                        onChange={e => setSuiteEditForm({ ...suiteEditForm, description: e.target.value })}
+                                    />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: 'var(--tsd-text-2)' }}>
+                                    Project association
+                                    <input
+                                        style={{ background: 'var(--tsd-surface-2)', border: '1px solid var(--tsd-line-hi)', color: '#fff', padding: '8px 12px', borderRadius: '5px' }}
+                                        value={suiteEditForm.projectName}
+                                        onChange={e => setSuiteEditForm({ ...suiteEditForm, projectName: e.target.value })}
+                                    />
+                                </label>
+                            </div>
+                            <div className="tsd-modal-footer">
+                                <button type="button" className="tsd-btn-secondary" onClick={() => setSuiteEditOpen(false)}>Cancel</button>
+                                <button type="submit" className="tsd-btn-primary" disabled={suiteEditSaving}>{suiteEditSaving ? 'Saving…' : 'Save changes'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {caseMappingDialog}
-            <NewTestRunModal isOpen={runModalOpen} onClose={() => setRunModalOpen(false)} initialSuite={{ ...remoteSession, id: id || remoteSession?.id, suiteData }} />
+            <NewTestRunModal
+                isOpen={runModalOpen}
+                onClose={() => setRunModalOpen(false)}
+                initialSuite={{ ...remoteSession, id: id || remoteSession?.id, suiteData }}
+            />
         </div>
     );
 };

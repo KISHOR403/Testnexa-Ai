@@ -16,25 +16,158 @@ const CASE_KEYS = [
 ];
 
 /**
- * Unwrap nested suite data structures from various database formats
+ * Sanitizes test data and preconditions to replace realistic credentials,
+ * passwords, and cards with standardized placeholders.
  */
-export const unwrapSuiteData = (record) => {
-    const value = record?.suiteData || record?.suite_data || record?.suite || record?.data || {};
-    return value?.suiteData || value?.suite_data || value?.data || value;
+export const sanitizeCredentialPlaceholders = (value) => {
+    if (!value) return value;
+    if (typeof value === 'string') {
+        let str = value;
+        // 1. Credit card numbers (13 to 16 digits, with optional spaces or dashes)
+        str = str.replace(/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|(?:4[0-9]{3}|5[1-5][0-9]{2}|6011|7[0-9]{3})[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}|[0-9]{15,16})\b/g, '<mock_credit_card>');
+        // 2. Realistic test passwords
+        str = str.replace(/(password\s*(?:is|=|:)?\s*['"])(?:[^'"]+)(['"])/gi, "$1<valid_password>$2");
+        str = str.replace(/SecurePass123!|ValidPass123!?|Pass123|Ab1@5678|Secret123!?|Password999!?/gi, '<valid_password>');
+        str = str.replace(/WrongPass999!?|InvalidPass123!?/gi, '<invalid_password>');
+        // 3. User emails in test scenarios
+        str = str.replace(/[a-zA-Z0-9._%+-]+@(?:[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|example\.com|mail\.com|test\.com|gmail\.com|corp\.io)/gi, '<test_user_email>');
+        return str;
+    }
+    if (Array.isArray(value)) {
+        return value.map(v => sanitizeCredentialPlaceholders(v));
+    }
+    if (typeof value === 'object') {
+        const next = {};
+        for (const [k, v] of Object.entries(value)) {
+            next[k] = sanitizeCredentialPlaceholders(v);
+        }
+        return next;
+    }
+    return value;
+};
+
+export const SEVERITY_ALLOWLIST = ['Critical', 'Major', 'Minor', 'Trivial'];
+
+/**
+ * Validates that test case ID prefix, type, and title agree according to schema rules.
+ * Enforces severity allow-list and repairs mismatches.
+ * Sanitizes credentials to use placeholders.
+ */
+export const validateAndRepairTestCase = (tc, fallbackCategory = 'Functional') => {
+    if (!tc || typeof tc !== 'object') return tc;
+
+    const repaired = { ...tc };
+    const id = String(repaired.id || repaired.testCaseId || '').trim();
+    const title = String(repaired.title || repaired.testScenario || repaired.scenario || '').trim();
+
+    // 1. Determine canonical type from ID prefix
+    let canonicalType = repaired.type || fallbackCategory;
+    if (/^TC[_-]?FUNC/i.test(id) || /(?:^|_)func(?:_|$)/i.test(id)) {
+        canonicalType = 'Functional';
+    } else if (/^TC[_-]?NEG/i.test(id) || /(?:^|_)neg(?:_|$)/i.test(id)) {
+        canonicalType = 'Negative';
+    } else if (/^TC[_-]?EDGE/i.test(id) || /(?:^|_)edge(?:_|$)/i.test(id)) {
+        canonicalType = 'Edge Case';
+    } else if (/^TC[_-]?SEC/i.test(id) || /(?:^|_)sec(?:_|$)/i.test(id)) {
+        canonicalType = 'Security';
+    } else if (/^TC[_-]?API/i.test(id) || /(?:^|_)api(?:_|$)/i.test(id)) {
+        canonicalType = 'API';
+    } else if (/^TC[_-]?NF/i.test(id) || /(?:^|_)nf(?:_|$)/i.test(id)) {
+        canonicalType = 'Non-Functional';
+    }
+
+    // Happy-path functional flows must NOT be marked as Security
+    if (/login|auth|sign\s*in/i.test(title) && /success|valid/i.test(title)) {
+        if (/^TC[_-]?FUNC/i.test(id) || canonicalType === 'Functional') {
+            canonicalType = 'Functional';
+        }
+    }
+
+    repaired.type = canonicalType;
+
+    // 2. Validate and repair severity against allow-list
+    let rawSeverity = String(repaired.severity || '').trim();
+    let normalizedSeverity = SEVERITY_ALLOWLIST.find(s => s.toLowerCase() === rawSeverity.toLowerCase());
+
+    if (!normalizedSeverity) {
+        const priority = String(repaired.priority || '').toLowerCase();
+        if (canonicalType === 'Security' && (priority === 'high' || priority === 'critical')) {
+            normalizedSeverity = 'Critical';
+        } else if (priority === 'high' || priority === 'critical') {
+            normalizedSeverity = 'Major';
+        } else if (priority === 'low') {
+            normalizedSeverity = 'Minor';
+        } else {
+            normalizedSeverity = 'Major';
+        }
+    }
+
+    // Standard happy path functional scenarios must NOT be Critical
+    if (canonicalType === 'Functional' && /success|valid credentials|happy path/i.test(title)) {
+        if (normalizedSeverity === 'Critical') {
+            normalizedSeverity = 'Major';
+        }
+    }
+
+    repaired.severity = normalizedSeverity;
+
+    // 3. Credential sanitization
+    if (repaired.preconditions) {
+        repaired.preconditions = sanitizeCredentialPlaceholders(repaired.preconditions);
+    }
+    if (repaired.testData) {
+        repaired.testData = sanitizeCredentialPlaceholders(repaired.testData);
+    }
+    if (repaired.steps) {
+        repaired.steps = sanitizeCredentialPlaceholders(repaired.steps);
+    }
+    if (repaired.expectedResult) {
+        repaired.expectedResult = sanitizeCredentialPlaceholders(repaired.expectedResult);
+    }
+
+    return repaired;
 };
 
 /**
- * Extract all unique test cases from a suite data object, resolving testCaseRefs
+ * Unwrap nested suite data structures from various database formats
+ */
+export const unwrapSuiteData = (record) => {
+    if (!record || typeof record !== 'object') return {};
+    const wrapped = record.suiteData || record.suite_data || record.suite || record.data;
+    if (wrapped && typeof wrapped === 'object') {
+        return wrapped.suiteData || wrapped.suite_data || wrapped.data || wrapped;
+    }
+    return record;
+};
+
+/**
+ * Extract all unique test cases from a suite data object, resolving testCaseRefs without duplicates
  */
 export const extractSuiteCases = (data, recordsById = new Map()) => {
-    const source = CASE_KEYS.flatMap(key => (Array.isArray(data?.[key]) ? data[key] : []));
+    if (!data || typeof data !== 'object') return [];
 
-    if (Array.isArray(data?.testCaseRefs)) {
+    let source = [];
+    if (Array.isArray(data.testCases) && data.testCases.length > 0) {
+        source = [...data.testCases];
+    } else if (Array.isArray(data.tests) && data.tests.length > 0) {
+        source = [...data.tests];
+    } else {
+        source = CASE_KEYS.slice(2).flatMap(key => (Array.isArray(data[key]) ? data[key] : []));
+    }
+
+    if (Array.isArray(data.testCaseRefs)) {
         data.testCaseRefs.forEach(ref => {
             const sourceRecord = recordsById.get(String(ref.sourceSuiteId || ''));
             const sourceData = unwrapSuiteData(sourceRecord);
-            const linked = CASE_KEYS.flatMap(key => (Array.isArray(sourceData?.[key]) ? sourceData[key] : []))
-                .find(testCase => String(testCase?.id || testCase?.testCaseId || '') === String(ref.testCaseId || ''));
+            let candidates = [];
+            if (Array.isArray(sourceData?.testCases) && sourceData.testCases.length > 0) {
+                candidates = sourceData.testCases;
+            } else if (Array.isArray(sourceData?.tests) && sourceData.tests.length > 0) {
+                candidates = sourceData.tests;
+            } else {
+                candidates = CASE_KEYS.slice(2).flatMap(key => (Array.isArray(sourceData?.[key]) ? sourceData[key] : []));
+            }
+            const linked = candidates.find(testCase => String(testCase?.id || testCase?.testCaseId || '') === String(ref.testCaseId || ''));
             if (linked) source.push(linked);
         });
     }
@@ -46,7 +179,7 @@ export const extractSuiteCases = (data, recordsById = new Map()) => {
         if (seen.has(id)) return false;
         seen.add(id);
         return true;
-    });
+    }).map((tc, idx) => validateAndRepairTestCase(tc, idx));
 };
 
 /**
@@ -142,15 +275,17 @@ export const normalizeSuite = (record, runs = [], recordsById = new Map()) => {
 
 /**
  * Single source of truth selector for all header and overview stats
+ * Queries only suites with at least one test case
  */
 export const computeSuiteMetrics = (suites = []) => {
-    const totalSuites = suites.length;
-    const activeSuites = suites.filter(s => s.status === 'Active' && !s.archived).length;
-    const draftSuites = suites.filter(s => s.status === 'Draft').length;
-    const archivedSuites = suites.filter(s => s.archived || s.status === 'Archived').length;
-    const totalCases = suites.reduce((sum, s) => sum + s.totalCases, 0);
-    const approvedCases = suites.reduce((sum, s) => sum + s.approvedCases, 0);
-    const suitesWithRuns = suites.filter(s => s.runs.length > 0).length;
+    const validSuites = suites.filter(s => (s.totalCases || s.tests?.length || 0) > 0);
+    const totalSuites = validSuites.length;
+    const activeSuites = validSuites.filter(s => s.status === 'Active' && !s.archived).length;
+    const draftSuites = validSuites.filter(s => s.status === 'Draft').length;
+    const archivedSuites = validSuites.filter(s => s.archived || s.status === 'Archived').length;
+    const totalCases = validSuites.reduce((sum, s) => sum + s.totalCases, 0);
+    const approvedCases = validSuites.reduce((sum, s) => sum + s.approvedCases, 0);
+    const suitesWithRuns = validSuites.filter(s => s.runs.length > 0).length;
 
     return {
         all: totalSuites,
@@ -164,7 +299,7 @@ export const computeSuiteMetrics = (suites = []) => {
 };
 
 /**
- * Filter and sort suites deterministically
+ * Filter and sort suites deterministically (strictly excludes zero-case suites)
  */
 export const filterAndSortSuites = (
     suites = [],
@@ -173,6 +308,11 @@ export const filterAndSortSuites = (
     const text = query.trim().toLowerCase();
 
     const filtered = suites.filter(suite => {
+        // Only suites with at least one test case
+        if ((suite.totalCases || suite.tests?.length || 0) === 0) {
+            return false;
+        }
+
         // Text search covers: name, id, description, project, tags
         if (text) {
             const haystack = `${suite.name} ${suite.id} ${suite.description} ${suite.project} ${suite.tags.join(' ')}`.toLowerCase();
@@ -262,5 +402,63 @@ export const paginateSuites = (suites = [], page = 1, pageSize = 25) => {
         totalCount,
         startIndex: totalCount > 0 ? startIndex + 1 : 0,
         endIndex
+    };
+};
+
+/**
+ * Single source of truth calculation for a single test suite detail page.
+ * Returns consistent canonical test cases, counts, and metrics used by
+ * the page header, review progress, stats strip, card, tabs, and filters.
+ */
+export const computeCanonicalSuiteMetrics = (suiteOrRecord, runs = [], recordsById = new Map()) => {
+    const data = unwrapSuiteData(suiteOrRecord);
+    const suiteId = String(suiteOrRecord?.id || suiteOrRecord?._id || suiteOrRecord?.sessionId || data?.id || '');
+
+    const tests = extractSuiteCases(data, recordsById);
+    const totalCases = tests.length;
+
+    const automatedCases = tests.filter(tc => {
+        const method = String(tc?.executionType || tc?.executionMethod || tc?.method || '').toLowerCase();
+        return Boolean(tc?.automationMapping || tc?.playwrightBinding || tc?.isAutomated || ['automated', 'automation', 'playwright'].includes(method));
+    }).length;
+    const manualCases = Math.max(0, totalCases - automatedCases);
+
+    const approvedCases = tests.filter(tc => {
+        const status = String(tc?.status || tc?.approvalStatus || '').toLowerCase();
+        return status === 'approved' || status === 'completed' || tc?.isApproved === true || tc?.approved === true;
+    }).length;
+
+    const highPriorityCases = tests.filter(tc => {
+        const p = String(tc?.priority || '').toLowerCase();
+        return p === 'high' || p === 'critical';
+    }).length;
+
+    const linkedRequirements = [...new Set(
+        tests.map(tc => tc.requirementId || tc.reqId || tc.requirementRef).filter(Boolean)
+    )];
+
+    const suiteRuns = Array.isArray(runs) ? runs.filter(r => String(r.suiteId || r.suite_id || '') === suiteId) : [];
+
+    const types = new Set(tests.map(tc => String(tc.type || '').toLowerCase()));
+    let baseCoverage = totalCases > 0 ? 45 : 0;
+    if (types.has('functional')) baseCoverage += 25;
+    if (types.has('negative')) baseCoverage += 15;
+    if (types.has('edge case') || types.has('edge')) baseCoverage += 10;
+    if (types.has('security')) baseCoverage += 5;
+    const coverage = totalCases > 0 ? Math.min(baseCoverage, 100) : 0;
+
+    return {
+        suiteId,
+        tests,
+        totalCases,
+        manualCases,
+        automatedCases,
+        approvedCases,
+        highPriorityCases,
+        linkedRequirements,
+        linkedRequirementsCount: linkedRequirements.length,
+        runs: suiteRuns,
+        runsCount: suiteRuns.length,
+        coverage
     };
 };

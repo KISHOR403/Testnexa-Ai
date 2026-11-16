@@ -192,8 +192,13 @@ exports.createRun = async (req, res) => {
  * LIST Test Runs for workspace
  * GET /api/v1/runs
  */
+const { isFeatureEnabled } = require('../middleware/featureFlag.middleware');
+
 exports.listRuns = async (req, res) => {
     try {
+        if (!isFeatureEnabled('testRuns')) {
+            return res.json({ success: true, data: [], pagination: { total: 0, page: 1, limit: 20 } });
+        }
         const workspaceId = await resolveWorkspaceId(req);
         if (!workspaceId) {
             return res.json({ success: true, data: [], pagination: { total: 0, page: 1, limit: 20 } });

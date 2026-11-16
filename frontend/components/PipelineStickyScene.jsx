@@ -41,8 +41,8 @@ const PIPELINE_STAGES = [
         key: 'execute',
         title: 'EXECUTE',
         headline: 'Run it. Observe it. Record what happened.',
-        desc: 'Execute tests across environments with millisecond telemetry. Live assertions record pass/fail conditions, capture traces, and isolate root causes in real time.',
-        tag: 'TELEMETRY OBSERVABILITY'
+        desc: 'Planned execution engine: manual step-by-step test runs and headless Playwright automation with live assertions, trace capture, and millisecond telemetry (Coming Soon).',
+        tag: 'COMING SOON · TELEMETRY'
     },
     {
         num: '05',

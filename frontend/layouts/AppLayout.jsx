@@ -69,7 +69,7 @@ const AppLayoutInner = () => {
             />
 
             {/* Main Application Area */}
-            <div className="app-shell-main">
+            <div className={`app-shell-main ${location.pathname.startsWith('/app/test-cases') ? 'app-shell-main--test-cases' : ''}`}>
                 <AppHeader onToggleMobile={() => setIsMobileOpen(prev => !prev)} />
                 <main className="app-page-content">
                     <ErrorBoundary>

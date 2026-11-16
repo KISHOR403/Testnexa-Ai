@@ -109,6 +109,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', apiRoutes);
 app.use('/api/v1/sessions', require('./routes/session.routes'));
 app.use('/api/v1/test-suites', require('./routes/testSuite.routes'));
+app.use('/api/v1/test-cases', require('./routes/testCase.routes'));
 app.use('/api/v1/copilot', require('./routes/copilot.routes'));
 app.use('/api/v1/workspaces', require('./routes/workspace.routes'));
 app.use('/api/v1/runs', require('./routes/execution.routes'));
@@ -121,6 +122,9 @@ app.use('/api/v1/security', require('./routes/security.routes'));
 app.use('/api/v1/audit', require('./routes/audit.routes'));
 app.use('/api/v1/analytics/quality-insights', require('./routes/qualityInsights.routes'));
 app.use('/api/v1/quality-insights', require('./routes/qualityInsights.routes'));
+app.use('/api/v1/traceability', require('./routes/traceability.routes'));
+app.use('/api/v1/intelligence', require('./routes/intelligence.routes'));
+app.use('/api/v1/features', require('./routes/feature.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)
 try {
@@ -176,10 +180,13 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-    logger.info(`🚀 TestNexa AI Backend running on port ${PORT}`);
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`AI Provider: ${process.env.AI_PROVIDER || 'openai'}`);
-});
+let serverInstance;
+if (require.main === module) {
+    serverInstance = app.listen(PORT, () => {
+        logger.info(`🚀 TestNexa AI Backend running on port ${PORT}`);
+        logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.info(`AI Provider: ${process.env.AI_PROVIDER || 'openai'}`);
+    });
+}
 
 module.exports = app;

@@ -23,6 +23,9 @@ import {
     CheckCircle2,
     Play
 } from 'lucide-react';
+import RunButton from '../../components/common/RunButton';
+import { useFeature } from '../../config/features';
+import { useComingSoon } from '../../context/ComingSoonContext';
 import { sessionService } from '../../services/sessionService';
 import { executionService } from '../../services/executionService';
 import {
@@ -38,6 +41,8 @@ const emptyForm = () => ({ name: '', description: '', project: '', tags: '' });
 export default function TestSuitesListPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const { enabled: testRunsEnabled } = useFeature('testRuns');
+    const { open: openComingSoon } = useComingSoon();
 
     // Raw data states
     const [records, setRecords] = useState([]);
@@ -149,11 +154,11 @@ export default function TestSuitesListPage() {
         setLoading(true);
         setError('');
         try {
-            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt' });
+            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt', hasCases: true });
             if (!first?.success) throw new Error(first?.message || 'Test suites could not be loaded.');
             const allSessions = [...(first.data || [])];
             for (let p = 2; p <= Number(first.pagination?.totalPages || 1); p += 1) {
-                const res = await sessionService.list({ page: p, limit: 50, sort: 'updatedAt' });
+                const res = await sessionService.list({ page: p, limit: 50, sort: 'updatedAt', hasCases: true });
                 if (res?.success && res.data) {
                     allSessions.push(...res.data);
                 }
@@ -456,7 +461,7 @@ export default function TestSuitesListPage() {
                 requirement: suite.description,
                 context: suite.platform.toLowerCase(),
                 depth: 'Standard',
-                status: 'Draft',
+                status: 'active',
                 suiteData: nextData
             });
             if (!res?.success) throw new Error(res?.message || 'Duplication failed');
@@ -1058,15 +1063,14 @@ export default function TestSuitesListPage() {
                                                 ) : (
                                                     <div className="ts-no-run-wrap" onClick={(e) => e.stopPropagation()}>
                                                         <span className="ts-no-runs-text">No runs yet</span>
-                                                        <button
-                                                            type="button"
+                                                        <RunButton
+                                                            label="Run"
                                                             className="ts-btn-mini-run"
                                                             title={`Run tests for ${suite.name}`}
+                                                            iconSize={10}
                                                             onClick={() => navigate(`/app/runs?suite=${encodeURIComponent(suite.id)}`)}
-                                                        >
-                                                            <Play size={10} aria-hidden="true" />
-                                                            <span>Run</span>
-                                                        </button>
+                                                            feature="testRuns"
+                                                        />
                                                     </div>
                                                 )}
                                             </td>
@@ -1109,6 +1113,26 @@ export default function TestSuitesListPage() {
 
                                                     {activeMenuId === suite.id && (
                                                         <div className="ts-dropdown-menu" role="menu">
+                                                            <button
+                                                                type="button"
+                                                                role="menuitem"
+                                                                className="ts-dropdown-item"
+                                                                onClick={() => {
+                                                                    setActiveMenuId(null);
+                                                                    if (!testRunsEnabled) {
+                                                                        openComingSoon('testRuns');
+                                                                    } else {
+                                                                        navigate(`/app/runs?suite=${encodeURIComponent(suite.id)}`);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Play size={14} aria-hidden="true" />
+                                                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '6px' }}>
+                                                                    <span>Run</span>
+                                                                    {!testRunsEnabled && <span className="cs-tag-soon">Soon</span>}
+                                                                </span>
+                                                            </button>
+
                                                             <button
                                                                 type="button"
                                                                 role="menuitem"

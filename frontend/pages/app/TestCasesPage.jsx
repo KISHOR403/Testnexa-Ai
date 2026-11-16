@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, NavLink } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
     ArrowLeft, Check, ChevronRight, ChevronDown, Copy, ExternalLink,
     FilePlus2, Pencil, Play, Plus, RefreshCw, Search, Trash2, X,
@@ -9,7 +10,7 @@ import {
     PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Tag,
     SlidersHorizontal, Layers3, Unlink, Link2, AlertCircle
 } from 'lucide-react';
-import { sessionService } from '../../services/sessionService';
+import { sessionService, testCaseService } from '../../services/sessionService';
 import { executionService } from '../../services/executionService';
 import { DataLoadingState } from '../../components/loading';
 import TestCaseEditorModal from '../../components/testcases/TestCaseEditorModal';
@@ -18,6 +19,8 @@ import AutomatedExecutionModal from '../../components/testcases/AutomatedExecuti
 import PlaywrightConfigurationDrawer from '../../components/testcases/PlaywrightConfigurationDrawer';
 import AddToSuiteModal from '../../components/testcases/AddToSuiteModal';
 import DeleteConfirmModal from '../../components/testcases/DeleteConfirmModal';
+import { useFeature } from '../../config/features';
+import { useComingSoon } from '../../context/ComingSoonContext';
 import '../../styles/app/TestCases.css';
 
 const CATEGORY_KEYS = ['testCases', 'tests', 'functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist', 'api'];
@@ -89,18 +92,58 @@ const requirementsFromSuite = (suite) => {
     return entries.map(req => ({ id: String(getRequirementId(req) || ''), title: getRequirementTitle(req) })).filter(req => req.id);
 };
 
+const isValidGeneratedCase = (tc) => {
+    if (!tc || typeof tc !== 'object' || Array.isArray(tc)) return false;
+    const id = String(tc.id || tc.testCaseId || '').trim();
+    if (!id || id.length < 2) return false;
+    const lowerId = id.toLowerCase();
+    if (['placeholder', 'temp', 'draft', 'null', 'undefined', 'none', 'n/a', 'tc_temp', 'tc_placeholder', '0'].includes(lowerId)) {
+        return false;
+    }
+    const title = String(tc.title || tc.testScenario || tc.scenario || '').trim();
+    if (!title || title.length < 3) return false;
+    const lowerTitle = title.toLowerCase();
+    if (['untitled', 'placeholder', 'draft', 'temp', 'scenario', 'test scenario', 'null', 'undefined', 'n/a'].includes(lowerTitle)) {
+        return false;
+    }
+    const hasSteps = (Array.isArray(tc.steps) && tc.steps.length > 0) || (Array.isArray(tc.testSteps) && tc.testSteps.length > 0);
+    const hasExpected = Boolean(tc.expectedResult || tc.expected);
+    const hasPreconditions = Array.isArray(tc.preconditions) ? tc.preconditions.length > 0 : Boolean(tc.preconditions);
+    const hasDescription = Boolean(tc.description || tc.testDescription);
+    return hasSteps || hasExpected || hasPreconditions || hasDescription;
+};
+
+const isEligibleSuite = (session) => {
+    if (!session || typeof session !== 'object') return false;
+    const status = String(session.status || '').toLowerCase().trim();
+    if (['processing', 'generating', 'queued', 'pending_generation', 'failed'].includes(status)) {
+        return false;
+    }
+    const suite = getSuiteData(session);
+    if (!suite || typeof suite !== 'object' || Object.keys(suite).length === 0) {
+        return false;
+    }
+    for (const key of CATEGORY_KEYS) {
+        const arr = suite[key];
+        if (Array.isArray(arr) && arr.some(isValidGeneratedCase)) return true;
+    }
+    if (Array.isArray(suite.testCaseRefs) && suite.testCaseRefs.length > 0) return true;
+    return false;
+};
+
 const flattenSessions = (sessions) => {
     const sessionMap = new Map(sessions.map(s => [String(s.id || s._id), s]));
 
     return sessions.flatMap(session => {
+        if (!isEligibleSuite(session)) return [];
         const suite = getSuiteData(session);
         if (!suite || typeof suite !== 'object') return [];
         const seen = new Set();
         const sid = String(session.id || session._id || '');
 
-        // 1. Direct suite test cases
+        // 1. Direct suite test cases (strictly genuine generated records)
         const directCases = CATEGORY_KEYS.flatMap(category => (Array.isArray(suite[category]) ? suite[category] : []).flatMap((tc, idx) => {
-            if (!tc || typeof tc !== 'object') return [];
+            if (!isValidGeneratedCase(tc)) return [];
             const id = getCaseId(tc);
             const key = `${sid}:${category}:${id || idx}`;
             if (seen.has(id) && id) return [];
@@ -139,12 +182,12 @@ const flattenSessions = (sessions) => {
         // 2. Mapped test case references (testCaseRefs)
         const refCases = (Array.isArray(suite.testCaseRefs) ? suite.testCaseRefs : []).flatMap(ref => {
             const srcSession = sessionMap.get(String(ref.sourceSuiteId));
-            if (!srcSession) return [];
+            if (!srcSession || !isEligibleSuite(srcSession)) return [];
             const srcSuite = getSuiteData(srcSession);
             if (!srcSuite) return [];
             const targetCase = CATEGORY_KEYS.flatMap(cat => Array.isArray(srcSuite[cat]) ? srcSuite[cat] : [])
                 .find(c => getCaseId(c) === String(ref.testCaseId));
-            if (!targetCase || seen.has(getCaseId(targetCase))) return [];
+            if (!targetCase || !isValidGeneratedCase(targetCase) || seen.has(getCaseId(targetCase))) return [];
             const cid = getCaseId(targetCase);
             seen.add(cid);
             const lifecycle = getLifecycle(targetCase);
@@ -239,6 +282,8 @@ const makeCaseId = (suite, category) => {
 const TestCasesPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { enabled: testRunsEnabled } = useFeature('testRuns');
+    const { open: openComingSoon } = useComingSoon();
 
     // Data state
     const [sessions, setSessions] = useState([]);
@@ -272,7 +317,7 @@ const TestCasesPage = () => {
     const [executionStatusFilter, setExecutionStatusFilter] = useState('all');
     const [sort, setSort] = useState('updated');
     const [page, setPage] = useState(1);
-    const pageSize = 25;
+    const [pageSize, setPageSize] = useState(25);
 
     // Modals
     const [editorOpen, setEditorOpen] = useState(false);
@@ -324,19 +369,23 @@ const TestCasesPage = () => {
         setLoading(true);
         setError('');
         try {
-            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt' });
+            // 1. Fetch only genuine suites that contain actual persisted test cases
+            // (Strictly excludes draft-only requirement inputs, incomplete jobs, and failed generation outputs)
+            const first = await sessionService.list({ page: 1, limit: 50, sort: 'updatedAt', hasCases: true, onlyGenerated: true });
             if (!first?.success) throw new Error(first?.message || 'Test suites could not be loaded.');
             const allSessions = [...(first.data || [])];
             const totalPages = Number(first.pagination?.totalPages || 1);
             for (let currentPage = 2; currentPage <= totalPages; currentPage += 1) {
-                const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt' });
+                const response = await sessionService.list({ page: currentPage, limit: 50, sort: 'updatedAt', hasCases: true, onlyGenerated: true });
                 if (response?.success && Array.isArray(response.data)) {
                     allSessions.push(...response.data);
                 }
             }
 
             const [runResult] = await Promise.allSettled([
-                executionService.listRuns({ page: 1, limit: 100, sort: 'newest' })
+                testRunsEnabled
+                    ? executionService.listRuns({ page: 1, limit: 100, sort: 'newest' })
+                    : Promise.resolve({ success: true, data: [] })
             ]);
 
             setSessions(allSessions);
@@ -382,9 +431,9 @@ const TestCasesPage = () => {
         loadData();
     }, [loadData, retry]);
 
-    // Distinct suite descriptors with actual counts & category breakdown
+    // Distinct suite descriptors with actual counts & category breakdown (strictly eligible suites)
     const suites = useMemo(() => {
-        return sessions.map(session => {
+        return sessions.filter(isEligibleSuite).map(session => {
             const sData = getSuiteData(session) || {};
             const sid = String(session.id || session._id);
 
@@ -394,7 +443,7 @@ const TestCasesPage = () => {
             let archivedCount = 0;
 
             CATEGORY_KEYS.forEach(cat => {
-                const items = Array.isArray(sData[cat]) ? sData[cat] : [];
+                const items = (Array.isArray(sData[cat]) ? sData[cat] : []).filter(isValidGeneratedCase);
                 if (items.length > 0) {
                     const label = CATEGORY_LABELS[cat] || 'Functional';
                     categoryBreakdown[label] = (categoryBreakdown[label] || 0) + items.length;
@@ -427,7 +476,7 @@ const TestCasesPage = () => {
                 session,
                 sData
             };
-        });
+        }).filter(s => s.caseCount > 0);
     }, [sessions]);
 
     // Flatten all test cases across all sessions
@@ -587,6 +636,114 @@ const TestCasesPage = () => {
     const pageCases = useMemo(() => {
         return filteredCases.slice((page - 1) * pageSize, page * pageSize);
     }, [filteredCases, page, pageSize]);
+
+    // Flattened items for TanStack virtualizer (supports both grouped and flat views)
+    const flatListItems = useMemo(() => {
+        if (!suiteId && groupBySuite) {
+            const items = [];
+            casesGroupedBySuite.forEach(group => {
+                const isCollapsed = collapsedGroupIds.has(group.suiteId);
+                items.push({
+                    type: 'group-header',
+                    group,
+                    isCollapsed,
+                    key: `header-${group.suiteId}`
+                });
+                if (!isCollapsed) {
+                    group.cases.forEach(tc => {
+                        items.push({
+                            type: 'case',
+                            tc,
+                            group,
+                            key: tc.key
+                        });
+                    });
+                }
+            });
+            return items;
+        }
+        return pageCases.map(tc => ({
+            type: 'case',
+            tc,
+            key: tc.key
+        }));
+    }, [suiteId, groupBySuite, casesGroupedBySuite, collapsedGroupIds, pageCases]);
+
+    const listContainerRef = useRef(null);
+
+    const rowVirtualizer = useVirtualizer({
+        count: flatListItems.length,
+        getScrollElement: () => listContainerRef.current,
+        estimateSize: (index) => {
+            const item = flatListItems[index];
+            return item?.type === 'group-header' ? 44 : 60;
+        },
+        overscan: 8,
+    });
+
+    // Keyboard navigation (Up/Down/J/K, Enter, Esc) with scrollIntoView block nearest
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const tag = e.target?.tagName?.toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) {
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                if (mobileDetailOpen) {
+                    setMobileDetailOpen(false);
+                } else if (!isDetailPanelCollapsed) {
+                    setIsDetailPanelCollapsed(true);
+                }
+                return;
+            }
+
+            const caseItems = flatListItems.filter(item => item.type === 'case');
+            if (!caseItems.length) return;
+
+            const currentIndex = caseItems.findIndex(item => item.tc.key === selectedCase?.key);
+
+            if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J') {
+                e.preventDefault();
+                const nextIndex = currentIndex < caseItems.length - 1 ? currentIndex + 1 : 0;
+                const targetCase = caseItems[nextIndex].tc;
+                handleSelectCase(targetCase);
+
+                const flatIndex = flatListItems.findIndex(item => item.type === 'case' && item.tc.key === targetCase.key);
+                if (flatIndex >= 0 && rowVirtualizer) {
+                    rowVirtualizer.scrollToIndex(flatIndex, { align: 'auto' });
+                }
+            } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K') {
+                e.preventDefault();
+                const prevIndex = currentIndex > 0 ? currentIndex - 1 : caseItems.length - 1;
+                const targetCase = caseItems[prevIndex].tc;
+                handleSelectCase(targetCase);
+
+                const flatIndex = flatListItems.findIndex(item => item.type === 'case' && item.tc.key === targetCase.key);
+                if (flatIndex >= 0 && rowVirtualizer) {
+                    rowVirtualizer.scrollToIndex(flatIndex, { align: 'auto' });
+                }
+            } else if (e.key === 'Enter') {
+                if (selectedCase) {
+                    setIsDetailPanelCollapsed(false);
+                    setMobileDetailOpen(true);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [flatListItems, selectedCase, mobileDetailOpen, isDetailPanelCollapsed, rowVirtualizer]);
+
+    // Automatically scroll selected case into view with block nearest
+    useEffect(() => {
+        if (selectedCase && listContainerRef.current) {
+            const el = listContainerRef.current.querySelector(`[data-case-key="${selectedCase.key}"]`);
+            if (el) {
+                el.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [selectedCase]);
 
     useEffect(() => { setPage(1); }, [query, suiteId, quickFilter, priorityFilter, typeFilter, methodFilter, requirementFilter, executionStatusFilter, sort]);
 
@@ -1442,7 +1599,7 @@ const TestCasesPage = () => {
             {/* Notification Toast */}
             {toastMessage && (
                 <div className="tc-toast" role="status">
-                    <CheckCircle2 size={16} color="var(--tc-jade)" />
+                    <CheckCircle2 size={16} color="#FFFFFF" />
                     <span>{toastMessage}</span>
                 </div>
             )}
@@ -1566,239 +1723,296 @@ const TestCasesPage = () => {
 
                     {/* ─── 2. CENTER PANEL: MAIN TEST CASES LIST ─── */}
                     <main className="tc-list-panel" aria-label="Test case list">
+                        {/* Mobile / Tablet Suite Selector */}
+                        <div className="tc-suite-mobile-select">
+                            <label htmlFor="tc-suite-select">Suite:</label>
+                            <select
+                                id="tc-suite-select"
+                                value={suiteId}
+                                onChange={(e) => handleSuiteChange(e.target.value)}
+                            >
+                                <option value="">All Test Cases ({totalUniqueCasesCount})</option>
+                                {suites.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name} ({s.caseCount})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* List Column Header */}
                         <div className="tc-list-head">
+                            {isSuiteNavCollapsed && (
+                                <button
+                                    type="button"
+                                    className="tc-suite-nav-collapse-btn"
+                                    style={{ marginRight: 6 }}
+                                    onClick={() => setIsSuiteNavCollapsed(false)}
+                                    title="Expand suites panel"
+                                >
+                                    <PanelLeftOpen size={13} />
+                                </button>
+                            )}
                             <span>Test Case ID & Title</span>
                             <span>Category · Priority · Method · Status · Outcome</span>
                             <span>Updated</span>
                             <span />
                         </div>
 
-                        {/* Empty States */}
-                        {filteredCases.length === 0 ? (
-                            selectedSuite && selectedSuite.caseCount === 0 ? (
-                                <div className="tc-empty-suite-state">
-                                    <div className="tc-empty-icon">
-                                        <Layers size={28} />
-                                    </div>
-                                    <h3>No test cases in "{selectedSuite.name}"</h3>
-                                    <p>
-                                        This {selectedSuite.context.toUpperCase()} test suite is currently empty.
-                                        Create manual or automated test cases to begin test execution, or generate a full test suite with AI.
-                                    </p>
-                                    <div className="tc-empty-actions">
-                                        <button
-                                            type="button"
-                                            className="tc-primary"
-                                            onClick={() => {
-                                                setEditorMode('create');
-                                                setEditorOpen(true);
-                                            }}
-                                        >
-                                            <Plus size={14} /> Create Test Case
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="tc-secondary"
-                                            onClick={() => navigate(`/app/workspace/${selectedSuite.id}`)}
-                                        >
-                                            <Sparkles size={14} /> Open in AI Workspace
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="tc-text-btn"
-                                            onClick={() => handleSuiteChange('')}
-                                        >
-                                            View All Test Cases
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="tc-empty">
-                                    <FilePlus2 size={24} color="var(--tc-jade)" />
-                                    <strong style={{ fontSize: '0.85rem' }}>
-                                        {allCases.length ? 'No test cases match these filters.' : 'No saved test cases found.'}
-                                    </strong>
-                                    <span>
-                                        {allCases.length ? 'Adjust or clear your search terms and category filters.' : 'Create a suite in the AI Workspace to begin.'}
-                                    </span>
-                                    {hasActiveFilters && (
-                                        <button type="button" className="tc-secondary" onClick={handleClearFilters} style={{ marginTop: '8px' }}>
-                                            Clear all filters
-                                        </button>
-                                    )}
-                                </div>
-                            )
-                        ) : !suiteId && groupBySuite ? (
-                            /* ─── Grouped by Suite View (for All Test Cases) ─── */
-                            <div className="tc-grouped-list">
-                                {casesGroupedBySuite.map(group => {
-                                    const isCollapsed = collapsedGroupIds.has(group.suiteId);
-                                    return (
-                                        <div key={group.suiteId} className="tc-suite-group-section">
-                                            {/* Suite Section Header */}
-                                            <div
-                                                className="tc-suite-group-header"
-                                                onClick={() => toggleGroupAccordion(group.suiteId)}
+                        {/* Scrolling Body with TanStack Virtualizer */}
+                        <div className="tc-list-body" ref={listContainerRef}>
+                            {filteredCases.length === 0 ? (
+                                selectedSuite && selectedSuite.caseCount === 0 ? (
+                                    <div className="tc-empty-suite-state">
+                                        <div className="tc-empty-icon">
+                                            <Layers size={28} />
+                                        </div>
+                                        <h3>No test cases in "{selectedSuite.name}"</h3>
+                                        <p>
+                                            This {selectedSuite.context.toUpperCase()} test suite is currently empty.
+                                            Create manual or automated test cases to begin test execution, or generate a full test suite with AI.
+                                        </p>
+                                        <div className="tc-empty-actions">
+                                            <button
+                                                type="button"
+                                                className="tc-primary"
+                                                onClick={() => {
+                                                    setEditorMode('create');
+                                                    setEditorOpen(true);
+                                                }}
                                             >
-                                                <div className="tc-group-header-left">
-                                                    <button type="button" className="tc-group-chevron">
-                                                        {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                                                    </button>
-                                                    <Folder size={15} className="tc-group-icon" />
-                                                    <strong className="tc-group-title">{group.suiteName}</strong>
-                                                    <span className={`tc-context-micro ${group.context}`}>
-                                                        {group.context.toUpperCase()}
-                                                    </span>
-                                                    <span className="tc-group-count">
-                                                        {group.cases.length} {group.cases.length === 1 ? 'case' : 'cases'}
-                                                    </span>
-                                                </div>
+                                                <Plus size={14} /> Create Test Case
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="tc-secondary"
+                                                onClick={() => navigate(`/app/workspace/${selectedSuite.id}`)}
+                                            >
+                                                <Sparkles size={14} /> Open in AI Workspace
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="tc-text-btn"
+                                                onClick={() => handleSuiteChange('')}
+                                            >
+                                                View All Test Cases
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="tc-empty">
+                                        <FilePlus2 size={28} color="#FFFFFF" />
+                                        <strong style={{ fontSize: '0.95rem', color: '#FFFFFF', marginTop: '12px' }}>
+                                            {allCases.length ? 'No test cases match these filters.' : 'No generated test cases yet.'}
+                                        </strong>
+                                        <span style={{ color: 'var(--tc-text-muted)', fontSize: '0.825rem', marginTop: '4px', maxWidth: '340px', textAlign: 'center' }}>
+                                            {allCases.length
+                                                ? 'Adjust or clear your search terms and category filters.'
+                                                : 'Generate test cases from a requirement to see them here.'}
+                                        </span>
+                                        {allCases.length === 0 ? (
+                                            <button
+                                                type="button"
+                                                className="tc-primary"
+                                                onClick={() => navigate('/app/workspace')}
+                                                style={{ marginTop: '16px' }}
+                                            >
+                                                <Sparkles size={14} /> Generate Test Suite
+                                            </button>
+                                        ) : hasActiveFilters ? (
+                                            <button type="button" className="tc-secondary" onClick={handleClearFilters} style={{ marginTop: '12px' }}>
+                                                Clear all filters
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                )
+                            ) : (
+                                <div
+                                    style={{
+                                        height: `${rowVirtualizer.getTotalSize()}px`,
+                                        width: '100%',
+                                        position: 'relative',
+                                    }}
+                                >
+                                    {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                                        const item = flatListItems[virtualRow.index];
+                                        if (!item) return null;
 
+                                        if (item.type === 'group-header') {
+                                            return (
+                                                <div
+                                                    key={item.key}
+                                                    data-index={virtualRow.index}
+                                                    ref={rowVirtualizer.measureElement}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        transform: `translateY(${virtualRow.start}px)`,
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="tc-suite-group-header"
+                                                        onClick={() => toggleGroupAccordion(item.group.suiteId)}
+                                                    >
+                                                        <div className="tc-group-header-left">
+                                                            <button type="button" className="tc-group-chevron" aria-label="Toggle group">
+                                                                {item.isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                                            </button>
+                                                            <Folder size={15} className="tc-group-icon" />
+                                                            <strong className="tc-group-title">{item.group.suiteName}</strong>
+                                                            <span className={`tc-context-micro ${item.group.context}`}>
+                                                                {item.group.context.toUpperCase()}
+                                                            </span>
+                                                            <span className="tc-group-count">
+                                                                {item.group.cases.length} {item.group.cases.length === 1 ? 'case' : 'cases'}
+                                                            </span>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            className="tc-jump-suite-btn"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSuiteChange(item.group.suiteId);
+                                                            }}
+                                                            title={`Open suite ${item.group.suiteName}`}
+                                                        >
+                                                            <span>View Suite</span>
+                                                            <ArrowLeft size={12} style={{ transform: 'rotate(180deg)' }} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        const tc = item.tc;
+                                        const isSelected = selectedCase?.key === tc.key;
+                                        const execObj = getCaseExecution(tc);
+                                        const execStatus = execObj?.status || 'not_run';
+
+                                        return (
+                                            <div
+                                                key={tc.key}
+                                                data-index={virtualRow.index}
+                                                data-case-key={tc.key}
+                                                ref={rowVirtualizer.measureElement}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    transform: `translateY(${virtualRow.start}px)`,
+                                                }}
+                                            >
                                                 <button
                                                     type="button"
-                                                    className="tc-jump-suite-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleSuiteChange(group.suiteId);
-                                                    }}
-                                                    title={`Open suite ${group.suiteName}`}
+                                                    className={`tc-row ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => handleSelectCase(tc)}
                                                 >
-                                                    <span>View Suite</span>
-                                                    <ArrowLeft size={12} style={{ transform: 'rotate(180deg)' }} />
+                                                    <div className="tc-row-main">
+                                                        <div className="tc-row-title-line">
+                                                            <span className="tc-id">{tc.id || 'TC-NEW'}</span>
+                                                            <strong className="tc-title">{tc.title}</strong>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="tc-row-meta">
+                                                        <span className="tc-cat-badge">{tc.type}</span>
+                                                        <span className={`tc-priority-badge ${tc.priority.toLowerCase()}`}>
+                                                            {tc.priority}
+                                                        </span>
+                                                        <span className={`tc-method-pill ${tc.method}`}>
+                                                            {tc.method === 'automated' ? 'Playwright' : 'Manual'}
+                                                        </span>
+                                                        <span className={`tc-lifecycle-badge tc-lifecycle-${tc.lifecycle}`} title={`Lifecycle Status: ${tc.lifecycle}`}>
+                                                            {tc.lifecycle.replaceAll('-', ' ')}
+                                                        </span>
+                                                        <span className={`tc-exec-badge tc-exec-${execStatus}`} title={`Execution Outcome: ${formatExecutionStatus(execStatus)}`}>
+                                                            {formatExecutionStatus(execStatus)}
+                                                        </span>
+                                                        {!suiteId && !groupBySuite && (
+                                                            <span className="tc-suite-tag" title={`Suite: ${tc.suiteName}`}>
+                                                                {tc.suiteName}
+                                                            </span>
+                                                        )}
+                                                        {tc.isReference && (
+                                                            <span className="tc-ref-chip" title={`Mapped from ${tc.sourceSuiteName}`}>
+                                                                Ref
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <span className="tc-row-date">{formatTimeAgo(tc.updatedAt)}</span>
+                                                    <ChevronRight size={14} className="tc-chevron" />
                                                 </button>
                                             </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
-                                            {/* Suite Rows */}
-                                            {!isCollapsed && (
-                                                <div className="tc-group-rows">
-                                                    {group.cases.map(tc => {
-                                                        const isSelected = selectedCase?.key === tc.key;
-                                                        const execObj = getCaseExecution(tc);
-                                                        const execStatus = execObj?.status || 'not_run';
-                                                        return (
-                                                            <button
-                                                                type="button"
-                                                                key={tc.key}
-                                                                className={`tc-row ${isSelected ? 'selected' : ''}`}
-                                                                onClick={() => handleSelectCase(tc)}
-                                                            >
-                                                                <div className="tc-row-main">
-                                                                    <div className="tc-row-title-line">
-                                                                        <span className="tc-id">{tc.id || 'TC-NEW'}</span>
-                                                                        <strong className="tc-title">{tc.title}</strong>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="tc-row-meta">
-                                                                    <span className="tc-cat-badge">{tc.type}</span>
-                                                                    <span className={`tc-priority-badge ${tc.priority.toLowerCase()}`}>
-                                                                        {tc.priority}
-                                                                    </span>
-                                                                    <span className={`tc-method-pill ${tc.method}`}>
-                                                                        {tc.method === 'automated' ? 'Playwright' : 'Manual'}
-                                                                    </span>
-                                                                    <span className={`tc-lifecycle-badge tc-lifecycle-${tc.lifecycle}`} title={`Lifecycle Status: ${tc.lifecycle}`}>
-                                                                        {tc.lifecycle.replaceAll('-', ' ')}
-                                                                    </span>
-                                                                    <span className={`tc-exec-badge tc-exec-${execStatus}`} title={`Execution Outcome: ${formatExecutionStatus(execStatus)}`}>
-                                                                        {formatExecutionStatus(execStatus)}
-                                                                    </span>
-                                                                    {tc.isReference && (
-                                                                        <span className="tc-ref-chip" title={`Mapped from ${tc.sourceSuiteName}`}>
-                                                                            Ref: {tc.sourceSuiteName}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-
-                                                                <span className="tc-row-date">{formatTimeAgo(tc.updatedAt)}</span>
-                                                                <ChevronRight size={14} className="tc-chevron" />
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            /* ─── Flat Test Case Rows (By Suite or Flat List) ─── */
-                            pageCases.map(tc => {
-                                const isSelected = selectedCase?.key === tc.key;
-                                const execObj = getCaseExecution(tc);
-                                const execStatus = execObj?.status || 'not_run';
-                                return (
+                        {/* Pinned Pager Footer */}
+                        <div className="tc-list-footer">
+                            <div className="tc-pagination">
+                                <div className="tc-pagination-info">
+                                    <span>
+                                        {filteredCases.length === 0 ? '0 of 0' : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredCases.length)} of ${filteredCases.length}`}
+                                    </span>
+                                    <select
+                                        className="tc-pagesize-select"
+                                        value={pageSize}
+                                        onChange={e => {
+                                            setPageSize(Number(e.target.value));
+                                            setPage(1);
+                                        }}
+                                        aria-label="Items per page"
+                                    >
+                                        <option value={25}>25 / page</option>
+                                        <option value={50}>50 / page</option>
+                                        <option value={100}>100 / page</option>
+                                        <option value={500}>500 / page</option>
+                                    </select>
+                                </div>
+                                <div className="tc-pagination-buttons">
                                     <button
                                         type="button"
-                                        key={tc.key}
-                                        className={`tc-row ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => handleSelectCase(tc)}
+                                        disabled={page <= 1}
+                                        onClick={() => setPage(v => Math.max(1, v - 1))}
+                                        aria-label="Previous page"
                                     >
-                                        <div className="tc-row-main">
-                                            <div className="tc-row-title-line">
-                                                <span className="tc-id">{tc.id || 'TC-NEW'}</span>
-                                                <strong className="tc-title">{tc.title}</strong>
-                                            </div>
-                                        </div>
-
-                                        <div className="tc-row-meta">
-                                            <span className="tc-cat-badge">{tc.type}</span>
-                                            <span className={`tc-priority-badge ${tc.priority.toLowerCase()}`}>
-                                                {tc.priority}
-                                            </span>
-                                            <span className={`tc-method-pill ${tc.method}`}>
-                                                {tc.method === 'automated' ? 'Playwright' : 'Manual'}
-                                            </span>
-                                            <span className={`tc-lifecycle-badge tc-lifecycle-${tc.lifecycle}`} title={`Lifecycle Status: ${tc.lifecycle}`}>
-                                                {tc.lifecycle.replaceAll('-', ' ')}
-                                            </span>
-                                            <span className={`tc-exec-badge tc-exec-${execStatus}`} title={`Execution Outcome: ${formatExecutionStatus(execStatus)}`}>
-                                                {formatExecutionStatus(execStatus)}
-                                            </span>
-                                            {!suiteId && (
-                                                <span className="tc-suite-tag" title={`Suite: ${tc.suiteName}`}>
-                                                    {tc.suiteName}
-                                                </span>
-                                            )}
-                                            {tc.isReference && (
-                                                <span className="tc-ref-chip" title={`Mapped from ${tc.sourceSuiteName}`}>
-                                                    Ref
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <span className="tc-row-date">{formatTimeAgo(tc.updatedAt)}</span>
-                                        <ChevronRight size={14} className="tc-chevron" />
+                                        Previous
                                     </button>
-                                );
-                            })
-                        )}
-
-                        {/* Pagination Bar */}
-                        {pageCount > 1 && (
-                            <div className="tc-pagination">
-                                <span>
-                                    {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredCases.length)} of {filteredCases.length}
-                                </span>
-                                <button type="button" disabled={page <= 1} onClick={() => setPage(v => v - 1)}>
-                                    Previous
-                                </button>
-                                <button type="button" disabled={page >= pageCount} onClick={() => setPage(v => v + 1)}>
-                                    Next
-                                </button>
+                                    <button
+                                        type="button"
+                                        disabled={page >= pageCount || filteredCases.length === 0}
+                                        onClick={() => setPage(v => v + 1)}
+                                        aria-label="Next page"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </main>
+
+                    {/* Mobile Drawer Backdrop */}
+                    <div
+                        className={`tc-detail-drawer-backdrop ${mobileDetailOpen ? 'is-open' : ''}`}
+                        onClick={() => setMobileDetailOpen(false)}
+                    />
 
                     {/* ─── 3. RIGHT PANEL: COLLAPSIBLE TEST CASE DETAIL ─── */}
                     {!isDetailPanelCollapsed && selectedCase && (
-                        <aside className="tc-detail-panel" aria-label="Test case details">
-                            <button
-                                type="button"
-                                className="tc-mobile-back"
-                                onClick={() => setMobileDetailOpen(false)}
-                            >
+                        <aside className={`tc-detail-panel ${mobileDetailOpen ? 'drawer-is-open' : ''}`} aria-label="Test case details">
+                            <div className="tc-detail-head">
+                                <button
+                                    type="button"
+                                    className="tc-mobile-back"
+                                    onClick={() => setMobileDetailOpen(false)}
+                                >
                                 <ArrowLeft size={14} /> Back to test case list
                             </button>
 
@@ -1816,7 +2030,7 @@ const TestCasesPage = () => {
                                             style={{
                                                 background: 'transparent',
                                                 border: 'none',
-                                                color: copiedCaseId ? 'var(--tc-jade)' : '#6C7A71',
+                                                color: copiedCaseId ? '#FFFFFF' : 'var(--tc-text-muted)',
                                                 cursor: 'pointer',
                                                 padding: '2px 4px',
                                                 display: 'inline-flex',
@@ -1874,7 +2088,7 @@ const TestCasesPage = () => {
                                         onClick={() => setDeleteModalOpen(true)}
                                         disabled={isSaving}
                                     >
-                                        <Trash2 size={14} color="var(--tc-fail)" />
+                                        <Trash2 size={14} color="#FFFFFF" />
                                     </button>
                                     <button
                                         type="button"
@@ -1893,11 +2107,13 @@ const TestCasesPage = () => {
                             <div className="tc-facts">
                                 <span>Category: <strong style={{ color: '#FFFFFF' }}>{selectedCase.type}</strong></span>
                                 <span>•</span>
-                                <span>Method: <strong style={{ color: selectedCase.method === 'automated' ? 'var(--tc-blue)' : '#FFFFFF' }}>
+                                <span>Method: <strong style={{ color: '#FFFFFF' }}>
                                     {selectedCase.method === 'automated' ? 'Playwright Automated' : 'Manual Verification'}
                                 </strong></span>
                                 <span>•</span>
-                                <span>Suite: <strong style={{ color: 'var(--tc-jade)' }}>{selectedCase.suiteName}</strong></span>
+                                <span>Suite: <strong style={{ color: '#FFFFFF' }}>{selectedCase.suiteName}</strong></span>
+                                <span>•</span>
+                                <span>Updated: <strong style={{ color: 'var(--tc-text-muted)' }}>{formatDate(selectedCase.updatedAt)}</strong></span>
                             </div>
 
                             {/* Direct Execution Actions Bar */}
@@ -1905,15 +2121,21 @@ const TestCasesPage = () => {
                                 <button
                                     type="button"
                                     className="tc-execute tc-manual-btn"
-                                    title="Open manual execution workspace"
+                                    title={!testRunsEnabled ? 'Execute Manually, coming soon' : 'Open manual execution workspace'}
+                                    aria-haspopup={!testRunsEnabled ? 'dialog' : undefined}
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        setManualExecOpen(true);
+                                        if (!testRunsEnabled) {
+                                            openComingSoon('testRuns');
+                                        } else {
+                                            setManualExecOpen(true);
+                                        }
                                     }}
                                 >
                                     <Clock size={14} />
                                     <span>Execute Manually</span>
+                                    {!testRunsEnabled && <span className="cs-tag-soon">Soon</span>}
                                 </button>
 
                                 {selectedCaseAutomationValid ? (
@@ -1921,60 +2143,81 @@ const TestCasesPage = () => {
                                         <button
                                             type="button"
                                             className="tc-execute tc-auto-btn"
-                                            title="Run automated Playwright scenario in headless Chromium"
+                                            title={!testRunsEnabled ? 'Run Playwright, coming soon' : 'Run automated Playwright scenario in headless Chromium'}
+                                            aria-haspopup={!testRunsEnabled ? 'dialog' : undefined}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setAutoExecOpen(true);
+                                                if (!testRunsEnabled) {
+                                                    openComingSoon('testRuns');
+                                                } else {
+                                                    setAutoExecOpen(true);
+                                                }
                                             }}
                                         >
                                             <Play size={14} />
                                             <span>Run Playwright</span>
+                                            {!testRunsEnabled && <span className="cs-tag-soon">Soon</span>}
                                         </button>
                                         <button
                                             type="button"
                                             className="tc-execute"
                                             style={{
-                                                background: 'transparent',
-                                                border: '1px solid #28332B',
-                                                color: '#8BAF9A',
+                                                background: '#111111',
+                                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                color: '#ffffff',
                                                 padding: '6px 12px',
                                                 borderRadius: '4px',
-                                                fontSize: '0.78rem',
+                                                fontSize: '12px',
                                                 fontWeight: 600,
                                                 cursor: 'pointer',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 gap: '5px'
                                             }}
-                                            title="Edit Playwright mapping and execution settings"
+                                            title={!testRunsEnabled ? 'Edit Mapping, coming soon' : 'Edit Playwright mapping and execution settings'}
+                                            aria-haspopup={!testRunsEnabled ? 'dialog' : undefined}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setPwDrawerOpen(true);
+                                                if (!testRunsEnabled) {
+                                                    openComingSoon('testRuns');
+                                                } else {
+                                                    setPwDrawerOpen(true);
+                                                }
                                             }}
                                         >
                                             <Code size={13} />
                                             <span>Edit Mapping</span>
+                                            {!testRunsEnabled && <span className="cs-tag-soon">Soon</span>}
                                         </button>
                                     </>
                                 ) : (
                                     <button
                                         type="button"
                                         className="tc-execute tc-auto-btn"
-                                        title="Configure Playwright automation mapping for this test case"
+                                        title={!testRunsEnabled ? 'Configure Playwright, coming soon' : 'Configure Playwright automation mapping for this test case'}
+                                        aria-haspopup={!testRunsEnabled ? 'dialog' : undefined}
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            setPwDrawerOpen(true);
+                                            if (!testRunsEnabled) {
+                                                openComingSoon('testRuns');
+                                            } else {
+                                                setPwDrawerOpen(true);
+                                            }
                                         }}
                                     >
                                         <Play size={14} />
                                         <span>Configure Playwright</span>
+                                        {!testRunsEnabled && <span className="cs-tag-soon">Soon</span>}
                                     </button>
                                 )}
                             </div>
+                            </div>
 
+                            {/* Scrolling Body */}
+                            <div className="tc-detail-body">
                             {/* Description */}
                             <div className="tc-block">
                                 <div
@@ -2153,11 +2396,11 @@ const TestCasesPage = () => {
                                                 </div>
                                                 <p className="tc-req-desc">
                                                     Status: {selectedCaseExecutionStatus === 'passed' ? (
-                                                        <span style={{ color: 'var(--tc-jade)' }}>Verified (Passing)</span>
+                                                        <span style={{ color: '#FFFFFF', fontWeight: 600 }}>Verified (Passing)</span>
                                                     ) : selectedCaseExecutionStatus === 'failed' ? (
-                                                        <span style={{ color: 'var(--tc-fail)' }}>Failing Verification</span>
+                                                        <span style={{ color: 'var(--tc-text-muted)' }}>Failing Verification</span>
                                                     ) : (
-                                                        <span style={{ color: '#8C9990' }}>Unverified (Untested)</span>
+                                                        <span style={{ color: 'var(--tc-text-muted)' }}>Unverified (Untested)</span>
                                                     )}
                                                 </p>
                                             </div>
@@ -2230,7 +2473,7 @@ const TestCasesPage = () => {
                                             </div>
                                             <div className="tc-auto-row">
                                                 <span>Mapping Status</span>
-                                                <strong style={{ color: selectedCaseAutomationValid ? 'var(--tc-jade)' : 'var(--tc-warn)' }}>
+                                                <strong style={{ color: selectedCaseAutomationValid ? '#FFFFFF' : 'var(--tc-text-muted)' }}>
                                                     {selectedCaseAutomationValid ? 'Configured & Ready' : (selectedCase.automationMapping.mappingStatus || 'Configured')}
                                                 </strong>
                                             </div>
@@ -2261,11 +2504,18 @@ const TestCasesPage = () => {
                                                 <button
                                                     type="button"
                                                     className="tc-text-action"
-                                                    onClick={() => setPwDrawerOpen(true)}
-                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.74rem' }}
+                                                    onClick={() => {
+                                                        if (!testRunsEnabled) {
+                                                            openComingSoon('testRuns');
+                                                        } else {
+                                                            setPwDrawerOpen(true);
+                                                        }
+                                                    }}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
                                                 >
                                                     <Pencil size={12} />
                                                     <span>Edit Playwright Mapping</span>
+                                                    {!testRunsEnabled && <span className="cs-tag-soon">Soon</span>}
                                                 </button>
                                             </div>
                                         </div>
@@ -2275,9 +2525,16 @@ const TestCasesPage = () => {
                                             <button
                                                 type="button"
                                                 className="tc-text-action"
-                                                onClick={() => setPwDrawerOpen(true)}
+                                                onClick={() => {
+                                                    if (!testRunsEnabled) {
+                                                        openComingSoon('testRuns');
+                                                    } else {
+                                                        setPwDrawerOpen(true);
+                                                    }
+                                                }}
                                             >
                                                 Configure Playwright
+                                                {!testRunsEnabled && <span className="cs-tag-soon" style={{ marginLeft: 6 }}>Soon</span>}
                                             </button>
                                         </div>
                                     )
@@ -2331,6 +2588,7 @@ const TestCasesPage = () => {
                                         <p className="tc-muted-text">No recorded executions in recent test runs for this test case.</p>
                                     )
                                 )}
+                            </div>
                             </div>
                         </aside>
                     )}

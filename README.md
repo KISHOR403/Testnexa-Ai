@@ -313,6 +313,16 @@ SUPABASE_SECRET_KEY=your_supabase_service_role_key
 AI_PROVIDER=gemini
 GEMINI_API_KEY=AIzaSyYourGeminiApiKeyHere
 GEMINI_MODEL=gemini-2.5-flash
+
+# Feature Flags (default: false)
+# Enable manual and automated Playwright execution engine
+FEATURE_TEST_RUNS=false
+```
+
+In `frontend/.env`:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api/v1
+VITE_FEATURE_TEST_RUNS=false
 ```
 
 ### 4. Run Both Servers

@@ -109,12 +109,23 @@ const SuiteShareRedirect = () => {
   return <Navigate to={targetPath} replace />;
 };
 
+import { ComingSoonProvider, useComingSoon } from './context/ComingSoonContext';
+import ComingSoonDialog from './components/common/ComingSoonDialog';
+
 // Run share / direct link redirect helper
 const RunShareRedirect = () => {
   const { id } = useParams();
   const location = useLocation();
   const targetPath = id ? `/app/runs/${id}${location.search}` : '/app/runs';
   return <Navigate to={targetPath} replace />;
+};
+
+const TestRunsNewRedirect = () => {
+  const { open } = useComingSoon();
+  React.useEffect(() => {
+    open('testRuns');
+  }, [open]);
+  return <Navigate to="/app/runs" replace />;
 };
 
 function AppContent() {
@@ -185,6 +196,9 @@ function AppContent() {
             <Route path="test-suites/:id" element={<TestSuiteDetailPage />} />
             <Route path="test-cases" element={<TestCasesPage />} />
             <Route path="runs" element={<TestRunsPage />} />
+            <Route path="runs/new" element={<TestRunsNewRedirect />} />
+            <Route path="test-runs/new" element={<TestRunsNewRedirect />} />
+            <Route path="test-runs" element={<Navigate to="/app/runs" replace />} />
             <Route path="runs/:runId" element={<RunExecutionPage />} />
             <Route path="runs/:runId/manual" element={<RunExecutionPage />} />
             <Route path="projects/:projectId/executions/:runId/manual" element={<RunExecutionPage />} />
@@ -231,7 +245,13 @@ function AppContent() {
           <Route path="/suites/:id" element={<SuiteShareRedirect />} />
           <Route path="/suites" element={<Navigate to="/app/test-suites" replace />} />
           <Route path="/runs/:id" element={<RunShareRedirect />} />
+          <Route path="/runs/new" element={<TestRunsNewRedirect />} />
           <Route path="/runs" element={<Navigate to="/app/runs" replace />} />
+          <Route path="/test-runs/new" element={<TestRunsNewRedirect />} />
+          <Route path="/test-runs" element={<Navigate to="/app/runs" replace />} />
+          <Route path="/app/test-runs/new" element={<TestRunsNewRedirect />} />
+          <Route path="/app/test-runs" element={<Navigate to="/app/runs" replace />} />
+          <Route path="/app/runs/new" element={<TestRunsNewRedirect />} />
           <Route path="/workspace/new-test-suite" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/workspace" element={<Navigate to="/app/workspace" replace />} />
           <Route path="/new-test-suite" element={<Navigate to="/app/workspace" replace />} />
@@ -253,7 +273,10 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <ComingSoonProvider>
+        <AppContent />
+        <ComingSoonDialog />
+      </ComingSoonProvider>
     </Router>
   );
 }

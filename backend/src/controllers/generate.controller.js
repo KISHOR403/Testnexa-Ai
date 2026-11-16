@@ -8,6 +8,20 @@ const ambiguityAnalyzer = require('../services/ambiguity.service');
 const domainDetector = require('../services/domain.service');
 const { callAI } = require('../services/ai.service');
 const usageMeteringService = require('../services/usageMetering.service');
+const { invalidateIntelligenceCache } = require('../services/intelligence.service');
+
+// Idempotency tracking for duplicate/double-click generation requests
+const idempotencyInFlight = new Map(); // key -> Promise<{ statusCode, body }>
+const idempotencyCompleted = new Map(); // key -> { timestamp, statusCode, body }
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of idempotencyCompleted.entries()) {
+        if (now - val.timestamp > 10 * 60 * 1000) {
+            idempotencyCompleted.delete(key);
+        }
+    }
+}, 60 * 1000).unref();
 
 /**
  * Enhanced Test Case Generation Controller
@@ -18,6 +32,34 @@ const generateTestCases = async (req, res) => {
     const startTime = Date.now();
     let quotaReservation = null;
     let targetOrgId = null;
+
+    const idempotencyKey = req.headers['idempotency-key'] || req.headers['x-idempotency-key'] || req.body?.idempotencyKey;
+    if (idempotencyKey) {
+        const cached = idempotencyCompleted.get(idempotencyKey);
+        if (cached) {
+            logger.info(`Returning cached idempotent generation result for key: ${idempotencyKey}`);
+            return res.status(cached.statusCode).json(cached.body);
+        }
+        const inFlight = idempotencyInFlight.get(idempotencyKey);
+        if (inFlight) {
+            logger.info(`Awaiting concurrent in-flight generation for key: ${idempotencyKey}`);
+            try {
+                const result = await inFlight;
+                return res.status(result.statusCode).json(result.body);
+            } catch (err) {
+                return res.status(500).json({ success: false, error: err.message });
+            }
+        }
+    }
+
+    let resolveInFlight, rejectInFlight;
+    if (idempotencyKey) {
+        const inFlightPromise = new Promise((resolve, reject) => {
+            resolveInFlight = resolve;
+            rejectInFlight = reject;
+        });
+        idempotencyInFlight.set(idempotencyKey, inFlightPromise);
+    }
 
     try {
         const aiConfig = require('../config/ai.config');
@@ -120,11 +162,46 @@ const generateTestCases = async (req, res) => {
             processingTime
         });
 
-        // Step 3: Build Final Response
+        // Step 3: Validate generated test cases count (must have >= 1 valid case)
+        const functionalCases = result.functional || [];
+        const negativeCases = result.negative || [];
+        const edgeCases = result.edge || [];
+        const nonFunctionalCases = result.nonFunctional || [];
+        const apiChecklistCases = result.apiChecklist || [];
+        const securityCases = result.security || [];
+
+        const totalValidCases = functionalCases.length + negativeCases.length + edgeCases.length +
+            nonFunctionalCases.length + apiChecklistCases.length + securityCases.length;
+
+        if (totalValidCases === 0) {
+            logger.warn('AI generation produced zero valid test cases - rejecting creation');
+            if (quotaReservation) {
+                usageMeteringService.releaseReservation(quotaReservation.id);
+                quotaReservation = null;
+            }
+            const zeroResponse = {
+                success: false,
+                code: 'ZERO_TEST_CASES',
+                error: 'No valid test cases could be generated from the provided requirement. Please provide more detailed specifications with clear acceptance criteria.'
+            };
+            if (idempotencyKey) {
+                idempotencyCompleted.set(idempotencyKey, {
+                    timestamp: Date.now(),
+                    statusCode: 422,
+                    body: zeroResponse
+                });
+                idempotencyInFlight.delete(idempotencyKey);
+                if (resolveInFlight) resolveInFlight({ statusCode: 422, body: zeroResponse });
+            }
+            return res.status(422).json(zeroResponse);
+        }
+
+        // Step 4: Build Final Response
         const response = {
             success: true,
             data: {
                 feature: result.understanding.feature,
+                requirements: result.requirements || [],
 
                 // Test cases
                 functional: result.functional,
@@ -229,7 +306,7 @@ const generateTestCases = async (req, res) => {
                                 suiteData: response.data,
                                 summary: summaryData,
                                 quality: qualityData,
-                                status: 'NeedsReview',
+                                status: 'active',
                                 currentVersion: newVersion,
                                 versions,
                                 messages
@@ -241,13 +318,13 @@ const generateTestCases = async (req, res) => {
                     }
                 }
 
-                // Create new session if none existed or updated
+                // Create new session if none existed or updated (strictly atomic in 1 transaction with status 'active')
                 if (!savedSessionId) {
                     const title = result.understanding.feature || requirement.split(/[.!?\n]/)[0].trim().slice(0, 50) || 'Generated Suite';
                     const newSession = await supabaseService.createSession({
                         userId: targetUserId,
                         title,
-                        status: 'NeedsReview',
+                        status: 'active',
                         requirement,
                         context: appType || 'web',
                         depth: detailLevel === 'basic' ? 'Essential' : detailLevel === 'detailed' ? 'Comprehensive' : 'Standard',
@@ -262,6 +339,7 @@ const generateTestCases = async (req, res) => {
                         generationId
                     });
                     savedSessionId = newSession.id;
+                    invalidateIntelligenceCache(targetUserId);
                 }
 
                 // Save test history record
@@ -330,7 +408,7 @@ const generateTestCases = async (req, res) => {
         }
 
         // Return generated data with saved sessionId and generationId
-        return res.status(200).json({
+        const successPayload = {
             ...response,
             sessionId: savedSessionId,
             testSuiteId: savedSessionId,
@@ -346,12 +424,29 @@ const generateTestCases = async (req, res) => {
                 generationId,
                 status: 'completed'
             }
-        });
+        };
+
+        if (idempotencyKey) {
+            idempotencyCompleted.set(idempotencyKey, {
+                timestamp: Date.now(),
+                statusCode: 200,
+                body: successPayload
+            });
+            idempotencyInFlight.delete(idempotencyKey);
+            if (resolveInFlight) resolveInFlight({ statusCode: 200, body: successPayload });
+        }
+
+        return res.status(200).json(successPayload);
 
     } catch (error) {
         if (quotaReservation) {
             usageMeteringService.releaseReservation(quotaReservation.id);
             quotaReservation = null;
+        }
+
+        if (idempotencyKey) {
+            idempotencyInFlight.delete(idempotencyKey);
+            if (rejectInFlight) rejectInFlight(error);
         }
 
         logger.error('Error in enhanced test generation', error);

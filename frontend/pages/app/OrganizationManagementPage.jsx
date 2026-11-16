@@ -561,6 +561,14 @@ const OrganizationManagementPage = () => {
                     </div>
 
                     <table className="org-table">
+                        <colgroup>
+                            <col style={{ width: '34%' }} />
+                            <col style={{ width: '22%' }} />
+                            <col style={{ width: '13%' }} />
+                            <col style={{ width: '11%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '10%' }} />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>Workspace Name</th>
@@ -640,6 +648,13 @@ const OrganizationManagementPage = () => {
                     </div>
 
                     <table className="org-table">
+                        <colgroup>
+                            <col style={{ width: '30%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '30%' }} />
+                            <col style={{ width: '11%' }} />
+                            <col style={{ width: '11%' }} />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>Member</th>
@@ -738,6 +753,13 @@ const OrganizationManagementPage = () => {
                         </div>
                     ) : (
                         <table className="org-table">
+                            <colgroup>
+                                <col style={{ width: '38%' }} />
+                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '16%' }} />
+                                <col style={{ width: '14%' }} />
+                                <col style={{ width: '12%' }} />
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>Recipient Email</th>

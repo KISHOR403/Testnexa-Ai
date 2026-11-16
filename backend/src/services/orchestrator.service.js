@@ -14,6 +14,7 @@ const personaPromptAdapter = require('./persona-prompt.service');
 const personaMetadataEnhancer = require('./persona-metadata.service');
 const personaMessagingAdapter = require('./persona-messaging.service');
 const personaSafetyValidator = require('./persona-safety.service');
+const { validateAndRepairTestCase } = require('../utils/testCaseManagement.validation');
 const logger = require('../utils/logger');
 
 class TwoStepOrchestrator {
@@ -86,8 +87,13 @@ class TwoStepOrchestrator {
             );
 
             // Use test cases from the combined result
+            const extractedReqs = combinedResult.requirements && Array.isArray(combinedResult.requirements) && combinedResult.requirements.length > 0
+                ? combinedResult.requirements
+                : this.extractStructuredRequirementsFromInput(requirement);
+
             const testCases = {
                 assumptions: combinedResult.assumptions || [],
+                requirements: extractedReqs,
                 functional: combinedResult.functional || [],
                 negative: combinedResult.negative || [],
                 edge: combinedResult.edge || [],
@@ -148,42 +154,55 @@ Application Type: ${appType} -> ${appTypeInstructions[appType] || appTypeInstruc
 Detail Depth: ${detailLevel} -> ${detailInstructions[detailLevel] || detailInstructions.medium}
 Test Focus Category: ${testFocus}
 
-STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 12 fields (NO additional fields allowed):
+STRICT TEST CASE SCHEMA — Every test case object MUST contain exactly these 13 fields (NO additional fields allowed):
 - "id": string (e.g. "TC_FUNC_001")
 - "testScenario": string (high-level functionality being tested, e.g. "User Authentication", "Payment Processing")
 - "module": string (feature module name, e.g. "Login", "Payment")
 - "title": string (concise test case title, max 80 chars, NO prose)
 - "type": string (MUST be one of: "Functional", "Negative", "Edge Case", "Security", "API", "Non-Functional")
 - "priority": string (MUST be one of: "High", "Medium", "Low")
-- "severity": string (impact if test fails, MUST be one of: "Critical", "Major", "Minor", "Trivial")
+- "severity": string (impact if test fails, MUST be one of: "Critical", "Major", "Minor", "Trivial". Standard functional happy paths MUST use "Major" or "Minor"; reserve "Critical" for vulnerabilities or severe data loss)
 - "preconditions": string[] (array of prerequisite conditions, each a short declarative statement)
-- "testData": string (specific input values needed for execution, e.g. "Email: test@mail.com, Password: Pass123")
+- "testData": string (specific input values needed for execution using placeholders, e.g. "Email: <test_user_email>, Password: <valid_password>")
 - "steps": array of objects, each with exactly {"action": string, "expected": string}
     - "action": what the tester DOES (imperative verb, e.g. "Enter valid email in the email field")
     - "expected": what the system SHOULD do (e.g. "Email field accepts input without error")
 - "expectedResult": string (final pass/fail verdict for the entire test case)
-- "requirementId": string (traceability ID, e.g. "REQ_001")
+- "requirementId": string (traceability ID of the requirement this test verifies, e.g. "REQ_001")
+- "rationale": string (short justification explaining why this test exists and how it verifies the requirement)
 
 ABSOLUTE CONSTRAINTS ON FIELD VALUES:
+- "id": Prefix MUST strictly match the category: "TC_FUNC_" for Functional, "TC_NEG_" for Negative, "TC_EDGE_" for Edge Case, "TC_SEC_" for Security, "TC_API_" for API, "TC_NF_" for Non-Functional.
 - "title": Must be a concise noun phrase. NO sentences, NO prose, NO "Verify that..." phrasing.
   ✅ GOOD: "Valid Credit Card Payment"
   ❌ BAD: "Verify that the user can successfully make a payment using a valid credit card"
 - "steps[].action": Must start with an imperative verb (Enter, Click, Navigate, Submit, Send, Select).
   NO "Given/When/Then" prefixes. NO prose paragraphs.
-  ✅ GOOD: "Enter 'test@email.com' in the email field"
+  ✅ GOOD: "Enter '<test_user_email>' in the email field"
   ❌ BAD: "Given the user is on the login page, when they enter their email..."
 - "steps[].expected": Must be a short, verifiable assertion.
   ✅ GOOD: "Email field accepts input and shows no validation error"
   ❌ BAD: "The system should properly validate and accept the email input from the user"
-- "preconditions": Must be an array of short declarative statements.
-  ✅ GOOD: ["User is logged in", "Cart has at least 1 item"]
-  ❌ BAD: "The user must be logged in and have items in their cart"
+- "preconditions": Must be an array of short declarative statements. NEVER include realistic passwords or secrets.
+  ✅ GOOD: ["User is logged in with '<valid_password>'", "Cart has at least 1 item"]
+  ❌ BAD: "User is logged in with password 'SecurePass123!'"
 - "expectedResult": One concise sentence with clear pass/fail criteria.
 - ALL string values must be plain text. NO markdown, NO HTML, NO bullet points inside strings.
 
 Return ONLY valid JSON with this exact structure:
 {
   "feature": "Brief feature name",
+  "requirements": [
+    {
+      "id": "REQ_001",
+      "title": "Title of the requirement extracted directly from text",
+      "description": "Clear statement of what the requirement entails",
+      "source_quote": "Exact sentence or substring from the user's input text",
+      "priority": "High|Medium|Low",
+      "category": "Functional|Security|API",
+      "source": "extracted"
+    }
+  ],
   "business_rules": ["Rule 1", "Rule 2"],
   "inputs": [{"name": "field", "type": "string", "constraints": "max 50 chars"}],
   "outputs": [{"name": "response", "type": "object", "structure": "..."}],
@@ -204,9 +223,9 @@ Return ONLY valid JSON with this exact structure:
       "title": "Valid Credit Card Checkout",
       "type": "Functional",
       "priority": "High",
-      "severity": "Critical",
+      "severity": "Major",
       "preconditions": ["User is logged in", "Cart contains items"],
-      "testData": "Card: 4111111111111111, Exp: 12/28, CVV: 123, Amount: $50.00",
+      "testData": "Card: <mock_credit_card>, Exp: 12/28, CVV: 123, Amount: $50.00",
       "steps": [
         {"action": "Navigate to checkout page", "expected": "Checkout page loads with cart summary"},
         {"action": "Enter valid credit card details", "expected": "Card fields accept input without error"},
@@ -216,10 +235,10 @@ Return ONLY valid JSON with this exact structure:
       "requirementId": "REQ_001"
     }
   ],
-  "negative": [{"id": "TC_NEG_001", "testScenario": "Payment Validation", "module": "Module", "title": "Expired Card Rejection", "type": "Negative", "priority": "High", "severity": "Critical", "preconditions": ["User on payment page"], "testData": "Card: 4111111111111111, Exp: 01/20 (expired)", "steps": [{"action": "Enter expired card details", "expected": "System displays expiration error message"}], "expectedResult": "Payment rejected with clear error", "requirementId": "REQ_001"}],
+  "negative": [{"id": "TC_NEG_001", "testScenario": "Payment Validation", "module": "Module", "title": "Expired Card Rejection", "type": "Negative", "priority": "High", "severity": "Major", "preconditions": ["User on payment page"], "testData": "Card: <mock_credit_card>, Exp: 01/20 (expired)", "steps": [{"action": "Enter expired card details", "expected": "System displays expiration error message"}], "expectedResult": "Payment rejected with clear error", "requirementId": "REQ_001"}],
   "edge": [{"id": "TC_EDGE_001", "testScenario": "Order Amount Boundaries", "module": "Module", "title": "Boundary Amount Test", "type": "Edge Case", "priority": "Medium", "severity": "Minor", "preconditions": ["Cart ready"], "testData": "Amount: $0.01 (minimum valid)", "steps": [{"action": "Set order total to $0.01", "expected": "System accepts minimum amount"}], "expectedResult": "Order processes for minimum valid amount", "requirementId": "REQ_001"}],
   "security": [{"id": "TC_SEC_001", "testScenario": "Authentication & Data Security", "module": "Security", "title": "Auth Token Expiration and Abuse Prevention", "type": "Security", "priority": "High", "severity": "Critical", "preconditions": ["Valid security gateway configured"], "testData": "Expired or tampered token payload", "steps": [{"action": "Attempt sensitive operation with expired or altered token", "expected": "HTTP 401 Unauthorized or HTTP 403 Forbidden is returned"}], "expectedResult": "System blocks unauthorized access and logs security anomaly without data leakage", "requirementId": "REQ_001"}],
-  "apiChecklist": [{"id": "TC_API_001", "testScenario": "Payment API Integration", "module": "Payment API", "title": "POST /api/payment - Valid Card", "type": "API", "priority": "High", "severity": "Critical", "preconditions": ["API server running", "Valid auth token"], "testData": "POST body: {cardNumber: '4111...', amount: 50.00}", "steps": [{"action": "Send POST with valid card payload", "expected": "Response status 200"}, {"action": "Validate response schema", "expected": "Body contains transactionId and status=success"}], "expectedResult": "HTTP 200 with valid transaction object", "requirementId": "REQ_API_001"}],
+  "apiChecklist": [{"id": "TC_API_001", "testScenario": "Payment API Integration", "module": "Payment API", "title": "POST /api/payment - Valid Card", "type": "API", "priority": "High", "severity": "Critical", "preconditions": ["API server running", "Valid auth token"], "testData": "POST body: {cardNumber: '<mock_credit_card>', amount: 50.00}", "steps": [{"action": "Send POST with valid card payload", "expected": "Response status 200"}, {"action": "Validate response schema", "expected": "Body contains transactionId and status=success"}], "expectedResult": "HTTP 200 with valid transaction object", "requirementId": "REQ_API_001"}],
   "nonFunctional": [{"id": "TC_NF_001", "testScenario": "Checkout Performance", "module": "Module", "title": "Checkout Page Load Time", "type": "Non-Functional", "priority": "Medium", "severity": "Major", "preconditions": ["Standard network conditions"], "testData": "Items: 10, Network: 4G, Browser: Chrome", "steps": [{"action": "Load checkout page with 10 items", "expected": "Page renders within 2 seconds"}], "expectedResult": "Page load time under 2s at P95", "requirementId": "REQ_NF_001"}],
   "questions": ["Clarification question 1?"]
 }
@@ -236,7 +255,9 @@ CRITICAL RULES:
 9. "testScenario" must describe the high-level functionality being tested (e.g. "User Authentication", "Payment Processing").
 10. "testData" must contain specific input values needed for test execution.
 11. "severity" must be one of: "Critical", "Major", "Minor", "Trivial" — based on business impact if the test fails.
-12. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
+12. CRITICAL SECURITY: NEVER write realistic passwords (e.g. 'SecurePass123!'), realistic credit cards or user credentials. ALWAYS use placeholders: "<valid_password>", "<invalid_password>", "<test_user_email>", "<mock_credit_card>".
+13. ID PREFIX AGREEMENT: TC_FUNC_* MUST have type "Functional", TC_NEG_* MUST have type "Negative", TC_EDGE_* MUST have type "Edge Case", TC_SEC_* MUST have type "Security", TC_API_* MUST have type "API", TC_NF_* MUST have type "Non-Functional".
+14. IMPORTANT: Return ONLY valid JSON. START with '{' and END with '}'. DO NOT use markdown code blocks.`;
     }
 
     /**
@@ -480,45 +501,66 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
             personaEnhanced.personaSafetyCheck = safetyCheck;
         }
 
-        // Ensure edge cases have standard 'Edge Case' type
-        if (Array.isArray(personaEnhanced.edge)) {
-            personaEnhanced.edge = personaEnhanced.edge.map(tc => ({
-                ...tc,
-                type: 'Edge Case'
-            }));
-        }
+        // Step 6.5: Schema validation, type-prefix agreement repair, and credential sanitization
+        const testCaseCategories = ['functional', 'negative', 'edge', 'security', 'apiChecklist', 'nonFunctional'];
+        testCaseCategories.forEach(cat => {
+            const defaultType = cat === 'functional' ? 'Functional'
+                : cat === 'negative' ? 'Negative'
+                : cat === 'edge' ? 'Edge Case'
+                : cat === 'security' ? 'Security'
+                : cat === 'apiChecklist' ? 'API'
+                : 'Non-Functional';
+            if (Array.isArray(personaEnhanced[cat])) {
+                personaEnhanced[cat] = personaEnhanced[cat].map(tc => validateAndRepairTestCase(tc, defaultType));
+            }
+        });
 
         // Ensure security tests are categorized and populated
         if (!Array.isArray(personaEnhanced.security) || personaEnhanced.security.length === 0) {
             personaEnhanced.security = [];
             const isSec = (tc) => {
                 if (!tc || typeof tc !== 'object') return false;
+                const id = String(tc.id || '');
+                if (/^TC[_-]?FUNC/i.test(id)) return false; // Never override explicit functional ID prefix to Security
                 if ((tc.type || '').toLowerCase() === 'security') return true;
+                if (/^TC[_-]?SEC/i.test(id)) return true;
                 if (tc.riskType === 'Security' || tc.businessImpact === 'Security') return true;
                 const text = `${tc.title || ''} ${tc.testScenario || ''} ${tc.scenario || ''} ${tc.module || ''} ${tc.expectedResult || ''}`.toLowerCase();
-                return /security|auth|token|breach|sql\s*injection|injection|csrf|xss|vulnerab|sanitiz|unauthoriz|permission|access\s*control|privilege|credential|encrypt|brute\s*force|rate\s*limit|tamper|bypass|replay|session\s*fixation|dos|ddos/.test(text);
+                return /security|breach|sql\s*injection|injection|csrf|xss|vulnerab|sanitiz|unauthoriz|privilege\s*escalation|tamper|bypass|replay|session\s*fixation|dos|ddos/.test(text);
             };
 
             if (Array.isArray(personaEnhanced.nonFunctional)) {
                 const remainingNf = [];
                 personaEnhanced.nonFunctional.forEach(tc => {
                     if (isSec(tc)) {
-                        personaEnhanced.security.push({ ...tc, type: 'Security' });
+                        personaEnhanced.security.push(validateAndRepairTestCase({ ...tc, type: 'Security' }, 'Security'));
                     } else {
                         remainingNf.push(tc);
                     }
                 });
                 personaEnhanced.nonFunctional = remainingNf;
             }
-        } else {
-            personaEnhanced.security = personaEnhanced.security.map(tc => ({
-                ...tc,
-                type: 'Security'
-            }));
         }
+
+        // Ensure structured requirements are compiled with source metadata
+        const rawReqs = testCases.requirements || understanding.requirements || [];
+        const structuredReqs = (Array.isArray(rawReqs) && rawReqs.length > 0)
+            ? rawReqs.map((r, idx) => ({
+                id: r.id || `REQ_${String(idx + 1).padStart(3, '0')}`,
+                title: r.title || `Requirement ${idx + 1}`,
+                description: r.description || r.title || '',
+                source_quote: r.source_quote || r.description || r.title || '',
+                priority: r.priority || 'Medium',
+                category: r.category || 'Functional',
+                source: r.source || 'extracted'
+            }))
+            : [];
 
         // Step 7: Compile final response
         const finalResponse = {
+            // Extracted requirements provenance
+            requirements: structuredReqs,
+
             // Original AI output
             understanding: {
                 feature: understanding.feature,
@@ -952,8 +994,11 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
         const featureName = requirement.substring(0, 60).replace(/[^a-zA-Z0-9\s]/g, '').trim();
         const mainAction = actionWords.length > 0 ? actionWords[0] : 'process';
 
+        const structuredReqs = this.extractStructuredRequirementsFromInput(requirement);
+
         return {
             feature: featureName || 'Feature Under Test',
+            requirements: structuredReqs,
             business_rules: [`The system should ${mainAction} as described in the requirement`],
             inputs: [{ name: 'user_input', type: 'string', constraints: 'As per requirement' }],
             outputs: [{ name: 'result', type: 'object', structure: 'Expected output' }],
@@ -1108,6 +1153,49 @@ CRITICAL FORMATTING INSTRUCTIONS for INDUSTRY STANDARD OUTPUT:
                 'Are there any rate limits or usage restrictions for this feature?'
             ]
         };
+    }
+
+    /**
+     * Extracts structured requirements provenance directly from user requirement text
+     * @param {string} requirementText - Input requirement text
+     * @returns {Array<Object>} Structured requirements array
+     */
+    extractStructuredRequirementsFromInput(requirementText) {
+        if (!requirementText || typeof requirementText !== 'string') return [];
+        const lines = requirementText
+            .split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(l => l.length > 5 && !l.startsWith('#'));
+
+        if (lines.length <= 1) {
+            const clean = requirementText.trim();
+            const firstPeriod = clean.indexOf('.');
+            const title = (firstPeriod > 10 && firstPeriod < 80) ? clean.slice(0, firstPeriod).trim() : clean.slice(0, 60).trim();
+            return [{
+                id: 'REQ_001',
+                title: title || 'Core Feature Requirement',
+                description: clean,
+                source_quote: clean.slice(0, 160),
+                priority: 'High',
+                category: 'Functional',
+                source: 'extracted'
+            }];
+        }
+
+        return lines.slice(0, 10).map((line, idx) => {
+            const clean = line.replace(/^[0-9]+[.)\-*]\s*/, '').trim();
+            const id = `REQ_${String(idx + 1).padStart(3, '0')}`;
+            const title = clean.length > 60 ? `${clean.slice(0, 60)}…` : clean;
+            return {
+                id,
+                title,
+                description: clean,
+                source_quote: line,
+                priority: idx === 0 ? 'High' : 'Medium',
+                category: 'Functional',
+                source: 'extracted'
+            };
+        });
     }
 }
 

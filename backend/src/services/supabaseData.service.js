@@ -290,7 +290,7 @@ class SupabaseDataService {
         requirement,
         context = 'web',
         depth = 'Standard',
-        status = 'Draft',
+        status = 'active',
         messages = [],
         suiteData = null,
         summary = {},
@@ -299,6 +299,26 @@ class SupabaseDataService {
         versions = [],
         generationId = ''
     }) {
+        // Enforce database guard: suite committed must contain >= 1 test case; drafts not allowed
+        const unwrap = (data) => data?.suiteData || data?.suite_data || data?.data || data?.suite || data;
+        const dataObj = unwrap(suiteData);
+        const CASE_KEYS = ['testCases', 'tests', 'functional', 'negative', 'edge', 'security', 'nonFunctional', 'apiChecklist', 'api', 'testCaseRefs'];
+        let casesCount = 0;
+        if (dataObj && typeof dataObj === 'object') {
+            for (const key of CASE_KEYS) {
+                if (Array.isArray(dataObj[key])) casesCount += dataObj[key].length;
+            }
+        }
+
+        if (casesCount === 0 || String(status || '').toLowerCase() === 'draft') {
+            const err = new Error('Constraint violation: A test suite must contain at least one valid test case at creation. Drafts are not permitted.');
+            err.statusCode = 422;
+            err.code = 'ZERO_TEST_CASES';
+            throw err;
+        }
+
+        const normalizedStatus = String(status || 'active').toLowerCase() === 'archived' ? 'archived' : 'active';
+
         const sessionPayload = {
             user_id: userId || null,
             title: title || 'Untitled Session',
@@ -308,7 +328,7 @@ class SupabaseDataService {
             context: context,
             detail_level: depth,
             depth: depth,
-            status: status,
+            status: normalizedStatus,
             messages: messages,
             suite_data: suiteData || {},
             summary: summary,
@@ -632,57 +652,114 @@ class SupabaseDataService {
         return this._formatSession(data);
     }
 
-    async listSessions({ userId, page = 1, limit = 20, status, search, sort = 'updatedAt' }) {
-        if (!this.isAvailable) throw new Error('Supabase client is not available');
+    async listSessions({ userId, page = 1, limit = 20, status, search, sort = 'updatedAt', hasCases = true, onlyGenerated = true } = {}) {
+        const { isEligibleGeneratedSuite } = require('../utils/testCaseManagement.validation');
 
-        const from = (page - 1) * limit;
-        const to = from + limit - 1;
+        if (this.isAvailable && this.sessionsTableAvailable !== false) {
+            try {
+                const from = (page - 1) * limit;
+                const to = from + limit - 1;
 
-        let query = supabase
-            .from('workspace_sessions')
-            .select('id, user_id, title, status, raw_requirement, requirement, context, depth, app_type, detail_level, summary, quality, current_version, created_at, updated_at, suite_data', { count: 'exact' });
+                let query = supabase
+                    .from('workspace_sessions')
+                    .select('id, user_id, title, status, raw_requirement, requirement, context, depth, app_type, detail_level, summary, quality, current_version, created_at, updated_at, suite_data', { count: 'exact' });
+
+                if (userId) {
+                    query = query.eq('user_id', userId);
+                }
+
+                if (status) {
+                    if (status === 'all') {
+                        // Return all statuses including Archived
+                    } else if (status === 'Generated') {
+                        query = query.in('status', ['Generated', 'NeedsReview', 'Approved', 'Ready', 'active']);
+                    } else {
+                        query = query.eq('status', status);
+                    }
+                } else {
+                    query = query.neq('status', 'Archived').neq('status', 'archived');
+                }
+
+                if (search && search.trim()) {
+                    query = query.or(`title.ilike.%${search}%,raw_requirement.ilike.%${search}%`);
+                }
+
+                if (sort === 'createdAt') {
+                    query = query.order('created_at', { ascending: false });
+                } else if (sort === 'title') {
+                    query = query.order('title', { ascending: true });
+                } else {
+                    query = query.order('updated_at', { ascending: false });
+                }
+
+                const { data, count, error } = await query.range(from, to);
+
+                if (!error && data) {
+                    let formatted = (data || []).map(row => this._formatSession(row));
+                    // Strict requirement: query only suites with at least one test case
+                    formatted = formatted.filter(s => isEligibleGeneratedSuite(s));
+                    return {
+                        sessions: formatted,
+                        total: formatted.length,
+                        page,
+                        limit,
+                        totalPages: Math.ceil((formatted.length || 0) / limit)
+                    };
+                }
+            } catch (err) {
+                logger.warn('Supabase listSessions fallback note:', err.message);
+                this.sessionsTableAvailable = false;
+            }
+        }
+
+        // Resilient in-memory / disk store fallback
+        let rows = Array.from(this.inMemorySessions.values()).map(r => this._formatSession(r));
 
         if (userId) {
-            query = query.eq('user_id', userId);
+            rows = rows.filter(s => String(s.userId || s.user_id) === String(userId));
         }
 
         if (status) {
             if (status === 'all') {
-                // Return all statuses including Archived
+                // Return all
             } else if (status === 'Generated') {
-                query = query.in('status', ['Generated', 'NeedsReview', 'Approved']);
+                rows = rows.filter(s => ['Generated', 'NeedsReview', 'Approved', 'Ready', 'active'].includes(s.status));
             } else {
-                query = query.eq('status', status);
+                rows = rows.filter(s => s.status === status);
             }
         } else {
-            query = query.neq('status', 'Archived');
+            rows = rows.filter(s => s.status !== 'Archived' && s.status !== 'archived');
         }
 
         if (search && search.trim()) {
-            query = query.or(`title.ilike.%${search}%,raw_requirement.ilike.%${search}%`);
+            const q = search.trim().toLowerCase();
+            rows = rows.filter(s =>
+                (s.title && s.title.toLowerCase().includes(q)) ||
+                (s.requirement && s.requirement.toLowerCase().includes(q))
+            );
         }
+
+        // Strict requirement: query only suites with at least one test case
+        rows = rows.filter(s => isEligibleGeneratedSuite(s));
 
         if (sort === 'createdAt') {
-            query = query.order('created_at', { ascending: false });
+            rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         } else if (sort === 'title') {
-            query = query.order('title', { ascending: true });
+            rows.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
         } else {
-            query = query.order('updated_at', { ascending: false });
+            rows.sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
         }
 
-        const { data, count, error } = await query.range(from, to);
-
-        if (error) {
-            logger.error('Supabase listSessions error:', error);
-            throw error;
-        }
+        const total = rows.length;
+        const from = (page - 1) * limit;
+        const paged = rows.slice(from, from + limit);
 
         return {
-            sessions: (data || []).map(row => this._formatSession(row)),
-            total: count || 0,
+            sessions: paged,
+            total,
             page,
             limit,
-            totalPages: Math.ceil((count || 0) / limit)
+            totalPages: Math.ceil(total / limit)
         };
     }
 
@@ -757,23 +834,36 @@ class SupabaseDataService {
     }
 
     async deleteSession(sessionId, userId) {
-        if (!this.isAvailable) throw new Error('Supabase client is not available');
+        if (this.isAvailable && this.sessionsTableAvailable !== false) {
+            try {
+                let query = supabase
+                    .from('workspace_sessions')
+                    .delete()
+                    .eq('id', sessionId);
 
-        let query = supabase
-            .from('workspace_sessions')
-            .delete()
-            .eq('id', sessionId);
+                if (userId) {
+                    query = query.eq('user_id', userId);
+                }
 
-        if (userId) {
-            query = query.eq('user_id', userId);
+                const { error } = await query;
+                if (!error) {
+                    this.inMemorySessions.delete(sessionId);
+                    this._saveDiskWorkspacesStore();
+                    return true;
+                }
+                logger.error('Supabase deleteSession error:', error);
+            } catch (err) {
+                this.sessionsTableAvailable = false;
+            }
         }
 
-        const { error } = await query;
-        if (error) {
-            logger.error('Supabase deleteSession error:', error);
-            throw error;
+        const session = this.inMemorySessions.get(sessionId);
+        if (session && (!userId || session.user_id === userId)) {
+            this.inMemorySessions.delete(sessionId);
+            this._saveDiskWorkspacesStore();
+            return true;
         }
-        return true;
+        return false;
     }
 
     // ==========================================
@@ -1510,12 +1600,16 @@ class SupabaseDataService {
             }
         }
 
+        const rawStatus = String(row.status || '').toLowerCase();
+        const resolvedStatus = rawStatus === 'archived' ? 'archived' : 'active';
+
         return {
             _id: row.id,
             id: row.id,
             userId: row.user_id,
             title: row.title,
-            status: row.status,
+            status: resolvedStatus,
+            totalCases: summary.total || 0,
             requirement: row.requirement || row.raw_requirement || '',
             rawRequirement: row.raw_requirement || row.requirement || '',
             context: row.context || row.app_type || 'web',
@@ -2597,7 +2691,7 @@ class SupabaseDataService {
         const executionType = params.executionType || params.execution_type || 'manual';
         const environmentId = params.environmentId || params.environment_id || null;
         const targetEnvironment = params.targetEnvironment || params.target_environment || {};
-        const createdBy = params.createdBy || params.created_by || null;
+        const createdBy = params.createdBy || params.created_by || params.userId || params.user_id || null;
         const assignedTo = params.assignedTo || params.assigned_to || null;
         const selectedCaseIds = params.selectedCaseIds || params.selected_case_ids || [];
         const customCases = params.customCases || params.custom_cases || params.cases || params.testCases || null;
@@ -2833,8 +2927,8 @@ class SupabaseDataService {
     /**
      * List test runs for a workspace with filtering & pagination
      */
-    async listTestRuns({ workspaceId, page = 1, limit = 20, status, executionType, search, sort = 'newest' }) {
-        if (!workspaceId) throw new Error('workspaceId is required');
+    async listTestRuns({ workspaceId, userId, page = 1, limit = 20, status, executionType, search, sort = 'newest' } = {}) {
+        if (!workspaceId && !userId) throw new Error('workspaceId or userId is required');
 
         const offset = (page - 1) * limit;
 
@@ -2842,8 +2936,13 @@ class SupabaseDataService {
             try {
                 let query = supabase
                     .from('test_runs')
-                    .select('*', { count: 'exact' })
-                    .eq('workspace_id', workspaceId);
+                    .select('*', { count: 'exact' });
+
+                if (workspaceId) {
+                    query = query.eq('workspace_id', workspaceId);
+                } else if (userId) {
+                    query = query.or(`created_by.eq.${userId},user_id.eq.${userId}`);
+                }
 
                 if (status && status !== 'all') {
                     query = query.eq('status', status);
@@ -2879,7 +2978,12 @@ class SupabaseDataService {
         }
 
         // Fallback: in-memory / disk store
-        let filtered = Array.from(this.inMemoryTestRuns.values()).filter(r => r.workspace_id === workspaceId);
+        let filtered = Array.from(this.inMemoryTestRuns.values());
+        if (workspaceId) {
+            filtered = filtered.filter(r => r.workspace_id === workspaceId);
+        } else if (userId) {
+            filtered = filtered.filter(r => String(r.created_by || r.user_id) === String(userId));
+        }
         if (status && status !== 'all') {
             filtered = filtered.filter(r => r.status === status);
         }

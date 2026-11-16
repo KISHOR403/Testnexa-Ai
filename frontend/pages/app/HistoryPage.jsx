@@ -181,22 +181,8 @@ const HistoryPage = () => {
         }
     };
 
-    const handleNewSession = async () => {
-        try {
-            const response = await sessionService.create({
-                requirement: '',
-                context: 'web',
-                depth: 'Standard',
-                title: 'New Session'
-            });
-            if (response.success && response.data?._id) {
-                navigate(`/app/workspace/${response.data._id}`);
-            } else {
-                navigate('/app/workspace');
-            }
-        } catch (err) {
-            navigate('/app/workspace');
-        }
+    const handleNewSession = () => {
+        navigate('/app/workspace');
     };
 
     return (

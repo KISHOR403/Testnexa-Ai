@@ -1,0 +1,308 @@
+/* ─────────────────────────────────────────────────────────────
+   COMING SOON DIALOG & BOTTOM SHEET (Strict B&W Minimalist Design)
+   Tokens: --bg:#000; --surface:#0A0A0A; --surface-2:#111;
+   --line:rgba(255,255,255,.10); --line-hi:rgba(255,255,255,.22);
+   --text-1:#fff; --text-2:rgba(255,255,255,.72); --text-3:rgba(255,255,255,.56)
+   ───────────────────────────────────────────────────────────── */
+
+.cs-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 16px;
+    animation: csFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cs-dialog-modal {
+    background: #0A0A0A;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    animation: csModalIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes csFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes csModalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Header */
+.cs-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cs-dialog-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cs-dialog-icon-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.cs-dialog-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+
+.cs-dialog-close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.56);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 150ms ease, background 150ms ease;
+}
+
+.cs-dialog-close-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.cs-dialog-close-btn:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/* Body */
+.cs-dialog-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cs-dialog-desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.cs-dialog-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.56);
+    margin: 0 0 8px 0;
+}
+
+.cs-dialog-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cs-dialog-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.88);
+    background: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.cs-dialog-bullet-icon {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffffff;
+    flex-shrink: 0;
+}
+
+/* Footer Actions */
+.cs-dialog-footer {
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #080808;
+}
+
+.cs-dialog-doc-link {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 150ms ease;
+}
+
+.cs-dialog-doc-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.cs-dialog-doc-link:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+.cs-dialog-primary-btn {
+    background: #ffffff;
+    color: #000000;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms ease, opacity 150ms ease;
+}
+
+.cs-dialog-primary-btn:hover {
+    background: #f0f0f0;
+}
+
+.cs-dialog-primary-btn:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/* Outlined "Soon" badge style used across buttons and headers */
+.cs-tag-soon {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.88);
+    vertical-align: middle;
+    line-height: 1.3;
+}
+
+/* Touch pull handle for mobile */
+.cs-sheet-handle {
+    display: none;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.28);
+    margin: 8px auto 0;
+}
+
+/* Mobile & touch bottom sheet styles (<= 768px or coarse pointer) */
+@media (max-width: 768px), (pointer: coarse) {
+    .cs-dialog-backdrop {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .cs-dialog-modal {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+        border-left: none;
+        border-right: none;
+        animation: csSheetIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        touch-action: pan-y;
+    }
+
+    .cs-sheet-handle {
+        display: block;
+    }
+
+    .cs-dialog-header {
+        padding: 14px 20px 12px;
+    }
+
+    .cs-dialog-body {
+        padding: 16px 20px;
+    }
+
+    .cs-dialog-footer {
+        padding: 14px 20px 24px;
+    }
+}
+
+@keyframes csSheetIn {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Accessibility: respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .cs-dialog-backdrop,
+    .cs-dialog-modal {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

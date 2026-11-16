@@ -12,9 +12,9 @@ const TEST_CASE_SCHEMA_EXAMPLE = `{
   "title": "Verify successful login with valid credentials",
   "type": "Functional",
   "priority": "High",
-  "severity": "Critical",
+  "severity": "Major",
   "preconditions": "User has a registered account; application is accessible",
-  "testData": "Email: testuser@example.com, Password: ValidPass123",
+  "testData": "Email: <test_user_email>, Password: <valid_password>",
   "steps": [
     "Navigate to the login page",
     "Enter a valid registered email address",
@@ -42,17 +42,25 @@ Rules:
 - Expected results must have unambiguous pass/fail criteria.
 - Think like a real QA engineer working in Agile teams.
 - Output MUST be valid JSON only. No explanations outside JSON.
+- CRITICAL SECURITY RULE: NEVER generate realistic passwords (e.g. 'SecurePass123!', 'ValidPass123'), API tokens, or actual user credentials. ALWAYS use standardized placeholder tokens: "<valid_password>", "<invalid_password>", "<test_user_email>", "<auth_token>", "<mock_credit_card>".
+- ID PREFIX & TYPE AGREEMENT: Test ID prefix MUST strictly agree with its type:
+  * TC_FUNC_* must have type "Functional"
+  * TC_NEG_* must have type "Negative"
+  * TC_EDGE_* must have type "Edge" or "Edge Case"
+  * TC_SEC_* must have type "Security"
+  * TC_API_* must have type "API"
+  * TC_NF_* must have type "Non-Functional"
 
 STRICT TEST CASE SCHEMA — Every test case object MUST have exactly these fields:
 - "id": string (e.g. "TC_FUNC_001", "TC_NEG_002")
 - "testScenario": string (high-level functionality being tested, e.g. "User Authentication", "Payment Processing")
 - "module": string (the feature module this test belongs to, e.g. "Login", "Payment", "Registration")
 - "title": string (concise test case title)
-- "type": string (one of: "Functional", "Negative", "Edge", "API", "Non-Functional")
+- "type": string (one of: "Functional", "Negative", "Edge", "Security", "API", "Non-Functional")
 - "priority": string (one of: "High", "Medium", "Low")
-- "severity": string (impact if test fails, one of: "Critical", "Major", "Minor", "Trivial")
+- "severity": string (impact if test fails, one of: "Critical", "Major", "Minor", "Trivial". Note: Standard happy-path functional flows MUST use "Major" or "Minor"; reserve "Critical" strictly for security vulnerabilities, data corruption, or total outage)
 - "preconditions": string (pre-conditions that must be met before execution)
-- "testData": string (specific input values needed for execution, e.g. "Email: test@mail.com, Password: Pass123")
+- "testData": string (specific input values needed for execution using placeholders, e.g. "Email: <test_user_email>, Password: <valid_password>")
 - "steps": array of strings (ordered execution steps)
 - "expectedResult": string (unambiguous pass/fail criteria)
 - "requirementId": string (traceability ID linking back to the requirement, e.g. "REQ_001")`;
@@ -103,9 +111,9 @@ Return ONLY a JSON object with this exact structure:
       "title": "Verify error on invalid password",
       "type": "Negative",
       "priority": "High",
-      "severity": "Critical",
+      "severity": "Major",
       "preconditions": "User has a registered account",
-      "testData": "Email: testuser@example.com, Password: WrongPass999",
+      "testData": "Email: <test_user_email>, Password: <invalid_password>",
       "steps": ["Navigate to login", "Enter valid email", "Enter wrong password", "Click Login"],
       "expectedResult": "Error message displayed: 'Invalid credentials'",
       "requirementId": "REQ_001"
@@ -121,7 +129,7 @@ Return ONLY a JSON object with this exact structure:
       "priority": "Medium",
       "severity": "Minor",
       "preconditions": "User account exists with minimum-length password",
-      "testData": "Email: testuser@example.com, Password: Ab1@5678 (8 chars)",
+      "testData": "Email: <test_user_email>, Password: <valid_password> (8 chars)",
       "steps": ["Navigate to login", "Enter valid email", "Enter 8-char password", "Click Login"],
       "expectedResult": "Login succeeds if password matches",
       "requirementId": "REQ_001"
@@ -233,7 +241,7 @@ Return ONLY a JSON object with this exact structure:
       "priority": "High",
       "severity": "Critical",
       "preconditions": "API server is running; test user exists in database",
-      "testData": "POST body: {email: 'test@mail.com', password: 'ValidPass123'}",
+      "testData": "POST body: {email: '<test_user_email>', password: '<valid_password>'}",
       "steps": ["Send POST to /api/v1/login with valid email and password", "Verify response status is 200", "Verify response body contains 'token' field", "Verify token is a valid JWT"],
       "expectedResult": "HTTP 200 OK; response contains valid JWT token and user object",
       "requirementId": "REQ_API_001"

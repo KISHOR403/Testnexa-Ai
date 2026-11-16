@@ -33,13 +33,13 @@ const AppHeader = ({ onToggleMobile }) => {
             return { section: 'Test suites', current: null, link: '/app/test-suites' };
         }
         if (path.includes('/app/coverage')) {
-            return { section: 'Analysis', current: 'Coverage Matrix', link: '/app/coverage' };
+            return { section: 'Analysis', current: 'Coverage', link: '/app/coverage' };
         }
         if (path.includes('/app/risks')) {
             return { section: 'Analysis', current: 'Risk Vectors & Security', link: '/app/risks' };
         }
         if (path.includes('/app/traceability')) {
-            return { section: 'Analysis', current: 'Requirement Traceability', link: '/app/traceability' };
+            return { section: 'Analysis', current: 'Traceability', link: '/app/traceability' };
         }
         if (path.includes('/app/runs/')) {
             return { section: 'Execution', current: 'Test Run Workspace', link: '/app/runs' };
