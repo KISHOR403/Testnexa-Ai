@@ -280,9 +280,13 @@ export const AuthProvider = ({ children }) => {
                 return { success: true };
             }
         } catch (error) {
+            const serverMessage = error.response?.data?.message || error.response?.data?.error;
+            const fallbackMessage = (error.code === 'ERR_NETWORK' || !error.response)
+                ? 'Unable to connect to Testnexa backend. Please ensure the server is running.'
+                : 'Login failed. Please check your credentials.';
             return {
                 success: false,
-                message: error.response?.data?.message || 'Login failed. Please check your credentials.'
+                message: serverMessage || fallbackMessage
             };
         }
     };
@@ -357,10 +361,19 @@ export const AuthProvider = ({ children }) => {
 
                 return { success: true };
             }
-        } catch (error) {
+
             return {
                 success: false,
-                message: error.response?.data?.message || 'Registration failed.'
+                message: response.data?.message || 'Registration failed. Please try again.'
+            };
+        } catch (error) {
+            const serverMessage = error.response?.data?.message || error.response?.data?.error;
+            const fallbackMessage = (error.code === 'ERR_NETWORK' || !error.response)
+                ? 'Unable to connect to Testnexa backend. Please ensure the server is running.'
+                : 'Registration failed. Please try again.';
+            return {
+                success: false,
+                message: serverMessage || fallbackMessage
             };
         }
     };

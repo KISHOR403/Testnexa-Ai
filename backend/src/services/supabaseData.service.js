@@ -42,6 +42,7 @@ class SupabaseDataService {
         this.inMemoryOrgInvitations = new Map();
         this.inMemoryOrgAuditLogs = [];
         this.inMemoryAuditEvents = new Map();
+        this.inMemoryCaseEvents = new Map();
         this.inMemoryUsageEvents = new Map();
         this.inMemoryOrgStorage = new Map();
         this.inMemoryPlanQuotas = null;
@@ -51,6 +52,11 @@ class SupabaseDataService {
         this.inMemoryOrgSecurityPolicies = new Map();
         this.inMemoryIpAllowlists = new Map();
         this.inMemorySecurityEvents = [];
+        this.inMemoryRisks = new Map();
+        this.inMemoryRiskRequirements = new Map();
+        this.inMemoryRiskTestCases = new Map();
+        this.inMemoryRiskEvents = new Map();
+        this.risksTableAvailable = null;
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
         this.executionTablesAvailable = null;
@@ -182,6 +188,11 @@ class SupabaseDataService {
                         this.inMemoryAuditEvents.set(k, v);
                     }
                 }
+                if (data.caseEvents && typeof data.caseEvents === 'object') {
+                    for (const [k, v] of Object.entries(data.caseEvents)) {
+                        this.inMemoryCaseEvents.set(k, v);
+                    }
+                }
                 if (data.usageEvents && typeof data.usageEvents === 'object') {
                     for (const [k, v] of Object.entries(data.usageEvents)) {
                         this.inMemoryUsageEvents.set(k, v);
@@ -223,6 +234,26 @@ class SupabaseDataService {
                 if (Array.isArray(data.securityEvents)) {
                     this.inMemorySecurityEvents = data.securityEvents;
                 }
+                if (data.risks && typeof data.risks === 'object') {
+                    for (const [k, v] of Object.entries(data.risks)) {
+                        this.inMemoryRisks.set(k, v);
+                    }
+                }
+                if (data.riskRequirements && typeof data.riskRequirements === 'object') {
+                    for (const [k, v] of Object.entries(data.riskRequirements)) {
+                        this.inMemoryRiskRequirements.set(k, v);
+                    }
+                }
+                if (data.riskTestCases && typeof data.riskTestCases === 'object') {
+                    for (const [k, v] of Object.entries(data.riskTestCases)) {
+                        this.inMemoryRiskTestCases.set(k, v);
+                    }
+                }
+                if (data.riskEvents && typeof data.riskEvents === 'object') {
+                    for (const [k, v] of Object.entries(data.riskEvents)) {
+                        this.inMemoryRiskEvents.set(k, v);
+                    }
+                }
             }
         } catch (err) {
             logger.warn('Failed to load disk workspace store:', err.message);
@@ -260,6 +291,7 @@ class SupabaseDataService {
                 orgInvitations: Object.fromEntries(this.inMemoryOrgInvitations),
                 orgAuditLogs: this.inMemoryOrgAuditLogs.slice(-500),
                 auditEvents: Object.fromEntries(Array.from(this.inMemoryAuditEvents.entries()).slice(-2000)),
+                caseEvents: Object.fromEntries(Array.from(this.inMemoryCaseEvents.entries()).slice(-5000)),
                 usageEvents: Object.fromEntries(Array.from(this.inMemoryUsageEvents.entries()).slice(-5000)),
                 orgStorage: Object.fromEntries(this.inMemoryOrgStorage),
                 planQuotas: this.inMemoryPlanQuotas || undefined,
@@ -268,7 +300,11 @@ class SupabaseDataService {
                 apiKeys: Object.fromEntries(this.inMemoryApiKeys),
                 orgSecurityPolicies: Object.fromEntries(this.inMemoryOrgSecurityPolicies),
                 ipAllowlists: Object.fromEntries(this.inMemoryIpAllowlists),
-                securityEvents: this.inMemorySecurityEvents.slice(-500)
+                securityEvents: this.inMemorySecurityEvents.slice(-500),
+                risks: Object.fromEntries(this.inMemoryRisks),
+                riskRequirements: Object.fromEntries(this.inMemoryRiskRequirements),
+                riskTestCases: Object.fromEntries(this.inMemoryRiskTestCases),
+                riskEvents: Object.fromEntries(this.inMemoryRiskEvents)
             };
             fs.writeFileSync(this.storeFilePath, JSON.stringify(data, null, 2), 'utf8');
         } catch (err) {
@@ -676,6 +712,8 @@ class SupabaseDataService {
                     } else {
                         query = query.eq('status', status);
                     }
+                } else if (onlyGenerated || hasCases) {
+                    query = query.in('status', ['Generated', 'NeedsReview', 'Approved', 'Ready', 'active', 'completed', 'approved']);
                 } else {
                     query = query.neq('status', 'Archived').neq('status', 'archived');
                 }
@@ -5423,6 +5461,143 @@ class SupabaseDataService {
     }
 
     /**
+     * Record a case lifecycle event (suite_created, case_generated, case_approved, case_rejected, case_edited)
+     */
+    async recordCaseEvent({
+        id = null,
+        userId,
+        suiteId,
+        caseId = null,
+        type,
+        source = 'live',
+        metadata = {},
+        createdAt = null
+    }) {
+        if (!userId || !suiteId || !type) return null;
+
+        const event = {
+            id: id || ('cev_' + crypto.randomBytes(12).toString('hex')),
+            userId: String(userId),
+            suiteId: String(suiteId),
+            caseId: caseId ? String(caseId) : null,
+            type: String(type),
+            source: String(source),
+            metadata: metadata || {},
+            createdAt: createdAt || new Date().toISOString()
+        };
+
+        this.inMemoryCaseEvents.set(event.id, event);
+
+        // Keep memory bounded to 10000 events
+        if (this.inMemoryCaseEvents.size > 10000) {
+            const keysToDelete = Array.from(this.inMemoryCaseEvents.keys()).slice(0, 2000);
+            for (const k of keysToDelete) {
+                this.inMemoryCaseEvents.delete(k);
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+
+        if (this.isAvailable) {
+            try {
+                await supabase
+                    .from('case_events')
+                    .insert({
+                        id: event.id,
+                        user_id: event.userId,
+                        suite_id: event.suiteId,
+                        case_id: event.caseId,
+                        type: event.type,
+                        source: event.source,
+                        metadata: event.metadata,
+                        created_at: event.createdAt
+                    });
+            } catch (err) {
+                // Table might not exist or network unavailable; in-memory + disk saved
+            }
+        }
+
+        return event;
+    }
+
+    /**
+     * List case events with user scoping and optional suite/date filtering
+     */
+    async listCaseEvents({
+        userId,
+        suiteId = null,
+        type = null,
+        days = 30,
+        startDate = null,
+        endDate = null
+    } = {}) {
+        if (!userId) return [];
+
+        let events = [];
+
+        if (this.isAvailable) {
+            try {
+                let query = supabase
+                    .from('case_events')
+                    .select('*')
+                    .eq('user_id', String(userId))
+                    .order('created_at', { ascending: true });
+
+                if (suiteId && suiteId !== 'all') {
+                    query = query.eq('suite_id', String(suiteId));
+                }
+                if (type) {
+                    query = query.eq('type', String(type));
+                }
+                if (startDate) {
+                    query = query.gte('created_at', startDate);
+                }
+                if (endDate) {
+                    query = query.lte('created_at', endDate);
+                }
+
+                const { data, error } = await query;
+                if (!error && Array.isArray(data)) {
+                    events = data.map(d => ({
+                        id: d.id,
+                        userId: d.user_id,
+                        suiteId: d.suite_id,
+                        caseId: d.case_id,
+                        type: d.type,
+                        source: d.source,
+                        metadata: d.metadata || {},
+                        createdAt: d.created_at
+                    }));
+                }
+            } catch (err) {
+                // fallback to memory
+            }
+        }
+
+        if (events.length === 0) {
+            events = Array.from(this.inMemoryCaseEvents.values())
+                .filter(e => String(e.userId) === String(userId));
+
+            if (suiteId && suiteId !== 'all') {
+                events = events.filter(e => String(e.suiteId) === String(suiteId));
+            }
+            if (type) {
+                events = events.filter(e => e.type === type);
+            }
+            if (startDate) {
+                const s = new Date(startDate).getTime();
+                events = events.filter(e => new Date(e.createdAt).getTime() >= s);
+            }
+            if (endDate) {
+                const e = new Date(endDate).getTime();
+                events = events.filter(e => new Date(e.createdAt).getTime() <= e);
+            }
+        }
+
+        return events.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    }
+
+    /**
      * Query audit events with server-side filtering, searching, and pagination
      */
     async getAuditEvents({
@@ -6149,6 +6324,365 @@ class SupabaseDataService {
             events = events.filter(e => e.orgId === orgId || !e.orgId);
         }
         return events.slice(offset, offset + limit);
+    }
+
+    // ==========================================
+    // RISKS (risks, risk_requirements, risk_test_cases, risk_events)
+    // ==========================================
+
+    async upsertRisk(riskData) {
+        const now = new Date().toISOString();
+        const id = riskData.id || `risk_${crypto.randomBytes(8).toString('hex')}`;
+        const record = {
+            id,
+            user_id: String(riskData.userId || riskData.user_id),
+            suite_id: String(riskData.suiteId || riskData.suite_id),
+            title: String(riskData.title || '').trim(),
+            threat: String(riskData.threat || '').trim(),
+            category: String(riskData.category || 'other').toLowerCase(),
+            likelihood: Math.max(1, Math.min(5, parseInt(riskData.likelihood, 10) || 1)),
+            impact: Math.max(1, Math.min(5, parseInt(riskData.impact, 10) || 1)),
+            score: (riskData.score !== undefined) ? parseInt(riskData.score, 10) : ((parseInt(riskData.likelihood, 10) || 1) * (parseInt(riskData.impact, 10) || 1)),
+            severity: String(riskData.severity || 'low').toLowerCase(),
+            status: String(riskData.status || 'open').toLowerCase(),
+            accepted_reason: riskData.acceptedReason || riskData.accepted_reason || null,
+            source: String(riskData.source || 'derived').toLowerCase(),
+            source_case_id: riskData.sourceCaseId || riskData.source_case_id || null,
+            created_at: riskData.createdAt || riskData.created_at || now,
+            updated_at: now
+        };
+
+        // Check if an existing risk with same suite_id and title exists
+        let existingId = null;
+        for (const [k, v] of this.inMemoryRisks.entries()) {
+            if (v.suite_id === record.suite_id && v.title.toLowerCase() === record.title.toLowerCase()) {
+                existingId = k;
+                break;
+            }
+        }
+
+        const targetId = existingId || id;
+        record.id = targetId;
+        this.inMemoryRisks.set(targetId, record);
+
+        if (this.isAvailable && this.risksTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('risks')
+                    .upsert(record, { onConflict: 'suite_id,title' })
+                    .select()
+                    .single();
+                if (!error && data) {
+                    this.risksTableAvailable = true;
+                    this.inMemoryRisks.set(data.id, data);
+                    this._saveDiskWorkspacesStore();
+                    return data;
+                }
+                if (error && error.code === 'PGRST204') {
+                    this.risksTableAvailable = false;
+                }
+            } catch (err) {
+                this.risksTableAvailable = false;
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getRiskById(id, userId = null) {
+        if (!id) return null;
+
+        if (this.isAvailable && this.risksTableAvailable === true) {
+            try {
+                let query = supabase.from('risks').select('*').eq('id', String(id));
+                if (userId) query = query.eq('user_id', String(userId));
+                const { data, error } = await query.single();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        const local = this.inMemoryRisks.get(String(id));
+        if (!local) return null;
+        if (userId && String(local.user_id) !== String(userId)) return null;
+        return local;
+    }
+
+    async updateRisk(id, userId, updates = {}) {
+        const existing = await this.getRiskById(id, userId);
+        if (!existing) return null;
+
+        const now = new Date().toISOString();
+        const updated = {
+            ...existing,
+            ...updates,
+            id: existing.id,
+            user_id: existing.user_id,
+            suite_id: existing.suite_id,
+            updated_at: now
+        };
+
+        if (updates.likelihood !== undefined || updates.impact !== undefined) {
+            const l = Math.max(1, Math.min(5, parseInt(updated.likelihood, 10) || 1));
+            const i = Math.max(1, Math.min(5, parseInt(updated.impact, 10) || 1));
+            updated.likelihood = l;
+            updated.impact = i;
+            updated.score = l * i;
+            if (updated.score >= 20) updated.severity = 'critical';
+            else if (updated.score >= 12) updated.severity = 'high';
+            else if (updated.score >= 6) updated.severity = 'medium';
+            else updated.severity = 'low';
+        }
+
+        this.inMemoryRisks.set(existing.id, updated);
+
+        if (this.isAvailable && this.risksTableAvailable === true) {
+            try {
+                await supabase.from('risks').update(updated).eq('id', existing.id);
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return updated;
+    }
+
+    async deleteRisk(id, userId) {
+        const existing = await this.getRiskById(id, userId);
+        if (!existing) return false;
+
+        this.inMemoryRisks.delete(existing.id);
+
+        // Delete associated requirements, test cases, and events
+        for (const [k, v] of this.inMemoryRiskRequirements.entries()) {
+            if (v.risk_id === existing.id) this.inMemoryRiskRequirements.delete(k);
+        }
+        for (const [k, v] of this.inMemoryRiskTestCases.entries()) {
+            if (v.risk_id === existing.id) this.inMemoryRiskTestCases.delete(k);
+        }
+        for (const [k, v] of this.inMemoryRiskEvents.entries()) {
+            if (v.risk_id === existing.id) this.inMemoryRiskEvents.delete(k);
+        }
+
+        if (this.isAvailable && this.risksTableAvailable === true) {
+            try {
+                await supabase.from('risks').delete().eq('id', existing.id);
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    async listRisks({
+        userId,
+        suiteId = null,
+        severity = null,
+        category = null,
+        status = null,
+        source = null,
+        search = null,
+        sort = 'score',
+        order = 'desc',
+        page = 1,
+        limit = 50
+    } = {}) {
+        let items = Array.from(this.inMemoryRisks.values());
+
+        if (userId) {
+            items = items.filter(r => String(r.user_id) === String(userId));
+        }
+        if (suiteId && suiteId !== 'all') {
+            items = items.filter(r => String(r.suite_id) === String(suiteId));
+        }
+        if (severity && severity !== 'all') {
+            items = items.filter(r => String(r.severity).toLowerCase() === String(severity).toLowerCase());
+        }
+        if (category && category !== 'all') {
+            items = items.filter(r => String(r.category).toLowerCase() === String(category).toLowerCase());
+        }
+        if (status && status !== 'all') {
+            items = items.filter(r => String(r.status).toLowerCase() === String(status).toLowerCase());
+        }
+        if (source && source !== 'all') {
+            items = items.filter(r => String(r.source).toLowerCase() === String(source).toLowerCase());
+        }
+        if (search && search.trim()) {
+            const q = search.trim().toLowerCase();
+            items = items.filter(r =>
+                r.title.toLowerCase().includes(q) ||
+                r.threat.toLowerCase().includes(q) ||
+                (r.category && r.category.toLowerCase().includes(q))
+            );
+        }
+
+        // Sorting
+        items.sort((a, b) => {
+            let valA, valB;
+            if (sort === 'severity') {
+                const p = { critical: 4, high: 3, medium: 2, low: 1 };
+                valA = p[a.severity] || 0;
+                valB = p[b.severity] || 0;
+            } else if (sort === 'updated' || sort === 'updated_at') {
+                valA = new Date(a.updated_at).getTime();
+                valB = new Date(b.updated_at).getTime();
+            } else if (sort === 'title') {
+                valA = a.title.toLowerCase();
+                valB = b.title.toLowerCase();
+                return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else {
+                // Default: score
+                valA = a.score !== undefined ? a.score : 0;
+                valB = b.score !== undefined ? b.score : 0;
+            }
+
+            return order === 'asc' ? valA - valB : valB - valA;
+        });
+
+        const total = items.length;
+        const p = Math.max(1, parseInt(page, 10) || 1);
+        const l = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+        const offset = (p - 1) * l;
+        const paginated = items.slice(offset, offset + l);
+
+        return {
+            risks: paginated,
+            total,
+            page: p,
+            limit: l,
+            totalPages: Math.ceil(total / l)
+        };
+    }
+
+    async linkRiskRequirements(riskId, requirementIds = []) {
+        if (!riskId || !Array.isArray(requirementIds)) return [];
+        const rid = String(riskId);
+        const results = [];
+
+        for (const reqId of requirementIds) {
+            const cleanReqId = String(reqId).trim();
+            if (!cleanReqId) continue;
+            const junctionId = `rr_${rid}_${cleanReqId}`;
+            const record = {
+                id: junctionId,
+                risk_id: rid,
+                requirement_id: cleanReqId
+            };
+            this.inMemoryRiskRequirements.set(junctionId, record);
+            results.push(record);
+
+            if (this.isAvailable && this.risksTableAvailable === true) {
+                try {
+                    await supabase.from('risk_requirements').upsert(record, { onConflict: 'risk_id,requirement_id' });
+                } catch (e) {}
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return results;
+    }
+
+    async getRiskRequirements(riskId) {
+        if (!riskId) return [];
+        const rid = String(riskId);
+        const list = [];
+        for (const v of this.inMemoryRiskRequirements.values()) {
+            if (v.risk_id === rid) list.push(v);
+        }
+        return list;
+    }
+
+    async linkRiskTestCases(riskId, testCaseLinks = []) {
+        if (!riskId || !Array.isArray(testCaseLinks)) return [];
+        const rid = String(riskId);
+        const results = [];
+
+        for (const item of testCaseLinks) {
+            const cid = typeof item === 'string' ? item : item.testCaseId || item.test_case_id;
+            const rationale = typeof item === 'object' ? item.rationale : null;
+            if (!cid) continue;
+
+            const junctionId = `rtc_${rid}_${cid}`;
+            const record = {
+                id: junctionId,
+                risk_id: rid,
+                test_case_id: String(cid),
+                rationale: rationale || null
+            };
+            this.inMemoryRiskTestCases.set(junctionId, record);
+            results.push(record);
+
+            if (this.isAvailable && this.risksTableAvailable === true) {
+                try {
+                    await supabase.from('risk_test_cases').upsert(record, { onConflict: 'risk_id,test_case_id' });
+                } catch (e) {}
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return results;
+    }
+
+    async unlinkRiskTestCase(riskId, testCaseId) {
+        if (!riskId || !testCaseId) return false;
+        const rid = String(riskId);
+        const cid = String(testCaseId);
+        const junctionId = `rtc_${rid}_${cid}`;
+
+        this.inMemoryRiskTestCases.delete(junctionId);
+
+        if (this.isAvailable && this.risksTableAvailable === true) {
+            try {
+                await supabase.from('risk_test_cases').delete().eq('risk_id', rid).eq('test_case_id', cid);
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return true;
+    }
+
+    async getRiskTestCases(riskId) {
+        if (!riskId) return [];
+        const rid = String(riskId);
+        const list = [];
+        for (const v of this.inMemoryRiskTestCases.values()) {
+            if (v.risk_id === rid) list.push(v);
+        }
+        return list;
+    }
+
+    async recordRiskEvent({ riskId, userId, type, fromValue = null, toValue = null }) {
+        const id = `revt_${crypto.randomBytes(8).toString('hex')}`;
+        const record = {
+            id,
+            risk_id: String(riskId),
+            user_id: String(userId),
+            type: String(type),
+            from_value: fromValue ? String(fromValue) : null,
+            to_value: toValue ? String(toValue) : null,
+            created_at: new Date().toISOString()
+        };
+
+        this.inMemoryRiskEvents.set(id, record);
+
+        if (this.isAvailable && this.risksTableAvailable === true) {
+            try {
+                await supabase.from('risk_events').insert(record);
+            } catch (e) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async listRiskEvents(riskId) {
+        if (!riskId) return [];
+        const rid = String(riskId);
+        const events = [];
+        for (const v of this.inMemoryRiskEvents.values()) {
+            if (v.risk_id === rid) events.push(v);
+        }
+        events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return events;
     }
 }
 

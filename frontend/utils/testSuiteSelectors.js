@@ -199,6 +199,21 @@ export const resolvePlatform = (data, record) => {
 };
 
 /**
+ * Determines if a test case is strictly approved
+ * ONLY approval_status === 'approved' or explicit boolean true
+ */
+export const isTestCaseApproved = (test) => {
+    if (!test) return false;
+    const explicit = String(test?.approval_status || test?.approvalStatus || '').toLowerCase().trim();
+    if (explicit === 'approved') return true;
+    if (explicit === 'rejected' || explicit === 'pending') return false;
+    if (test?.is_approved === true || test?.approved === true || test?.isApproved === true) return true;
+    const status = String(test?.status || '').toLowerCase().trim();
+    if (status === 'approved') return true;
+    return false;
+};
+
+/**
  * Normalize a single session record into a unified Test Suite model
  */
 export const normalizeSuite = (record, runs = [], recordsById = new Map()) => {
@@ -230,11 +245,8 @@ export const normalizeSuite = (record, runs = [], recordsById = new Map()) => {
         resolvedStatus = 'Failed';
     }
 
-    // Approved cases calculation
-    const approvedCount = tests.filter(test => {
-        const status = String(test?.status || test?.approvalStatus || '').toLowerCase();
-        return status === 'approved' || status === 'completed' || test?.isApproved === true || test?.approved === true;
-    }).length;
+    // Approved cases calculation (strictly approval_status === 'approved')
+    const approvedCount = tests.filter(isTestCaseApproved).length;
 
     // Execution mix: manual vs automated
     const automatedCount = tests.filter(test => {
@@ -423,29 +435,36 @@ export const computeCanonicalSuiteMetrics = (suiteOrRecord, runs = [], recordsBy
     }).length;
     const manualCases = Math.max(0, totalCases - automatedCases);
 
-    const approvedCases = tests.filter(tc => {
-        const status = String(tc?.status || tc?.approvalStatus || '').toLowerCase();
-        return status === 'approved' || status === 'completed' || tc?.isApproved === true || tc?.approved === true;
-    }).length;
+    const approvedCases = tests.filter(isTestCaseApproved).length;
 
     const highPriorityCases = tests.filter(tc => {
         const p = String(tc?.priority || '').toLowerCase();
         return p === 'high' || p === 'critical';
     }).length;
 
-    const linkedRequirements = [...new Set(
-        tests.map(tc => tc.requirementId || tc.reqId || tc.requirementRef).filter(Boolean)
-    )];
+    // Canonical requirement linkage calculation
+    const suiteReqs = Array.isArray(data?.requirements) ? data.requirements : [];
+    const declaredReqIds = suiteReqs.map((r, i) => String(typeof r === 'string' ? `REQ-${String(i + 1).padStart(3, '0')}` : (r?.id || r?.reqId || `REQ-${String(i + 1).padStart(3, '0')}`)));
+    const taggedReqIds = tests.map(tc => String(tc.requirementId || tc.reqId || tc.requirementRef || '')).filter(Boolean);
+    const allReqIdSet = new Set([...declaredReqIds, ...taggedReqIds]);
+    const requirementsCount = allReqIdSet.size;
+
+    const linkedReqIdSet = new Set(taggedReqIds);
+    suiteReqs.forEach(r => {
+        if (typeof r === 'object' && r) {
+            const cases = r.testCaseIds || r.linkedCases || r.testCases || [];
+            if (Array.isArray(cases) && cases.length > 0) {
+                const id = String(r.id || r.reqId || '');
+                if (id) linkedReqIdSet.add(id);
+            }
+        }
+    });
+
+    const linkedRequirements = Array.from(linkedReqIdSet);
+    const linkedRequirementsCount = linkedRequirements.length;
+    const coverage = requirementsCount > 0 ? Math.round((linkedRequirementsCount / requirementsCount) * 100) : (totalCases > 0 ? 100 : 0);
 
     const suiteRuns = Array.isArray(runs) ? runs.filter(r => String(r.suiteId || r.suite_id || '') === suiteId) : [];
-
-    const types = new Set(tests.map(tc => String(tc.type || '').toLowerCase()));
-    let baseCoverage = totalCases > 0 ? 45 : 0;
-    if (types.has('functional')) baseCoverage += 25;
-    if (types.has('negative')) baseCoverage += 15;
-    if (types.has('edge case') || types.has('edge')) baseCoverage += 10;
-    if (types.has('security')) baseCoverage += 5;
-    const coverage = totalCases > 0 ? Math.min(baseCoverage, 100) : 0;
 
     return {
         suiteId,

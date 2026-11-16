@@ -98,14 +98,14 @@ const SignUpPage = () => {
         formData.email.trim(),
         formData.password
       );
-      if (result.success) {
+      if (result?.success) {
         if (result.requiresVerification) {
           setIsVerificationRequired(true);
         } else {
           navigate(destination, { replace: true });
         }
       } else {
-        setErrors({ submit: result.message || 'Registration failed. Please try again.' });
+        setErrors({ submit: result?.message || 'Registration failed. Please try again.' });
         setTimeout(() => serverAlertRef.current?.focus(), 60);
       }
     } catch (error) {
@@ -268,7 +268,22 @@ const SignUpPage = () => {
         >
           <div className="tn-auth-alert-content">
             <AlertCircle size={16} aria-hidden="true" />
-            <span>{errors.submit}</span>
+            <span>
+              {errors.submit}
+              {errors.submit.toLowerCase().includes('already exists') && (
+                <Link
+                  to={`/login${location.search || ''}`}
+                  style={{
+                    marginLeft: '8px',
+                    color: '#ffffff',
+                    textDecoration: 'underline',
+                    fontWeight: 600
+                  }}
+                >
+                  Log in here →
+                </Link>
+              )}
+            </span>
           </div>
         </div>
       )}

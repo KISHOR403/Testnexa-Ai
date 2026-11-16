@@ -7,5 +7,6 @@ const router = express.Router();
 router.use(protect);
 
 router.get('/overview', intelligenceController.getOverview);
+router.get('/activity', intelligenceController.getActivity);
 
 module.exports = router;

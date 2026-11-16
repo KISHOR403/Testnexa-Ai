@@ -9,6 +9,8 @@ const domainDetector = require('../services/domain.service');
 const { callAI } = require('../services/ai.service');
 const usageMeteringService = require('../services/usageMetering.service');
 const { invalidateIntelligenceCache } = require('../services/intelligence.service');
+const riskService = require('../services/risk.service');
+const { calculateRiskScore, RISK_CATEGORIES } = require('../services/riskScoring');
 
 // Idempotency tracking for duplicate/double-click generation requests
 const idempotencyInFlight = new Map(); // key -> Promise<{ statusCode, body }>
@@ -321,6 +323,23 @@ const generateTestCases = async (req, res) => {
                 // Create new session if none existed or updated (strictly atomic in 1 transaction with status 'active')
                 if (!savedSessionId) {
                     const title = result.understanding.feature || requirement.split(/[.!?\n]/)[0].trim().slice(0, 50) || 'Generated Suite';
+
+                    // Strict rule: Newly generated cases start as 'pending'
+                    const suiteDataToSave = response.data ? JSON.parse(JSON.stringify(response.data)) : {};
+                    const caseCategories = ['testCases', 'functional', 'negative', 'edge', 'nonFunctional', 'apiChecklist', 'api', 'tests'];
+                    const generatedCaseIds = [];
+                    caseCategories.forEach(cat => {
+                        if (Array.isArray(suiteDataToSave[cat])) {
+                            suiteDataToSave[cat].forEach(tc => {
+                                tc.approval_status = 'pending';
+                                tc.is_approved = false;
+                                tc.approved_at = null;
+                                tc.approved_by = null;
+                                if (tc.id) generatedCaseIds.push(tc.id);
+                            });
+                        }
+                    });
+
                     const newSession = await supabaseService.createSession({
                         userId: targetUserId,
                         title,
@@ -332,13 +351,83 @@ const generateTestCases = async (req, res) => {
                             { role: 'user', content: requirement, timestamp: new Date().toISOString() },
                             { role: 'assistant', content: `Generated ${summaryData.total} test cases for "${title}".`, timestamp: new Date().toISOString() }
                         ],
-                        suiteData: response.data,
+                        suiteData: suiteDataToSave,
                         currentVersion: 1,
                         summary: summaryData,
                         quality: qualityData,
                         generationId
                     });
                     savedSessionId = newSession.id;
+
+                    // Centralized Event Tracking: Record suite_created and case_generated
+                    await supabaseService.recordCaseEvent({
+                        userId: targetUserId,
+                        suiteId: savedSessionId,
+                        type: 'suite_created',
+                        source: 'live',
+                        metadata: { title }
+                    }).catch(err => logger.warn('Failed recording suite_created event:', err.message));
+
+                    for (const cid of generatedCaseIds) {
+                        await supabaseService.recordCaseEvent({
+                            userId: targetUserId,
+                            suiteId: savedSessionId,
+                            caseId: cid,
+                            type: 'case_generated',
+                            source: 'live'
+                        }).catch(() => {});
+                    }
+
+                    // Phase 2: Atomic Risk Vectors Persistence (Generated & Derived)
+                    try {
+                        const rawThreats = Array.isArray(result.threats) ? result.threats : [];
+                        if (rawThreats.length > 0) {
+                            for (const th of rawThreats) {
+                                if (!th || !th.title || !th.threat) continue;
+                                const category = RISK_CATEGORIES.includes(String(th.category).toLowerCase())
+                                    ? String(th.category).toLowerCase()
+                                    : 'other';
+                                const scoreInfo = calculateRiskScore(th.likelihood || 3, th.impact || 3);
+                                const riskRec = await supabaseService.upsertRisk({
+                                    userId: targetUserId,
+                                    suiteId: savedSessionId,
+                                    title: String(th.title).trim(),
+                                    threat: String(th.threat).trim(),
+                                    category,
+                                    likelihood: scoreInfo.likelihood,
+                                    impact: scoreInfo.impact,
+                                    score: scoreInfo.score,
+                                    severity: scoreInfo.severity,
+                                    status: 'open',
+                                    source: 'generated'
+                                });
+
+                                await supabaseService.recordRiskEvent({
+                                    riskId: riskRec.id,
+                                    userId: targetUserId,
+                                    type: 'risk_created',
+                                    fromValue: null,
+                                    toValue: 'open'
+                                });
+
+                                if (Array.isArray(th.linkedCaseIds) && th.linkedCaseIds.length > 0) {
+                                    const validLinks = th.linkedCaseIds.filter(cid => generatedCaseIds.includes(String(cid)));
+                                    if (validLinks.length > 0) {
+                                        await supabaseService.linkRiskTestCases(riskRec.id, validLinks.map(cid => ({
+                                            testCaseId: String(cid),
+                                            rationale: th.rationale || null
+                                        })));
+                                    }
+                                }
+                            }
+                        } else {
+                            // Fallback to deterministic derived risk generation for the new suite
+                            await riskService.backfillDerivedRisks({ userId: targetUserId, confirm: true }).catch(() => {});
+                        }
+                    } catch (riskErr) {
+                        logger.warn('Failed saving generated risks for suite:', riskErr.message);
+                    }
+
                     invalidateIntelligenceCache(targetUserId);
                 }
 

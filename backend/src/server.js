@@ -124,6 +124,7 @@ app.use('/api/v1/analytics/quality-insights', require('./routes/qualityInsights.
 app.use('/api/v1/quality-insights', require('./routes/qualityInsights.routes'));
 app.use('/api/v1/traceability', require('./routes/traceability.routes'));
 app.use('/api/v1/intelligence', require('./routes/intelligence.routes'));
+app.use('/api/v1/risks', require('./routes/risk.routes'));
 app.use('/api/v1/features', require('./routes/feature.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)

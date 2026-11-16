@@ -9,6 +9,70 @@ const unwrapSuiteData = (record) => {
     const suite = record?.suiteData || record?.suite_data || record?.suite || record?.data || record || {};
     return suite?.suiteData || suite?.suite_data || suite?.data || suite;
 };
+
+const trackCaseEvents = async (oldSession, nextSuiteData, sessionId, userId) => {
+    try {
+        const oldSuite = unwrapSuiteData(oldSession?.suiteData || oldSession?.suite_data || oldSession);
+        const newSuite = unwrapSuiteData(nextSuiteData);
+        if (!newSuite || typeof newSuite !== 'object') return;
+
+        const oldCaseMap = new Map();
+        suiteCaseArrays.forEach(arr => {
+            if (Array.isArray(oldSuite[arr])) {
+                oldSuite[arr].forEach(c => {
+                    if (c?.id) oldCaseMap.set(String(c.id), c);
+                });
+            }
+        });
+
+        for (const arr of suiteCaseArrays) {
+            if (Array.isArray(newSuite[arr])) {
+                for (const tc of newSuite[arr]) {
+                    if (!tc?.id) continue;
+                    const cid = String(tc.id);
+                    const old = oldCaseMap.get(cid);
+
+                    const oldApp = String(old?.approval_status || old?.approvalStatus || (old?.status === 'Approved' ? 'approved' : 'pending')).toLowerCase();
+                    const newApp = String(tc.approval_status || tc.approvalStatus || (tc.status === 'Approved' ? 'approved' : 'pending')).toLowerCase();
+
+                    if (oldApp !== 'approved' && newApp === 'approved') {
+                        tc.approval_status = 'approved';
+                        tc.approved_at = new Date().toISOString();
+                        tc.approved_by = userId;
+                        tc.is_approved = true;
+                        await supabaseService.recordCaseEvent({
+                            userId,
+                            suiteId: sessionId,
+                            caseId: cid,
+                            type: 'case_approved',
+                            source: 'live'
+                        }).catch(() => {});
+                    } else if (oldApp !== 'rejected' && newApp === 'rejected') {
+                        tc.approval_status = 'rejected';
+                        tc.is_approved = false;
+                        await supabaseService.recordCaseEvent({
+                            userId,
+                            suiteId: sessionId,
+                            caseId: cid,
+                            type: 'case_rejected',
+                            source: 'live'
+                        }).catch(() => {});
+                    } else if (old && (old.title !== tc.title || old.steps !== tc.steps || old.expectedResult !== tc.expectedResult || old.priority !== tc.priority)) {
+                        await supabaseService.recordCaseEvent({
+                            userId,
+                            suiteId: sessionId,
+                            caseId: cid,
+                            type: 'case_edited',
+                            source: 'live'
+                        }).catch(() => {});
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        logger.warn('Failed tracking case events:', err.message);
+    }
+};
 const validateSuiteCaseReferences = async ({ suiteData, suiteId, userId, currentSession }) => {
     const data = unwrapSuiteData(suiteData);
     const refs = Array.isArray(data.testCaseRefs) ? data.testCaseRefs : [];
@@ -246,6 +310,7 @@ const updateSession = async (req, res) => {
             if (req.body.status !== undefined) updates.status = req.body.status;
             if (req.body.suiteData !== undefined) {
                 updates.suiteData = req.body.suiteData;
+                await trackCaseEvents(session, updates.suiteData, sessionId, userId);
                 const suite = unwrapSuiteData(updates.suiteData);
                 const counts = {};
                 let total = 0;
@@ -312,22 +377,25 @@ const updateSession = async (req, res) => {
             updates.status = nextStatus === 'archived' ? 'archived' : 'active';
         }
 
-        if (updates.suiteData && !updates.summary) {
-            const suite = unwrapSuiteData(updates.suiteData);
-            const counts = {};
-            let total = 0;
-            suiteCaseArrays.forEach(arr => {
-                const len = Array.isArray(suite[arr]) ? suite[arr].length : 0;
-                counts[arr] = len;
-                total += len;
-            });
-            const refCount = Array.isArray(suite.testCaseRefs) ? suite.testCaseRefs.length : 0;
-            total += refCount;
-            updates.summary = {
-                ...(session.summary || {}),
-                ...counts,
-                total
-            };
+        if (updates.suiteData) {
+            await trackCaseEvents(session, updates.suiteData, sessionId, userId);
+            if (!updates.summary) {
+                const suite = unwrapSuiteData(updates.suiteData);
+                const counts = {};
+                let total = 0;
+                suiteCaseArrays.forEach(arr => {
+                    const len = Array.isArray(suite[arr]) ? suite[arr].length : 0;
+                    counts[arr] = len;
+                    total += len;
+                });
+                const refCount = Array.isArray(suite.testCaseRefs) ? suite.testCaseRefs.length : 0;
+                total += refCount;
+                updates.summary = {
+                    ...(session.summary || {}),
+                    ...counts,
+                    total
+                };
+            }
         }
 
         if (updates.requirement && (session.title === 'Untitled Session' || !session.title)) {

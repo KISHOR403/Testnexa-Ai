@@ -25,13 +25,29 @@ const handleResponse = async (response) => {
 
 export const recommendationService = {
     /**
+     * Get suite context: requirements with linked test counts and gap shortcuts
+     */
+    getContext: async (suiteId) => {
+        const url = suiteId
+            ? `${API_BASE_URL}/recommendations/context?suite_id=${encodeURIComponent(suiteId)}`
+            : `${API_BASE_URL}/recommendations/context`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders(),
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    },
+
+    /**
      * Generate smart test recommendations for a suite
      */
-    generate: async ({ suiteId, requirementId, requestedCategories, focusArea, limit = 6 } = {}) => {
+    generate: async ({ suiteId, requirementId, requestedCategories, focusArea, limit = 6, signal } = {}) => {
         const response = await fetch(`${API_BASE_URL}/recommendations/generate`, {
             method: 'POST',
             headers: getHeaders(),
             credentials: 'include',
+            signal,
             body: JSON.stringify({
                 suiteId,
                 requirementId,
@@ -84,16 +100,52 @@ export const recommendationService = {
     },
 
     /**
+     * Add/accept recommendations to test suite (idempotent)
+     */
+    accept: async ({ suiteId, recommendations, recommendationIds, idempotencyKey } = {}) => {
+        if (!suiteId) throw new Error('suiteId is required');
+        const headers = getHeaders();
+        if (idempotencyKey) {
+            headers['Idempotency-Key'] = idempotencyKey;
+        }
+        const response = await fetch(`${API_BASE_URL}/recommendations/accept`, {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify({ suiteId, recommendations, recommendationIds })
+        });
+        return handleResponse(response);
+    },
+
+    /**
+     * Undo recently added test cases within 10 minutes
+     */
+    undo: async ({ suiteId, undoToken, testCaseIds } = {}) => {
+        if (!suiteId) throw new Error('suiteId is required');
+        const response = await fetch(`${API_BASE_URL}/recommendations/undo`, {
+            method: 'POST',
+            headers: getHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({ suiteId, undoToken, testCaseIds })
+        });
+        return handleResponse(response);
+    },
+
+    /**
      * Convert accepted recommendations to draft test cases in the test suite
      */
-    convertToDrafts: async ({ suiteId, recommendationIds }) => {
+    convertToDrafts: async ({ suiteId, recommendationIds, idempotencyKey }) => {
         if (!suiteId) throw new Error('suiteId is required');
         if (!Array.isArray(recommendationIds) || recommendationIds.length === 0) {
             throw new Error('recommendationIds array is required');
         }
+        const headers = getHeaders();
+        if (idempotencyKey) {
+            headers['Idempotency-Key'] = idempotencyKey;
+        }
         const response = await fetch(`${API_BASE_URL}/recommendations/convert-to-drafts`, {
             method: 'POST',
-            headers: getHeaders(),
+            headers,
             credentials: 'include',
             body: JSON.stringify({ suiteId, recommendationIds })
         });

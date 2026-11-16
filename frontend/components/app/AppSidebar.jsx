@@ -400,7 +400,7 @@ const AppSidebar = ({
                 </div>
 
                 {/* SYSTEM GROUP */}
-                <div className="app-sidebar__group" style={{ marginTop: 'auto' }}>
+                <div className="app-sidebar__group">
                     <span className="app-sidebar__group-label">SYSTEM</span>
 
                     <NavLink

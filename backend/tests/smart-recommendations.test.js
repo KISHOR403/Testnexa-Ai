@@ -317,4 +317,150 @@ describe('Smart Test Recommendations Engine', () => {
         assert.strictEqual(res5.statusCode, 400);
         assert.strictEqual(res5.body.code, 'INVALID_REQUEST');
     });
+
+    it('9. should return recommendations context with linked test counts and gap shortcuts', async () => {
+        const recommendationsController = require('../src/controllers/recommendations.controller');
+
+        const mockReq = (query = {}) => ({
+            user: { id: testUserId, _id: testUserId },
+            query
+        });
+
+        const mockRes = () => {
+            const res = {
+                statusCode: 200,
+                body: null,
+                status(code) { this.statusCode = code; return this; },
+                json(payload) { this.body = payload; return this; }
+            };
+            return res;
+        };
+
+        const res = mockRes();
+        await recommendationsController.getRecommendationsContext(mockReq({ suite_id: testSuiteId }), res);
+
+        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.body.success, true);
+        assert.strictEqual(res.body.data.suiteId, testSuiteId);
+        assert.strictEqual(res.body.data.requirements.length, 3);
+        assert.ok(res.body.data.gapShortcuts.length > 0, 'Should include gap shortcuts');
+
+        const req2 = res.body.data.requirements.find(r => r.id === 'REQ_002');
+        assert.strictEqual(req2.linkedTestsCount, 1);
+        assert.ok(req2.missingCategories.includes('Negative'));
+    });
+
+    it('10. should support idempotent accept and prevent duplicate additions', async () => {
+        const recommendationsController = require('../src/controllers/recommendations.controller');
+
+        const idempotencyKey = 'test-idem-key-' + Date.now();
+        const mockReq = (headers = {}, body = {}) => ({
+            user: { id: testUserId, _id: testUserId },
+            headers,
+            body
+        });
+
+        const mockRes = () => {
+            const res = {
+                statusCode: 200,
+                body: null,
+                status(code) { this.statusCode = code; return this; },
+                json(payload) { this.body = payload; return this; }
+            };
+            return res;
+        };
+
+        const newRecs = [
+            {
+                id: 'rec_custom_1',
+                title: 'Verify payment rejection for expired card date',
+                category: 'Negative',
+                priority: 'High',
+                relatedRequirementId: 'REQ_002',
+                steps: ['Enter expired card', 'Submit payment'],
+                expectedResult: 'Error message is shown'
+            }
+        ];
+
+        // First call
+        const res1 = mockRes();
+        await recommendationsController.acceptRecommendations(
+            mockReq({ 'idempotency-key': idempotencyKey }, { suiteId: testSuiteId, recommendations: newRecs }),
+            res1
+        );
+
+        assert.strictEqual(res1.statusCode, 200);
+        assert.strictEqual(res1.body.data.convertedCount, 1);
+        assert.ok(res1.body.data.undoToken);
+
+        // Second call with same idempotency-key: returns cached response without duplicate creation
+        const res2 = mockRes();
+        await recommendationsController.acceptRecommendations(
+            mockReq({ 'idempotency-key': idempotencyKey }, { suiteId: testSuiteId, recommendations: newRecs }),
+            res2
+        );
+
+        assert.strictEqual(res2.statusCode, 200);
+        assert.strictEqual(res2.body.data.convertedCount, 1);
+        assert.strictEqual(res2.body.data.undoToken, res1.body.data.undoToken);
+    });
+
+    it('11. should undo recently added test cases and restore suite counts', async () => {
+        const recommendationsController = require('../src/controllers/recommendations.controller');
+
+        const mockReq = (body = {}) => ({
+            user: { id: testUserId, _id: testUserId },
+            body
+        });
+
+        const mockRes = () => {
+            const res = {
+                statusCode: 200,
+                body: null,
+                status(code) { this.statusCode = code; return this; },
+                json(payload) { this.body = payload; return this; }
+            };
+            return res;
+        };
+
+        // Add a case first
+        const addRes = mockRes();
+        await recommendationsController.acceptRecommendations(
+            mockReq({
+                suiteId: testSuiteId,
+                recommendations: [{
+                    id: 'rec_to_undo',
+                    title: 'Temporary case to be undone',
+                    category: 'Edge',
+                    priority: 'Low',
+                    steps: ['Step 1'],
+                    expectedResult: 'Expected'
+                }]
+            }),
+            addRes
+        );
+
+        const undoToken = addRes.body.data.undoToken;
+        assert.ok(undoToken);
+
+        // Perform undo
+        const undoRes = mockRes();
+        await recommendationsController.undoRecommendations(
+            mockReq({ suiteId: testSuiteId, undoToken }),
+            undoRes
+        );
+
+        assert.strictEqual(undoRes.statusCode, 200);
+        assert.strictEqual(undoRes.body.success, true);
+        assert.strictEqual(undoRes.body.data.removedCount, 1);
+
+        // Second undo attempt with same token fails
+        const secondUndoRes = mockRes();
+        await recommendationsController.undoRecommendations(
+            mockReq({ suiteId: testSuiteId, undoToken }),
+            secondUndoRes
+        );
+        assert.strictEqual(secondUndoRes.statusCode, 400);
+        assert.strictEqual(secondUndoRes.body.code, 'UNDO_INVALID');
+    });
 });

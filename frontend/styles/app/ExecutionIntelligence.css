@@ -11,7 +11,7 @@
     --intel-bg: #000000;
     --intel-surface: #0A0A0A;
     --intel-surface-2: #111111;
-    --intel-surface-3: #181818;
+    --intel-surface-3: #161616;
     --intel-line: rgba(255, 255, 255, 0.10);
     --intel-line-hi: rgba(255, 255, 255, 0.22);
     --intel-text-1: #ffffff;
@@ -22,11 +22,24 @@
     --intel-radius-lg: 12px;
 }
 
+/* Ensure seamless black background without lighter floating panel or side bands */
+.app-shell-container:has(.intel-page),
+.app-shell-main:has(.intel-page) {
+    background-color: #000000 !important;
+}
+
+.app-page-content:has(.intel-page) {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #000000 !important;
+}
+
 .intel-page {
     background: var(--intel-bg);
     color: var(--intel-text-1);
     min-height: calc(100vh - 56px);
-    padding: 28px 24px 64px 24px;
+    padding: 32px;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 14px;
@@ -34,38 +47,23 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-width: 1600px;
+    max-width: 1500px;
     margin: 0 auto;
     width: 100%;
+    container-type: inline-size;
 }
 
-/* ─── Breadcrumb ─── */
-.intel-breadcrumb {
+/* ─── Offline Banner ─── */
+.intel-offline-banner {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--intel-surface-2);
+    border: 1px solid var(--intel-line-hi);
+    border-radius: var(--intel-radius-sm);
+    color: var(--intel-text-2);
     font-size: 13px;
-    color: var(--intel-text-3);
-}
-
-.intel-breadcrumb-link {
-    color: var(--intel-text-3);
-    text-decoration: none;
-    transition: color 0.15s ease;
-}
-
-.intel-breadcrumb-link:hover {
-    color: var(--intel-text-1);
-}
-
-.intel-breadcrumb-sep {
-    color: var(--intel-line-hi);
-    opacity: 0.6;
-}
-
-.intel-breadcrumb-current {
-    color: var(--intel-text-1);
-    font-weight: 500;
 }
 
 /* ─── Header ─── */
@@ -102,23 +100,22 @@
 .intel-header-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 10px;
 }
 
-/* ─── Suite Combobox ─── */
+/* ─── Suite Combobox Selector ─── */
 .intel-combobox {
     position: relative;
-    min-width: 240px;
-    max-width: 320px;
+    min-width: 260px;
+    max-width: 340px;
 }
 
 .intel-combobox-trigger {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    width: 100%;
+    gap: 8px;
     padding: 8px 12px;
     min-height: 40px;
     background: var(--intel-surface);
@@ -126,9 +123,10 @@
     border-radius: var(--intel-radius-sm);
     color: var(--intel-text-1);
     font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
+    box-sizing: border-box;
     transition: border-color 0.15s ease, background 0.15s ease;
-    text-align: left;
 }
 
 .intel-combobox-trigger:hover {
@@ -145,19 +143,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 500;
+    text-align: left;
     flex: 1;
 }
 
 .intel-combobox-tag {
-    font-size: 11px;
+    font-size: 12px;
+    color: var(--intel-text-3);
     padding: 2px 6px;
+    background: var(--intel-surface-2);
     border: 1px solid var(--intel-line);
     border-radius: 3px;
-    color: var(--intel-text-2);
+    flex-shrink: 0;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
+    letter-spacing: 0.04em;
 }
 
 .intel-combobox-menu {
@@ -168,21 +167,17 @@
     background: var(--intel-surface);
     border: 1px solid var(--intel-line-hi);
     border-radius: var(--intel-radius-sm);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
     z-index: 100;
     max-height: 320px;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .intel-combobox-search-box {
     padding: 8px;
     border-bottom: 1px solid var(--intel-line);
-    position: sticky;
-    top: 0;
-    background: var(--intel-surface);
-    z-index: 2;
 }
 
 .intel-combobox-search-input {
@@ -192,50 +187,50 @@
     border: 1px solid var(--intel-line);
     border-radius: var(--intel-radius-sm);
     color: var(--intel-text-1);
-    font-size: 12px;
+    font-size: 13px;
     outline: none;
     box-sizing: border-box;
 }
 
 .intel-combobox-search-input:focus {
-    border-color: var(--intel-text-1);
+    border-color: var(--intel-line-hi);
 }
 
 .intel-combobox-list {
+    overflow-y: auto;
+    max-height: 250px;
+    padding: 4px;
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .intel-combobox-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 8px 12px;
+    width: 100%;
+    padding: 8px 10px;
     background: transparent;
     border: none;
+    border-radius: var(--intel-radius-sm);
     color: var(--intel-text-1);
     font-size: 13px;
-    text-align: left;
     cursor: pointer;
+    text-align: left;
     transition: background 0.12s ease;
-    width: 100%;
 }
 
-.intel-combobox-item:hover {
-    background: var(--intel-surface-2);
-}
-
+.intel-combobox-item:hover,
 .intel-combobox-item.selected {
     background: var(--intel-surface-2);
-    font-weight: 500;
 }
 
 .intel-combobox-item-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
     overflow: hidden;
+    gap: 2px;
 }
 
 .intel-combobox-item-title {
@@ -245,7 +240,7 @@
 }
 
 .intel-combobox-item-sub {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--intel-text-3);
 }
 
@@ -293,7 +288,7 @@
     border: 1px solid var(--intel-line);
     border-radius: var(--intel-radius-sm);
     color: var(--intel-text-1);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     text-decoration: none;
@@ -318,7 +313,7 @@
     color: var(--intel-bg);
 }
 
-/* ─── Summary Strip (6 Tiles) ─── */
+/* ─── Summary Strip (6 Tiles with Reserved Label Height) ─── */
 .intel-summary-strip {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -333,7 +328,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 104px;
+    min-height: 110px;
     box-sizing: border-box;
     transition: border-color 0.15s ease;
 }
@@ -343,6 +338,8 @@
 }
 
 .intel-tile-label {
+    min-height: 22px;
+    height: 22px;
     font-size: 12px;
     font-weight: 500;
     color: var(--intel-text-2);
@@ -350,6 +347,13 @@
     align-items: center;
     justify-content: space-between;
     letter-spacing: normal;
+    box-sizing: border-box;
+}
+
+.intel-tile-tag-placeholder {
+    display: inline-block;
+    min-width: 1px;
+    min-height: 18px;
 }
 
 .intel-tile-value {
@@ -359,6 +363,7 @@
     letter-spacing: -0.02em;
     line-height: 1.1;
     margin: 8px 0 4px 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .intel-tile-sub {
@@ -373,10 +378,10 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 6px;
+    padding: 1px 6px;
     border: 1px solid var(--intel-line-hi);
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--intel-text-2);
@@ -398,7 +403,11 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+}
+
+.intel-panel:hover {
+    border-color: var(--intel-line-hi);
 }
 
 .intel-panel-full {
@@ -407,7 +416,7 @@
 
 .intel-panel-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
 }
@@ -415,11 +424,11 @@
 .intel-panel-title-group {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
 
 .intel-panel-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--intel-text-1);
     margin: 0;
@@ -430,31 +439,91 @@
 
 .intel-panel-desc {
     font-size: 12px;
-    color: var(--intel-text-3);
+    color: var(--intel-text-2);
     margin: 0;
 }
 
 .intel-panel-link {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--intel-text-2);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
     transition: color 0.15s ease;
 }
 
 .intel-panel-link:hover {
     color: var(--intel-text-1);
+    text-decoration: underline;
 }
 
-/* ─── Progress Bar & Metric Bars ─── */
-.intel-progress-track {
+/* ─── Segmented Bar for Review Progress ─── */
+.intel-segmented-bar {
     width: 100%;
     height: 10px;
     background: var(--intel-surface-2);
     border: 1px solid var(--intel-line);
     border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+}
+
+.intel-segment-approved {
+    height: 100%;
+    background: var(--intel-text-1);
+    transition: width 0.3s ease;
+}
+
+.intel-segment-pending {
+    height: 100%;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.15),
+        rgba(255, 255, 255, 0.15) 3px,
+        transparent 3px,
+        transparent 6px
+    );
+    transition: width 0.3s ease;
+}
+
+/* ─── Dual Progress Bars for Coverage ─── */
+.intel-dual-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.intel-bar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.intel-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.intel-bar-label {
+    color: var(--intel-text-2);
+}
+
+.intel-bar-stat {
+    color: var(--intel-text-1);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.intel-progress-track {
+    width: 100%;
+    height: 8px;
+    background: var(--intel-surface-2);
+    border: 1px solid var(--intel-line);
+    border-radius: 4px;
     overflow: hidden;
     display: flex;
 }
@@ -469,7 +538,7 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 .intel-stat-block {
@@ -483,7 +552,7 @@
 }
 
 .intel-stat-block-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--intel-text-3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -493,9 +562,31 @@
     font-size: 18px;
     font-weight: 600;
     color: var(--intel-text-1);
+    font-variant-numeric: tabular-nums;
 }
 
-/* ─── Distribution Lists (Types & Priorities) ─── */
+/* ─── Test Mix Panel (Scaled to Total Cases) ─── */
+.intel-test-mix-split {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.intel-mix-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.intel-mix-subheading {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--intel-text-3);
+    margin: 0;
+}
+
 .intel-dist-list {
     display: flex;
     flex-direction: column;
@@ -510,14 +601,14 @@
 
 .intel-dist-item-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--intel-text-2);
 }
 
 .intel-dist-count {
     color: var(--intel-text-1);
+    font-variant-numeric: tabular-nums;
     font-weight: 500;
 }
 
@@ -533,19 +624,20 @@
 .intel-dist-bar-fill {
     height: 100%;
     background: var(--intel-text-1);
+    transition: width 0.25s ease;
 }
 
 .intel-dist-bar-fill.fill-pattern {
-    background-image: repeating-linear-gradient(
-        45deg,
-        rgba(255,255,255,0.7),
-        rgba(255,255,255,0.7) 4px,
-        rgba(255,255,255,0.3) 4px,
-        rgba(255,255,255,0.3) 8px
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.45),
+        rgba(255, 255, 255, 0.45) 2px,
+        transparent 2px,
+        transparent 5px
     );
 }
 
-/* ─── Gaps List ─── */
+/* ─── Gaps & Opportunities ─── */
 .intel-gaps-list {
     display: flex;
     flex-direction: column;
@@ -556,10 +648,10 @@
     background: var(--intel-surface-2);
     border: 1px solid var(--intel-line);
     border-radius: var(--intel-radius-sm);
-    padding: 12px 14px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     transition: border-color 0.15s ease;
 }
 
@@ -571,13 +663,31 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
 }
 
 .intel-gap-title-group {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.intel-severity-glyph {
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.intel-severity-glyph.severity-high {
+    color: #FFFFFF;
+}
+
+.intel-severity-glyph.severity-medium {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.intel-severity-glyph.severity-low {
+    color: rgba(255, 255, 255, 0.45);
 }
 
 .intel-gap-title {
@@ -587,49 +697,220 @@
 }
 
 .intel-gap-count {
-    font-size: 11px;
-    padding: 1px 6px;
+    padding: 1px 7px;
+    background: var(--intel-surface-3);
     border: 1px solid var(--intel-line-hi);
-    border-radius: 3px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     color: var(--intel-text-1);
-    background: var(--intel-surface);
 }
 
 .intel-gap-desc {
     font-size: 12px;
     color: var(--intel-text-2);
     margin: 0;
-    line-height: 1.4;
 }
 
+.intel-gap-items-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.intel-gap-item-chip {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: var(--intel-surface);
+    border: 1px solid var(--intel-line);
+    border-radius: 3px;
+    color: var(--intel-text-2);
+}
+
+.intel-gap-item-more {
+    color: var(--intel-text-3);
+    font-style: italic;
+}
+
+.intel-gap-action-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.intel-gap-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--intel-text-1);
+    text-decoration: none;
+    padding: 3px 8px;
+    border: 1px solid var(--intel-line);
+    border-radius: 3px;
+    transition: all 0.15s ease;
+}
+
+.intel-gap-btn:hover {
+    background: var(--intel-surface-3);
+    border-color: var(--intel-line-hi);
+}
+
+/* Empty gaps container with disclosure */
 .intel-gaps-empty {
-    padding: 32px 16px;
-    text-align: center;
+    padding: 28px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
     gap: 8px;
+    color: var(--intel-text-2);
+}
+
+.intel-gaps-empty h3 {
+    margin: 4px 0 0 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--intel-text-1);
+}
+
+.intel-gaps-empty p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--intel-text-2);
+    max-width: 440px;
+}
+
+.intel-disclosure-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    color: var(--intel-text-2);
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.15s ease;
+}
+
+.intel-disclosure-btn:hover {
+    color: var(--intel-text-1);
+    border-color: var(--intel-line-hi);
+}
+
+.intel-rules-disclosure-content {
+    margin-top: 10px;
+    padding: 12px 16px;
+    background: var(--intel-surface-2);
+    border: 1px solid var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    text-align: left;
+    width: 100%;
+    max-width: 460px;
+    box-sizing: border-box;
+}
+
+.intel-rules-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: var(--intel-text-2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.intel-rules-time {
+    display: block;
+    font-size: 11px;
+    color: var(--intel-text-3);
+    margin-top: 8px;
+    border-top: 1px solid var(--intel-line);
+    padding-top: 6px;
+}
+
+/* ─── Activity Panel & Controls ─── */
+.intel-activity-range-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.intel-range-label {
+    font-size: 12px;
     color: var(--intel-text-3);
 }
 
-/* ─── Activity Chart Component Styling ─── */
+.intel-period-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: var(--intel-surface-2);
+    border: 1px solid var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    padding: 2px;
+    gap: 2px;
+}
+
+.intel-filter-chip {
+    background: transparent;
+    border: none;
+    color: var(--intel-text-2);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.intel-filter-chip:hover {
+    color: var(--intel-text-1);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.intel-filter-chip.active {
+    background: var(--intel-text-1);
+    color: var(--intel-bg);
+    font-weight: 600;
+}
+
+/* ─── Activity Chart (SVG and Table Alternative) ─── */
 .intel-chart-container {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 100%;
+    max-height: 380px;
 }
 
 .intel-chart-header {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.intel-chart-summary-text {
+    font-size: 12px;
+    color: var(--intel-text-2);
+}
+
+.intel-chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .intel-chart-legend {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
 }
 
 .intel-legend-item {
@@ -641,162 +922,397 @@
 }
 
 .intel-legend-color {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 2px;
 }
 
 .intel-legend-suites {
-    background: #ffffff;
+    background: #FFFFFF;
 }
 
 .intel-legend-approved {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.72),
+        rgba(255, 255, 255, 0.72) 2px,
+        transparent 2px,
+        transparent 4px
+    );
+    border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.intel-table-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    font-size: 12px;
+    background: var(--intel-surface-2);
+    border: 1px solid var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    color: var(--intel-text-2);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.intel-table-toggle-btn:hover,
+.intel-table-toggle-btn.active {
+    color: var(--intel-text-1);
+    border-color: var(--intel-line-hi);
+}
+
+.intel-chart-empty-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--intel-surface-2);
+    border: 1px dashed var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    color: var(--intel-text-3);
+    font-size: 12px;
 }
 
 .intel-svg-wrapper {
     position: relative;
     width: 100%;
+    max-height: 240px;
 }
 
 .intel-activity-svg {
     width: 100%;
-    height: auto;
-    display: block;
+    max-height: 240px;
     overflow: visible;
 }
 
-.intel-bar-suites {
-    fill: #ffffff;
+.intel-axis-text {
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
 }
 
-.intel-bar-approved {
-    fill: transparent;
-    stroke: rgba(255, 255, 255, 0.6);
-    stroke-width: 1.5;
+.intel-bar-group:focus-visible {
+    outline: none;
+}
+
+.intel-bar-group:focus-visible rect:last-of-type {
+    stroke: #FFFFFF;
+    stroke-width: 2px;
 }
 
 .intel-chart-tooltip {
     position: absolute;
     transform: translate(-50%, -100%);
-    background: var(--intel-surface-3);
+    background: #000000;
     border: 1px solid var(--intel-line-hi);
     border-radius: var(--intel-radius-sm);
-    padding: 8px 10px;
-    font-size: 12px;
-    color: var(--intel-text-1);
+    padding: 8px 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
+    z-index: 50;
     pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
-    white-space: nowrap;
-    z-index: 10;
-    margin-top: -8px;
+    min-width: 140px;
 }
 
 .intel-tooltip-date {
+    font-size: 12px;
     font-weight: 600;
+    color: var(--intel-text-1);
     margin-bottom: 4px;
     border-bottom: 1px solid var(--intel-line);
-    padding-bottom: 2px;
+    padding-bottom: 3px;
 }
 
 .intel-tooltip-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--intel-text-2);
+    margin-top: 3px;
+}
+
+.intel-tooltip-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+}
+
+.intel-tooltip-num {
+    color: var(--intel-text-1);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Accessible Table */
+.intel-accessible-table-container {
+    margin-top: 12px;
+    border: 1px solid var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    overflow-x: auto;
+    max-height: 220px;
+}
+
+.intel-accessible-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.intel-accessible-table th,
+.intel-accessible-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--intel-line);
+    color: var(--intel-text-2);
+    font-variant-numeric: tabular-nums;
+}
+
+.intel-accessible-table th {
+    background: var(--intel-surface-2);
+    color: var(--intel-text-1);
+    font-weight: 600;
+    text-align: left;
+}
+
+.intel-accessible-table tfoot th,
+.intel-accessible-table tfoot td {
+    font-weight: 600;
+    color: var(--intel-text-1);
+    background: var(--intel-surface-2);
+    border-bottom: none;
+}
+
+/* ─── Suites Breakdown Table (Panel 6) ─── */
+.intel-table-scroll-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.intel-suites-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.intel-suites-table th {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--intel-line-hi);
+    color: var(--intel-text-2);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.intel-suites-table th.sortable {
+    cursor: pointer;
+}
+
+.intel-suites-table th.sortable:hover {
+    color: var(--intel-text-1);
+}
+
+.intel-suites-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--intel-line);
+    color: var(--intel-text-1);
+}
+
+.intel-suites-table .num-col {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.intel-table-row {
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.intel-table-row:hover {
+    background: var(--intel-surface-2);
+}
+
+.intel-table-row:focus-visible {
+    outline: 2px solid var(--intel-text-1);
+    outline-offset: -2px;
+}
+
+.intel-suite-title-text {
+    font-weight: 500;
+    color: var(--intel-text-1);
+}
+
+.intel-gap-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--intel-line-hi);
+    background: var(--intel-surface-2);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.intel-gap-pill.zero {
+    border-color: var(--intel-line);
+    color: var(--intel-text-3);
+    background: transparent;
+}
+
+.intel-cell-updated {
+    font-size: 12px;
+    color: var(--intel-text-3);
+    white-space: nowrap;
+}
+
+.intel-suites-cards-mobile {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.intel-suite-card-mobile {
+    background: var(--intel-surface-2);
+    border: 1px solid var(--intel-line);
+    border-radius: var(--intel-radius-sm);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.intel-suite-card-mobile:hover {
+    border-color: var(--intel-line-hi);
+}
+
+.intel-suite-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.intel-suite-card-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.intel-suite-card-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    font-size: 12px;
     color: var(--intel-text-2);
 }
 
-/* ─── Execution Insights Panel ("Soon") ─── */
+.intel-suite-card-stats strong {
+    color: var(--intel-text-1);
+}
+
+/* ─── Panel 7: Execution Insights Preview ─── */
 .intel-soon-card {
     background: var(--intel-surface);
     border: 1px solid var(--intel-line);
     border-radius: var(--intel-radius-md);
-    padding: 24px;
+    padding: 28px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    position: relative;
-    overflow: hidden;
+    gap: 20px;
 }
 
 .intel-soon-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .intel-soon-title-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .intel-soon-desc {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--intel-text-2);
-    max-width: 900px;
-    line-height: 1.5;
     margin: 0;
+    max-width: 800px;
+    line-height: 1.6;
 }
 
 .intel-soon-features-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin: 4px 0;
+    gap: 16px;
 }
 
 .intel-soon-feature-box {
     background: var(--intel-surface-2);
     border: 1px solid var(--intel-line);
     border-radius: var(--intel-radius-sm);
-    padding: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
 
 .intel-soon-feature-title {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--intel-text-1);
 }
 
 .intel-soon-feature-desc {
-    font-size: 11px;
-    color: var(--intel-text-3);
-    line-height: 1.35;
+    font-size: 12px;
+    color: var(--intel-text-2);
+    line-height: 1.4;
 }
 
 .intel-soon-actions {
     display: flex;
-    align-items: center;
-    gap: 12px;
     margin-top: 4px;
 }
 
-/* ─── States (Loading, Error, Empty) ─── */
+/* ─── Loading Skeletons ─── */
 .intel-skeleton {
-    background: linear-gradient(90deg, var(--intel-surface-2) 25%, var(--intel-surface-3) 50%, var(--intel-surface-2) 75%);
-    background-size: 200% 100%;
-    animation: intel-shimmer 1.8s infinite;
-    border-radius: var(--intel-radius-sm);
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 25%,
+        rgba(255, 255, 255, 0.08) 37%,
+        rgba(255, 255, 255, 0.04) 63%
+    );
+    background-size: 400% 100%;
+    animation: intel-skeleton-pulse 1.4s ease infinite;
+    border-radius: var(--intel-radius-md);
 }
 
-@keyframes intel-shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+@keyframes intel-skeleton-pulse {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+.intel-chart-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
 }
 
 .intel-skeleton-chart {
     width: 100%;
-    height: 200px;
+    height: 100%;
 }
 
+.intel-spin {
+    animation: intel-spin-anim 0.8s linear infinite;
+}
+
+@keyframes intel-spin-anim {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ─── Error & Empty States ─── */
 .intel-error-container {
     background: var(--intel-surface);
     border: 1px solid var(--intel-line);
@@ -859,8 +1375,46 @@
     max-width: 400px;
 }
 
-/* ─── Responsive Queries ─── */
-@media (max-width: 1200px) {
+/* ═══════════════════════════════════════════════════════════════════════════
+   STEP 3: ALL DEVICES, SCREEN SIZES, AND CONTAINER QUERIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Container Queries on .intel-page content region */
+@container (max-width: 1100px) {
+    .intel-summary-strip {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .intel-soon-features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .intel-test-mix-split {
+        grid-template-columns: 1fr;
+    }
+}
+
+@container (max-width: 720px) {
+    .intel-summary-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .intel-grid {
+        grid-template-columns: 1fr;
+    }
+    .intel-panel-full {
+        grid-column: span 1;
+    }
+    .intel-soon-features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Media Queries for Viewports and Shell */
+@media (min-width: 1920px) {
+    .intel-page {
+        max-width: 1560px;
+    }
+}
+
+@media (max-width: 1280px) {
     .intel-summary-strip {
         grid-template-columns: repeat(3, 1fr);
     }
@@ -869,7 +1423,10 @@
     }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+    .intel-page {
+        padding: 24px;
+    }
     .intel-grid {
         grid-template-columns: 1fr;
     }
@@ -878,25 +1435,61 @@
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     .intel-page {
         padding: 20px 16px 48px 16px;
     }
-    .intel-summary-strip {
-        grid-template-columns: repeat(2, 1fr);
+    .intel-header {
+        flex-direction: column;
+        align-items: stretch;
     }
-    .intel-soon-features-grid {
-        grid-template-columns: 1fr;
+    .intel-header-controls {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+    }
+    .intel-combobox {
+        max-width: 100%;
+        min-width: 100%;
+    }
+    .intel-btn-icon {
+        align-self: flex-end;
+    }
+    .intel-summary-strip {
+        grid-template-columns: repeat(3, 1fr);
     }
     .intel-stats-row {
         grid-template-columns: 1fr;
     }
-    .intel-combobox {
-        min-width: 100%;
-        max-width: 100%;
+    .intel-test-mix-split {
+        grid-template-columns: 1fr;
     }
-    .intel-header-controls {
-        width: 100%;
+}
+
+@media (max-width: 640px) {
+    .intel-summary-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .intel-table-scroll-container {
+        display: none;
+    }
+    .intel-suites-cards-mobile {
+        display: flex;
+    }
+    .intel-chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .intel-chart-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .intel-activity-range-controls {
+        flex-wrap: wrap;
+    }
+    .intel-soon-features-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -904,7 +1497,22 @@
     .intel-combobox-trigger,
     .intel-btn,
     .intel-btn-icon,
-    .intel-combobox-item {
+    .intel-combobox-item,
+    .intel-filter-chip,
+    .intel-table-toggle-btn,
+    .intel-disclosure-btn {
         min-height: 44px;
+    }
+}
+
+/* Respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+    .intel-progress-fill,
+    .intel-dist-bar-fill,
+    .intel-segment-approved,
+    .intel-segment-pending,
+    .intel-skeleton {
+        transition: none !important;
+        animation: none !important;
     }
 }
