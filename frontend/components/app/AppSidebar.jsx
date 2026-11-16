@@ -199,7 +199,8 @@ const AppSidebar = ({
 
                     <NavLink
                         to="/app/test-suites"
-                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/test-suites') ? 'active' : ''}`}
+                        end
+                        className={({ isActive }) => `app-sidebar__item ${isActive ? 'active' : ''}`}
                         onClick={handleNavClick}
                         title="Test Suites"
                     >

@@ -30,7 +30,7 @@ const AppHeader = ({ onToggleMobile }) => {
             return { section: 'Test Suites', current: `${formatted} Suite`, link: '/app/test-suites' };
         }
         if (path.includes('/app/test-suites')) {
-            return { section: 'Workspace', current: 'All Test Suites', link: '/app/test-suites' };
+            return { section: 'Test suites', current: null, link: '/app/test-suites' };
         }
         if (path.includes('/app/coverage')) {
             return { section: 'Analysis', current: 'Coverage Matrix', link: '/app/coverage' };
@@ -50,7 +50,7 @@ const AppHeader = ({ onToggleMobile }) => {
         if (path.includes('/app/history')) {
             return { section: 'Workspace', current: 'Generation History', link: '/app/history' };
         }
-        if (path.includes('/app/organization')) {
+        if (path.includes('organization')) {
             return { section: 'Workspace', current: 'Organization & Teams', link: '/app/organization' };
         }
         if (path.includes('/app/settings')) {
