@@ -75,6 +75,23 @@ const LoginPage = () => {
     };
   }, [serverError]);
 
+  // Mobile virtual keyboard handling: scroll focused field into view
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const handleViewportResize = () => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'BUTTON')) {
+        setTimeout(() => {
+          activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+    };
+    window.visualViewport.addEventListener('resize', handleViewportResize);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    };
+  }, []);
+
   // Keyboard Caps Lock detection
   const handleKeyModifier = (e) => {
     if (e.getModifierState) {

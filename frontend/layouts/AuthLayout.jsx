@@ -17,7 +17,7 @@ const ShowcaseAnimation = lazy(() => import('../components/auth/ShowcaseAnimatio
 const AuthLayout = () => {
   return (
     <div className="tn-auth-viewport">
-      <div className="tn-auth-layout-grid">
+      <div className="tn-auth-layout-grid auth">
         {/* ─── LEFT COLUMN: Form & Navigation ─── */}
         <section className="tn-auth-form-col" aria-label="Authentication">
           {/* Header Bar */}

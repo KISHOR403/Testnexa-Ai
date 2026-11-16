@@ -541,20 +541,19 @@
   margin: 0;
 }
 
+.tn-showcase-caption-short {
+  display: none;
+}
+.tn-showcase-caption-full {
+  display: inline;
+}
+
 /* Responsive caption shortening on 1024-1279px */
 @media (min-width: 1024px) and (max-width: 1279px) {
   .tn-showcase-caption-full {
     display: none;
   }
   .tn-showcase-caption-short {
-    display: inline;
-  }
-}
-@media (min-width: 1280px) {
-  .tn-showcase-caption-short {
-    display: none;
-  }
-  .tn-showcase-caption-full {
     display: inline;
   }
 }
