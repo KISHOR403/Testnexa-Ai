@@ -39,7 +39,7 @@ Testnexa_AI_Final_Report*
 *.local
 
 # Kubernetes & CI/CD (except nginx.conf needed by Dockerfile)
-k8s/
+k8s/*
 !k8s/nginx.conf
 .github/
 
