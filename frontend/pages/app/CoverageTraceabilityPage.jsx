@@ -836,7 +836,7 @@ const CoverageTraceabilityPage = ({ view = 'traceability' }) => {
 
                     {!testRunsEnabled && (
                         <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.72)', marginTop: '10px' }}>
-                            Verification statuses appear once test execution is available.
+                            Verification statuses update when your <NavLink to="/app/cicd" style={{ color: '#fff', textDecoration: 'underline' }}>CI/CD workflow</NavLink> reports test results back to Testnexa.
                         </div>
                     )}
                 </div>

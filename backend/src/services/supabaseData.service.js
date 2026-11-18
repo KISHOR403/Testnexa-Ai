@@ -56,6 +56,13 @@ class SupabaseDataService {
         this.inMemoryRiskRequirements = new Map();
         this.inMemoryRiskTestCases = new Map();
         this.inMemoryRiskEvents = new Map();
+        this.inMemoryIntegrations = new Map();
+        this.inMemoryIntegrationRepos = new Map();
+        this.inMemoryPipelines = new Map();
+        this.inMemoryPipelineTokens = new Map();
+        this.inMemoryWebhookDeliveries = new Map();
+        this.inMemoryTestRunResults = new Map();
+        this.ciTablesAvailable = null;
         this.risksTableAvailable = null;
         this.workspacesTableAvailable = null;
         this.sessionsTableAvailable = null;
@@ -1092,6 +1099,17 @@ class SupabaseDataService {
         } catch (e) {
             logger.warn('Non-fatal: failed to delete workspace_sessions for user', id);
         }
+
+        try {
+            await supabase.from('support_requests').delete().eq('user_id', id);
+        } catch (e) {
+            logger.warn('Non-fatal: failed to delete support_requests for user', id);
+        }
+
+        try {
+            const supportService = require('./support.service');
+            supportService.deleteUserSupportRequests(id).catch(() => {});
+        } catch (e) {}
 
         const { error } = await supabase
             .from('users')
@@ -6683,6 +6701,554 @@ class SupabaseDataService {
         }
         events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         return events;
+    }
+
+    // ==========================================
+    // CI/CD INTEGRATIONS (integrations, integration_repos, pipelines, pipeline_tokens, webhook_deliveries)
+    // ==========================================
+
+    async saveIntegration(record) {
+        if (!record) return null;
+        const id = record.id || `intg_${crypto.randomBytes(8).toString('hex')}`;
+        const item = {
+            id,
+            workspace_id: record.workspace_id || record.workspaceId || record.user_id || record.userId,
+            provider: record.provider || 'github',
+            external_account: record.external_account || record.externalAccount || '',
+            installation_id: String(record.installation_id || record.installationId || ''),
+            status: record.status || 'active',
+            connected_at: record.connected_at || record.connectedAt || new Date().toISOString(),
+            created_by: record.created_by || record.createdBy || record.user_id || record.userId || null,
+            created_at: record.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        this.inMemoryIntegrations.set(id, item);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('integrations').upsert(item);
+            } catch (err) {
+                logger.warn('Supabase saveIntegration note:', err.message);
+            }
+        }
+        return item;
+    }
+
+    async listIntegrations(workspaceId, provider = 'github') {
+        const wid = String(workspaceId || '');
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                let query = supabase.from('integrations').select('*');
+                if (wid) query = query.eq('workspace_id', wid);
+                if (provider && provider !== 'all') query = query.eq('provider', provider);
+                const { data, error } = await query;
+                if (!error && Array.isArray(data) && data.length > 0) {
+                    return data;
+                }
+            } catch (e) {}
+        }
+
+        const res = [];
+        for (const item of this.inMemoryIntegrations.values()) {
+            if ((!wid || item.workspace_id === wid) && (!provider || provider === 'all' || item.provider === provider)) {
+                res.push(item);
+            }
+        }
+        return res;
+    }
+
+    async getIntegrationById(id, workspaceId = null) {
+        if (!id) return null;
+        const iid = String(id);
+        const wid = workspaceId ? String(workspaceId) : null;
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                let query = supabase.from('integrations').select('*').eq('id', iid);
+                if (wid) query = query.eq('workspace_id', wid);
+                const { data, error } = await query.maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        const item = this.inMemoryIntegrations.get(iid);
+        if (item && (!wid || item.workspace_id === wid)) return item;
+        return null;
+    }
+
+    async getIntegrationByInstallationId(installationId) {
+        if (!installationId) return null;
+        const instId = String(installationId);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('integrations').select('*').eq('installation_id', instId).maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        for (const item of this.inMemoryIntegrations.values()) {
+            if (item.installation_id === instId) return item;
+        }
+        return null;
+    }
+
+    async updateIntegration(id, patch, workspaceId = null) {
+        if (!id) return null;
+        const existing = await this.getIntegrationById(id, workspaceId);
+        if (!existing) return null;
+
+        const updated = {
+            ...existing,
+            ...patch,
+            updated_at: new Date().toISOString()
+        };
+        this.inMemoryIntegrations.set(id, updated);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('integrations').update(updated).eq('id', id);
+            } catch (e) {}
+        }
+        return updated;
+    }
+
+    async deleteIntegration(id, workspaceId = null) {
+        if (!id) return false;
+        const existing = await this.getIntegrationById(id, workspaceId);
+        if (!existing) return false;
+
+        this.inMemoryIntegrations.delete(id);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('integrations').delete().eq('id', id);
+            } catch (e) {}
+        }
+        return true;
+    }
+
+    async saveIntegrationRepos(integrationId, repos = []) {
+        if (!integrationId) return [];
+        const iid = String(integrationId);
+        const saved = [];
+
+        for (const r of repos) {
+            const repoRecord = {
+                id: r.id || `irepo_${crypto.randomBytes(8).toString('hex')}`,
+                integration_id: iid,
+                repo_id: String(r.repo_id || r.repoId || r.id),
+                full_name: r.full_name || r.fullName || '',
+                default_branch: r.default_branch || r.defaultBranch || 'main',
+                private: Boolean(r.private),
+                selected: r.selected !== undefined ? Boolean(r.selected) : true,
+                created_at: r.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            this.inMemoryIntegrationRepos.set(repoRecord.id, repoRecord);
+            saved.push(repoRecord);
+        }
+
+        if (this.isAvailable && this.ciTablesAvailable === true && saved.length > 0) {
+            try {
+                await supabase.from('integration_repos').upsert(saved);
+            } catch (e) {}
+        }
+        return saved;
+    }
+
+    async listIntegrationRepos(integrationId) {
+        if (!integrationId) return [];
+        const iid = String(integrationId);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('integration_repos').select('*').eq('integration_id', iid);
+                if (!error && Array.isArray(data) && data.length > 0) return data;
+            } catch (e) {}
+        }
+
+        const res = [];
+        for (const r of this.inMemoryIntegrationRepos.values()) {
+            if (r.integration_id === iid) res.push(r);
+        }
+        return res;
+    }
+
+    async getIntegrationRepoById(repoId, integrationId = null) {
+        const rid = String(repoId || '');
+        const iid = integrationId ? String(integrationId) : null;
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                let query = supabase.from('integration_repos').select('*').or(`id.eq.${rid},repo_id.eq.${rid}`);
+                if (iid) query = query.eq('integration_id', iid);
+                const { data, error } = await query.maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        for (const r of this.inMemoryIntegrationRepos.values()) {
+            if ((r.id === rid || r.repo_id === rid) && (!iid || r.integration_id === iid)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    async savePipeline(pipeline) {
+        if (!pipeline) return null;
+        const id = pipeline.id || `pipe_${crypto.randomBytes(8).toString('hex')}`;
+        const item = {
+            id,
+            workspace_id: String(pipeline.workspace_id || pipeline.workspaceId || ''),
+            integration_id: String(pipeline.integration_id || pipeline.integrationId || ''),
+            repo_id: String(pipeline.repo_id || pipeline.repoId || ''),
+            suite_id: String(pipeline.suite_id || pipeline.suiteId || ''),
+            name: pipeline.name || '',
+            branch_filters: Array.isArray(pipeline.branch_filters) ? pipeline.branch_filters : (pipeline.branchFilters || ['main']),
+            triggers: pipeline.triggers || { pull_request: true, push: true },
+            status: pipeline.status || 'active',
+            report_check: pipeline.report_check !== undefined ? Boolean(pipeline.report_check) : (pipeline.reportCheck !== undefined ? Boolean(pipeline.reportCheck) : true),
+            created_at: pipeline.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        this.inMemoryPipelines.set(id, item);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('pipelines').upsert(item);
+            } catch (e) {}
+        }
+        return item;
+    }
+
+    async listPipelines(workspaceId, { integrationId = null, repoId = null, suiteId = null, status = null } = {}) {
+        const wid = String(workspaceId || '');
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                let query = supabase.from('pipelines').select('*');
+                if (wid) query = query.eq('workspace_id', wid);
+                if (integrationId) query = query.eq('integration_id', String(integrationId));
+                if (repoId) query = query.eq('repo_id', String(repoId));
+                if (suiteId) query = query.eq('suite_id', String(suiteId));
+                if (status) query = query.eq('status', String(status));
+                const { data, error } = await query;
+                if (!error && Array.isArray(data) && data.length > 0) return data;
+            } catch (e) {}
+        }
+
+        const res = [];
+        for (const p of this.inMemoryPipelines.values()) {
+            if (wid && p.workspace_id !== wid) continue;
+            if (integrationId && p.integration_id !== String(integrationId)) continue;
+            if (repoId && p.repo_id !== String(repoId)) continue;
+            if (suiteId && p.suite_id !== String(suiteId)) continue;
+            if (status && p.status !== String(status)) continue;
+            res.push(p);
+        }
+        return res;
+    }
+
+    async getPipelineById(id, workspaceId = null) {
+        if (!id) return null;
+        const pid = String(id);
+        const wid = workspaceId ? String(workspaceId) : null;
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                let query = supabase.from('pipelines').select('*').eq('id', pid);
+                if (wid) query = query.eq('workspace_id', wid);
+                const { data, error } = await query.maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        const item = this.inMemoryPipelines.get(pid);
+        if (item && (!wid || item.workspace_id === wid)) return item;
+        return null;
+    }
+
+    async getPipelineByRepoAndSuite(repoId, suiteId) {
+        if (!repoId || !suiteId) return null;
+        const rid = String(repoId);
+        const sid = String(suiteId);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('pipelines').select('*').eq('repo_id', rid).eq('suite_id', sid).maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        for (const p of this.inMemoryPipelines.values()) {
+            if (p.repo_id === rid && p.suite_id === sid) return p;
+        }
+        return null;
+    }
+
+    async updatePipeline(id, patch, workspaceId = null) {
+        if (!id) return null;
+        const existing = await this.getPipelineById(id, workspaceId);
+        if (!existing) return null;
+
+        const updated = {
+            ...existing,
+            ...patch,
+            updated_at: new Date().toISOString()
+        };
+        this.inMemoryPipelines.set(id, updated);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('pipelines').update(updated).eq('id', id);
+            } catch (e) {}
+        }
+        return updated;
+    }
+
+    async deletePipeline(id, workspaceId = null) {
+        if (!id) return false;
+        const existing = await this.getPipelineById(id, workspaceId);
+        if (!existing) return false;
+
+        this.inMemoryPipelines.delete(id);
+        await this.revokePipelineTokens(id);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('pipelines').delete().eq('id', id);
+            } catch (e) {}
+        }
+        return true;
+    }
+
+    async savePipelineToken(tokenRecord) {
+        if (!tokenRecord) return null;
+        const id = tokenRecord.id || `tok_${crypto.randomBytes(8).toString('hex')}`;
+        const item = {
+            id,
+            pipeline_id: String(tokenRecord.pipeline_id || tokenRecord.pipelineId),
+            token_hash: String(tokenRecord.token_hash || tokenRecord.tokenHash),
+            prefix: String(tokenRecord.prefix || tokenRecord.token_hash?.slice(0, 8)),
+            created_at: tokenRecord.created_at || new Date().toISOString(),
+            last_used_at: tokenRecord.last_used_at || null,
+            revoked_at: tokenRecord.revoked_at || null
+        };
+
+        this.inMemoryPipelineTokens.set(id, item);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('pipeline_tokens').upsert(item);
+            } catch (e) {}
+        }
+        return item;
+    }
+
+    async getPipelineTokenByHash(tokenHash) {
+        if (!tokenHash) return null;
+        const thash = String(tokenHash);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('pipeline_tokens').select('*').eq('token_hash', thash).maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        for (const t of this.inMemoryPipelineTokens.values()) {
+            if (t.token_hash === thash) return t;
+        }
+        return null;
+    }
+
+    async updatePipelineTokenUsage(tokenId) {
+        if (!tokenId) return null;
+        const tid = String(tokenId);
+        const now = new Date().toISOString();
+
+        const token = this.inMemoryPipelineTokens.get(tid);
+        if (token) {
+            token.last_used_at = now;
+        }
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('pipeline_tokens').update({ last_used_at: now }).eq('id', tid);
+            } catch (e) {}
+        }
+        return true;
+    }
+
+    async revokePipelineTokens(pipelineId) {
+        if (!pipelineId) return false;
+        const pid = String(pipelineId);
+        const now = new Date().toISOString();
+
+        for (const t of this.inMemoryPipelineTokens.values()) {
+            if (t.pipeline_id === pid && !t.revoked_at) {
+                t.revoked_at = now;
+            }
+        }
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('pipeline_tokens').update({ revoked_at: now }).eq('pipeline_id', pid).is('revoked_at', null);
+            } catch (e) {}
+        }
+        return true;
+    }
+
+    async recordWebhookDelivery({ deliveryId, event, status = 'processed', errorCode = null }) {
+        if (!deliveryId) return null;
+        const item = {
+            delivery_id: String(deliveryId),
+            event: String(event || 'unknown'),
+            received_at: new Date().toISOString(),
+            processed_at: new Date().toISOString(),
+            status: String(status),
+            error_code: errorCode ? String(errorCode) : null
+        };
+
+        this.inMemoryWebhookDeliveries.set(item.delivery_id, item);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('webhook_deliveries').upsert(item);
+            } catch (e) {}
+        }
+        return item;
+    }
+
+    async isWebhookDeliveryProcessed(deliveryId) {
+        if (!deliveryId) return false;
+        const did = String(deliveryId);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('webhook_deliveries').select('delivery_id, status').eq('delivery_id', did).maybeSingle();
+                if (!error && data && data.status === 'processed') return true;
+            } catch (e) {}
+        }
+
+        const existing = this.inMemoryWebhookDeliveries.get(did);
+        return Boolean(existing && existing.status === 'processed');
+    }
+
+    async createCiTestRun(runRecord, resultsRecords = []) {
+        if (!runRecord) return null;
+        const runId = runRecord.id || `run_${crypto.randomBytes(8).toString('hex')}`;
+        const item = {
+            id: runId,
+            workspace_id: String(runRecord.workspace_id || runRecord.workspaceId || ''),
+            suite_id: String(runRecord.suite_id || runRecord.suiteId || ''),
+            source: 'ci',
+            pipeline_id: runRecord.pipeline_id || runRecord.pipelineId || null,
+            commit_sha: runRecord.commit_sha || runRecord.commitSha || null,
+            branch: runRecord.branch || 'main',
+            pr_number: runRecord.pr_number || runRecord.prNumber || null,
+            actor: runRecord.actor || null,
+            provider_run_url: runRecord.provider_run_url || runRecord.providerRunUrl || null,
+            status: runRecord.status || 'passed',
+            started_at: runRecord.started_at || new Date().toISOString(),
+            finished_at: runRecord.finished_at || new Date().toISOString(),
+            totals: runRecord.totals || { total: 0, passed: 0, failed: 0, skipped: 0, flaky: 0, duration_ms: 0 },
+            idempotency_key: runRecord.idempotency_key || runRecord.idempotencyKey || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        this.inMemoryTestRuns.set(runId, item);
+
+        const savedResults = [];
+        for (const r of resultsRecords) {
+            const resId = r.id || `trr_${crypto.randomBytes(8).toString('hex')}`;
+            const resItem = {
+                id: resId,
+                run_id: runId,
+                case_id: String(r.case_id || r.caseId),
+                outcome: r.outcome || 'passed',
+                duration_ms: parseInt(r.duration_ms || r.durationMs, 10) || 0,
+                error_summary: r.error_summary ? String(r.error_summary).slice(0, 1000) : null,
+                retry_count: parseInt(r.retry_count || r.retryCount, 10) || 0,
+                created_at: new Date().toISOString(),
+                raw_details: r.raw_details || {}
+            };
+            this.inMemoryTestRunResults.set(resId, resItem);
+            savedResults.push(resItem);
+        }
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                await supabase.from('test_runs').upsert(item);
+                if (savedResults.length > 0) {
+                    await supabase.from('test_run_results').upsert(savedResults);
+                }
+            } catch (e) {
+                logger.warn('Supabase createCiTestRun note:', e.message);
+            }
+        }
+
+        return { run: item, results: savedResults };
+    }
+
+    async getTestRunById(runId, workspaceId = null) {
+        if (!runId) return null;
+        const rid = String(runId);
+        const wid = workspaceId ? String(workspaceId) : null;
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                let query = supabase.from('test_runs').select('*').eq('id', rid);
+                if (wid) query = query.eq('workspace_id', wid);
+                const { data, error } = await query.maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        const run = this.inMemoryTestRuns.get(rid);
+        if (run && (!wid || run.workspace_id === wid)) return run;
+        return null;
+    }
+
+    async getTestRunByIdempotency(pipelineId, idempotencyKey) {
+        if (!pipelineId || !idempotencyKey) return null;
+        const pid = String(pipelineId);
+        const ikey = String(idempotencyKey);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('test_runs').select('*').eq('pipeline_id', pid).eq('idempotency_key', ikey).maybeSingle();
+                if (!error && data) return data;
+            } catch (e) {}
+        }
+
+        for (const r of this.inMemoryTestRuns.values()) {
+            if (r.pipeline_id === pid && r.idempotency_key === ikey) return r;
+        }
+        return null;
+    }
+
+    async listTestRunResults(runId) {
+        if (!runId) return [];
+        const rid = String(runId);
+
+        if (this.isAvailable && this.ciTablesAvailable === true) {
+            try {
+                const { data, error } = await supabase.from('test_run_results').select('*').eq('run_id', rid);
+                if (!error && Array.isArray(data) && data.length > 0) return data;
+            } catch (e) {}
+        }
+
+        const res = [];
+        for (const r of this.inMemoryTestRunResults.values()) {
+            if (r.run_id === rid) res.push(r);
+        }
+        return res;
     }
 }
 

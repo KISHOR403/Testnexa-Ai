@@ -1,0 +1,53 @@
+---
+title: "Data handling and privacy"
+description: "Learn what data Testnexa stores, how requirements are processed, and our strict zero-retention AI policy."
+category: "security"
+order: 8
+updated: "2026-11-18"
+keywords: ["privacy", "security", "data retention", "encryption", "gdpr", "ai provider"]
+related: ["account-and-sessions", "github-actions-setup", "create-your-first-test-suite"]
+---
+
+# Data handling and privacy
+
+Testnexa is built for enterprise engineering teams with strict compliance and privacy requirements. We follow a strict principle of data minimization across every stage of generation and storage.
+
+> Note: Testnexa is completely stateless during generation. Nothing is stored in your database until a suite is successfully produced and saved. Unsaved drafts, incomplete prompts, and temporary generation sessions are never recorded.
+
+## What is stored vs what is sent
+
+### 1. What is stored in your workspace
+When a test suite is confirmed and saved, Testnexa stores:
+- User profile information (email, workspace membership, role).
+- Generated suite titles, requirement summaries, and acceptance criteria tags.
+- Test cases, steps, assertions, and approval review statuses.
+- Audit logs tracking team edits and suite deletion timestamps.
+
+### 2. What is sent to AI model providers
+During generation, the requirement text you provide is transmitted securely over TLS to our vetted LLM providers solely to produce the test suite. Under our enterprise agreements:
+- **Zero data retention**: Prompts and outputs are discarded immediately after inference.
+- **No model training**: Your requirements, code snippets, and test cases are never used to train or fine-tune public models.
+
+## Security architecture
+
+1. **Encryption in transit and at rest**
+   All communications use TLS 1.3. Databases and backups are encrypted at rest using AES-256.
+2. **Tenant isolation**
+   Row-Level Security (RLS) guarantees complete workspace isolation. Users can only access resources belonging to their authorized workspace.
+3. **Short-lived credentials**
+   All third-party integrations (such as the Testnexa GitHub App) operate via ephemeral, rotating installation tokens.
+
+## Expected result
+
+Your proprietary product requirements remain confidential and secure, fully compliant with SOC 2, ISO 27001, and GDPR enterprise standards.
+
+## Guidance & best practices
+
+> Tip: Avoid pasting production passwords, live API tokens, or actual customer PII into requirement descriptions. Use placeholder variables like `{{API_KEY}}` or `user@example.com`.
+
+> Warning: Deleting a test suite or workspace permanently purges its test cases, coverage metrics, and associated audit records from active databases.
+
+## Related guides
+- [Managing your account and workspace](/help/account/account-and-sessions)
+- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)

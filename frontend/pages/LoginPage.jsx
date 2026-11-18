@@ -199,9 +199,12 @@ const LoginPage = () => {
         if (msg.includes('rate limit') || msg.includes('too many') || result?.code === 'RATE_LIMITED') {
           errType = 'rate-limit';
           displayMsg = 'Too many attempts. Try again in 15 minutes';
-        } else if (msg.includes('network') || msg.includes('connection') || msg.includes('timeout')) {
+        } else if (msg.includes('network') || msg.includes('connection') || msg.includes('connect') || msg.includes('timeout') || msg.includes('unable to connect')) {
           errType = 'network';
-          displayMsg = "Can't reach Testnexa. Check your connection and retry";
+          displayMsg = "Can't reach Testnexa backend. Please ensure the server is running.";
+        } else if (result?.code === 'ACCOUNT_SUSPENDED' || msg.includes('suspended')) {
+          errType = 'suspended';
+          displayMsg = result?.message || 'Your account has been suspended.';
         }
 
         setServerError({ type: errType, message: displayMsg });
@@ -209,7 +212,7 @@ const LoginPage = () => {
       }
     } catch (err) {
       const isRate = err.response?.status === 429;
-      const isNet = !err.response || err.code === 'ERR_NETWORK';
+      const isNet = !err.response || err.code === 'ERR_NETWORK' || err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('connect');
 
       let errType = 'credentials';
       let displayMsg = 'Incorrect email or password';
@@ -219,7 +222,7 @@ const LoginPage = () => {
         displayMsg = 'Too many attempts. Try again in 15 minutes';
       } else if (isNet) {
         errType = 'network';
-        displayMsg = "Can't reach Testnexa. Check your connection and retry";
+        displayMsg = "Can't reach Testnexa backend. Please ensure the server is running.";
       }
 
       setServerError({ type: errType, message: displayMsg });

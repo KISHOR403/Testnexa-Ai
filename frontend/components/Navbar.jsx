@@ -144,7 +144,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                             <div className="tn-brand-logo-box">
                                 <TestNexaLogo size={28} />
                             </div>
-                            <span className="tn-brand-title">TestNexa</span>
+                            <span className="tn-brand-title">Testnexa</span>
                         </NavLink>
                     </div>
 
@@ -230,7 +230,7 @@ export const Navbar = ({ isMarketingLayout = true }) => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="tn-mobile-drawer__header">
-                            <span className="tn-brand-title">TestNexa</span>
+                            <span className="tn-brand-title">Testnexa</span>
                             <button
                                 type="button"
                                 className="tn-btn-icon"

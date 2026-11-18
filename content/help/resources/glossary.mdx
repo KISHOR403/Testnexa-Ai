@@ -1,0 +1,59 @@
+---
+title: "QA & Testnexa glossary"
+description: "Essential QA terminology, architectural definitions, and platform terms with direct anchor links."
+category: "resources"
+order: 12
+updated: "2026-11-18"
+keywords: ["glossary", "definitions", "terms", "acceptance criteria", "edge boundary", "heuristics"]
+related: ["linked-vs-verified-coverage", "risks", "create-your-first-test-suite"]
+---
+
+# QA & Testnexa glossary
+
+A comprehensive reference for core quality assurance terminology, heuristic definitions, and Testnexa architectural terms.
+
+> Note: Every term in this glossary includes an anchor link. You can share direct links to specific term definitions across your team.
+
+## Core concepts
+
+### Acceptance Criteria
+The explicit conditions that a software system must satisfy to be accepted by a user, product manager, or stakeholder. Testnexa uses acceptance criteria to map requirement statements to verified test scenarios.
+
+### Edge Boundary
+Testing behaviors at extreme operational thresholds, null values, maximum string limits, off-by-one indices, and concurrency boundaries.
+
+### Heuristics Engine
+The algorithmic ruleset within Testnexa that evaluates requirements against common software failure patterns, generating defensive edge, negative, and security cases.
+
+### Linked Coverage
+The design-time metric representing the percentage of requirement acceptance criteria and implied failure modes that have approved test cases mapped to them.
+
+### Negative Scenario
+A test designed to verify that the system gracefully handles invalid input, unauthorized access attempts, or downstream service outages without crashing.
+
+### Pending Status
+The default lifecycle state for newly generated test cases in Testnexa. Test cases remain pending until explicitly reviewed and approved by a QA engineer or developer.
+
+### Positive Scenario
+A test verifying the happy path where valid inputs produce the expected outcome according to core business requirements.
+
+### Traceability Matrix
+A multi-dimensional table mapping requirement statements directly to approved test cases, highlighting untested gaps and verification progress.
+
+### Verified Coverage
+The execution-time metric representing the proportion of linked test cases that have successfully executed and passed within your CI/CD runner.
+
+## Expected result
+
+A shared QA vocabulary across engineering, product management, and quality assurance teams.
+
+## Guidance & best practices
+
+> Tip: Reference these definitions in pull request comments and requirement reviews to standardize testing criteria across your organization.
+
+> Warning: Conflating Linked coverage with Verified coverage can result in shipping untested code. Always verify both metrics before major releases.
+
+## Related guides
+- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)
+- [Analyzing requirements risks](/help/analysis/risks)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)

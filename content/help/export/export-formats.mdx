@@ -1,0 +1,65 @@
+---
+title: "Supported export formats"
+description: "Export your approved test cases into production-ready Playwright, Cypress, Gherkin, JSON, or CSV formats."
+category: "export"
+order: 6
+updated: "2026-11-18"
+keywords: ["export", "playwright", "cypress", "gherkin", "cucumber", "json", "csv"]
+related: ["github-actions-setup", "create-your-first-test-suite", "test-execution"]
+---
+
+# Supported export formats
+
+Testnexa allows you to export your approved test suites into industry-standard automation frameworks and data interchange formats. You can embed the generated code directly into your existing automation repositories.
+
+> Note: Testnexa generates clean, executable test scripts without proprietary vendor dependencies. You maintain full ownership and control over your exported tests.
+
+## Available export options
+
+### 1. Playwright (TypeScript & Python)
+Exports idiomatic `@playwright/test` test specifications with async/await syntax, page object scaffolding, and standard expect assertions:
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Authentication: Login Flow', () => {
+  test('valid credentials authenticate user and redirect to dashboard', async ({ page }) => {
+    await page.goto('/login');
+    await page.fill('input[type="email"]', 'tester@example.com');
+    await page.fill('input[type="password"]', 'CorrectPassword123!');
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL('/dashboard');
+  });
+});
+```
+
+### 2. Cypress (JavaScript)
+Produces Cypress E2E test files with `cy.visit`, `cy.get`, and should assertions ready for `cypress run`.
+
+### 3. Gherkin / Cucumber (`.feature`)
+Exports standard BDD Feature files structured with `Feature`, `Scenario`, `Given`, `When`, and `Then` steps compatible with Cucumber.js, Behave, or SpecFlow.
+
+### 4. Structured Data (JSON & CSV)
+Exports raw test definitions, acceptance criteria IDs, step sequences, and risk ratings for ingestion into Jira, TestRail, or internal analytics tooling.
+
+## How to export a suite
+
+1. Open your test suite from **Test Suites**.
+2. Click the **Export** button in the header toolbar.
+3. Select your desired format: **Playwright (TS)**, **Playwright (Python)**, **Cypress**, **Gherkin**, **JSON**, or **CSV**.
+4. Download the generated archive or copy the code snippet directly to your clipboard.
+
+## Expected result
+
+You receive a ready-to-run file or archive matching your project configuration, ready to commit to Git or run locally.
+
+## Guidance & best practices
+
+> Tip: For automated continuous integration, use the Playwright TypeScript export combined with the Testnexa GitHub Actions reporter workflow.
+
+> Warning: Unapproved test cases in pending status can be included or excluded from exports via the export dialog options. Ensure pending cases are reviewed before deploying to production test runs.
+
+## Related guides
+- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)
+- [Test execution and runners](/help/execution/test-execution)

@@ -1,0 +1,52 @@
+---
+title: "Troubleshooting common issues"
+description: "Resolve common questions regarding suite generation timeouts, rate limits, and integration errors."
+category: "troubleshooting"
+order: 11
+updated: "2026-11-18"
+keywords: ["troubleshooting", "errors", "timeout", "rate limit", "login", "support"]
+related: ["account-and-sessions", "github-actions-setup", "create-your-first-test-suite"]
+---
+
+# Troubleshooting common issues
+
+If you encounter unexpected errors while generating suites, linking repositories, or navigating the platform, consult the solutions below before contacting support.
+
+> Note: If you encounter an unresolved problem or service degradation, check the system status in the page footer or submit a ticket through our Contact Support form.
+
+## Common issues & solutions
+
+### 1. Generation timeout or failure
+- **Symptom**: The generation spinner runs for more than 45 seconds and returns an error message.
+- **Cause**: The input requirement is either exceptionally large (exceeding 12,000 characters) or contains unparsable binary characters.
+- **Solution**: Break complex specifications into separate user stories (e.g., generate Authentication and Checkout as separate suites) and ensure input text is standard UTF-8. Remember that Testnexa does not save partial drafts if generation fails.
+
+### 2. Login error: "Can't reach Testnexa backend"
+- **Symptom**: Attempting to sign in shows an error indicating the backend cannot be reached.
+- **Cause**: Network connectivity interruption or temporary API gateway maintenance.
+- **Solution**: Check your internet connection, verify your corporate proxy settings, and check the footer status indicator for service disruptions.
+
+### 3. Rate limiting (429 Too Many Requests)
+- **Symptom**: "Too many attempts. Try again in 15 minutes."
+- **Cause**: Repeated rapid generation attempts or automated scripting exceeding standard account limits.
+- **Solution**: Wait for the rate-limit window to expire (typically 15 minutes). For automated testing, use official export pipelines rather than rapid UI polling.
+
+### 4. GitHub repository not appearing
+- **Symptom**: After clicking "Connect GitHub", your repository does not appear in the repository dropdown.
+- **Cause**: The Testnexa GitHub App was installed on your organization but was only granted access to select repositories.
+- **Solution**: Open your GitHub organization settings under **Applications > Installed GitHub Apps > Testnexa**, and grant repository permissions to the desired repo.
+
+## Expected result
+
+Applying these steps resolves the vast majority of operational and connectivity hiccups.
+
+## Guidance & best practices
+
+> Tip: When reporting bugs to support, include your approximate timestamp and browser version to expedite triage.
+
+> Warning: Never share secret credentials, authorization tokens, or passwords in support requests.
+
+## Related guides
+- [Managing your account and workspace](/help/account/account-and-sessions)
+- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)

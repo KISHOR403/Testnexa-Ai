@@ -40,3 +40,4 @@ Disallow: /reset-password/
 
 # Production Sitemap location
 Sitemap: https://testnexa.ai/sitemap.xml
+Sitemap: https://testnexa.ai/sitemap-help.xml

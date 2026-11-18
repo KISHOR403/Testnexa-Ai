@@ -6,10 +6,15 @@ const router = express.Router();
 // GET /api/v1/features - Expose current runtime feature flags
 router.get('/', (req, res) => {
     const features = getAllFeatures();
+    const flags = {
+        ciGithub: Boolean(features.ciGithub?.enabled),
+        testRuns: Boolean(features.testRuns?.enabled)
+    };
     res.json({
         success: true,
         features,
-        data: features,
+        data: { ...flags, ...features },
+        ...flags,
         ...features
     });
 });

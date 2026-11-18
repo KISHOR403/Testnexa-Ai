@@ -1,0 +1,57 @@
+---
+title: "Test execution and runners"
+description: "Learn how test execution works today via customer CI and what to expect with coming-soon direct execution."
+category: "execution"
+order: 10
+updated: "2026-11-18"
+keywords: ["test execution", "test runs", "runners", "playwright", "ci execution", "coming soon"]
+related: ["github-actions-setup", "export-formats", "linked-vs-verified-coverage"]
+---
+
+# Test execution and runners
+
+Test execution is an evolving capability in Testnexa. Today, all test execution happens inside your own infrastructure via exported Playwright tests. Cloud test execution directly inside Testnexa is coming soon.
+
+> Note: The in-app Test Runs button is marked with a "Soon" badge. Direct execution inside Testnexa is currently behind a feature flag while we complete Phase 2 of our CI/CD roadmap.
+
+## What works today vs what is coming soon
+
+### 1. What works today
+- Export full test suites as production-grade Playwright (TypeScript/Python) and Cypress specifications.
+- Run tests in your own GitHub Actions runners, local developer workstations, or private Selenium grids.
+- Generate standard JSON reports from Playwright (`--reporter=json`) for compliance audits.
+- Link your GitHub repository to suites in **Integrations > CI/CD** to prepare your verification pipeline.
+
+### 2. What is coming soon (Phase 2)
+- Direct result ingestion from GitHub Actions webhooks into Testnexa.
+- Automated commit checks posted directly to your GitHub pull requests.
+- Live Verified coverage score calculation and pass/fail trend tracking.
+- One-click cloud test runs for authenticated staging and sandbox environments.
+
+## How to run exported tests locally
+
+1. Export your suite as **Playwright (TS)**.
+2. In your local repository, install dependencies:
+   ```bash
+   npm install -D @playwright/test
+   npx playwright install
+   ```
+3. Run the exported test file:
+   ```bash
+   npx playwright test tests/auth.spec.ts --headed
+   ```
+
+## Expected result
+
+Your tests run against your local dev server or staging URL, exercising the exact assertions, selectors, and edge cases defined in Testnexa.
+
+## Guidance & best practices
+
+> Tip: Commit exported Playwright specs directly into your version-controlled frontend repository so developers and QA can collaborate on pull requests.
+
+> Warning: Do not attempt to bypass execution gating in the UI. Cloud test runners require dedicated sandboxing and will be unlocked when Phase 2 ships.
+
+## Related guides
+- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)
+- [Supported export formats](/help/export/export-formats)
+- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)

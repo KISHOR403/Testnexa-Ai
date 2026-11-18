@@ -1,0 +1,45 @@
+---
+title: "Smart test recommendations"
+description: "Discover missing test scenarios based on your requirements and existing tests."
+category: "analysis"
+order: 5
+updated: "2026-11-18"
+keywords: ["smart recommendations", "missing scenarios", "ai suggestions", "focus area", "suite enhancement"]
+related: ["risks", "create-your-first-test-suite", "review-and-approve-cases"]
+---
+
+# Smart test recommendations
+
+The Smart Recommendations engine inspects your existing test suites and requirement acceptance criteria to identify overlooked edge scenarios, boundary limits, and missing security assertions. Recommendations are generated on demand to fill coverage gaps.
+
+> Note: Recommendations are strictly ephemeral. They are not saved to your workspace or added to your test suites until you explicitly select and approve them.
+
+## Generating recommendations
+
+Follow these steps to discover missing test vectors:
+
+1. **Navigate to Smart Recommendations**
+   Click **Analysis > Recommendations** in the sidebar.
+2. **Select your target test suite**
+   Choose the test suite you want to evaluate from the suite combobox.
+3. **Optional: Focus on a specific requirement**
+   By default, Testnexa scans all requirements in the suite. You may narrow analysis to a single requirement or focus area (e.g., "OAuth token refresh").
+4. **Generate suggestions**
+   Click **Generate Recommendations**. The engine analyzes existing coverage and returns structured suggestions categorized by scenario type.
+5. **Add to suite**
+   Review each recommendation card. Click **Add to Suite** on relevant suggestions. The newly created test cases enter your suite in **Pending** status.
+
+## Expected result
+
+Newly added recommendations are integrated directly into your target suite as pending test cases, ready for team review and export.
+
+## Guidance & best practices
+
+> Tip: Use the Focus Area input to guide suggestions toward non-functional criteria such as rate limiting, concurrent mutations, or network reconnects.
+
+> Warning: Navigating away from the Smart Recommendations view without clicking "Add to Suite" will discard the generated suggestions. Testnexa does not retain unsaved recommendation sessions.
+
+## Related guides
+- [Analyzing requirements risks](/help/analysis/risks)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)
+- [Review and approve test cases](/help/test-authoring/review-and-approve-cases)

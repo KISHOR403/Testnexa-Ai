@@ -19,7 +19,18 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            if (res && !res.headersSent && res.writeHead) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                status: 'unavailable',
+                message: 'Backend server is offline. Please start backend on port 5000.'
+              }));
+            }
+          });
+        }
       }
     }
   },

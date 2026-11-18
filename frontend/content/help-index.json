@@ -1,0 +1,1067 @@
+{
+  "generatedAt": "2026-11-18T15:17:38.282Z",
+  "totalArticles": 13,
+  "categories": [
+    {
+      "id": "getting-started",
+      "name": "Getting Started",
+      "description": "First steps with test generation, workspace navigation, and core workflows.",
+      "order": 1,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "create-your-first-test-suite",
+          "url": "/help/getting-started/create-your-first-test-suite",
+          "title": "Create your first test suite",
+          "description": "Translate unstructured product requirements or user stories into deterministic, production-ready test suites.",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "id": "test-authoring",
+      "name": "Test Authoring",
+      "description": "Reviewing, approving, editing, and managing test cases across your suites.",
+      "order": 2,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "review-and-approve-cases",
+          "url": "/help/test-authoring/review-and-approve-cases",
+          "title": "Review and approve test cases",
+          "description": "Learn how test cases transition from generated pending status to approved and active state.",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "id": "analysis",
+      "name": "Coverage & Traceability",
+      "description": "Linked vs Verified metrics, risk analysis, and smart AI recommendations.",
+      "order": 3,
+      "count": 3,
+      "articles": [
+        {
+          "slug": "linked-vs-verified-coverage",
+          "url": "/help/analysis/linked-vs-verified-coverage",
+          "title": "Linked vs Verified coverage",
+          "description": "Understand the core distinction between requirement test linkage and verified CI test execution.",
+          "order": 3
+        },
+        {
+          "slug": "risks",
+          "url": "/help/analysis/risks",
+          "title": "Analyzing requirements risks",
+          "description": "Evaluate likelihood and impact dimensions across your requirements to isolate critical failure vectors.",
+          "order": 4
+        },
+        {
+          "slug": "recommendations",
+          "url": "/help/analysis/recommendations",
+          "title": "Smart test recommendations",
+          "description": "Discover missing test scenarios based on your requirements and existing tests.",
+          "order": 5
+        }
+      ]
+    },
+    {
+      "id": "export",
+      "name": "Exporting & Automation",
+      "description": "Exporting suites to Playwright, Cypress, Gherkin, JSON, and CSV.",
+      "order": 4,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "export-formats",
+          "url": "/help/export/export-formats",
+          "title": "Supported export formats",
+          "description": "Export your approved test cases into production-ready Playwright, Cypress, Gherkin, JSON, or CSV formats.",
+          "order": 6
+        }
+      ]
+    },
+    {
+      "id": "integrations",
+      "name": "Integrations & CI/CD",
+      "description": "Connecting GitHub Actions to execute tests and ingest verification results.",
+      "order": 5,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "github-actions-setup",
+          "url": "/help/integrations/github-actions-setup",
+          "title": "GitHub Actions CI/CD setup",
+          "description": "Connect your GitHub repository to run exported Playwright tests in your pipeline and report results back.",
+          "order": 7
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security & Privacy",
+      "description": "Data handling, stateless generation architecture, and enterprise compliance.",
+      "order": 6,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "data-and-privacy",
+          "url": "/help/security/data-and-privacy",
+          "title": "Data handling and privacy",
+          "description": "Learn what data Testnexa stores, how requirements are processed, and our strict zero-retention AI policy.",
+          "order": 8
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "name": "Account & Workspaces",
+      "description": "Managing workspaces, user roles, invitations, and session security.",
+      "order": 7,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "account-and-sessions",
+          "url": "/help/account/account-and-sessions",
+          "title": "Managing your account and workspace",
+          "description": "Configure workspace settings, invite team members, manage active authentication sessions, and control roles.",
+          "order": 9
+        }
+      ]
+    },
+    {
+      "id": "execution",
+      "name": "Test Execution",
+      "description": "Understanding execution runners, CI runners, and the upcoming Test Runs engine.",
+      "order": 8,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "test-execution",
+          "url": "/help/execution/test-execution",
+          "title": "Test execution and runners",
+          "description": "Learn how test execution works today via customer CI and what to expect with coming-soon direct execution.",
+          "order": 10
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "name": "Troubleshooting",
+      "description": "Solutions for common errors, rate limits, timeouts, and support channels.",
+      "order": 9,
+      "count": 1,
+      "articles": [
+        {
+          "slug": "troubleshooting",
+          "url": "/help/troubleshooting/troubleshooting",
+          "title": "Troubleshooting common issues",
+          "description": "Resolve common questions regarding suite generation timeouts, rate limits, and integration errors.",
+          "order": 11
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "name": "Resources & Reference",
+      "description": "Complete QA glossary, changelog, and release announcements.",
+      "order": 10,
+      "count": 2,
+      "articles": [
+        {
+          "slug": "glossary",
+          "url": "/help/resources/glossary",
+          "title": "QA & Testnexa glossary",
+          "description": "Essential QA terminology, architectural definitions, and platform terms with direct anchor links.",
+          "order": 12
+        },
+        {
+          "slug": "whats-new",
+          "url": "/help/resources/whats-new",
+          "title": "What's new in Testnexa",
+          "description": "Recent feature releases, architectural improvements, and design updates across Testnexa.",
+          "order": 13
+        }
+      ]
+    }
+  ],
+  "articles": [
+    {
+      "slug": "create-your-first-test-suite",
+      "url": "/help/getting-started/create-your-first-test-suite",
+      "repoPath": "content/help/getting-started/create-your-first-test-suite.mdx",
+      "title": "Create your first test suite",
+      "description": "Translate unstructured product requirements or user stories into deterministic, production-ready test suites.",
+      "category": "getting-started",
+      "categoryName": "Getting Started",
+      "order": 1,
+      "updated": "2026-11-18",
+      "keywords": [
+        "suite generation",
+        "requirements",
+        "acceptance criteria",
+        "first suite",
+        "heuristics"
+      ],
+      "related": [
+        "review-and-approve-cases",
+        "linked-vs-verified-coverage",
+        "export-formats"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Step-by-step walkthrough",
+          "id": "step-by-step-walkthrough"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 343,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Create your first test suite",
+        "description": "Translate unstructured product requirements or user stories into deterministic, production-ready test suites.",
+        "keywords": "suite generation requirements acceptance criteria first suite heuristics",
+        "headings": "Step-by-step walkthrough Expected result Guidance & best practices Related guides",
+        "snippet": "Create your first test suite Testnexa transforms plain text requirements, Jira tickets, and product specifications into structured test suites with deterministic positive, negative, and edge test cases. Generation runs on demand and generates comprehensive test suites aligned directly to your stated"
+      },
+      "rawBody": "\n# Create your first test suite\n\nTestnexa transforms plain text requirements, Jira tickets, and product specifications into structured test suites with deterministic positive, negative, and edge test cases. Generation runs on demand and generates comprehensive test suites aligned directly to your stated acceptance criteria.\n\n> Note: Testnexa is stateless during generation. Nothing is stored in your workspace until a suite is successfully generated and confirmed. Testnexa does not save unfinished drafts or preserve unsaved generation attempts.\n\n## Step-by-step walkthrough\n\nFollow these steps to produce your initial test suite:\n\n1. **Navigate to AI Workspace**\n   Log into your Testnexa workspace and select **AI Workspace** from the primary navigation bar.\n2. **Provide your requirement text**\n   Paste your user story, acceptance criteria, or API endpoint specification into the requirement input area. Be explicit about boundary thresholds, authorization constraints, and expected status codes.\n3. **Select platform and scope**\n   Choose your target environment (Web, API, Mobile, or Hybrid) and select your desired verification depth (Standard or Exhaustive).\n4. **Trigger generation**\n   Click **Generate Test Suite**. Testnexa's heuristics engine parses your input, decomposes acceptance criteria into verified vectors, and constructs test cases with clear preconditions, steps, and assertions.\n5. **Review the generated suite**\n   Once generation completes, inspect the newly generated test cases in your suite. All newly generated test cases begin in a **Pending** review state.\n\n## Expected result\n\nYou will receive an organized test suite containing:\n- An overall requirement summary and acceptance criteria mapping.\n- Structured test cases categorized by scenario type: Positive (happy path), Negative (error handling), and Edge (boundary conditions).\n- An initial Linked coverage calculation mapping requirement statements to test cases.\n\n## Guidance & best practices\n\n> Tip: Providing structured acceptance criteria (such as Given-When-Then statements or bulleted requirements) results in higher Linked coverage scores and more precise edge boundary cases.\n\n> Warning: Closing or refreshing your browser tab before the generation engine finishes processing will cancel the in-flight request. No partial draft will be retained in your workspace.\n\n## Related guides\n- [Review and approve cases](/help/test-authoring/review-and-approve-cases)\n- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)\n- [Supported export formats](/help/export/export-formats)\n"
+    },
+    {
+      "slug": "review-and-approve-cases",
+      "url": "/help/test-authoring/review-and-approve-cases",
+      "repoPath": "content/help/test-authoring/review-and-approve-cases.mdx",
+      "title": "Review and approve test cases",
+      "description": "Learn how test cases transition from generated pending status to approved and active state.",
+      "category": "test-authoring",
+      "categoryName": "Test Authoring",
+      "order": 2,
+      "updated": "2026-11-18",
+      "keywords": [
+        "approval",
+        "pending",
+        "review",
+        "test lifecycle",
+        "editing cases"
+      ],
+      "related": [
+        "create-your-first-test-suite",
+        "linked-vs-verified-coverage",
+        "export-formats"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Review lifecycle and steps",
+          "id": "review-lifecycle-and-steps"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 299,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Review and approve test cases",
+        "description": "Learn how test cases transition from generated pending status to approved and active state.",
+        "keywords": "approval pending review test lifecycle editing cases",
+        "headings": "Review lifecycle and steps Expected result Guidance & best practices Related guides",
+        "snippet": "Review and approve test cases Every test case produced by Testnexa enters your suite in a Pending status. Test cases remain pending until a team member reviews the steps, validates the assertions, and explicitly approves or rejects them. Note: Test cases in the pending state are clearly marked acros"
+      },
+      "rawBody": "\n# Review and approve test cases\n\nEvery test case produced by Testnexa enters your suite in a **Pending** status. Test cases remain pending until a team member reviews the steps, validates the assertions, and explicitly approves or rejects them.\n\n> Note: Test cases in the pending state are clearly marked across your suite views. Approving a test case promotes it to active status, which qualifies it for export and pipeline verification.\n\n## Review lifecycle and steps\n\nFollow these steps to triage and approve your generated cases:\n\n1. **Open the Test Cases view**\n   Navigate to **Test Cases** or open the specific suite detail view. Filter the list using the status selector set to **Pending**.\n2. **Inspect preconditions and execution steps**\n   Expand the test case drawer to review preconditions, individual step inputs, and expected postconditions.\n3. **Edit or customize steps**\n   If an assertion needs project-specific fixture data or selector adjustments, click **Edit** and refine the text inline.\n4. **Approve or reject the case**\n   Click **Approve** to accept the test case into your active suite, or **Reject** to archive it from exports.\n5. **Batch approve**\n   Use the multi-select table checkboxes to approve high-confidence test suites in bulk after performing sampling checks.\n\n## Expected result\n\nApproved test cases reflect an active status badge, are included in automated Playwright and Cypress exports, and contribute directly toward your Verified coverage readiness score.\n\n## Guidance & best practices\n\n> Tip: Prioritize reviewing edge boundary and security cases first. These scenarios frequently highlight uncovered business logic in your requirements.\n\n> Warning: Rejected test cases are excluded from code exports. If you reject a test case that maps to a required acceptance criterion, your Linked coverage percentage will decrease accordingly.\n\n## Related guides\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)\n- [Supported export formats](/help/export/export-formats)\n"
+    },
+    {
+      "slug": "linked-vs-verified-coverage",
+      "url": "/help/analysis/linked-vs-verified-coverage",
+      "repoPath": "content/help/analysis/linked-vs-verified-coverage.mdx",
+      "title": "Linked vs Verified coverage",
+      "description": "Understand the core distinction between requirement test linkage and verified CI test execution.",
+      "category": "analysis",
+      "categoryName": "Coverage & Traceability",
+      "order": 3,
+      "updated": "2026-11-18",
+      "keywords": [
+        "linked coverage",
+        "verified coverage",
+        "traceability",
+        "metrics",
+        "test verification"
+      ],
+      "related": [
+        "risks",
+        "review-and-approve-cases",
+        "github-actions-setup"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Definitions and calculation",
+          "id": "definitions-and-calculation"
+        },
+        {
+          "level": 3,
+          "title": "1. Linked Coverage (Design time)",
+          "id": "1-linked-coverage-design-time"
+        },
+        {
+          "level": 3,
+          "title": "2. Verified Coverage (Execution time)",
+          "id": "2-verified-coverage-execution-time"
+        },
+        {
+          "level": 2,
+          "title": "How to reach full coverage",
+          "id": "how-to-reach-full-coverage"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 398,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Linked vs Verified coverage",
+        "description": "Understand the core distinction between requirement test linkage and verified CI test execution.",
+        "keywords": "linked coverage verified coverage traceability metrics test verification",
+        "headings": "Definitions and calculation 1. Linked Coverage (Design time) 2. Verified Coverage (Execution time) How to reach full coverage Expected result Guidance & best practices Related guides",
+        "snippet": "Linked vs Verified coverage Testnexa tracks coverage using two distinct, complementary metrics: Linked Coverage and Verified Coverage . Understanding the difference prevents false confidence before deploying your software. Note: High Linked coverage proves you wrote tests for every requirement. High"
+      },
+      "rawBody": "\n# Linked vs Verified coverage\n\nTestnexa tracks coverage using two distinct, complementary metrics: **Linked Coverage** and **Verified Coverage**. Understanding the difference prevents false confidence before deploying your software.\n\n> Note: High Linked coverage proves you wrote tests for every requirement. High Verified coverage proves those tests passed in your customer CI pipeline.\n\n## Definitions and calculation\n\n### 1. Linked Coverage (Design time)\nLinked coverage measures how many explicit acceptance criteria and implied failure modes in your specification have at least one approved test case mapped to them:\n\n```\nLinked Coverage = (Covered Requirements / Total Requirements) * 100%\n```\n\n- **When it updates**: Automatically as test suites are generated, edited, approved, or linked in Testnexa.\n- **What it tells you**: Whether your test suite addresses all business rules, input boundaries, and error branches.\n\n### 2. Verified Coverage (Execution time)\nVerified coverage measures how many linked test cases actually executed and passed in your continuous integration runner:\n\n```\nVerified Coverage = (Passing Verified Cases / Total Linked Cases) * 100%\n```\n\n- **When it updates**: When results from your GitHub Actions pipeline are ingested back into Testnexa.\n- **What it tells you**: Whether the live system behaves as specified in production builds.\n\n## How to reach full coverage\n\n1. **Achieve 100% Linked Coverage**\n   Ensure every requirement statement in your specification is linked to at least one approved positive and negative test case.\n2. **Export test suite to CI**\n   Export your approved test cases in Playwright format to your version-controlled repository.\n3. **Execute in GitHub Actions**\n   Run the tests on every pull request using the Testnexa GitHub Actions reporter workflow.\n4. **Ingest CI test reports**\n   View the passing run results in the Coverage & Traceability dashboard to confirm full Verified coverage.\n\n## Expected result\n\nYour Traceability Matrix and Coverage dashboards show both metrics side-by-side, allowing leadership to instantly differentiate between untested specifications and failing builds.\n\n## Guidance & best practices\n\n> Tip: If your Linked coverage is high (e.g., 95%) but Verified coverage is 0%, your team has authored good tests but has not yet wired automated CI execution.\n\n> Warning: Never rely on Linked coverage alone as a release gate. A test case that exists in your suite does not guarantee software quality until it runs and passes against live builds.\n\n## Related guides\n- [Analyzing requirements risks](/help/analysis/risks)\n- [Review and approve test cases](/help/test-authoring/review-and-approve-cases)\n- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)\n"
+    },
+    {
+      "slug": "risks",
+      "url": "/help/analysis/risks",
+      "repoPath": "content/help/analysis/risks.mdx",
+      "title": "Analyzing requirements risks",
+      "description": "Evaluate likelihood and impact dimensions across your requirements to isolate critical failure vectors.",
+      "category": "analysis",
+      "categoryName": "Coverage & Traceability",
+      "order": 4,
+      "updated": "2026-11-18",
+      "keywords": [
+        "risk matrix",
+        "likelihood",
+        "impact",
+        "critical severity",
+        "risk mitigation"
+      ],
+      "related": [
+        "linked-vs-verified-coverage",
+        "recommendations",
+        "create-your-first-test-suite"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "The 5×5 risk matrix",
+          "id": "the-55-risk-matrix"
+        },
+        {
+          "level": 2,
+          "title": "How to prioritize risks",
+          "id": "how-to-prioritize-risks"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 340,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Analyzing requirements risks",
+        "description": "Evaluate likelihood and impact dimensions across your requirements to isolate critical failure vectors.",
+        "keywords": "risk matrix likelihood impact critical severity risk mitigation",
+        "headings": "The 5×5 risk matrix How to prioritize risks Expected result Guidance & best practices Related guides",
+        "snippet": "Analyzing requirements risks Testnexa analyzes your product requirements and tests to identify potential failure modes, categorizing them across a standard 5×5 Likelihood and Impact matrix. This analysis surfaces severe vulnerabilities before code reaches production environments. Note: Risks are der"
+      },
+      "rawBody": "\n# Analyzing requirements risks\n\nTestnexa analyzes your product requirements and tests to identify potential failure modes, categorizing them across a standard 5×5 Likelihood and Impact matrix. This analysis surfaces severe vulnerabilities before code reaches production environments.\n\n> Note: Risks are derived automatically from your negative, edge, and non-functional test cases. Each risk item highlights the severity score and the specific test cases designed to mitigate it.\n\n## The 5×5 risk matrix\n\nRisk scores are computed by multiplying the estimated Likelihood of occurrence (1 to 5) by the operational Impact (1 to 5):\n\n- **Critical (Score 20–25)**: High probability of widespread outage, data breach, or payment failure. Demands immediate test coverage and verification.\n- **High (Score 12–19)**: Significant degradation affecting core user journeys or critical integrations.\n- **Medium (Score 6–11)**: Edge case errors, validation omissions, or localized UI inconsistencies.\n- **Low (Score 1–5)**: Minor cosmetic quirks or rare corner conditions with minimal impact.\n\n## How to prioritize risks\n\n1. **Open the Risks dashboard**\n   Navigate to **Analysis > Risks** from the sidebar.\n2. **Filter by the 5×5 grid**\n   Click any cell in the 5×5 matrix to filter the risk inventory by that specific Likelihood and Impact combination.\n3. **Inspect mitigation status**\n   Review each risk card to verify whether test cases exist to detect that failure vector. Unmitigated critical risks are flagged immediately.\n4. **Export risk summary**\n   Use the **Export risks** action to download a formatted CSV or JSON report for QA audit compliance and sprint planning.\n\n## Expected result\n\nYour team gains a prioritized backlog of high-risk scenarios and clear visibility into which threats lack defensive automated tests.\n\n## Guidance & best practices\n\n> Tip: Filter by the top-right quadrant (Likelihood 4–5 and Impact 4–5) during sprint planning to ensure critical payment and authentication paths have comprehensive test coverage.\n\n> Warning: Addressing high-impact risks by creating test cases increases your Linked coverage, but the risk remains active until those tests are verified in CI/CD.\n\n## Related guides\n- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)\n- [Smart test recommendations](/help/analysis/recommendations)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n"
+    },
+    {
+      "slug": "recommendations",
+      "url": "/help/analysis/recommendations",
+      "repoPath": "content/help/analysis/recommendations.mdx",
+      "title": "Smart test recommendations",
+      "description": "Discover missing test scenarios based on your requirements and existing tests.",
+      "category": "analysis",
+      "categoryName": "Coverage & Traceability",
+      "order": 5,
+      "updated": "2026-11-18",
+      "keywords": [
+        "smart recommendations",
+        "missing scenarios",
+        "ai suggestions",
+        "focus area",
+        "suite enhancement"
+      ],
+      "related": [
+        "risks",
+        "create-your-first-test-suite",
+        "review-and-approve-cases"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Generating recommendations",
+          "id": "generating-recommendations"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 275,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Smart test recommendations",
+        "description": "Discover missing test scenarios based on your requirements and existing tests.",
+        "keywords": "smart recommendations missing scenarios ai suggestions focus area suite enhancement",
+        "headings": "Generating recommendations Expected result Guidance & best practices Related guides",
+        "snippet": "Smart test recommendations The Smart Recommendations engine inspects your existing test suites and requirement acceptance criteria to identify overlooked edge scenarios, boundary limits, and missing security assertions. Recommendations are generated on demand to fill coverage gaps. Note: Recommendat"
+      },
+      "rawBody": "\n# Smart test recommendations\n\nThe Smart Recommendations engine inspects your existing test suites and requirement acceptance criteria to identify overlooked edge scenarios, boundary limits, and missing security assertions. Recommendations are generated on demand to fill coverage gaps.\n\n> Note: Recommendations are strictly ephemeral. They are not saved to your workspace or added to your test suites until you explicitly select and approve them.\n\n## Generating recommendations\n\nFollow these steps to discover missing test vectors:\n\n1. **Navigate to Smart Recommendations**\n   Click **Analysis > Recommendations** in the sidebar.\n2. **Select your target test suite**\n   Choose the test suite you want to evaluate from the suite combobox.\n3. **Optional: Focus on a specific requirement**\n   By default, Testnexa scans all requirements in the suite. You may narrow analysis to a single requirement or focus area (e.g., \"OAuth token refresh\").\n4. **Generate suggestions**\n   Click **Generate Recommendations**. The engine analyzes existing coverage and returns structured suggestions categorized by scenario type.\n5. **Add to suite**\n   Review each recommendation card. Click **Add to Suite** on relevant suggestions. The newly created test cases enter your suite in **Pending** status.\n\n## Expected result\n\nNewly added recommendations are integrated directly into your target suite as pending test cases, ready for team review and export.\n\n## Guidance & best practices\n\n> Tip: Use the Focus Area input to guide suggestions toward non-functional criteria such as rate limiting, concurrent mutations, or network reconnects.\n\n> Warning: Navigating away from the Smart Recommendations view without clicking \"Add to Suite\" will discard the generated suggestions. Testnexa does not retain unsaved recommendation sessions.\n\n## Related guides\n- [Analyzing requirements risks](/help/analysis/risks)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n- [Review and approve test cases](/help/test-authoring/review-and-approve-cases)\n"
+    },
+    {
+      "slug": "export-formats",
+      "url": "/help/export/export-formats",
+      "repoPath": "content/help/export/export-formats.mdx",
+      "title": "Supported export formats",
+      "description": "Export your approved test cases into production-ready Playwright, Cypress, Gherkin, JSON, or CSV formats.",
+      "category": "export",
+      "categoryName": "Exporting & Automation",
+      "order": 6,
+      "updated": "2026-11-18",
+      "keywords": [
+        "export",
+        "playwright",
+        "cypress",
+        "gherkin",
+        "cucumber",
+        "json",
+        "csv"
+      ],
+      "related": [
+        "github-actions-setup",
+        "create-your-first-test-suite",
+        "test-execution"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Available export options",
+          "id": "available-export-options"
+        },
+        {
+          "level": 3,
+          "title": "1. Playwright (TypeScript & Python)",
+          "id": "1-playwright-typescript-python"
+        },
+        {
+          "level": 3,
+          "title": "2. Cypress (JavaScript)",
+          "id": "2-cypress-javascript"
+        },
+        {
+          "level": 3,
+          "title": "3. Gherkin / Cucumber (.feature)",
+          "id": "3-gherkin-cucumber-feature"
+        },
+        {
+          "level": 3,
+          "title": "4. Structured Data (JSON & CSV)",
+          "id": "4-structured-data-json-csv"
+        },
+        {
+          "level": 2,
+          "title": "How to export a suite",
+          "id": "how-to-export-a-suite"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 343,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Supported export formats",
+        "description": "Export your approved test cases into production-ready Playwright, Cypress, Gherkin, JSON, or CSV formats.",
+        "keywords": "export playwright cypress gherkin cucumber json csv",
+        "headings": "Available export options 1. Playwright (TypeScript & Python) 2. Cypress (JavaScript) 3. Gherkin / Cucumber (.feature) 4. Structured Data (JSON & CSV) How to export a suite Expected result Guidance & best practices Related guides",
+        "snippet": "Supported export formats Testnexa allows you to export your approved test suites into industry standard automation frameworks and data interchange formats. You can embed the generated code directly into your existing automation repositories. Note: Testnexa generates clean, executable test scripts wi"
+      },
+      "rawBody": "\n# Supported export formats\n\nTestnexa allows you to export your approved test suites into industry-standard automation frameworks and data interchange formats. You can embed the generated code directly into your existing automation repositories.\n\n> Note: Testnexa generates clean, executable test scripts without proprietary vendor dependencies. You maintain full ownership and control over your exported tests.\n\n## Available export options\n\n### 1. Playwright (TypeScript & Python)\nExports idiomatic `@playwright/test` test specifications with async/await syntax, page object scaffolding, and standard expect assertions:\n\n```typescript\nimport { test, expect } from '@playwright/test';\n\ntest.describe('Authentication: Login Flow', () => {\n  test('valid credentials authenticate user and redirect to dashboard', async ({ page }) => {\n    await page.goto('/login');\n    await page.fill('input[type=\"email\"]', 'tester@example.com');\n    await page.fill('input[type=\"password\"]', 'CorrectPassword123!');\n    await page.click('button[type=\"submit\"]');\n    await expect(page).toHaveURL('/dashboard');\n  });\n});\n```\n\n### 2. Cypress (JavaScript)\nProduces Cypress E2E test files with `cy.visit`, `cy.get`, and should assertions ready for `cypress run`.\n\n### 3. Gherkin / Cucumber (`.feature`)\nExports standard BDD Feature files structured with `Feature`, `Scenario`, `Given`, `When`, and `Then` steps compatible with Cucumber.js, Behave, or SpecFlow.\n\n### 4. Structured Data (JSON & CSV)\nExports raw test definitions, acceptance criteria IDs, step sequences, and risk ratings for ingestion into Jira, TestRail, or internal analytics tooling.\n\n## How to export a suite\n\n1. Open your test suite from **Test Suites**.\n2. Click the **Export** button in the header toolbar.\n3. Select your desired format: **Playwright (TS)**, **Playwright (Python)**, **Cypress**, **Gherkin**, **JSON**, or **CSV**.\n4. Download the generated archive or copy the code snippet directly to your clipboard.\n\n## Expected result\n\nYou receive a ready-to-run file or archive matching your project configuration, ready to commit to Git or run locally.\n\n## Guidance & best practices\n\n> Tip: For automated continuous integration, use the Playwright TypeScript export combined with the Testnexa GitHub Actions reporter workflow.\n\n> Warning: Unapproved test cases in pending status can be included or excluded from exports via the export dialog options. Ensure pending cases are reviewed before deploying to production test runs.\n\n## Related guides\n- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n- [Test execution and runners](/help/execution/test-execution)\n"
+    },
+    {
+      "slug": "github-actions-setup",
+      "url": "/help/integrations/github-actions-setup",
+      "repoPath": "content/help/integrations/github-actions-setup.mdx",
+      "title": "GitHub Actions CI/CD setup",
+      "description": "Connect your GitHub repository to run exported Playwright tests in your pipeline and report results back.",
+      "category": "integrations",
+      "categoryName": "Integrations & CI/CD",
+      "order": 7,
+      "updated": "2026-11-18",
+      "keywords": [
+        "github actions",
+        "ci/cd",
+        "playwright runner",
+        "pipeline",
+        "webhook",
+        "verified status"
+      ],
+      "related": [
+        "export-formats",
+        "linked-vs-verified-coverage",
+        "test-execution"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Integration workflow",
+          "id": "integration-workflow"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 332,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "GitHub Actions CI/CD setup",
+        "description": "Connect your GitHub repository to run exported Playwright tests in your pipeline and report results back.",
+        "keywords": "github actions ci/cd playwright runner pipeline webhook verified status",
+        "headings": "Integration workflow Expected result Guidance & best practices Related guides",
+        "snippet": "GitHub Actions CI/CD setup Testnexa adopts a clear design principle: Testnexa does not execute tests inside our cloud . Instead, your customer GitHub Actions runners execute your exported Playwright suites, sending test execution summaries back to Testnexa to update Verified coverage. Note: Phase 1 "
+      },
+      "rawBody": "\n# GitHub Actions CI/CD setup\n\nTestnexa adopts a clear design principle: **Testnexa does not execute tests inside our cloud**. Instead, your customer GitHub Actions runners execute your exported Playwright suites, sending test execution summaries back to Testnexa to update Verified coverage.\n\n> Note: Phase 1 (GitHub App connection, repository selection, pipeline linking, and workflow export) is live today. Automated result ingestion (Phase 2) is currently rolling out across workspaces.\n\n## Integration workflow\n\nHere is how the continuous integration architecture operates:\n\n1. **Install the Testnexa GitHub App**\n   Navigate to **Integrations > CI/CD** in your workspace and click **Connect GitHub**. Authorize the official Testnexa GitHub App with access to your target repository.\n2. **Link repository to a test suite**\n   In the **Pipelines** tab, link your GitHub repository to a specific Testnexa test suite. Specify your default branch and optional path filters.\n3. **Commit the exported Playwright workflow**\n   Download the provided `.github/workflows/testnexa-ci.yml` workflow file and commit it to your repository under `.github/workflows/`:\n\n```yaml\nname: Testnexa Playwright Verification\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n\njobs:\n  test:\n    timeout-minutes: 30\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 20\n      - run: npm ci\n      - run: npx playwright install --with-deps\n      - name: Run Playwright tests\n        run: npx playwright test --reporter=json\n```\n\n4. **Execute on pull requests**\n   Every commit and pull request triggers your tests within your isolated infrastructure. Your code and secrets never leave your environment.\n\n## Expected result\n\nTest runs are recorded against your linked pipeline. Once Phase 2 ingestion is active for your workspace, test passes and failures automatically transition cases from Linked to Verified status.\n\n## Guidance & best practices\n\n> Tip: Testnexa GitHub App uses short-lived installation access tokens. Long-lived personal access tokens (PATs) are never required or stored.\n\n> Warning: Always pin your GitHub Actions dependencies and keep runner secrets inside your repository settings. Testnexa never requests write access to your production branches.\n\n## Related guides\n- [Supported export formats](/help/export/export-formats)\n- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)\n- [Test execution and runners](/help/execution/test-execution)\n"
+    },
+    {
+      "slug": "data-and-privacy",
+      "url": "/help/security/data-and-privacy",
+      "repoPath": "content/help/security/data-and-privacy.mdx",
+      "title": "Data handling and privacy",
+      "description": "Learn what data Testnexa stores, how requirements are processed, and our strict zero-retention AI policy.",
+      "category": "security",
+      "categoryName": "Security & Privacy",
+      "order": 8,
+      "updated": "2026-11-18",
+      "keywords": [
+        "privacy",
+        "security",
+        "data retention",
+        "encryption",
+        "gdpr",
+        "ai provider"
+      ],
+      "related": [
+        "account-and-sessions",
+        "github-actions-setup",
+        "create-your-first-test-suite"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "What is stored vs what is sent",
+          "id": "what-is-stored-vs-what-is-sent"
+        },
+        {
+          "level": 3,
+          "title": "1. What is stored in your workspace",
+          "id": "1-what-is-stored-in-your-workspace"
+        },
+        {
+          "level": 3,
+          "title": "2. What is sent to AI model providers",
+          "id": "2-what-is-sent-to-ai-model-providers"
+        },
+        {
+          "level": 2,
+          "title": "Security architecture",
+          "id": "security-architecture"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 351,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Data handling and privacy",
+        "description": "Learn what data Testnexa stores, how requirements are processed, and our strict zero-retention AI policy.",
+        "keywords": "privacy security data retention encryption gdpr ai provider",
+        "headings": "What is stored vs what is sent 1. What is stored in your workspace 2. What is sent to AI model providers Security architecture Expected result Guidance & best practices Related guides",
+        "snippet": "Data handling and privacy Testnexa is built for enterprise engineering teams with strict compliance and privacy requirements. We follow a strict principle of data minimization across every stage of generation and storage. Note: Testnexa is completely stateless during generation. Nothing is stored in"
+      },
+      "rawBody": "\n# Data handling and privacy\n\nTestnexa is built for enterprise engineering teams with strict compliance and privacy requirements. We follow a strict principle of data minimization across every stage of generation and storage.\n\n> Note: Testnexa is completely stateless during generation. Nothing is stored in your database until a suite is successfully produced and saved. Unsaved drafts, incomplete prompts, and temporary generation sessions are never recorded.\n\n## What is stored vs what is sent\n\n### 1. What is stored in your workspace\nWhen a test suite is confirmed and saved, Testnexa stores:\n- User profile information (email, workspace membership, role).\n- Generated suite titles, requirement summaries, and acceptance criteria tags.\n- Test cases, steps, assertions, and approval review statuses.\n- Audit logs tracking team edits and suite deletion timestamps.\n\n### 2. What is sent to AI model providers\nDuring generation, the requirement text you provide is transmitted securely over TLS to our vetted LLM providers solely to produce the test suite. Under our enterprise agreements:\n- **Zero data retention**: Prompts and outputs are discarded immediately after inference.\n- **No model training**: Your requirements, code snippets, and test cases are never used to train or fine-tune public models.\n\n## Security architecture\n\n1. **Encryption in transit and at rest**\n   All communications use TLS 1.3. Databases and backups are encrypted at rest using AES-256.\n2. **Tenant isolation**\n   Row-Level Security (RLS) guarantees complete workspace isolation. Users can only access resources belonging to their authorized workspace.\n3. **Short-lived credentials**\n   All third-party integrations (such as the Testnexa GitHub App) operate via ephemeral, rotating installation tokens.\n\n## Expected result\n\nYour proprietary product requirements remain confidential and secure, fully compliant with SOC 2, ISO 27001, and GDPR enterprise standards.\n\n## Guidance & best practices\n\n> Tip: Avoid pasting production passwords, live API tokens, or actual customer PII into requirement descriptions. Use placeholder variables like `{{API_KEY}}` or `user@example.com`.\n\n> Warning: Deleting a test suite or workspace permanently purges its test cases, coverage metrics, and associated audit records from active databases.\n\n## Related guides\n- [Managing your account and workspace](/help/account/account-and-sessions)\n- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n"
+    },
+    {
+      "slug": "account-and-sessions",
+      "url": "/help/account/account-and-sessions",
+      "repoPath": "content/help/account/account-and-sessions.mdx",
+      "title": "Managing your account and workspace",
+      "description": "Configure workspace settings, invite team members, manage active authentication sessions, and control roles.",
+      "category": "account",
+      "categoryName": "Account & Workspaces",
+      "order": 9,
+      "updated": "2026-11-18",
+      "keywords": [
+        "account",
+        "workspace",
+        "roles",
+        "sessions",
+        "rbac",
+        "team invites"
+      ],
+      "related": [
+        "data-and-privacy",
+        "troubleshooting",
+        "create-your-first-test-suite"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Workspace roles & permissions",
+          "id": "workspace-roles-permissions"
+        },
+        {
+          "level": 2,
+          "title": "How to invite team members",
+          "id": "how-to-invite-team-members"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 267,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Managing your account and workspace",
+        "description": "Configure workspace settings, invite team members, manage active authentication sessions, and control roles.",
+        "keywords": "account workspace roles sessions rbac team invites",
+        "headings": "Workspace roles & permissions How to invite team members Expected result Guidance & best practices Related guides",
+        "snippet": "Managing your account and workspace Testnexa organizes all suites, test cases, integrations, and coverage metrics inside isolated workspaces. You can manage multiple team workspaces under a single user identity. Note: User sessions are secured via industry standard JSON Web Tokens with strict expira"
+      },
+      "rawBody": "\n# Managing your account and workspace\n\nTestnexa organizes all suites, test cases, integrations, and coverage metrics inside isolated workspaces. You can manage multiple team workspaces under a single user identity.\n\n> Note: User sessions are secured via industry-standard JSON Web Tokens with strict expiration windows. Multi-factor authentication (MFA) and OAuth providers (Google, GitHub) are fully supported.\n\n## Workspace roles & permissions\n\nWorkspaces enforce Role-Based Access Control (RBAC):\n\n- **Owner**: Full administrative authority, billing controls, workspace renaming, and deletion.\n- **Admin**: Can invite members, configure GitHub integrations, and manage suites.\n- **Member**: Can generate test suites, review and approve test cases, and export tests.\n- **Viewer**: Read-only access to suites, coverage dashboards, and risk matrices.\n\n## How to invite team members\n\n1. Navigate to **App Settings** from the sidebar or click your user avatar in the bottom navigation.\n2. Select the **Team & Members** tab.\n3. Click **Invite Member** and enter your colleague's professional email address.\n4. Assign their role (**Admin**, **Member**, or **Viewer**) and send the invitation.\n5. The invitee receives a secure single-use registration link valid for 48 hours.\n\n## Expected result\n\nInvited team members gain access to shared workspace suites, facilitating collaborative test authoring and synchronized coverage metrics.\n\n## Guidance & best practices\n\n> Tip: If you frequently work across multiple projects or clients, create dedicated workspaces for each repository to keep requirement sets and metrics completely isolated.\n\n> Warning: Removing a member immediately revokes their active session and invalidates all in-flight requests made with their tokens.\n\n## Related guides\n- [Data handling and privacy](/help/security/data-and-privacy)\n- [Troubleshooting common issues](/help/troubleshooting/troubleshooting)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n"
+    },
+    {
+      "slug": "test-execution",
+      "url": "/help/execution/test-execution",
+      "repoPath": "content/help/execution/test-execution.mdx",
+      "title": "Test execution and runners",
+      "description": "Learn how test execution works today via customer CI and what to expect with coming-soon direct execution.",
+      "category": "execution",
+      "categoryName": "Test Execution",
+      "order": 10,
+      "updated": "2026-11-18",
+      "keywords": [
+        "test execution",
+        "test runs",
+        "runners",
+        "playwright",
+        "ci execution",
+        "coming soon"
+      ],
+      "related": [
+        "github-actions-setup",
+        "export-formats",
+        "linked-vs-verified-coverage"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "What works today vs what is coming soon",
+          "id": "what-works-today-vs-what-is-coming-soon"
+        },
+        {
+          "level": 3,
+          "title": "1. What works today",
+          "id": "1-what-works-today"
+        },
+        {
+          "level": 3,
+          "title": "2. What is coming soon (Phase 2)",
+          "id": "2-what-is-coming-soon-phase-2"
+        },
+        {
+          "level": 2,
+          "title": "How to run exported tests locally",
+          "id": "how-to-run-exported-tests-locally"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 323,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Test execution and runners",
+        "description": "Learn how test execution works today via customer CI and what to expect with coming-soon direct execution.",
+        "keywords": "test execution test runs runners playwright ci execution coming soon",
+        "headings": "What works today vs what is coming soon 1. What works today 2. What is coming soon (Phase 2) How to run exported tests locally Expected result Guidance & best practices Related guides",
+        "snippet": "Test execution and runners Test execution is an evolving capability in Testnexa. Today, all test execution happens inside your own infrastructure via exported Playwright tests. Cloud test execution directly inside Testnexa is coming soon. Note: The in app Test Runs button is marked with a \"Soon\" bad"
+      },
+      "rawBody": "\n# Test execution and runners\n\nTest execution is an evolving capability in Testnexa. Today, all test execution happens inside your own infrastructure via exported Playwright tests. Cloud test execution directly inside Testnexa is coming soon.\n\n> Note: The in-app Test Runs button is marked with a \"Soon\" badge. Direct execution inside Testnexa is currently behind a feature flag while we complete Phase 2 of our CI/CD roadmap.\n\n## What works today vs what is coming soon\n\n### 1. What works today\n- Export full test suites as production-grade Playwright (TypeScript/Python) and Cypress specifications.\n- Run tests in your own GitHub Actions runners, local developer workstations, or private Selenium grids.\n- Generate standard JSON reports from Playwright (`--reporter=json`) for compliance audits.\n- Link your GitHub repository to suites in **Integrations > CI/CD** to prepare your verification pipeline.\n\n### 2. What is coming soon (Phase 2)\n- Direct result ingestion from GitHub Actions webhooks into Testnexa.\n- Automated commit checks posted directly to your GitHub pull requests.\n- Live Verified coverage score calculation and pass/fail trend tracking.\n- One-click cloud test runs for authenticated staging and sandbox environments.\n\n## How to run exported tests locally\n\n1. Export your suite as **Playwright (TS)**.\n2. In your local repository, install dependencies:\n   ```bash\n   npm install -D @playwright/test\n   npx playwright install\n   ```\n3. Run the exported test file:\n   ```bash\n   npx playwright test tests/auth.spec.ts --headed\n   ```\n\n## Expected result\n\nYour tests run against your local dev server or staging URL, exercising the exact assertions, selectors, and edge cases defined in Testnexa.\n\n## Guidance & best practices\n\n> Tip: Commit exported Playwright specs directly into your version-controlled frontend repository so developers and QA can collaborate on pull requests.\n\n> Warning: Do not attempt to bypass execution gating in the UI. Cloud test runners require dedicated sandboxing and will be unlocked when Phase 2 ships.\n\n## Related guides\n- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)\n- [Supported export formats](/help/export/export-formats)\n- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)\n"
+    },
+    {
+      "slug": "troubleshooting",
+      "url": "/help/troubleshooting/troubleshooting",
+      "repoPath": "content/help/troubleshooting/troubleshooting.mdx",
+      "title": "Troubleshooting common issues",
+      "description": "Resolve common questions regarding suite generation timeouts, rate limits, and integration errors.",
+      "category": "troubleshooting",
+      "categoryName": "Troubleshooting",
+      "order": 11,
+      "updated": "2026-11-18",
+      "keywords": [
+        "troubleshooting",
+        "errors",
+        "timeout",
+        "rate limit",
+        "login",
+        "support"
+      ],
+      "related": [
+        "account-and-sessions",
+        "github-actions-setup",
+        "create-your-first-test-suite"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Common issues & solutions",
+          "id": "common-issues-solutions"
+        },
+        {
+          "level": 3,
+          "title": "1. Generation timeout or failure",
+          "id": "1-generation-timeout-or-failure"
+        },
+        {
+          "level": 3,
+          "title": "2. Login error: \"Can't reach Testnexa backend\"",
+          "id": "2-login-error-cant-reach-testnexa-backend"
+        },
+        {
+          "level": 3,
+          "title": "3. Rate limiting (429 Too Many Requests)",
+          "id": "3-rate-limiting-429-too-many-requests"
+        },
+        {
+          "level": 3,
+          "title": "4. GitHub repository not appearing",
+          "id": "4-github-repository-not-appearing"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 373,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "Troubleshooting common issues",
+        "description": "Resolve common questions regarding suite generation timeouts, rate limits, and integration errors.",
+        "keywords": "troubleshooting errors timeout rate limit login support",
+        "headings": "Common issues & solutions 1. Generation timeout or failure 2. Login error: \"Can't reach Testnexa backend\" 3. Rate limiting (429 Too Many Requests) 4. GitHub repository not appearing Expected result Guidance & best practices Related guides",
+        "snippet": "Troubleshooting common issues If you encounter unexpected errors while generating suites, linking repositories, or navigating the platform, consult the solutions below before contacting support. Note: If you encounter an unresolved problem or service degradation, check the system status in the page "
+      },
+      "rawBody": "\n# Troubleshooting common issues\n\nIf you encounter unexpected errors while generating suites, linking repositories, or navigating the platform, consult the solutions below before contacting support.\n\n> Note: If you encounter an unresolved problem or service degradation, check the system status in the page footer or submit a ticket through our Contact Support form.\n\n## Common issues & solutions\n\n### 1. Generation timeout or failure\n- **Symptom**: The generation spinner runs for more than 45 seconds and returns an error message.\n- **Cause**: The input requirement is either exceptionally large (exceeding 12,000 characters) or contains unparsable binary characters.\n- **Solution**: Break complex specifications into separate user stories (e.g., generate Authentication and Checkout as separate suites) and ensure input text is standard UTF-8. Remember that Testnexa does not save partial drafts if generation fails.\n\n### 2. Login error: \"Can't reach Testnexa backend\"\n- **Symptom**: Attempting to sign in shows an error indicating the backend cannot be reached.\n- **Cause**: Network connectivity interruption or temporary API gateway maintenance.\n- **Solution**: Check your internet connection, verify your corporate proxy settings, and check the footer status indicator for service disruptions.\n\n### 3. Rate limiting (429 Too Many Requests)\n- **Symptom**: \"Too many attempts. Try again in 15 minutes.\"\n- **Cause**: Repeated rapid generation attempts or automated scripting exceeding standard account limits.\n- **Solution**: Wait for the rate-limit window to expire (typically 15 minutes). For automated testing, use official export pipelines rather than rapid UI polling.\n\n### 4. GitHub repository not appearing\n- **Symptom**: After clicking \"Connect GitHub\", your repository does not appear in the repository dropdown.\n- **Cause**: The Testnexa GitHub App was installed on your organization but was only granted access to select repositories.\n- **Solution**: Open your GitHub organization settings under **Applications > Installed GitHub Apps > Testnexa**, and grant repository permissions to the desired repo.\n\n## Expected result\n\nApplying these steps resolves the vast majority of operational and connectivity hiccups.\n\n## Guidance & best practices\n\n> Tip: When reporting bugs to support, include your approximate timestamp and browser version to expedite triage.\n\n> Warning: Never share secret credentials, authorization tokens, or passwords in support requests.\n\n## Related guides\n- [Managing your account and workspace](/help/account/account-and-sessions)\n- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n"
+    },
+    {
+      "slug": "glossary",
+      "url": "/help/resources/glossary",
+      "repoPath": "content/help/resources/glossary.mdx",
+      "title": "QA & Testnexa glossary",
+      "description": "Essential QA terminology, architectural definitions, and platform terms with direct anchor links.",
+      "category": "resources",
+      "categoryName": "Resources & Reference",
+      "order": 12,
+      "updated": "2026-11-18",
+      "keywords": [
+        "glossary",
+        "definitions",
+        "terms",
+        "acceptance criteria",
+        "edge boundary",
+        "heuristics"
+      ],
+      "related": [
+        "linked-vs-verified-coverage",
+        "risks",
+        "create-your-first-test-suite"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Core concepts",
+          "id": "core-concepts"
+        },
+        {
+          "level": 3,
+          "title": "Acceptance Criteria",
+          "id": "acceptance-criteria"
+        },
+        {
+          "level": 3,
+          "title": "Edge Boundary",
+          "id": "edge-boundary"
+        },
+        {
+          "level": 3,
+          "title": "Heuristics Engine",
+          "id": "heuristics-engine"
+        },
+        {
+          "level": 3,
+          "title": "Linked Coverage",
+          "id": "linked-coverage"
+        },
+        {
+          "level": 3,
+          "title": "Negative Scenario",
+          "id": "negative-scenario"
+        },
+        {
+          "level": 3,
+          "title": "Pending Status",
+          "id": "pending-status"
+        },
+        {
+          "level": 3,
+          "title": "Positive Scenario",
+          "id": "positive-scenario"
+        },
+        {
+          "level": 3,
+          "title": "Traceability Matrix",
+          "id": "traceability-matrix"
+        },
+        {
+          "level": 3,
+          "title": "Verified Coverage",
+          "id": "verified-coverage"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 341,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "QA & Testnexa glossary",
+        "description": "Essential QA terminology, architectural definitions, and platform terms with direct anchor links.",
+        "keywords": "glossary definitions terms acceptance criteria edge boundary heuristics",
+        "headings": "Core concepts Acceptance Criteria Edge Boundary Heuristics Engine Linked Coverage Negative Scenario Pending Status Positive Scenario Traceability Matrix Verified Coverage Expected result Guidance & best practices Related guides",
+        "snippet": "QA & Testnexa glossary A comprehensive reference for core quality assurance terminology, heuristic definitions, and Testnexa architectural terms. Note: Every term in this glossary includes an anchor link. You can share direct links to specific term definitions across your team. Core concepts Accepta"
+      },
+      "rawBody": "\n# QA & Testnexa glossary\n\nA comprehensive reference for core quality assurance terminology, heuristic definitions, and Testnexa architectural terms.\n\n> Note: Every term in this glossary includes an anchor link. You can share direct links to specific term definitions across your team.\n\n## Core concepts\n\n### Acceptance Criteria\nThe explicit conditions that a software system must satisfy to be accepted by a user, product manager, or stakeholder. Testnexa uses acceptance criteria to map requirement statements to verified test scenarios.\n\n### Edge Boundary\nTesting behaviors at extreme operational thresholds, null values, maximum string limits, off-by-one indices, and concurrency boundaries.\n\n### Heuristics Engine\nThe algorithmic ruleset within Testnexa that evaluates requirements against common software failure patterns, generating defensive edge, negative, and security cases.\n\n### Linked Coverage\nThe design-time metric representing the percentage of requirement acceptance criteria and implied failure modes that have approved test cases mapped to them.\n\n### Negative Scenario\nA test designed to verify that the system gracefully handles invalid input, unauthorized access attempts, or downstream service outages without crashing.\n\n### Pending Status\nThe default lifecycle state for newly generated test cases in Testnexa. Test cases remain pending until explicitly reviewed and approved by a QA engineer or developer.\n\n### Positive Scenario\nA test verifying the happy path where valid inputs produce the expected outcome according to core business requirements.\n\n### Traceability Matrix\nA multi-dimensional table mapping requirement statements directly to approved test cases, highlighting untested gaps and verification progress.\n\n### Verified Coverage\nThe execution-time metric representing the proportion of linked test cases that have successfully executed and passed within your CI/CD runner.\n\n## Expected result\n\nA shared QA vocabulary across engineering, product management, and quality assurance teams.\n\n## Guidance & best practices\n\n> Tip: Reference these definitions in pull request comments and requirement reviews to standardize testing criteria across your organization.\n\n> Warning: Conflating Linked coverage with Verified coverage can result in shipping untested code. Always verify both metrics before major releases.\n\n## Related guides\n- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)\n- [Analyzing requirements risks](/help/analysis/risks)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n"
+    },
+    {
+      "slug": "whats-new",
+      "url": "/help/resources/whats-new",
+      "repoPath": "content/help/resources/whats-new.mdx",
+      "title": "What's new in Testnexa",
+      "description": "Recent feature releases, architectural improvements, and design updates across Testnexa.",
+      "category": "resources",
+      "categoryName": "Resources & Reference",
+      "order": 13,
+      "updated": "2026-11-18",
+      "keywords": [
+        "changelog",
+        "release notes",
+        "updates",
+        "whats new",
+        "monochrome redesign"
+      ],
+      "related": [
+        "github-actions-setup",
+        "export-formats",
+        "create-your-first-test-suite"
+      ],
+      "toc": [
+        {
+          "level": 2,
+          "title": "Release notes",
+          "id": "release-notes"
+        },
+        {
+          "level": 3,
+          "title": "November 2026: Help Center Overhaul & CI/CD Integrations",
+          "id": "november-2026-help-center-overhaul-cicd-integrations"
+        },
+        {
+          "level": 3,
+          "title": "October 2026: Risk Matrix & Coverage Engine",
+          "id": "october-2026-risk-matrix-coverage-engine"
+        },
+        {
+          "level": 2,
+          "title": "Expected result",
+          "id": "expected-result"
+        },
+        {
+          "level": 2,
+          "title": "Guidance & best practices",
+          "id": "guidance-best-practices"
+        },
+        {
+          "level": 2,
+          "title": "Related guides",
+          "id": "related-guides"
+        }
+      ],
+      "wordCount": 272,
+      "readingTimeMinutes": 2,
+      "searchTokens": {
+        "title": "What's new in Testnexa",
+        "description": "Recent feature releases, architectural improvements, and design updates across Testnexa.",
+        "keywords": "changelog release notes updates whats new monochrome redesign",
+        "headings": "Release notes November 2026: Help Center Overhaul & CI/CD Integrations October 2026: Risk Matrix & Coverage Engine Expected result Guidance & best practices Related guides",
+        "snippet": "What's new in Testnexa Stay up to date with the latest features, architectural enhancements, and documentation releases across the Testnexa platform. Note: Testnexa releases continuous updates to enhance suite generation accuracy, pipeline connectivity, and coverage traceability. Release notes Novem"
+      },
+      "rawBody": "\n# What's new in Testnexa\n\nStay up to date with the latest features, architectural enhancements, and documentation releases across the Testnexa platform.\n\n> Note: Testnexa releases continuous updates to enhance suite generation accuracy, pipeline connectivity, and coverage traceability.\n\n## Release notes\n\n### November 2026: Help Center Overhaul & CI/CD Integrations\n- **Complete Help Center Overhaul**: Redesigned documentation architecture featuring structured markdown content, build-time typed search indexing, instantaneous keyboard navigation (`/` or `Ctrl+K`), and strict monochrome styling.\n- **Support & Status Infrastructure**: Integrated Contact Support modal with honeypot spam protection, real-time ticket dispatch, and live system status tracking via `/api/v1/status`.\n- **CI/CD Integrations Phase 1**: Added GitHub App authorization, repository linking, and Playwright workflow export under **Integrations > CI/CD**.\n- **Strict Black-and-White Theme**: Full UI alignment across all pages with zero color representing meaning alone, meeting WCAG AA contrast standards.\n\n### October 2026: Risk Matrix & Coverage Engine\n- **5×5 Risk Matrix**: Visualized Likelihood and Impact breakdown with one-click filtering.\n- **Dual-Metric Traceability**: Established strict separation between Linked Coverage (design-time requirement mapping) and Verified Coverage (execution-time CI passes).\n- **Batch Test Approvals**: Introduced bulk review and approval workflows for newly generated test cases.\n\n## Expected result\n\nClear visibility into the latest platform capabilities and continuous engineering improvements.\n\n## Guidance & best practices\n\n> Tip: Subscribe to release notifications or star our GitHub repository to receive immediate updates on new export formats and runner integrations.\n\n> Warning: Always update your exported GitHub Actions workflow file when new reporter features are introduced to ensure seamless metric synchronization.\n\n## Related guides\n- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)\n- [Supported export formats](/help/export/export-formats)\n- [Create your first test suite](/help/getting-started/create-your-first-test-suite)\n"
+    }
+  ]
+}

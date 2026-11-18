@@ -10,6 +10,13 @@ const FEATURE_CONFIG = {
         title: 'Test execution',
         description: 'Manual and Playwright runs are currently in development. You can already create test suites, link requirements, and trace coverage.',
         disabledMessage: 'Test execution is coming soon.'
+    },
+    ciGithub: {
+        envVar: 'FEATURE_CI_GITHUB',
+        default: true,
+        title: 'GitHub Actions CI/CD Integration',
+        description: 'Export Playwright tests and link customer GitHub Actions workflows.',
+        disabledMessage: 'GitHub Actions CI/CD integration is coming soon.'
     }
 };
 

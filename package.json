@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:help": "node scripts/build-help-index.mjs",
+    "build": "node scripts/build-help-index.mjs && vite build && node scripts/prerender-help.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

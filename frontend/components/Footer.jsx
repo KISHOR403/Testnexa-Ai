@@ -1,25 +1,80 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Twitter, Github, Linkedin, Mail } from 'lucide-react';
+import { Github, Linkedin, Mail, Activity, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react';
 import TestNexaLogo from './TestNexaLogo';
 
 export const Footer = () => {
+    const [systemStatus, setSystemStatus] = useState({
+        status: 'checking',
+        text: 'Checking status...'
+    });
+
+    useEffect(() => {
+        let isMounted = true;
+        const abortCtrl = new AbortController();
+
+        fetch('/api/v1/status', { signal: abortCtrl.signal })
+            .then(res => {
+                if (!res.ok) throw new Error('Status service response not OK');
+                return res.json();
+            })
+            .then(data => {
+                if (!isMounted) return;
+                if (data.status === 'outage') {
+                    setSystemStatus({ status: 'outage', text: 'Service disruption' });
+                } else if (data.status === 'degraded') {
+                    setSystemStatus({ status: 'degraded', text: 'Some systems degraded' });
+                } else if (data.status === 'operational') {
+                    setSystemStatus({ status: 'operational', text: 'All systems operational' });
+                } else {
+                    setSystemStatus({ status: 'unavailable', text: 'Status unavailable' });
+                }
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                // Never fallback to default "operational" if call fails
+                setSystemStatus({ status: 'unavailable', text: 'Status unavailable' });
+            });
+
+        return () => {
+            isMounted = false;
+            abortCtrl.abort();
+        };
+    }, []);
+
+    const renderStatusIcon = () => {
+        switch (systemStatus.status) {
+            case 'operational':
+                return <CheckCircle size={13} className="tn-footer__status-icon" aria-hidden="true" />;
+            case 'degraded':
+            case 'outage':
+                return <AlertCircle size={13} className="tn-footer__status-icon" aria-hidden="true" />;
+            default:
+                return <Activity size={13} className="tn-footer__status-icon" aria-hidden="true" />;
+        }
+    };
+
     return (
         <footer className="tn-footer" role="contentinfo">
             <div className="tn-container tn-footer__inner">
                 {/* Brand column */}
                 <div className="tn-footer__brand">
-                    <Link to="/" className="tn-footer__logo">
+                    <Link to="/" className="tn-footer__logo" aria-label="Testnexa home">
                         <TestNexaLogo size={24} />
-                        <span className="tn-footer__logo-text">TestNexa</span>
+                        <span className="tn-footer__logo-text">Testnexa</span>
                     </Link>
                     <p className="tn-footer__desc">
                         Requirement analysis and structured test suite generation for QA teams.
                     </p>
-                    <div className="tn-footer__status-row">
-                        <span className="tn-footer__status-dot" aria-hidden="true" />
-                        <span>All systems operational</span>
-                    </div>
+                    <Link
+                        to="/help"
+                        className={`tn-footer__status-row tn-footer__status-row--${systemStatus.status}`}
+                        title={`System status: ${systemStatus.text}`}
+                        aria-label={`System status: ${systemStatus.text}. Click to view documentation.`}
+                    >
+                        {renderStatusIcon()}
+                        <span className="tn-footer__status-text">{systemStatus.text}</span>
+                    </Link>
                 </div>
 
                 {/* Link columns */}
@@ -30,18 +85,17 @@ export const Footer = () => {
                             <li><Link to="/">Overview</Link></li>
                             <li><a href="/#workflow">Workflow</a></li>
                             <li><a href="/#review-risk">Features</a></li>
-                            <li><Link to="/app/test-suites">Test Suites</Link></li>
-                            <li><Link to="/app/history">History</Link></li>
+                            <li><Link to="/app/suites">Test Suites</Link></li>
                         </ul>
                     </div>
 
                     <div className="tn-footer__col">
                         <h4>Resources</h4>
                         <ul>
-                            <li><Link to="/help">Documentation</Link></li>
-                            <li><Link to="/api-reference">API Reference</Link></li>
-                            <li><Link to="/best-practices">Quick Start</Link></li>
                             <li><Link to="/help">Help Center</Link></li>
+                            <li><Link to="/help/resources/glossary">QA Glossary</Link></li>
+                            <li><Link to="/help/resources/whats-new">What's New</Link></li>
+                            <li><Link to="/api-reference">API Reference</Link></li>
                         </ul>
                     </div>
 
@@ -58,22 +112,11 @@ export const Footer = () => {
                         <ul>
                             <li><Link to="/privacy">Privacy Policy</Link></li>
                             <li><Link to="/terms">Terms of Service</Link></li>
-                            <li><Link to="/acceptable-use">Security Policy</Link></li>
-                            <li><Link to="/cookie-policy">Cookie Policy</Link></li>
                             <li>
                                 <button
                                     type="button"
                                     onClick={() => window.dispatchEvent(new CustomEvent('testnexa:open-cookie-preferences'))}
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        padding: 0,
-                                        color: 'inherit',
-                                        font: 'inherit',
-                                        fontSize: '0.88rem',
-                                        cursor: 'pointer',
-                                        textAlign: 'left'
-                                    }}
+                                    className="tn-footer__btn-link"
                                 >
                                     Cookie Preferences
                                 </button>
@@ -86,7 +129,7 @@ export const Footer = () => {
             {/* Bottom Bar */}
             <div className="tn-footer__bottom">
                 <div className="tn-container tn-footer__bottom-inner">
-                    <p>&copy; {new Date().getFullYear()} TestNexa AI. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Testnexa AI. All rights reserved.</p>
                     <div className="tn-footer__socials">
                         <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
                             <Github size={15} />

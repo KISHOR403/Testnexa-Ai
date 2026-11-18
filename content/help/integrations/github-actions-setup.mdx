@@ -1,0 +1,67 @@
+---
+title: "GitHub Actions CI/CD setup"
+description: "Connect your GitHub repository to run exported Playwright tests in your pipeline and report results back."
+category: "integrations"
+order: 7
+updated: "2026-11-18"
+keywords: ["github actions", "ci/cd", "playwright runner", "pipeline", "webhook", "verified status"]
+related: ["export-formats", "linked-vs-verified-coverage", "test-execution"]
+---
+
+# GitHub Actions CI/CD setup
+
+Testnexa adopts a clear design principle: **Testnexa does not execute tests inside our cloud**. Instead, your customer GitHub Actions runners execute your exported Playwright suites, sending test execution summaries back to Testnexa to update Verified coverage.
+
+> Note: Phase 1 (GitHub App connection, repository selection, pipeline linking, and workflow export) is live today. Automated result ingestion (Phase 2) is currently rolling out across workspaces.
+
+## Integration workflow
+
+Here is how the continuous integration architecture operates:
+
+1. **Install the Testnexa GitHub App**
+   Navigate to **Integrations > CI/CD** in your workspace and click **Connect GitHub**. Authorize the official Testnexa GitHub App with access to your target repository.
+2. **Link repository to a test suite**
+   In the **Pipelines** tab, link your GitHub repository to a specific Testnexa test suite. Specify your default branch and optional path filters.
+3. **Commit the exported Playwright workflow**
+   Download the provided `.github/workflows/testnexa-ci.yml` workflow file and commit it to your repository under `.github/workflows/`:
+
+```yaml
+name: Testnexa Playwright Verification
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=json
+```
+
+4. **Execute on pull requests**
+   Every commit and pull request triggers your tests within your isolated infrastructure. Your code and secrets never leave your environment.
+
+## Expected result
+
+Test runs are recorded against your linked pipeline. Once Phase 2 ingestion is active for your workspace, test passes and failures automatically transition cases from Linked to Verified status.
+
+## Guidance & best practices
+
+> Tip: Testnexa GitHub App uses short-lived installation access tokens. Long-lived personal access tokens (PATs) are never required or stored.
+
+> Warning: Always pin your GitHub Actions dependencies and keep runner secrets inside your repository settings. Testnexa never requests write access to your production branches.
+
+## Related guides
+- [Supported export formats](/help/export/export-formats)
+- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)
+- [Test execution and runners](/help/execution/test-execution)

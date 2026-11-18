@@ -96,6 +96,24 @@ const authExportRateLimiter = createRateLimiter({
     message: 'Too many data export requests. Please wait 15 minutes before trying again.'
 });
 
+const supportRateLimiter = createRateLimiter({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    message: 'Support request rate limit exceeded (maximum 5 requests per hour). Please wait before submitting another request.'
+});
+
+const helpFeedbackRateLimiter = createRateLimiter({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 20,
+    message: 'Too many feedback submissions. Please wait before submitting more feedback.'
+});
+
+const helpSearchMissRateLimiter = createRateLimiter({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 30,
+    message: 'Search query logging rate limit exceeded. Please wait a moment.'
+});
+
 module.exports = {
     createRateLimiter,
     copilotRateLimiter,
@@ -103,5 +121,8 @@ module.exports = {
     authRegisterRateLimiter,
     authPasswordResetRateLimiter,
     contactRateLimiter,
-    authExportRateLimiter
+    authExportRateLimiter,
+    supportRateLimiter,
+    helpFeedbackRateLimiter,
+    helpSearchMissRateLimiter
 };

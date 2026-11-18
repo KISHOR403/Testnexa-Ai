@@ -5,12 +5,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocatio
 import MarketingLayout from './layouts/MarketingLayout';
 import AuthLayout from './layouts/AuthLayout';
 import AppLayout from './layouts/AppLayout';
+import HelpLayout from './layouts/HelpLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import SeoManager from './components/SeoManager';
 
 // Lazy-loaded Marketing & Static Pages
 const GeneratorPage = lazy(() => import('./pages/GeneratorPage'));
-const HelpPage = lazy(() => import('./pages/HelpPage'));
+const HelpHubPage = lazy(() => import('./pages/HelpHubPage'));
+const HelpArticlePage = lazy(() => import('./pages/HelpArticlePage'));
+const HelpSearchPage = lazy(() => import('./pages/HelpSearchPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
@@ -163,6 +166,14 @@ function AppContent() {
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           </Route>
 
+          {/* ─── HELP CENTER & DOCUMENTATION (STRICT MONOCHROME THEME) ─── */}
+          <Route element={<HelpLayout />}>
+            <Route path="/help" element={<HelpHubPage />} />
+            <Route path="/help/search" element={<HelpSearchPage />} />
+            <Route path="/help/:category/:slug" element={<HelpArticlePage />} />
+            <Route path="/help/:articleId" element={<HelpArticlePage />} />
+          </Route>
+
           {/* ─── PUBLIC MARKETING & STATIC PAGES ─── */}
           <Route element={<MarketingLayout />}>
             <Route path="/" element={<GeneratorPage />} />
@@ -170,8 +181,6 @@ function AppContent() {
             <Route path="/solutions" element={<GeneratorPage />} />
             <Route path="/how-it-works" element={<GeneratorPage />} />
             <Route path="/audience" element={<GeneratorPage />} />
-            <Route path="/help" element={<HelpPage />} />
-            <Route path="/help/:articleId" element={<HelpPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/cookie-policy" element={<TermsPage defaultDocId="cookies" />} />
@@ -215,6 +224,7 @@ function AppContent() {
             <Route path="recommendations/:suiteId" element={<SmartRecommendationsPage />} />
             <Route path="integrations" element={<CiCdIntegrationsPage />} />
             <Route path="integrations/cicd" element={<CiCdIntegrationsPage />} />
+            <Route path="cicd" element={<CiCdIntegrationsPage />} />
             <Route path="organization" element={<OrganizationManagementPage />} />
             <Route path="settings/organization" element={<OrganizationManagementPage />} />
             <Route path="settings" element={<WorkspacePage />} />

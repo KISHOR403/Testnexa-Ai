@@ -1,0 +1,45 @@
+---
+title: "Review and approve test cases"
+description: "Learn how test cases transition from generated pending status to approved and active state."
+category: "test-authoring"
+order: 2
+updated: "2026-11-18"
+keywords: ["approval", "pending", "review", "test lifecycle", "editing cases"]
+related: ["create-your-first-test-suite", "linked-vs-verified-coverage", "export-formats"]
+---
+
+# Review and approve test cases
+
+Every test case produced by Testnexa enters your suite in a **Pending** status. Test cases remain pending until a team member reviews the steps, validates the assertions, and explicitly approves or rejects them.
+
+> Note: Test cases in the pending state are clearly marked across your suite views. Approving a test case promotes it to active status, which qualifies it for export and pipeline verification.
+
+## Review lifecycle and steps
+
+Follow these steps to triage and approve your generated cases:
+
+1. **Open the Test Cases view**
+   Navigate to **Test Cases** or open the specific suite detail view. Filter the list using the status selector set to **Pending**.
+2. **Inspect preconditions and execution steps**
+   Expand the test case drawer to review preconditions, individual step inputs, and expected postconditions.
+3. **Edit or customize steps**
+   If an assertion needs project-specific fixture data or selector adjustments, click **Edit** and refine the text inline.
+4. **Approve or reject the case**
+   Click **Approve** to accept the test case into your active suite, or **Reject** to archive it from exports.
+5. **Batch approve**
+   Use the multi-select table checkboxes to approve high-confidence test suites in bulk after performing sampling checks.
+
+## Expected result
+
+Approved test cases reflect an active status badge, are included in automated Playwright and Cypress exports, and contribute directly toward your Verified coverage readiness score.
+
+## Guidance & best practices
+
+> Tip: Prioritize reviewing edge boundary and security cases first. These scenarios frequently highlight uncovered business logic in your requirements.
+
+> Warning: Rejected test cases are excluded from code exports. If you reject a test case that maps to a required acceptance criterion, your Linked coverage percentage will decrease accordingly.
+
+## Related guides
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)
+- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)
+- [Supported export formats](/help/export/export-formats)

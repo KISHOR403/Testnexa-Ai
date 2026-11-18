@@ -460,14 +460,19 @@ export const ExecutionIntelligenceDashboardPage = () => {
                 </div>
 
                 {/* 6. Verified % (Soon tag aligned) */}
-                <div className="intel-tile">
+                <Link
+                    to="/app/cicd"
+                    className="intel-tile"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                    title="Verified status is driven by CI/CD test reports. Configure in CI/CD."
+                >
                     <div className="intel-tile-label">
                         <span>Verified</span>
                         <span className="intel-badge-soon">Soon</span>
                     </div>
                     <div className="intel-tile-value">{traceability.verifiedPct}%</div>
-                    <span className="intel-tile-sub">Needs test execution (soon)</span>
-                </div>
+                    <span className="intel-tile-sub">Connect CI/CD to report runs &rarr;</span>
+                </Link>
             </section>
 
             {/* ─── Main Panels Grid ─── */}

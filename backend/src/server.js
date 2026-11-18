@@ -116,6 +116,10 @@ app.use('/api/v1/runs', require('./routes/execution.routes'));
 app.use('/api/v1/test-data', require('./routes/testData.routes'));
 app.use('/api/v1/recommendations', require('./routes/recommendations.routes'));
 app.use('/api/v1/maintenance', require('./routes/maintenance.routes'));
+app.use('/api/v1/integrations', require('./routes/integrations.routes'));
+app.use('/api/v1/pipelines', require('./routes/pipeline.routes'));
+app.use('/api/v1/webhooks', require('./routes/webhook.routes'));
+app.use('/api/v1/ci', require('./routes/ci.routes'));
 app.use('/api/v1/integrations/cicd', require('./routes/cicd.routes'));
 app.use('/api/v1/organizations', require('./routes/organization.routes'));
 app.use('/api/v1/security', require('./routes/security.routes'));
@@ -126,6 +130,9 @@ app.use('/api/v1/traceability', require('./routes/traceability.routes'));
 app.use('/api/v1/intelligence', require('./routes/intelligence.routes'));
 app.use('/api/v1/risks', require('./routes/risk.routes'));
 app.use('/api/v1/features', require('./routes/feature.routes'));
+app.use('/api/v1/support', require('./routes/support.routes'));
+app.use('/api/v1/help', require('./routes/help.routes'));
+app.use('/api/v1/status', require('./routes/status.routes'));
 
 // Admin operational routes (active locally / in deployment, safely omitted in public git)
 try {

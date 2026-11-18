@@ -468,10 +468,11 @@ const RisksPage = () => {
                         </button>
 
                         {/* Verified (Soon) */}
-                        <div
+                        <NavLink
+                            to="/app/cicd"
                             className="risks-summary-tile"
-                            style={{ cursor: 'default', opacity: 0.7 }}
-                            title="Test execution verified status will activate with test execution"
+                            style={{ textDecoration: 'none', color: 'inherit' }}
+                            title="Verified status is driven by your CI/CD test results. Click to configure GitHub Actions integration."
                         >
                             <div className="risks-summary-tile-label-row">
                                 <span className="risks-summary-tile-label">Verified</span>
@@ -480,7 +481,7 @@ const RisksPage = () => {
                             <div className="risks-summary-tile-val-row">
                                 <span className="risks-summary-tile-val">0</span>
                             </div>
-                        </div>
+                        </NavLink>
                     </section>
 
                     {/* ─── 3. Overview: 5x5 Matrix + Category Breakdown ─── */}

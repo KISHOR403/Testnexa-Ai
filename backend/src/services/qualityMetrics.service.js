@@ -187,7 +187,18 @@ const getExecutionStatusMap = async (suiteId, userId) => {
         const runs = runsResult.runs || [];
         for (const run of runs.slice(0, 20)) {
             const runDetail = await supabaseService.getTestRunById(run.id).catch(() => null);
-            const cases = runDetail?.cases || run.cases || [];
+            let cases = runDetail?.cases || run.cases || [];
+            if (!cases || cases.length === 0) {
+                try {
+                    const results = await supabaseService.listTestRunResults(run.id);
+                    if (Array.isArray(results) && results.length > 0) {
+                        cases = results.map(r => ({
+                            testCaseId: r.case_id,
+                            status: r.outcome
+                        }));
+                    }
+                } catch (e) {}
+            }
             if (Array.isArray(cases)) {
                 for (const c of cases) {
                     const cid = String(c.testCaseId || c.caseSnapshot?.id || '');
@@ -576,8 +587,13 @@ const getQualityMetrics = async ({ suiteId = 'all', userId }) => {
     };
 };
 
+const syncVerificationFromRuns = async (suiteId = 'all', userId = null) => {
+    return getQualityMetrics({ suiteId, userId });
+};
+
 module.exports = {
     getQualityMetrics,
+    syncVerificationFromRuns,
     getCaseApprovalStatus,
     normalizeTestType,
     normalizeTestPriority,

@@ -1,0 +1,47 @@
+---
+title: "Managing your account and workspace"
+description: "Configure workspace settings, invite team members, manage active authentication sessions, and control roles."
+category: "account"
+order: 9
+updated: "2026-11-18"
+keywords: ["account", "workspace", "roles", "sessions", "rbac", "team invites"]
+related: ["data-and-privacy", "troubleshooting", "create-your-first-test-suite"]
+---
+
+# Managing your account and workspace
+
+Testnexa organizes all suites, test cases, integrations, and coverage metrics inside isolated workspaces. You can manage multiple team workspaces under a single user identity.
+
+> Note: User sessions are secured via industry-standard JSON Web Tokens with strict expiration windows. Multi-factor authentication (MFA) and OAuth providers (Google, GitHub) are fully supported.
+
+## Workspace roles & permissions
+
+Workspaces enforce Role-Based Access Control (RBAC):
+
+- **Owner**: Full administrative authority, billing controls, workspace renaming, and deletion.
+- **Admin**: Can invite members, configure GitHub integrations, and manage suites.
+- **Member**: Can generate test suites, review and approve test cases, and export tests.
+- **Viewer**: Read-only access to suites, coverage dashboards, and risk matrices.
+
+## How to invite team members
+
+1. Navigate to **App Settings** from the sidebar or click your user avatar in the bottom navigation.
+2. Select the **Team & Members** tab.
+3. Click **Invite Member** and enter your colleague's professional email address.
+4. Assign their role (**Admin**, **Member**, or **Viewer**) and send the invitation.
+5. The invitee receives a secure single-use registration link valid for 48 hours.
+
+## Expected result
+
+Invited team members gain access to shared workspace suites, facilitating collaborative test authoring and synchronized coverage metrics.
+
+## Guidance & best practices
+
+> Tip: If you frequently work across multiple projects or clients, create dedicated workspaces for each repository to keep requirement sets and metrics completely isolated.
+
+> Warning: Removing a member immediately revokes their active session and invalidates all in-flight requests made with their tokens.
+
+## Related guides
+- [Data handling and privacy](/help/security/data-and-privacy)
+- [Troubleshooting common issues](/help/troubleshooting/troubleshooting)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)

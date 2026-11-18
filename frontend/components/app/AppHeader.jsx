@@ -73,6 +73,9 @@ const AppHeader = ({ onToggleMobile }) => {
             };
             return { section: 'Settings', current: tabLabels[tab] || 'Profile', link: '/app/settings' };
         }
+        if (path.includes('/app/cicd') || path.includes('/app/integrations')) {
+            return { section: 'Integrations', current: 'CI/CD', link: '/app/cicd' };
+        }
         return { section: 'Application', current: null, link: '/app/workspace' };
     };
 

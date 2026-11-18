@@ -1,0 +1,63 @@
+---
+title: "Linked vs Verified coverage"
+description: "Understand the core distinction between requirement test linkage and verified CI test execution."
+category: "analysis"
+order: 3
+updated: "2026-11-18"
+keywords: ["linked coverage", "verified coverage", "traceability", "metrics", "test verification"]
+related: ["risks", "review-and-approve-cases", "github-actions-setup"]
+---
+
+# Linked vs Verified coverage
+
+Testnexa tracks coverage using two distinct, complementary metrics: **Linked Coverage** and **Verified Coverage**. Understanding the difference prevents false confidence before deploying your software.
+
+> Note: High Linked coverage proves you wrote tests for every requirement. High Verified coverage proves those tests passed in your customer CI pipeline.
+
+## Definitions and calculation
+
+### 1. Linked Coverage (Design time)
+Linked coverage measures how many explicit acceptance criteria and implied failure modes in your specification have at least one approved test case mapped to them:
+
+```
+Linked Coverage = (Covered Requirements / Total Requirements) * 100%
+```
+
+- **When it updates**: Automatically as test suites are generated, edited, approved, or linked in Testnexa.
+- **What it tells you**: Whether your test suite addresses all business rules, input boundaries, and error branches.
+
+### 2. Verified Coverage (Execution time)
+Verified coverage measures how many linked test cases actually executed and passed in your continuous integration runner:
+
+```
+Verified Coverage = (Passing Verified Cases / Total Linked Cases) * 100%
+```
+
+- **When it updates**: When results from your GitHub Actions pipeline are ingested back into Testnexa.
+- **What it tells you**: Whether the live system behaves as specified in production builds.
+
+## How to reach full coverage
+
+1. **Achieve 100% Linked Coverage**
+   Ensure every requirement statement in your specification is linked to at least one approved positive and negative test case.
+2. **Export test suite to CI**
+   Export your approved test cases in Playwright format to your version-controlled repository.
+3. **Execute in GitHub Actions**
+   Run the tests on every pull request using the Testnexa GitHub Actions reporter workflow.
+4. **Ingest CI test reports**
+   View the passing run results in the Coverage & Traceability dashboard to confirm full Verified coverage.
+
+## Expected result
+
+Your Traceability Matrix and Coverage dashboards show both metrics side-by-side, allowing leadership to instantly differentiate between untested specifications and failing builds.
+
+## Guidance & best practices
+
+> Tip: If your Linked coverage is high (e.g., 95%) but Verified coverage is 0%, your team has authored good tests but has not yet wired automated CI execution.
+
+> Warning: Never rely on Linked coverage alone as a release gate. A test case that exists in your suite does not guarantee software quality until it runs and passes against live builds.
+
+## Related guides
+- [Analyzing requirements risks](/help/analysis/risks)
+- [Review and approve test cases](/help/test-authoring/review-and-approve-cases)
+- [GitHub Actions CI/CD setup](/help/integrations/github-actions-setup)

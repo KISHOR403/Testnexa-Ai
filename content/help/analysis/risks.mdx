@@ -1,0 +1,50 @@
+---
+title: "Analyzing requirements risks"
+description: "Evaluate likelihood and impact dimensions across your requirements to isolate critical failure vectors."
+category: "analysis"
+order: 4
+updated: "2026-11-18"
+keywords: ["risk matrix", "likelihood", "impact", "critical severity", "risk mitigation"]
+related: ["linked-vs-verified-coverage", "recommendations", "create-your-first-test-suite"]
+---
+
+# Analyzing requirements risks
+
+Testnexa analyzes your product requirements and tests to identify potential failure modes, categorizing them across a standard 5×5 Likelihood and Impact matrix. This analysis surfaces severe vulnerabilities before code reaches production environments.
+
+> Note: Risks are derived automatically from your negative, edge, and non-functional test cases. Each risk item highlights the severity score and the specific test cases designed to mitigate it.
+
+## The 5×5 risk matrix
+
+Risk scores are computed by multiplying the estimated Likelihood of occurrence (1 to 5) by the operational Impact (1 to 5):
+
+- **Critical (Score 20–25)**: High probability of widespread outage, data breach, or payment failure. Demands immediate test coverage and verification.
+- **High (Score 12–19)**: Significant degradation affecting core user journeys or critical integrations.
+- **Medium (Score 6–11)**: Edge case errors, validation omissions, or localized UI inconsistencies.
+- **Low (Score 1–5)**: Minor cosmetic quirks or rare corner conditions with minimal impact.
+
+## How to prioritize risks
+
+1. **Open the Risks dashboard**
+   Navigate to **Analysis > Risks** from the sidebar.
+2. **Filter by the 5×5 grid**
+   Click any cell in the 5×5 matrix to filter the risk inventory by that specific Likelihood and Impact combination.
+3. **Inspect mitigation status**
+   Review each risk card to verify whether test cases exist to detect that failure vector. Unmitigated critical risks are flagged immediately.
+4. **Export risk summary**
+   Use the **Export risks** action to download a formatted CSV or JSON report for QA audit compliance and sprint planning.
+
+## Expected result
+
+Your team gains a prioritized backlog of high-risk scenarios and clear visibility into which threats lack defensive automated tests.
+
+## Guidance & best practices
+
+> Tip: Filter by the top-right quadrant (Likelihood 4–5 and Impact 4–5) during sprint planning to ensure critical payment and authentication paths have comprehensive test coverage.
+
+> Warning: Addressing high-impact risks by creating test cases increases your Linked coverage, but the risk remains active until those tests are verified in CI/CD.
+
+## Related guides
+- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)
+- [Smart test recommendations](/help/analysis/recommendations)
+- [Create your first test suite](/help/getting-started/create-your-first-test-suite)

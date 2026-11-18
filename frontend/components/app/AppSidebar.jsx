@@ -414,6 +414,16 @@ const AppSidebar = ({
                     </NavLink>
 
                     <NavLink
+                        to="/app/cicd"
+                        className={({ isActive }) => `app-sidebar__item ${isActive || location.pathname.startsWith('/app/cicd') || location.pathname.startsWith('/app/integrations') ? 'active' : ''}`}
+                        onClick={handleNavClick}
+                        title="CI/CD Integrations"
+                    >
+                        <GitBranch size={17} className="app-sidebar__item-icon" />
+                        <span>CI/CD</span>
+                    </NavLink>
+
+                    <NavLink
                         to="/help"
                         className="app-sidebar__item"
                         onClick={handleNavClick}

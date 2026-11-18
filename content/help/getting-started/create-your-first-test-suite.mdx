@@ -1,0 +1,48 @@
+---
+title: "Create your first test suite"
+description: "Translate unstructured product requirements or user stories into deterministic, production-ready test suites."
+category: "getting-started"
+order: 1
+updated: "2026-11-18"
+keywords: ["suite generation", "requirements", "acceptance criteria", "first suite", "heuristics"]
+related: ["review-and-approve-cases", "linked-vs-verified-coverage", "export-formats"]
+---
+
+# Create your first test suite
+
+Testnexa transforms plain text requirements, Jira tickets, and product specifications into structured test suites with deterministic positive, negative, and edge test cases. Generation runs on demand and generates comprehensive test suites aligned directly to your stated acceptance criteria.
+
+> Note: Testnexa is stateless during generation. Nothing is stored in your workspace until a suite is successfully generated and confirmed. Testnexa does not save unfinished drafts or preserve unsaved generation attempts.
+
+## Step-by-step walkthrough
+
+Follow these steps to produce your initial test suite:
+
+1. **Navigate to AI Workspace**
+   Log into your Testnexa workspace and select **AI Workspace** from the primary navigation bar.
+2. **Provide your requirement text**
+   Paste your user story, acceptance criteria, or API endpoint specification into the requirement input area. Be explicit about boundary thresholds, authorization constraints, and expected status codes.
+3. **Select platform and scope**
+   Choose your target environment (Web, API, Mobile, or Hybrid) and select your desired verification depth (Standard or Exhaustive).
+4. **Trigger generation**
+   Click **Generate Test Suite**. Testnexa's heuristics engine parses your input, decomposes acceptance criteria into verified vectors, and constructs test cases with clear preconditions, steps, and assertions.
+5. **Review the generated suite**
+   Once generation completes, inspect the newly generated test cases in your suite. All newly generated test cases begin in a **Pending** review state.
+
+## Expected result
+
+You will receive an organized test suite containing:
+- An overall requirement summary and acceptance criteria mapping.
+- Structured test cases categorized by scenario type: Positive (happy path), Negative (error handling), and Edge (boundary conditions).
+- An initial Linked coverage calculation mapping requirement statements to test cases.
+
+## Guidance & best practices
+
+> Tip: Providing structured acceptance criteria (such as Given-When-Then statements or bulleted requirements) results in higher Linked coverage scores and more precise edge boundary cases.
+
+> Warning: Closing or refreshing your browser tab before the generation engine finishes processing will cancel the in-flight request. No partial draft will be retained in your workspace.
+
+## Related guides
+- [Review and approve cases](/help/test-authoring/review-and-approve-cases)
+- [Linked vs Verified coverage](/help/analysis/linked-vs-verified-coverage)
+- [Supported export formats](/help/export/export-formats)

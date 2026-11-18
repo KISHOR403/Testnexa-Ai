@@ -1,14 +1,15 @@
 /**
- * TestNexa AI — CI/CD Integrations Controller
- * Exposes REST endpoints for provider connections, pipeline configurations,
- * manual execution triggers, activity logs, and inbound webhook reception.
+ * Testnexa AI — CI/CD Integrations Controller
+ * Exposes REST endpoints for GitHub App connection, repository syncing,
+ * suite pipelines CRUD, token rotation, workflow generation, export,
+ * webhook handling, and result ingestion.
  */
 
 const cicdService = require('../services/integrations/cicdIntegration.service');
-const { listProviders } = require('../services/integrations/providers');
+const ciIngestionService = require('../services/integrations/ciIngestion.service');
+const pipelineExportService = require('../services/integrations/pipelineExport.service');
 const supabaseService = require('../services/supabaseData.service');
 const auditService = require('../services/auditService');
-const usageMeteringService = require('../services/usageMetering.service');
 const logger = require('../utils/logger');
 
 const resolveWorkspaceId = async (req) => {
@@ -24,210 +25,212 @@ const resolveWorkspaceId = async (req) => {
     return null;
 };
 
-const verifyAccess = async (req, res, workspaceId) => {
-    const userId = req.user?._id || req.user?.id;
-    if (!workspaceId) {
-        res.status(400).json({ success: false, message: 'No workspace context provided' });
-        return false;
-    }
-    const hasAccess = await supabaseService.verifyUserWorkspaceAccess(workspaceId, userId);
-    if (!hasAccess) {
-        res.status(403).json({
-            success: false,
-            code: 'FORBIDDEN',
-            message: 'You do not have access to this workspace'
-        });
-        return false;
-    }
-    return true;
-};
-
 /**
- * GET /api/v1/integrations/cicd/providers
- * Returns all registered providers and their availability status
+ * GET /api/v1/integrations/github/install-url
+ * Returns GitHub App installation URL with signed single-use state
  */
-exports.getAvailableProviders = async (req, res) => {
+exports.getInstallUrl = async (req, res) => {
     try {
-        const providers = listProviders();
-        res.json({ success: true, data: providers });
+        const userId = req.user?._id || req.user?.id;
+        const workspaceId = await resolveWorkspaceId(req);
+        const returnUrl = req.query.return_url || req.query.returnUrl || '/app/workspace';
+
+        if (!userId || !workspaceId) {
+            return res.status(400).json({ success: false, message: 'Active user and workspace context required' });
+        }
+
+        const data = cicdService.getInstallUrl({ userId, workspaceId, returnUrl });
+        res.status(200).json({ success: true, data });
     } catch (err) {
-        logger.error('Error listing CI providers:', err);
+        logger.error('Error generating install URL:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * POST /api/v1/integrations/cicd/:provider/connect
- * Connects an authorized provider (e.g. GitHub PAT)
+ * GET /api/v1/integrations/github/callback
+ * Handles post-installation redirection from GitHub
  */
-exports.connectProvider = async (req, res) => {
+exports.handleCallback = async (req, res) => {
     try {
-        const { provider } = req.params;
-        const { token, accountLogin } = req.body;
-        const workspaceId = await resolveWorkspaceId(req);
+        const { code, installation_id, setup_action, state } = req.query;
 
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
-
-        if (!token || !token.trim()) {
-            return res.status(400).json({ success: false, message: 'Authentication token is required' });
-        }
-
-        const connection = await cicdService.connectProvider(workspaceId, provider, {
-            token: token.trim(),
-            accountLogin,
-            actorId: req.user._id || req.user.id
+        const result = await cicdService.handleCallback({
+            code,
+            installationId: installation_id,
+            setupAction: setup_action,
+            state
         });
 
-        const ws = await supabaseService.getWorkspace(workspaceId);
-        await auditService.logFromRequest(req, {
-            orgId: ws?.orgId || 'default_org',
-            workspaceId,
-            action: 'integration.connected',
-            resourceType: 'integration',
-            resourceId: provider,
-            resourceDisplayName: `${provider} (${accountLogin || 'OAuth/PAT'})`,
-            metadata: { provider, accountLogin }
-        });
-
-        res.status(200).json({
-            success: true,
-            data: connection,
-            message: `${provider} connected successfully`
-        });
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const sep = result.returnUrl.includes('?') ? '&' : '?';
+        return res.redirect(`${frontendUrl}${result.returnUrl}${sep}integration_connected=true`);
     } catch (err) {
-        logger.error(`Error connecting CI provider ${req.params.provider}:`, err);
-        res.status(400).json({ success: false, message: err.message });
+        logger.error('Error in GitHub App callback:', err);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/app/workspace?error=github_install_failed&message=${encodeURIComponent(err.message)}`);
     }
 };
 
 /**
- * GET /api/v1/integrations/cicd/:provider/status
- * Gets provider connection status with masked credentials
+ * GET /api/v1/integrations
+ * Lists all active integrations for the current workspace
  */
-exports.getConnectionStatus = async (req, res) => {
+exports.listIntegrations = async (req, res) => {
     try {
-        const { provider } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
         if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
+            return res.status(400).json({ success: false, message: 'Workspace context required' });
         }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
 
-        const connection = await cicdService.getConnection(workspaceId, provider);
-        res.json({
-            success: true,
-            data: connection || { status: 'disconnected', provider }
-        });
+        const integrations = await cicdService.listIntegrations(workspaceId);
+        res.status(200).json({ success: true, data: integrations });
     } catch (err) {
-        logger.error('Error fetching connection status:', err);
+        logger.error('Error listing integrations:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * POST /api/v1/integrations/cicd/:provider/disconnect
- * Disconnects provider
+ * GET /api/v1/integrations/:id
+ * Gets integration details
  */
-exports.disconnectProvider = async (req, res) => {
+exports.getIntegration = async (req, res) => {
     try {
-        const { provider } = req.params;
+        const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const integration = await cicdService.getIntegration(id, workspaceId);
 
-        const success = await cicdService.disconnectProvider(workspaceId, provider, req.user._id || req.user.id);
-        
-        const discWs = await supabaseService.getWorkspace(workspaceId);
-        await auditService.logFromRequest(req, {
-            orgId: discWs?.orgId || 'default_org',
-            workspaceId,
-            action: 'integration.disconnected',
-            resourceType: 'integration',
-            resourceId: provider,
-            resourceDisplayName: provider
-        });
-        res.json({
-            success: true,
-            message: success ? `${provider} disconnected` : 'No active connection found'
-        });
+        if (!integration) {
+            return res.status(404).json({ success: false, message: 'Integration not found' });
+        }
+        res.status(200).json({ success: true, data: integration });
     } catch (err) {
-        logger.error('Error disconnecting provider:', err);
+        logger.error('Error getting integration:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * GET /api/v1/integrations/cicd/:provider/repositories
- * Lists repositories authorized by the connected token
+ * GET /api/v1/integrations/:id/repos
+ * Lists repositories available under this installation
  */
-exports.listRepositories = async (req, res) => {
+exports.listIntegrationRepos = async (req, res) => {
     try {
-        const { provider } = req.params;
+        const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const integration = await cicdService.getIntegration(id, workspaceId);
 
-        const repos = await cicdService.getRepositories(workspaceId, provider);
-        res.json({ success: true, data: repos });
+        if (!integration) {
+            return res.status(404).json({ success: false, message: 'Integration not found' });
+        }
+
+        let repos = await supabaseService.listIntegrationRepos(id);
+        if (repos.length === 0) {
+            repos = await cicdService.syncRepos(id, workspaceId).catch(() => []);
+        }
+
+        res.status(200).json({ success: true, data: repos });
     } catch (err) {
-        logger.warn('Error listing repositories:', err.message);
-        res.status(400).json({ success: false, message: err.message });
+        logger.error('Error listing integration repos:', err);
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * GET /api/v1/integrations/cicd/:provider/branches
- * Lists branches for a repo
+ * POST /api/v1/integrations/:id/sync
+ * Syncs repositories from GitHub
  */
-exports.listBranches = async (req, res) => {
+exports.syncIntegrationRepos = async (req, res) => {
     try {
-        const { provider } = req.params;
-        const { owner, repo } = req.query;
+        const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const repos = await cicdService.syncRepos(id, workspaceId);
 
-        if (!owner || !repo) {
-            return res.status(400).json({ success: false, message: 'owner and repo query parameters are required' });
-        }
-
-        const branches = await cicdService.getBranches(workspaceId, provider, owner, repo);
-        res.json({ success: true, data: branches });
+        res.status(200).json({ success: true, data: repos, message: 'Repositories synced successfully' });
     } catch (err) {
-        logger.warn('Error listing branches:', err.message);
-        res.status(400).json({ success: false, message: err.message });
+        logger.error('Error syncing repos:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message });
     }
 };
 
 /**
- * GET /api/v1/integrations/cicd/pipelines
- * Lists configured pipelines
+ * DELETE /api/v1/integrations/:id
+ * Disconnects integration, pauses pipelines, and revokes tokens
+ */
+exports.disconnectIntegration = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const workspaceId = await resolveWorkspaceId(req);
+        await cicdService.disconnectIntegration(id, workspaceId);
+
+        res.status(200).json({ success: true, message: 'Integration disconnected successfully' });
+    } catch (err) {
+        logger.error('Error disconnecting integration:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * POST /api/v1/pipelines
+ * Creates a new pipeline connecting a repository to a suite
+ */
+exports.createPipeline = async (req, res) => {
+    try {
+        const workspaceId = await resolveWorkspaceId(req);
+        const { integrationId, repoId, suiteId, name, branchFilters, triggers, reportCheck } = req.body;
+
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace context required' });
+        }
+
+        const result = await cicdService.createPipeline(workspaceId, {
+            integrationId,
+            repoId,
+            suiteId,
+            name,
+            branchFilters,
+            triggers,
+            reportCheck
+        });
+
+        res.status(201).json({
+            success: true,
+            data: result.pipeline,
+            token: result.token, // Returned ONLY once
+            tokenPrefix: result.tokenPrefix,
+            message: 'Pipeline created. Please save the token securely as it will not be displayed again.'
+        });
+    } catch (err) {
+        logger.error('Error creating pipeline:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message, code: err.code });
+    }
+};
+
+/**
+ * GET /api/v1/pipelines
+ * Lists pipelines for the current workspace
  */
 exports.listPipelines = async (req, res) => {
     try {
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const { integrationId, repoId, suiteId, status } = req.query;
 
-        const pipelines = await cicdService.getPipelines(workspaceId, req.query);
-        res.json({ success: true, data: pipelines });
+        if (!workspaceId) {
+            return res.status(400).json({ success: false, message: 'Workspace context required' });
+        }
+
+        const pipelines = await cicdService.listPipelines(workspaceId, {
+            integrationId,
+            repoId,
+            suiteId,
+            status
+        });
+
+        res.status(200).json({ success: true, data: pipelines });
     } catch (err) {
         logger.error('Error listing pipelines:', err);
         res.status(500).json({ success: false, message: err.message });
@@ -235,114 +238,69 @@ exports.listPipelines = async (req, res) => {
 };
 
 /**
- * POST /api/v1/integrations/cicd/pipelines
- * Creates a new pipeline trigger configuration
- */
-exports.createPipeline = async (req, res) => {
-    try {
-        const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
-
-        const pipeline = await cicdService.createPipeline(workspaceId, {
-            ...req.body,
-            createdBy: req.user._id || req.user.id
-        });
-
-        const pipeWs = await supabaseService.getWorkspace(workspaceId);
-        await auditService.logFromRequest(req, {
-            orgId: pipeWs?.orgId || 'default_org',
-            workspaceId,
-            action: 'integration.pipeline_created',
-            resourceType: 'integration',
-            resourceId: pipeline.id,
-            resourceDisplayName: pipeline.name,
-            metadata: { provider: pipeline.provider, repository: pipeline.repository, branch: pipeline.branch }
-        });
-
-        res.status(201).json({
-            success: true,
-            data: pipeline,
-            message: 'Pipeline configured successfully'
-        });
-    } catch (err) {
-        logger.error('Error creating pipeline:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-};
-
-/**
- * GET /api/v1/integrations/cicd/pipelines/:id
+ * GET /api/v1/pipelines/:id
+ * Gets pipeline details
  */
 exports.getPipeline = async (req, res) => {
     try {
         const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const pipeline = await cicdService.getPipeline(id, workspaceId);
 
-        const pipeline = await cicdService.getPipelineById(workspaceId, id);
         if (!pipeline) {
             return res.status(404).json({ success: false, message: 'Pipeline not found' });
         }
-
-        res.json({ success: true, data: pipeline });
+        res.status(200).json({ success: true, data: pipeline });
     } catch (err) {
-        logger.error('Error fetching pipeline:', err);
+        logger.error('Error getting pipeline:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * PUT /api/v1/integrations/cicd/pipelines/:id
+ * PATCH /api/v1/pipelines/:id
+ * Updates pipeline settings
  */
 exports.updatePipeline = async (req, res) => {
     try {
         const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const { name, branchFilters, triggers, status, reportCheck } = req.body;
 
-        const updated = await cicdService.updatePipeline(workspaceId, id, req.body);
+        const updated = await cicdService.updatePipeline(id, {
+            ...(name !== undefined && { name }),
+            ...(branchFilters !== undefined && { branch_filters: branchFilters }),
+            ...(triggers !== undefined && { triggers }),
+            ...(status !== undefined && { status }),
+            ...(reportCheck !== undefined && { report_check: Boolean(reportCheck) })
+        }, workspaceId);
+
         if (!updated) {
             return res.status(404).json({ success: false, message: 'Pipeline not found' });
         }
 
-        res.json({ success: true, data: updated, message: 'Pipeline updated successfully' });
+        res.status(200).json({ success: true, data: updated });
     } catch (err) {
         logger.error('Error updating pipeline:', err);
-        res.status(400).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * DELETE /api/v1/integrations/cicd/pipelines/:id
+ * DELETE /api/v1/pipelines/:id
+ * Deletes pipeline and revokes its tokens
  */
 exports.deletePipeline = async (req, res) => {
     try {
         const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const deleted = await cicdService.deletePipeline(id, workspaceId);
 
-        const deleted = await cicdService.deletePipeline(workspaceId, id);
         if (!deleted) {
             return res.status(404).json({ success: false, message: 'Pipeline not found' });
         }
 
-        res.json({ success: true, message: 'Pipeline deleted' });
+        res.status(200).json({ success: true, message: 'Pipeline deleted successfully' });
     } catch (err) {
         logger.error('Error deleting pipeline:', err);
         res.status(500).json({ success: false, message: err.message });
@@ -350,148 +308,125 @@ exports.deletePipeline = async (req, res) => {
 };
 
 /**
- * POST /api/v1/integrations/cicd/pipelines/:id/trigger
- * Dispatches a real test execution for this pipeline
+ * POST /api/v1/pipelines/:id/token
+ * Rotates pipeline token: revokes old active tokens and returns new plaintext token once
  */
-exports.triggerPipeline = async (req, res) => {
-    let quotaReservation = null;
-    let targetOrgId = null;
-
+exports.rotatePipelineToken = async (req, res) => {
     try {
         const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const result = await cicdService.rotatePipelineToken(id, workspaceId);
 
-        const userId = req.user?._id || req.user?.id;
-        targetOrgId = await usageMeteringService.resolveOrgForRequest(req, userId);
-        if (targetOrgId) {
-            try {
-                quotaReservation = await usageMeteringService.reserveQuota({
-                    orgId: targetOrgId,
-                    workspaceId,
-                    userId,
-                    metric: 'execution.cicd',
-                    quantity: 1,
-                    operationId: `cicd_${id}_${Date.now()}`
-                });
-            } catch (qErr) {
-                if (qErr.code === 'QUOTA_EXCEEDED') {
-                    return res.status(403).json({
-                        success: false,
-                        code: 'QUOTA_EXCEEDED',
-                        message: qErr.message,
-                        data: qErr.data
-                    });
-                }
-                throw qErr;
-            }
-        }
-
-        const result = await cicdService.triggerPipelineManually(workspaceId, id, {
-            branch: req.body?.branch,
-            commitSha: req.body?.commitSha,
-            commitMessage: req.body?.commitMessage,
-            triggeredBy: req.user?.name || req.user?.email || 'User',
-            userId
-        });
-
-        if (quotaReservation) {
-            await usageMeteringService.commitUsage({
-                reservationId: quotaReservation.id,
-                orgId: targetOrgId,
-                workspaceId,
-                userId,
-                resourceType: 'pipeline',
-                metric: 'execution.cicd',
-                quantity: 1,
-                operationId: result?.runId || id,
-                source: 'CI/CD Pipeline',
-                metadata: { pipelineId: id, branch: req.body?.branch }
-            }).catch(() => {});
-            quotaReservation = null;
-        }
-
-        res.status(202).json({
+        res.status(200).json({
             success: true,
-            data: result,
-            message: 'CI execution dispatched successfully'
+            data: {
+                token: result.token, // Plaintext returned ONLY once
+                prefix: result.prefix,
+                createdAt: result.createdAt
+            },
+            message: 'Pipeline token rotated successfully. Update your GitHub repository secret TESTNEXA_TOKEN.'
         });
     } catch (err) {
-        if (quotaReservation) {
-            usageMeteringService.releaseReservation(quotaReservation.id);
-            quotaReservation = null;
-        }
-        logger.error('Error triggering pipeline:', err);
-        res.status(400).json({ success: false, message: err.message });
+        logger.error('Error rotating pipeline token:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message });
     }
 };
 
 /**
- * GET /api/v1/integrations/cicd/activity
- * Lists execution history triggered by CI/CD
+ * GET /api/v1/pipelines/:id/setup
+ * Returns GitHub Actions workflow YAML and setup instructions
  */
-exports.getActivity = async (req, res) => {
+exports.getPipelineSetup = async (req, res) => {
     try {
+        const { id } = req.params;
         const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const setup = await cicdService.getPipelineSetup(id, workspaceId);
 
-        const activity = await cicdService.getActivity(workspaceId, req.query);
-        res.json({ success: true, data: activity });
+        res.status(200).json({ success: true, data: setup });
     } catch (err) {
-        logger.error('Error fetching CI activity:', err);
+        logger.error('Error generating pipeline setup:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * GET /api/v1/pipelines/:id/export
+ * Exports Playwright test suite code (.spec.js) ensuring every test title starts with [TC_KEY]
+ */
+exports.exportPipelinePlaywright = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const workspaceId = await resolveWorkspaceId(req);
+        const pipeline = await cicdService.getPipeline(id, workspaceId);
+
+        if (!pipeline) {
+            return res.status(404).json({ success: false, message: 'Pipeline not found' });
+        }
+
+        const suite = await supabaseService.getSession(pipeline.suite_id);
+        if (!suite) {
+            return res.status(404).json({ success: false, message: 'Suite not found' });
+        }
+
+        const specCode = pipelineExportService.generatePlaywrightSuiteCode(suite);
+        res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="suite-${pipeline.suite_id}.spec.js"`);
+        return res.status(200).send(specCode);
+    } catch (err) {
+        logger.error('Error exporting Playwright suite:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 };
 
 /**
- * GET /api/v1/integrations/cicd/instructions/:provider
- * Returns setup guide, webhook URLs, and YAML workflow template
+ * POST /api/v1/webhooks/github
+ * Inbound GitHub App webhook handler
  */
-exports.getSetupInstructions = async (req, res) => {
+exports.handleGitHubWebhook = async (req, res) => {
     try {
-        const { provider } = req.params;
-        const { pipelineId } = req.query;
-        const workspaceId = await resolveWorkspaceId(req);
-        if (!workspaceId) {
-            return res.status(400).json({ success: false, message: 'Active workspace required' });
-        }
-        const isAllowed = await verifyAccess(req, res, workspaceId);
-        if (!isAllowed) return;
+        const event = req.headers['x-github-event'] || req.headers['X-GitHub-Event'];
+        const deliveryId = req.headers['x-github-delivery'] || req.headers['X-GitHub-Delivery'];
+        const signature = req.headers['x-hub-signature-256'] || req.headers['X-Hub-Signature-256'];
+        const rawBody = req.rawBody || JSON.stringify(req.body);
 
-        const instructions = await cicdService.generateSetupInstructions(workspaceId, provider, pipelineId);
-        res.json({ success: true, data: instructions });
+        const result = await cicdService.handleWebhook({
+            event,
+            deliveryId,
+            signature,
+            rawBody,
+            payload: req.body
+        });
+
+        res.status(200).json(result);
     } catch (err) {
-        logger.error('Error generating CI instructions:', err);
-        res.status(400).json({ success: false, message: err.message });
+        logger.error('Error processing GitHub webhook:', err);
+        const status = err.statusCode || 500;
+        res.status(status).json({ success: false, message: err.message, code: err.code });
     }
 };
 
 /**
- * POST /api/v1/integrations/cicd/webhooks/:provider
- * Public endpoint for provider webhook delivery (authenticated via HMAC signature)
+ * POST /api/v1/ci/results
+ * Results ingestion endpoint called by customer's GitHub Actions workflow
+ * Gated behind FEATURE_TEST_RUNS (returns 501 when false)
  */
-exports.handleWebhook = async (req, res) => {
+exports.ingestCiResults = async (req, res) => {
     try {
-        const { provider } = req.params;
-        const result = await cicdService.handleWebhook(
-            provider,
-            req.headers,
-            req.body,
-            req.rawBody || Buffer.from(JSON.stringify(req.body || {}))
-        );
+        const authHeader = req.headers.authorization || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-        res.status(result.statusCode || 200).json(result);
+        const result = await ciIngestionService.ingestResults({
+            token,
+            headers: req.headers,
+            payload: req.body
+        });
+
+        res.status(200).json({ success: true, data: result });
     } catch (err) {
-        logger.error(`Error processing ${req.params.provider} webhook:`, err);
-        res.status(500).json({ success: false, message: 'Webhook processing error: ' + err.message });
+        const status = err.statusCode || 500;
+        logger.warn('CI ingestion rejection:', { status, code: err.code, message: err.message });
+        res.status(status).json({ success: false, code: err.code || 'INGESTION_ERROR', message: err.message });
     }
 };
-
