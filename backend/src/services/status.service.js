@@ -37,19 +37,28 @@ class StatusService {
             };
         }
 
+        let timerId = null;
         try {
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Database ping timed out')), timeoutMs)
-            );
+            const timeoutPromise = new Promise((_, reject) => {
+                timerId = setTimeout(() => {
+                    reject(new Error('Database ping timed out'));
+                }, timeoutMs);
+            });
+
+            // Prevent unhandled rejection warning if probePromise finishes first
+            timeoutPromise.catch(() => {});
 
             // Real probe to Supabase PostgreSQL
-            const probePromise = supabaseService.supabase
-                .from('users')
-                .select('id')
-                .limit(1);
+            const probePromise = Promise.resolve(
+                supabaseService.supabase
+                    .from('users')
+                    .select('id')
+                    .limit(1)
+            );
 
-            const { error } = await Promise.race([probePromise, timeoutPromise]);
+            const result = await Promise.race([probePromise, timeoutPromise]);
             const latencyMs = Date.now() - start;
+            const error = result?.error;
 
             if (error) {
                 return {
@@ -76,6 +85,10 @@ class StatusService {
                 message: err.message,
                 checkedAt
             };
+        } finally {
+            if (timerId) {
+                clearTimeout(timerId);
+            }
         }
     }
 

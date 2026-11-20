@@ -187,6 +187,14 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json(errorResponse);
 });
 
+// Process-level unhandled rejection & uncaught exception safety guards
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('[Process] Unhandled Promise Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    logger.error('[Process] Uncaught Exception:', err);
+});
+
 // Start Server
 let serverInstance;
 if (require.main === module) {

@@ -442,10 +442,17 @@ describe('Support Requests, Help Center & System Status Suite', () => {
 
         it('should return degraded status when a component is degraded', async () => {
             const origCheckDb = statusService.checkDatabase;
+            const origCheckAi = statusService.checkAiProvider;
             statusService.checkDatabase = async () => ({
                 name: 'database',
                 status: 'degraded',
                 latencyMs: 1800,
+                checkedAt: new Date().toISOString()
+            });
+            statusService.checkAiProvider = async () => ({
+                name: 'ai_provider',
+                status: 'operational',
+                latencyMs: 120,
                 checkedAt: new Date().toISOString()
             });
 
@@ -459,6 +466,7 @@ describe('Support Requests, Help Center & System Status Suite', () => {
                 assert.notStrictEqual(res.body.status, 'operational');
             } finally {
                 statusService.checkDatabase = origCheckDb;
+                statusService.checkAiProvider = origCheckAi;
             }
         });
     });
