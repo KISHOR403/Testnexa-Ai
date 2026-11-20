@@ -6,11 +6,13 @@
  *
  * Core Capabilities:
  * 1. Deep requirement and test inventory analysis.
- * 2. Coverage gap identification (missing negatives, edge boundaries, error handling, security, accessibility).
- * 3. Algorithmic duplicate and overlap detection (token Jaccard + step similarity).
- * 4. Grounded AI recommendation generation with explicit reason and gap explanation.
- * 5. Lifecycle management: review, accept, edit, reject, and convert to draft test cases.
- * 6. Strict workspace isolation, prompt injection neutralization, and secret redaction.
+ * 2. Deterministic coverage gap identification (untested, missing negative, edge boundaries,
+ *    security, API, shallow coverage, outdated tests, specification defects).
+ * 3. Algorithmic multi-tier duplicate and overlap detection (token Jaccard + step similarity).
+ * 4. Grounded AI recommendation generation with explicit reason, whyThisTest, and gap explanation.
+ * 5. Lifecycle management: SUGGESTED, ACCEPTED, ADDED, DISMISSED, DUPLICATE, EXPIRED.
+ * 6. Add to suite transaction with strict 13-field Draft test cases and audit trail.
+ * 7. Strict workspace isolation, prompt injection neutralization, and secret redaction.
  */
 
 const crypto = require('crypto');
@@ -56,7 +58,9 @@ const sanitizeUntrustedInput = (str) => {
     return cleaned;
 };
 
-// Calculate token Jaccard similarity between two strings
+/**
+ * Calculate token Jaccard similarity between two strings
+ */
 const calculateSimilarity = (text1, text2) => {
     if (!text1 || !text2) return 0;
     const tokenize = (t) => t.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 2);
@@ -103,7 +107,9 @@ const extractSuiteTestCases = (session) => {
                     steps: Array.isArray(item.steps) ? item.steps : (item.steps ? [String(item.steps)] : []),
                     expectedResult: item.expectedResult || item.expected || '',
                     requirementId: item.requirementId || item.requirementRef || item.reqId || '',
-                    module: item.module || item.testScenario || 'General'
+                    module: item.module || item.testScenario || 'General',
+                    status: item.status || 'Draft',
+                    isDeprecated: Boolean(item.isDeprecated || item.deprecated)
                 });
             });
         }
@@ -151,7 +157,6 @@ const extractSuiteRequirements = (session) => {
     if (reqs.length === 0) {
         const rawText = session?.requirement || session?.rawRequirement || suiteData?.feature || '';
         if (rawText && rawText.trim()) {
-            // Split sentences or paragraphs as individual requirements
             const lines = rawText.split(/\n+/).map(l => l.trim()).filter(l => l.length > 15);
             if (lines.length > 1) {
                 lines.forEach((line, idx) => {
@@ -177,11 +182,21 @@ const extractSuiteRequirements = (session) => {
 };
 
 /**
- * Analyze coverage gaps across requirements and existing tests
+ * Deterministic coverage analysis engine.
+ * Detects:
+ * - Requirements with zero linked test cases.
+ * - Missing negative scenarios.
+ * - Missing edge and boundary scenarios.
+ * - Missing security scenarios when relevant (auth, payment, token, secret, permissions).
+ * - Missing API scenarios when relevant (endpoints, REST, payload, HTTP status).
+ * - Requirements with incomplete scenario coverage (single test).
+ * - Requirements whose linked test cases are outdated.
+ * - Requirement conflicts or insufficient specification.
  */
 const analyzeCoverageGaps = (requirements, existingCases) => {
     const gaps = [];
     const reqCoverageMap = new Map();
+    const validReqIds = new Set(requirements.map(r => String(r.id).toLowerCase()));
 
     requirements.forEach(req => {
         reqCoverageMap.set(req.id, {
@@ -191,58 +206,145 @@ const analyzeCoverageGaps = (requirements, existingCases) => {
         });
     });
 
-    // Map test cases to requirements
+    // Outdated tests check: cases linked to non-existent requirement IDs
+    const outdatedCases = [];
     existingCases.forEach(tc => {
-        const reqId = tc.requirementId;
-        if (reqId && reqCoverageMap.has(reqId)) {
-            const entry = reqCoverageMap.get(reqId);
-            entry.cases.push(tc);
-            entry.categories.add((tc.category || '').toLowerCase());
+        const reqId = tc.requirementId ? String(tc.requirementId).toLowerCase() : '';
+        if (reqId && !validReqIds.has(reqId)) {
+            outdatedCases.push(tc);
+        } else if (tc.isDeprecated) {
+            outdatedCases.push(tc);
+        }
+
+        // Map test case to requirement if exists
+        for (const [rid, entry] of reqCoverageMap.entries()) {
+            if (String(rid).toLowerCase() === reqId) {
+                entry.cases.push(tc);
+                entry.categories.add((tc.category || '').toLowerCase());
+            }
         }
     });
 
-    // Detect gap per requirement
+    if (outdatedCases.length > 0) {
+        gaps.push({
+            requirementId: 'GLOBAL',
+            requirementTitle: 'Suite Test Inventory',
+            severity: 'Medium',
+            type: 'OUTDATED_TESTS',
+            summary: `${outdatedCases.length} test case(s) link to removed or deprecated requirement references.`,
+            suggestedCategories: ['Regression', 'Maintenance'],
+            affectedTestCaseIds: outdatedCases.map(c => c.id)
+        });
+    }
+
+    // Inspect each requirement
     reqCoverageMap.forEach(({ requirement, cases, categories }) => {
         const caseCount = cases.length;
+        const textToAnalyze = `${requirement.title} ${requirement.description}`.toLowerCase();
+
+        // 1. Specification defect detection (vague or under-specified requirement)
+        if (!requirement.description || requirement.description.trim().length < 15 || /tbd|to be determined|etc\.?|as per discussion/i.test(requirement.description)) {
+            gaps.push({
+                requirementId: requirement.id,
+                requirementTitle: requirement.title,
+                severity: 'Low',
+                type: 'SPECIFICATION_DEFECT',
+                summary: `Requirement ${requirement.id} description is brief or contains ambiguous terms that may lead to untestable scenarios.`,
+                suggestedCategories: ['Functional', 'Validation']
+            });
+        }
+
+        // 2. Untested requirement (0 tests)
         if (caseCount === 0) {
             gaps.push({
                 requirementId: requirement.id,
                 requirementTitle: requirement.title,
                 severity: 'High',
                 type: 'UNTESTED_REQUIREMENT',
-                summary: `Requirement ${requirement.id} has no existing test coverage.`,
+                summary: `Requirement ${requirement.id} has no linked test coverage in this suite.`,
                 suggestedCategories: ['Positive', 'Negative', 'Boundary Value', 'Edge Case']
             });
-        } else {
-            const missing = [];
-            if (!categories.has('negative') && !categories.has('negative validation')) {
-                missing.push('Negative testing');
-            }
-            if (!categories.has('edge') && !categories.has('boundary')) {
-                missing.push('Boundary value / Edge cases');
-            }
-            if (!categories.has('security')) {
-                missing.push('Security / Access control');
-            }
+            return;
+        }
 
-            if (missing.length > 0) {
-                gaps.push({
-                    requirementId: requirement.id,
-                    requirementTitle: requirement.title,
-                    severity: caseCount <= 1 ? 'High' : 'Medium',
-                    type: 'SHALLOW_COVERAGE',
-                    summary: `Requirement ${requirement.id} only has ${caseCount} test(s); lacks ${missing.join(', ')}.`,
-                    suggestedCategories: missing
-                });
-            }
+        // 3. Category gap detection
+        const missing = [];
+
+        // Negative scenarios
+        if (!categories.has('negative') && !categories.has('negative validation') && !categories.has('error handling')) {
+            missing.push('Negative testing');
+            gaps.push({
+                requirementId: requirement.id,
+                requirementTitle: requirement.title,
+                severity: 'High',
+                type: 'MISSING_NEGATIVE',
+                summary: `Requirement ${requirement.id} lacks negative validation and error handling scenarios.`,
+                suggestedCategories: ['Negative', 'Error Handling']
+            });
+        }
+
+        // Edge and boundary scenarios
+        if (!categories.has('edge') && !categories.has('boundary') && !categories.has('boundary value') && !categories.has('edge case')) {
+            missing.push('Boundary value / Edge cases');
+            gaps.push({
+                requirementId: requirement.id,
+                requirementTitle: requirement.title,
+                severity: 'Medium',
+                type: 'MISSING_EDGE',
+                summary: `Requirement ${requirement.id} lacks boundary and edge case validation.`,
+                suggestedCategories: ['Boundary Value', 'Edge Case']
+            });
+        }
+
+        // Security scenarios when relevant
+        const isSecurityRelevant = /auth|login|password|token|jwt|session|permission|role|credit|card|payment|admin|credential|secret|encryption|pii|privacy/i.test(textToAnalyze);
+        if (isSecurityRelevant && !categories.has('security')) {
+            missing.push('Security testing');
+            gaps.push({
+                requirementId: requirement.id,
+                requirementTitle: requirement.title,
+                severity: 'Critical',
+                type: 'MISSING_SECURITY',
+                summary: `Requirement ${requirement.id} involves sensitive credentials, access control, or payments but lacks security tests.`,
+                suggestedCategories: ['Security']
+            });
+        }
+
+        // API scenarios when relevant
+        const isApiRelevant = /api|endpoint|http|rest|graphql|webhook|json|payload|status code|headers|status 200|status 400|status 500/i.test(textToAnalyze);
+        if (isApiRelevant && !categories.has('api') && !categories.has('apichecklist')) {
+            missing.push('API contract testing');
+            gaps.push({
+                requirementId: requirement.id,
+                requirementTitle: requirement.title,
+                severity: 'Medium',
+                type: 'MISSING_API',
+                summary: `Requirement ${requirement.id} specifies API or endpoint interfaces but lacks API integration coverage.`,
+                suggestedCategories: ['API']
+            });
+        }
+
+        // Shallow coverage (single test)
+        if (caseCount === 1) {
+            gaps.push({
+                requirementId: requirement.id,
+                requirementTitle: requirement.title,
+                severity: 'Medium',
+                type: 'SHALLOW_COVERAGE',
+                summary: `Requirement ${requirement.id} only has a single happy-path test case.`,
+                suggestedCategories: ['Negative', 'Edge Case', 'Security']
+            });
         }
     });
 
+    const untestedCount = gaps.filter(g => g.type === 'UNTESTED_REQUIREMENT').length;
+    const shallowCount = gaps.filter(g => g.type === 'SHALLOW_COVERAGE').length;
+
     return {
         totalRequirements: requirements.length,
-        coveredRequirements: requirements.length - gaps.filter(g => g.type === 'UNTESTED_REQUIREMENT').length,
-        untestedRequirements: gaps.filter(g => g.type === 'UNTESTED_REQUIREMENT').length,
-        shallowCoverageCount: gaps.filter(g => g.type === 'SHALLOW_COVERAGE').length,
+        coveredRequirements: requirements.length - untestedCount,
+        untestedRequirements: untestedCount,
+        shallowCoverageCount: shallowCount,
         gaps
     };
 };
@@ -253,6 +355,8 @@ const analyzeCoverageGaps = (requirements, existingCases) => {
 const generateRecommendations = async ({
     suiteId,
     userId,
+    workspaceId = null,
+    projectId = null,
     requirementId = null,
     requestedCategories = null,
     focusArea = null,
@@ -271,6 +375,7 @@ const generateRecommendations = async ({
 
     const suiteData = session.suiteData || session.suite_data || session.data || {};
     const suiteTitle = session.title || suiteData.testSuiteName || suiteData.feature || 'Test Suite';
+    const suiteVersion = session.suiteVersion || session.suite_version || 1;
 
     // 2. Extract requirements and existing test cases
     let allRequirements = extractSuiteRequirements(session);
@@ -296,7 +401,32 @@ const generateRecommendations = async ({
     // 3. Compute current coverage gaps
     const gapAnalysis = analyzeCoverageGaps(targetRequirements, existingCases);
 
-    // 4. Prepare sanitized context for AI prompt
+    // Save coverage analysis record
+    const analysisId = `cov_an_${Date.now()}_${crypto.randomUUID().substring(0, 8)}`;
+    await supabaseService.saveCoverageAnalysis({
+        id: analysisId,
+        workspaceId,
+        suiteId,
+        suiteVersion,
+        totalRequirements: gapAnalysis.totalRequirements,
+        untestedRequirements: gapAnalysis.untestedRequirements,
+        shallowCoverageCount: gapAnalysis.shallowCoverageCount,
+        gaps: gapAnalysis.gaps,
+        summary: {
+            coveredRequirements: gapAnalysis.coveredRequirements,
+            totalGapsCount: gapAnalysis.gaps.length
+        },
+        userId
+    });
+
+    // 4. Retrieve existing recommendations history to avoid duplicate re-generation
+    const existingRecs = await supabaseService.getRecommendationsBySuite(suiteId, userId);
+    const existingAddedRecTitles = new Set(
+        existingRecs.filter(r => r.status === 'ADDED' || r.status === 'converted')
+            .map(r => (r.title || '').trim().toLowerCase())
+    );
+
+    // 5. Prepare sanitized context for AI prompt
     const reqPromptList = targetRequirements.slice(0, 8).map(r =>
         `[${r.id}] ${sanitizeUntrustedInput(r.title)}: ${sanitizeUntrustedInput(r.description)}`
     ).join('\n');
@@ -307,7 +437,7 @@ const generateRecommendations = async ({
 
     const categoriesConstraint = Array.isArray(requestedCategories) && requestedCategories.length > 0
         ? `Focus primarily on these categories: ${requestedCategories.join(', ')}.`
-        : 'Select diverse categories from: Positive, Negative, Boundary Value, Validation, Edge Case, Error Handling, Security, Regression, Accessibility.';
+        : 'Select diverse categories from: Positive, Negative, Boundary Value, Validation, Edge Case, Error Handling, Security, Regression, Accessibility, API.';
 
     const focusConstraint = focusArea
         ? `Special focus area requested by QA Engineer: "${sanitizeUntrustedInput(focusArea)}".`
@@ -318,11 +448,12 @@ Your mission is to perform rigorous gap analysis and generate smart, non-redunda
 
 STRICT PRINCIPLES:
 1. Ground every recommendation firmly in the stated requirements. Do NOT invent arbitrary application features.
-2. If you make realistic testing assumptions, state them explicitly in the 'assumptions' field.
+2. Every recommendation MUST reference a valid requirement ID from the provided <REQUIREMENTS> block.
 3. Compare against EXISTING TEST CASES. Never propose a scenario that is already covered or near-identical to an existing test.
 4. Clearly explain the defect risk or vulnerability that each recommended scenario catches.
 5. Provide actionable step-by-step instructions with clear preconditions and unambiguous expected results.
-6. Output MUST BE STRICT VALID JSON ONLY. No markdown conversational chatter.
+6. Never invent source references; reference only legitimate requirements from the provided list.
+7. Output MUST BE STRICT VALID JSON ONLY. No markdown conversational chatter.
 
 JSON SCHEMA:
 {
@@ -335,18 +466,18 @@ JSON SCHEMA:
   "recommendations": [
     {
       "title": "Clear and concise scenario title",
-      "category": "Positive" | "Negative" | "Boundary Value" | "Validation" | "Edge Case" | "Error Handling" | "Security" | "Regression" | "Accessibility",
+      "description": "Short summary of the test scenario",
+      "category": "Positive" | "Negative" | "Boundary Value" | "Validation" | "Edge Case" | "Error Handling" | "Security" | "Regression" | "Accessibility" | "API",
       "priority": "Critical" | "High" | "Medium" | "Low",
-      "relatedRequirementId": "REQ_001",
-      "relatedRequirementTitle": "Title of the requirement addressed",
-      "recommendationReason": "Why this specific test is needed and what potential failure or regression it prevents",
-      "coverageGapAddressed": "Explicit explanation of how this closes an identified coverage gap",
+      "requirementId": "REQ_001",
+      "reason": "Why this specific test is needed and what potential failure or regression it prevents",
+      "whyThisTest": "Explicit explanation of why this scenario matters and the defect risk it catches",
       "preconditions": "Clear preconditions required before executing this test",
       "steps": ["Step 1...", "Step 2...", "Step 3..."],
       "expectedResult": "Unambiguous pass/fail verification criteria",
+      "sourceReferences": ["REQ_001"],
       "testData": "Realistic concrete test data values needed",
-      "assumptions": "Any necessary contextual assumption or 'None'",
-      "clarificationsNeeded": "Any ambiguity that requires clarification or 'None'"
+      "assumptions": "Any necessary contextual assumption or 'None'"
     }
   ]
 }`;
@@ -376,7 +507,7 @@ Generate between 3 and ${Math.min(limit, 8)} distinct, high-impact test recommen
 
     logger.info(`Generating smart test recommendations for suite ${suiteId} (requirements: ${targetRequirements.length}, existing tests: ${existingCases.length})`);
 
-    // 5. Call AI Service
+    // 6. Call AI Service
     let rawResponse;
     try {
         rawResponse = await aiService.callAI(prompt, {
@@ -392,7 +523,7 @@ Generate between 3 and ${Math.min(limit, 8)} distinct, high-impact test recommen
         throw error;
     }
 
-    // 6. Parse and validate JSON
+    // 7. Parse and validate JSON
     let parsed;
     try {
         let cleanJson = (rawResponse || '').trim();
@@ -418,24 +549,30 @@ Generate between 3 and ${Math.min(limit, 8)} distinct, high-impact test recommen
     }
 
     const rawRecommendations = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
-    if (rawRecommendations.length === 0) {
-        logger.warn('AI returned zero recommendations');
-    }
-
-    // 7. Duplicate Detection & Quality Enrichment
+    const validTargetReqIds = new Set(targetRequirements.map(r => String(r.id).toLowerCase()));
     const now = new Date().toISOString();
     const sessionId = `recsess_${crypto.randomUUID()}`;
     const enrichedRecommendations = [];
 
-    rawRecommendations.forEach((rec, idx) => {
-        if (!rec.title) return;
+    // 8. Duplicate Detection & Quality Validation
+    rawRecommendations.forEach((rec) => {
+        if (!rec.title || !rec.title.trim()) return;
+        const cleanTitle = rec.title.trim();
 
-        // Check similarity against existing test cases
+        // Validate requirement reference
+        let linkedReqId = rec.requirementId || rec.relatedRequirementId || targetRequirements[0]?.id || 'REQ_001';
+        if (!validTargetReqIds.has(String(linkedReqId).toLowerCase())) {
+            linkedReqId = targetRequirements[0]?.id || 'REQ_001';
+        }
+        const reqObj = targetRequirements.find(r => String(r.id).toLowerCase() === String(linkedReqId).toLowerCase()) || targetRequirements[0];
+
+        // Multi-tier similarity check against existing test cases
         let highestSimilarity = 0;
         let mostSimilarCase = null;
+        let overlapExplanation = null;
 
         for (const existing of existingCases) {
-            const titleSim = calculateSimilarity(rec.title, existing.title);
+            const titleSim = calculateSimilarity(cleanTitle, existing.title);
             const stepSim = rec.steps && existing.steps
                 ? calculateSimilarity(rec.steps.join(' '), existing.steps.join(' '))
                 : 0;
@@ -446,47 +583,94 @@ Generate between 3 and ${Math.min(limit, 8)} distinct, high-impact test recommen
             }
         }
 
-        // Determine coverage status
-        let coverageStatus = 'Closes Uncovered Gap';
-        const isDuplicate = highestSimilarity >= 0.75;
+        // Also check against already added recommendations
+        if (existingAddedRecTitles.has(cleanTitle.toLowerCase())) {
+            highestSimilarity = Math.max(highestSimilarity, 0.95);
+        }
 
-        if (isDuplicate) {
+        // Multi-tier classification:
+        // - exact duplicate: similarity >= 0.85
+        // - similar scenario: 0.45 <= similarity < 0.85
+        // - distinct scenario: similarity < 0.45
+        let similarityStatus = 'distinct';
+        let status = 'SUGGESTED';
+        let isDuplicate = false;
+        let coverageStatus = 'New Scenario Coverage';
+
+        if (highestSimilarity >= 0.85) {
+            similarityStatus = 'duplicate';
+            status = 'DUPLICATE';
+            isDuplicate = true;
             coverageStatus = 'Potential Duplicate';
-        } else if (highestSimilarity >= 0.40) {
+            overlapExplanation = mostSimilarCase
+                ? `Scenario matches existing test case ${mostSimilarCase.id} ("${mostSimilarCase.title}") with high overlap (${Math.round(highestSimilarity * 100)}%).`
+                : 'Scenario closely duplicates a previously suggested recommendation.';
+        } else if (highestSimilarity >= 0.45) {
+            similarityStatus = 'similar';
+            status = 'SUGGESTED';
+            isDuplicate = false;
             coverageStatus = 'Strengthens Coverage';
+            overlapExplanation = mostSimilarCase
+                ? `Shares actions with test case ${mostSimilarCase.id} ("${mostSimilarCase.title}") but covers alternate conditions (${Math.round(highestSimilarity * 100)}% similarity).`
+                : 'Similar to existing test case logic but exercises distinct parameters.';
         } else {
-            coverageStatus = 'New Scenario Coverage';
+            similarityStatus = 'distinct';
+            status = 'SUGGESTED';
+            isDuplicate = false;
+            coverageStatus = 'Closes Uncovered Gap';
+            overlapExplanation = 'Distinct scenario closing an unaddressed coverage gap.';
         }
 
         const recId = `rec_${crypto.randomUUID()}`;
+        const sourceRefs = Array.isArray(rec.sourceReferences) && rec.sourceReferences.length > 0
+            ? rec.sourceReferences
+            : [linkedReqId];
 
-        enrichedRecommendations.push({
+        const recObj = {
             id: recId,
-            sessionId,
+            workspaceId: workspaceId || session.workspaceId || null,
+            projectId: projectId || session.projectId || null,
             suiteId,
-            userId,
-            title: rec.title.trim(),
+            analysisId,
+            requirementId: linkedReqId,
+            title: cleanTitle,
+            description: rec.description || rec.coverageGapAddressed || `Recommended test scenario for requirement ${linkedReqId}`,
             category: rec.category || 'Functional',
             priority: ['Critical', 'High', 'Medium', 'Low'].includes(rec.priority) ? rec.priority : 'Medium',
-            relatedRequirementId: rec.relatedRequirementId || targetRequirements[0]?.id || 'REQ_001',
-            relatedRequirementTitle: rec.relatedRequirementTitle || targetRequirements[0]?.title || suiteTitle,
-            recommendationReason: rec.recommendationReason || 'Extends test coverage to verify critical system behavior.',
-            coverageGapAddressed: rec.coverageGapAddressed || 'Addresses potential failure scenarios not currently guarded.',
+            reason: rec.reason || rec.recommendationReason || 'Extends test coverage to verify critical system behavior.',
+            whyThisTest: rec.whyThisTest || rec.coverageGapAddressed || 'Addresses potential failure scenarios not currently guarded.',
             preconditions: rec.preconditions || 'System is configured and target user account is active.',
             steps: Array.isArray(rec.steps) ? rec.steps : [String(rec.steps || 'Execute scenario')],
             expectedResult: rec.expectedResult || 'System behaves as expected with correct verification criteria.',
+            sourceReferences: sourceRefs,
+            similarTestCaseIds: mostSimilarCase ? [mostSimilarCase.id] : [],
+            similarityStatus,
+            status,
+            createdBy: userId,
+            updatedBy: userId,
+            userId,
+            resultingTestCaseId: null,
+            suiteVersion,
+            createdAt: now,
+            updatedAt: now,
+
+            // Legacy backward-compatibility properties
+            sessionId,
+            relatedRequirementId: linkedReqId,
+            relatedRequirementTitle: reqObj ? reqObj.title : suiteTitle,
+            recommendationReason: rec.reason || rec.recommendationReason || 'Extends test coverage.',
+            coverageGapAddressed: rec.whyThisTest || rec.coverageGapAddressed || 'Addresses missing test coverage.',
             testData: rec.testData || 'Standard test dataset',
             assumptions: rec.assumptions && rec.assumptions !== 'None' ? rec.assumptions : null,
-            clarificationsNeeded: rec.clarificationsNeeded && rec.clarificationsNeeded !== 'None' ? rec.clarificationsNeeded : null,
             similarityScore: Math.round(highestSimilarity * 100),
             mostSimilarCaseId: mostSimilarCase ? mostSimilarCase.id : null,
+            overlapExplanation,
             isDuplicate,
             coverageStatus,
-            status: 'pending', // pending | accepted | rejected | converted
-            convertedTestCaseId: null,
-            createdAt: now,
-            updatedAt: now
-        });
+            convertedTestCaseId: null
+        };
+
+        enrichedRecommendations.push(recObj);
     });
 
     const analysisSummary = {
@@ -512,8 +696,9 @@ Generate between 3 and ${Math.min(limit, 8)} distinct, high-impact test recommen
         updatedAt: now
     };
 
-    // 8. Persist recommendation session
+    // 9. Persist recommendations and session
     await supabaseService.saveRecommendationSession(recommendationSession);
+    await supabaseService.saveRecommendations(enrichedRecommendations);
 
     return {
         session: recommendationSession,
@@ -529,10 +714,19 @@ const updateRecommendationStatus = async (recommendationId, userId, { status, ed
     if (!recommendationId) throw new Error('recommendationId is required');
     if (!userId) throw new Error('userId is required');
 
-    return await supabaseService.updateRecommendation(recommendationId, userId, {
+    const updated = await supabaseService.updateRecommendation(recommendationId, userId, {
         status,
         editedFields
     });
+
+    if (updated && status) {
+        await supabaseService.recordRecommendationAction(recommendationId, status.toLowerCase(), userId, {
+            previousStatus: updated.status,
+            newStatus: status
+        });
+    }
+
+    return updated;
 };
 
 /**
@@ -565,12 +759,16 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
     const suiteData = structuredClone(session.suiteData || session.suite_data || session.data || {});
     if (!suiteData.testCases) suiteData.testCases = [];
 
-    // Collect all existing IDs to prevent any collisions
+    // Collect all existing IDs and titles to prevent any collisions or duplicates
     const existingIds = new Set();
+    const existingTitles = new Set();
+
     SUITE_CASE_CATEGORIES.forEach(cat => {
         if (Array.isArray(suiteData[cat])) {
             suiteData[cat].forEach(c => {
                 if (c && c.id) existingIds.add(String(c.id));
+                const t = (c.title || c.testScenario || '').trim().toLowerCase();
+                if (t) existingTitles.add(t);
             });
         }
     });
@@ -582,11 +780,13 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
         'boundary value': 'TC_EDGE',
         'boundary': 'TC_EDGE',
         'edge case': 'TC_EDGE',
+        'edge': 'TC_EDGE',
         'validation': 'TC_VAL',
         'error handling': 'TC_ERR',
         'security': 'TC_SEC',
         'regression': 'TC_REG',
-        'accessibility': 'TC_A11Y'
+        'accessibility': 'TC_A11Y',
+        'api': 'TC_API'
     };
 
     const typeLabelMap = {
@@ -596,11 +796,13 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
         'boundary value': 'Edge Case',
         'boundary': 'Edge Case',
         'edge case': 'Edge Case',
+        'edge': 'Edge Case',
         'validation': 'Functional',
         'error handling': 'Negative',
         'security': 'Security',
         'regression': 'Functional',
-        'accessibility': 'Non-Functional'
+        'accessibility': 'Non-Functional',
+        'api': 'API'
     };
 
     const convertedTestCases = [];
@@ -613,11 +815,23 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
             continue;
         }
 
-        if (rec.status === 'converted' && rec.convertedTestCaseId) {
+        // Idempotency check: if already converted/added
+        if ((rec.status === 'ADDED' || rec.status === 'converted') && (rec.resultingTestCaseId || rec.convertedTestCaseId)) {
+            const existingCaseId = rec.resultingTestCaseId || rec.convertedTestCaseId;
             conversionResults.push({
                 id: recId,
                 success: false,
-                reason: `Already converted to test case ${rec.convertedTestCaseId}`
+                reason: `Already converted to test case ${existingCaseId}`
+            });
+            continue;
+        }
+
+        const rawTitle = (rec.title || '').trim();
+        if (existingTitles.has(rawTitle.toLowerCase())) {
+            conversionResults.push({
+                id: recId,
+                success: false,
+                reason: 'Duplicate of existing test case in this suite'
             });
             continue;
         }
@@ -632,34 +846,36 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
             testCaseId = `${prefix}_${String(seq).padStart(3, '0')}`;
         }
         existingIds.add(testCaseId);
+        existingTitles.add(rawTitle.toLowerCase());
 
         // Strict 13-field standard schema
         const newCase = {
             id: testCaseId,
-            testScenario: rec.title,
+            testScenario: rawTitle,
             module: rec.relatedRequirementTitle || suiteData.testSuiteName || 'Smart Recommendations',
-            title: rec.title,
+            title: rawTitle,
             type: typeLabelMap[normalizedCat] || 'Functional',
             priority: rec.priority || 'Medium',
             severity: rec.priority === 'Critical' ? 'Critical' : rec.priority === 'High' ? 'Major' : 'Minor',
             preconditions: rec.preconditions || 'N/A',
             testData: rec.testData || 'N/A',
-            steps: Array.isArray(rec.steps) ? rec.steps : [String(rec.steps)],
+            steps: Array.isArray(rec.steps) ? rec.steps : [String(rec.steps || 'Execute steps')],
             expectedResult: rec.expectedResult || 'Expected system outcome',
             actualResult: 'Not yet executed',
-            status: 'Draft', // NEVER automatically approved! Human review required.
-            requirementId: rec.relatedRequirementId || 'REQ_001',
+            status: 'Draft', // NEVER automatically approved or passed! QA review required.
+            requirementId: rec.requirementId || rec.relatedRequirementId || 'REQ_001',
             _source: 'smart_recommendation',
             _recommendationId: rec.id,
             _createdFromRecommendationAt: new Date().toISOString()
         };
 
-        // Determine destination array: if category array exists, place there, else testCases
+        // Determine destination array in suiteData
         let destinationCategory = 'functional';
         if (normalizedCat.includes('neg') || normalizedCat.includes('error')) destinationCategory = 'negative';
         else if (normalizedCat.includes('edge') || normalizedCat.includes('boundary')) destinationCategory = 'edge';
         else if (normalizedCat.includes('sec')) destinationCategory = 'security';
         else if (normalizedCat.includes('access')) destinationCategory = 'nonFunctional';
+        else if (normalizedCat.includes('api')) destinationCategory = 'apiChecklist';
 
         if (Array.isArray(suiteData[destinationCategory])) {
             suiteData[destinationCategory].push(newCase);
@@ -669,10 +885,18 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
 
         convertedTestCases.push(newCase);
 
-        // Mark recommendation as converted
+        // Update recommendation status to ADDED
         await supabaseService.updateRecommendation(rec.id, userId, {
-            status: 'converted',
+            status: 'ADDED',
+            resultingTestCaseId: testCaseId,
             convertedTestCaseId: testCaseId
+        });
+
+        // Record action in audit trail
+        await supabaseService.recordRecommendationAction(rec.id, 'added', userId, {
+            suiteId,
+            testCaseId,
+            title: newCase.title
         });
 
         conversionResults.push({
@@ -694,7 +918,7 @@ const convertRecommendationsToDraftCases = async ({ suiteId, userId, recommendat
         });
         summary.total = total;
 
-        // Persist updated suite
+        // Persist updated suite in database
         await supabaseService.updateSession(suiteId, userId, {
             suiteData,
             summary
@@ -720,4 +944,3 @@ module.exports = {
     extractSuiteRequirements,
     extractSuiteTestCases
 };
-

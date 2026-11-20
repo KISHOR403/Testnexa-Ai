@@ -8,9 +8,10 @@ const supabaseService = require('../services/supabaseData.service');
 const auditService = require('../services/auditService');
 const logger = require('../utils/logger');
 
-// In-memory caches for idempotency and undo tracking
+// In-memory caches for idempotency, rate limiting, and undo tracking
 const idempotencyStore = new Map();
 const undoStore = new Map();
+const rateLimitStore = new Map();
 
 // Periodic prune
 setInterval(() => {
@@ -21,11 +22,42 @@ setInterval(() => {
     for (const [k, v] of undoStore.entries()) {
         if (now > v.expiresAt) undoStore.delete(k);
     }
+    for (const [k, v] of rateLimitStore.entries()) {
+        if (now > v.resetAt) rateLimitStore.delete(k);
+    }
 }, 60000).unref();
+
+const SUITE_CASE_CATEGORIES = [
+    'testCases', 'tests', 'functional', 'negative', 'edge',
+    'security', 'nonFunctional', 'apiChecklist', 'api'
+];
+
+/**
+ * Check rate limit for recommendation generation (15 requests per minute)
+ */
+const checkGenerationRateLimit = (key) => {
+    const now = Date.now();
+    const windowMs = 60 * 1000;
+    const maxRequests = 15;
+
+    let record = rateLimitStore.get(key);
+    if (!record || now > record.resetAt) {
+        record = { count: 1, resetAt: now + windowMs };
+        rateLimitStore.set(key, record);
+        return { allowed: true, remaining: maxRequests - 1, resetAt: record.resetAt };
+    }
+
+    if (record.count >= maxRequests) {
+        return { allowed: false, remaining: 0, resetAt: record.resetAt };
+    }
+
+    record.count++;
+    return { allowed: true, remaining: maxRequests - record.count, resetAt: record.resetAt };
+};
 
 /**
  * GET /api/v1/recommendations/context
- * Returns requirement context, linked test counts, and coverage gap hints for a suite
+ * Returns requirement context, linked test counts, and deterministic coverage gap shortcuts for a suite
  */
 const getRecommendationsContext = async (req, res, next) => {
     try {
@@ -62,6 +94,9 @@ const getRecommendationsContext = async (req, res, next) => {
         const rawReqs = smartRecommendationsService.extractSuiteRequirements(session);
         const existingCases = smartRecommendationsService.extractSuiteTestCases(session);
 
+        // Run deterministic coverage gap analysis
+        const gapAnalysis = smartRecommendationsService.analyzeCoverageGaps(rawReqs, existingCases);
+
         const requirements = rawReqs.map(r => {
             const linked = existingCases.filter(c =>
                 String(c.requirementId || c.requirementRef || '').toLowerCase() === String(r.id).toLowerCase()
@@ -83,7 +118,7 @@ const getRecommendationsContext = async (req, res, next) => {
             };
         });
 
-        // Compute gap shortcuts (up to 3)
+        // Compute meaningful gap shortcuts
         const gapShortcuts = [];
         const noNegative = requirements.filter(r => r.missingCategories.includes('Negative'));
         if (noNegative.length > 0) {
@@ -131,7 +166,8 @@ const getRecommendationsContext = async (req, res, next) => {
                 suiteId,
                 suiteTitle,
                 requirements,
-                gapShortcuts: gapShortcuts.slice(0, 3)
+                gapAnalysis,
+                gapShortcuts: gapShortcuts.slice(0, 4)
             }
         });
     } catch (error) {
@@ -154,6 +190,23 @@ const generateRecommendations = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Authentication required' });
         }
 
+        // Rate limiting check
+        const rateLimitKey = `gen_rate_${userId}_${req.ip || 'ip'}`;
+        const rateCheck = checkGenerationRateLimit(rateLimitKey);
+        if (typeof res.setHeader === 'function') {
+            res.setHeader('X-RateLimit-Limit', 15);
+            res.setHeader('X-RateLimit-Remaining', rateCheck.remaining);
+            res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.resetAt / 1000));
+        }
+
+        if (!rateCheck.allowed) {
+            return res.status(429).json({
+                success: false,
+                code: 'RATE_LIMIT_EXCEEDED',
+                message: 'Generation rate limit exceeded. Please wait a minute before generating again.'
+            });
+        }
+
         const {
             suiteId,
             requirementId,
@@ -173,6 +226,8 @@ const generateRecommendations = async (req, res, next) => {
         const result = await smartRecommendationsService.generateRecommendations({
             suiteId,
             userId,
+            workspaceId: req.user?.workspaceId || null,
+            projectId: req.user?.projectId || null,
             requirementId: requirementId || null,
             requestedCategories: Array.isArray(requestedCategories) ? requestedCategories : null,
             focusArea: focusArea || null,
@@ -203,7 +258,7 @@ const generateRecommendations = async (req, res, next) => {
 
 /**
  * GET /api/v1/recommendations/suites/:suiteId
- * Retrieves the latest recommendations for a test suite
+ * Retrieves recommendations for a test suite with filtering and stale check
  */
 const getSuiteRecommendations = async (req, res, next) => {
     try {
@@ -214,11 +269,41 @@ const getSuiteRecommendations = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'suiteId is required' });
         }
 
-        const session = await supabaseService.getRecommendationSessionBySuite(suiteId, userId);
+        // Check suite existence and verify workspace ownership
+        const session = await supabaseService.getSession(suiteId, userId);
+        if (!session) {
+            return res.status(404).json({
+                success: false,
+                code: 'SUITE_NOT_FOUND',
+                message: 'Test suite not found or access denied in your workspace.'
+            });
+        }
+
+        const currentSuiteVersion = session.suiteVersion || session.suite_version || 1;
+
+        // Check for stale recommendations if suite was modified
+        await supabaseService.markStaleRecommendations(suiteId, currentSuiteVersion);
+
+        const { status, priority, category, requirementId, similarityStatus } = req.query || {};
+        const recommendations = await supabaseService.getRecommendationsBySuite(suiteId, userId, {
+            status,
+            priority,
+            category,
+            requirementId,
+            similarityStatus
+        });
+
+        const latestSession = await supabaseService.getRecommendationSessionBySuite(suiteId, userId);
 
         return res.status(200).json({
             success: true,
-            data: session || null
+            data: {
+                suiteId,
+                suiteVersion: currentSuiteVersion,
+                total: recommendations.length,
+                recommendations,
+                analysisSummary: latestSession?.analysisSummary || null
+            }
         });
     } catch (error) {
         logger.error('Error retrieving suite recommendations:', error);
@@ -231,7 +316,7 @@ const getSuiteRecommendations = async (req, res, next) => {
 
 /**
  * GET /api/v1/recommendations/:id
- * Retrieves a single recommendation by ID
+ * Retrieves a single recommendation by ID with audit actions
  */
 const getRecommendationById = async (req, res, next) => {
     try {
@@ -243,9 +328,14 @@ const getRecommendationById = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Recommendation not found' });
         }
 
+        const actions = await supabaseService.getRecommendationActions(id);
+
         return res.status(200).json({
             success: true,
-            data: rec
+            data: {
+                ...rec,
+                auditTrail: actions
+            }
         });
     } catch (error) {
         logger.error('Error retrieving recommendation:', error);
@@ -258,7 +348,7 @@ const getRecommendationById = async (req, res, next) => {
 
 /**
  * PATCH /api/v1/recommendations/:id
- * Updates recommendation status (accepted, rejected, pending) or edits content
+ * Updates recommendation status (SUGGESTED, ACCEPTED, DISMISSED, etc.) or edits content
  */
 const updateRecommendation = async (req, res, next) => {
     try {
@@ -266,11 +356,16 @@ const updateRecommendation = async (req, res, next) => {
         const { id } = req.params;
         const { status, editedFields } = req.body || {};
 
-        if (status && !['pending', 'accepted', 'rejected'].includes(status)) {
+        const validStatuses = [
+            'SUGGESTED', 'ACCEPTED', 'ADDED', 'DISMISSED', 'DUPLICATE', 'EXPIRED',
+            'pending', 'accepted', 'rejected', 'converted'
+        ];
+
+        if (status && !validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
                 code: 'INVALID_STATUS',
-                message: 'Status must be one of: pending, accepted, rejected'
+                message: 'Invalid recommendation status.'
             });
         }
 
@@ -296,10 +391,87 @@ const updateRecommendation = async (req, res, next) => {
     }
 };
 
-const SUITE_CASE_CATEGORIES = [
-    'testCases', 'tests', 'functional', 'negative', 'edge',
-    'security', 'nonFunctional', 'apiChecklist', 'api'
-];
+/**
+ * POST /api/v1/recommendations/:id/add
+ * Adds a single recommendation directly to the suite as a real Draft test case
+ */
+const addRecommendationToSuite = async (req, res, next) => {
+    try {
+        const userId = req.user?._id || req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Authentication required' });
+        }
+
+        const { id } = req.params;
+        const idempotencyKey = req.headers?.['idempotency-key'];
+        if (idempotencyKey && idempotencyStore.has(idempotencyKey)) {
+            const cached = idempotencyStore.get(idempotencyKey);
+            if (Date.now() <= cached.expiresAt) {
+                return res.status(200).json(cached.response);
+            }
+        }
+
+        const rec = await supabaseService.getRecommendation(id, userId);
+        if (!rec) {
+            return res.status(404).json({ success: false, message: 'Recommendation not found' });
+        }
+
+        const suiteId = rec.suiteId;
+        const result = await smartRecommendationsService.convertRecommendationsToDraftCases({
+            suiteId,
+            userId,
+            recommendationIds: [id]
+        });
+
+        const undoToken = `undo_${crypto.randomUUID()}`;
+        const undoExpiresAt = Date.now() + 10 * 60 * 1000;
+        const addedCaseIds = (result.draftCases || []).map(c => c.id);
+
+        if (addedCaseIds.length > 0) {
+            undoStore.set(undoToken, {
+                suiteId,
+                userId,
+                testCaseIds: addedCaseIds,
+                createdAt: Date.now(),
+                expiresAt: undoExpiresAt
+            });
+        }
+
+        auditService.logFromRequest(req, {
+            action: 'ai.recommendations_added',
+            resourceType: 'ai',
+            resourceId: suiteId,
+            resourceDisplayName: `Suite ${suiteId} Recommendation Added`,
+            metadata: { recommendationId: id, testCaseId: addedCaseIds[0] || null }
+        }).catch(() => {});
+
+        const responsePayload = {
+            success: true,
+            data: {
+                ...result,
+                testCaseId: addedCaseIds[0] || null,
+                undoToken,
+                undoExpiresAt
+            }
+        };
+
+        if (idempotencyKey) {
+            idempotencyStore.set(idempotencyKey, {
+                response: responsePayload,
+                expiresAt: Date.now() + 10 * 60 * 1000
+            });
+        }
+
+        return res.status(200).json(responsePayload);
+    } catch (error) {
+        logger.error('Error adding recommendation to suite:', error);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            code: error.code || 'ADD_ERROR',
+            message: error.message || 'Failed to add recommendation to suite'
+        });
+    }
+};
 
 /**
  * POST /api/v1/recommendations/accept (and /convert-to-drafts)
@@ -486,7 +658,7 @@ const acceptRecommendations = async (req, res, next) => {
                 expectedResult: rec.expectedResult || 'Expected system outcome',
                 actualResult: 'Not yet executed',
                 status: 'Draft', // Human approval required
-                requirementId: rec.relatedRequirementId || 'REQ_001',
+                requirementId: rec.requirementId || rec.relatedRequirementId || 'REQ_001',
                 _source: 'smart_recommendation',
                 _recommendationId: rec.id,
                 _createdFromRecommendationAt: new Date().toISOString()
@@ -506,6 +678,19 @@ const acceptRecommendations = async (req, res, next) => {
             }
 
             addedCases.push(newCase);
+
+            // Update in recommendation store
+            if (rec.id) {
+                await supabaseService.updateRecommendation(rec.id, userId, {
+                    status: 'ADDED',
+                    resultingTestCaseId: testCaseId,
+                    convertedTestCaseId: testCaseId
+                });
+                await supabaseService.recordRecommendationAction(rec.id, 'added', userId, {
+                    suiteId,
+                    testCaseId
+                });
+            }
         }
 
         if (addedCases.length > 0) {
@@ -571,6 +756,58 @@ const acceptRecommendations = async (req, res, next) => {
             success: false,
             code: error.code || 'ACCEPT_ERROR',
             message: error.message || 'Failed to accept recommendations'
+        });
+    }
+};
+
+/**
+ * POST /api/v1/recommendations/bulk-add
+ * Bulk adds multiple recommendations with duplicate checking
+ */
+const bulkAddRecommendations = async (req, res, next) => {
+    return acceptRecommendations(req, res, next);
+};
+
+/**
+ * POST /api/v1/recommendations/bulk-dismiss
+ * Bulk dismisses multiple recommendations
+ */
+const bulkDismissRecommendations = async (req, res, next) => {
+    try {
+        const userId = req.user?._id || req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Authentication required' });
+        }
+
+        const { recommendationIds } = req.body || {};
+        if (!Array.isArray(recommendationIds) || recommendationIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 'INVALID_REQUEST',
+                message: 'recommendationIds array is required'
+            });
+        }
+
+        const results = await supabaseService.bulkUpdateRecommendations(recommendationIds, userId, {
+            status: 'DISMISSED'
+        });
+
+        for (const id of recommendationIds) {
+            await supabaseService.recordRecommendationAction(id, 'dismissed', userId, {});
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                dismissedCount: results.length,
+                recommendationIds
+            }
+        });
+    } catch (error) {
+        logger.error('Error bulk dismissing recommendations:', error);
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to dismiss recommendations'
         });
     }
 };
@@ -707,9 +944,10 @@ module.exports = {
     getSuiteRecommendations,
     getRecommendationById,
     updateRecommendation,
+    addRecommendationToSuite,
     convertToDrafts: acceptRecommendations,
     acceptRecommendations,
+    bulkAddRecommendations,
+    bulkDismissRecommendations,
     undoRecommendations
 };
-
-

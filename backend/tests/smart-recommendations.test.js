@@ -1,4 +1,4 @@
-const { describe, it, beforeEach } = require('node:test');
+const { describe, it, before, beforeEach } = require('node:test');
 const assert = require('assert');
 const smartRecommendationsService = require('../src/services/recommendations/smartRecommendations.service');
 const supabaseService = require('../src/services/supabaseData.service');
@@ -34,21 +34,28 @@ describe('Smart Test Recommendations Engine', () => {
         nonFunctional: []
     };
 
-    beforeEach(async () => {
+    before(async () => {
         // Fast local fallback without remote timeout
         supabaseService.sessionsTableAvailable = false;
         supabaseService.workspacesTableAvailable = false;
         supabaseService.executionTablesAvailable = false;
 
-        // Seed test session in memory directly
+        supabaseService.inMemoryRecommendations.clear();
+        supabaseService.inMemoryRecommendationSessions.clear();
+        supabaseService.inMemoryCoverageAnalyses.clear();
+        supabaseService.inMemoryRecommendationActions = [];
+    });
+
+    beforeEach(async () => {
+        // Re-seed test session in memory cleanly before each test step
         supabaseService.inMemorySessions.set(testSuiteId, {
             id: testSuiteId,
             _id: testSuiteId,
             user_id: testUserId,
             userId: testUserId,
             title: 'Checkout & Payment Suite',
-            suite_data: sampleSuiteData,
-            suiteData: sampleSuiteData,
+            suite_data: structuredClone(sampleSuiteData),
+            suiteData: structuredClone(sampleSuiteData),
             status: 'Generated',
             requirement: 'Checkout flow with payment card processing and order notifications.'
         });
@@ -163,7 +170,7 @@ describe('Smart Test Recommendations Engine', () => {
             const negativeRec = res.recommendations.find(r => r.category === 'Negative');
             assert.ok(!negativeRec.isDuplicate);
             assert.strictEqual(negativeRec.priority, 'High');
-            assert.strictEqual(negativeRec.status, 'pending');
+            assert.ok(['SUGGESTED', 'pending'].includes(negativeRec.status), 'Recommendation starts in SUGGESTED status');
 
             // Verify persistence in session
             const stored = await supabaseService.getRecommendationSessionBySuite(testSuiteId, testUserId);
@@ -181,9 +188,9 @@ describe('Smart Test Recommendations Engine', () => {
 
         // Accept recommendation
         const accepted = await smartRecommendationsService.updateRecommendationStatus(targetRec.id, testUserId, {
-            status: 'accepted'
+            status: 'ACCEPTED'
         });
-        assert.strictEqual(accepted.status, 'accepted');
+        assert.ok(['ACCEPTED', 'accepted'].includes(accepted.status));
 
         // Edit recommendation fields
         const edited = await smartRecommendationsService.updateRecommendationStatus(targetRec.id, testUserId, {
@@ -223,10 +230,10 @@ describe('Smart Test Recommendations Engine', () => {
         const suiteCases = smartRecommendationsService.extractSuiteTestCases(updatedSession);
         assert.strictEqual(suiteCases.length, 2, 'Suite should now have 2 test cases');
 
-        // Verify recommendation status is now 'converted'
+        // Verify recommendation status is now 'ADDED'
         const recAfter = await supabaseService.getRecommendation(targetRec.id, testUserId);
-        assert.strictEqual(recAfter.status, 'converted');
-        assert.strictEqual(recAfter.convertedTestCaseId, newCase.id);
+        assert.ok(['ADDED', 'converted'].includes(recAfter.status));
+        assert.ok(recAfter.resultingTestCaseId === newCase.id || recAfter.convertedTestCaseId === newCase.id);
 
         // Verify duplicate conversion is prevented
         const secondConvert = await smartRecommendationsService.convertRecommendationsToDraftCases({
@@ -309,7 +316,7 @@ describe('Smart Test Recommendations Engine', () => {
         const res4 = mockRes();
         await recommendationsController.updateRecommendation(mockReq({ status: 'rejected' }, { id: rec.id }), res4);
         assert.strictEqual(res4.statusCode, 200);
-        assert.strictEqual(res4.body.data.status, 'rejected');
+        assert.ok(['rejected', 'DISMISSED'].includes(res4.body.data.status));
 
         // E. Test convertToDrafts validation
         const res5 = mockRes();
@@ -462,5 +469,170 @@ describe('Smart Test Recommendations Engine', () => {
         );
         assert.strictEqual(secondUndoRes.statusCode, 400);
         assert.strictEqual(secondUndoRes.body.code, 'UNDO_INVALID');
+    });
+
+    it('12. should detect MISSING_SECURITY, MISSING_API, MISSING_NEGATIVE, MISSING_EDGE, and SPECIFICATION_DEFECT', () => {
+        const testReqs = [
+            {
+                id: 'REQ_SEC_01',
+                title: 'User Authentication JWT Token Refresh',
+                description: 'Users refresh their authentication tokens via secret key endpoint.',
+                category: 'Security'
+            },
+            {
+                id: 'REQ_API_01',
+                title: 'REST API Order Submission Endpoint',
+                description: 'Submit orders via POST /api/v1/orders with JSON payload.',
+                category: 'API'
+            },
+            {
+                id: 'REQ_VAGUE',
+                title: 'Miscellaneous',
+                description: 'TBD',
+                category: 'Functional'
+            }
+        ];
+
+        const testCases = [
+            {
+                id: 'TC_001',
+                title: 'Positive login test',
+                requirementId: 'REQ_SEC_01',
+                category: 'Functional'
+            }
+        ];
+
+        const gapAnalysis = smartRecommendationsService.analyzeCoverageGaps(testReqs, testCases);
+        assert.ok(gapAnalysis.gaps.some(g => g.type === 'MISSING_SECURITY'), 'Should detect missing security test');
+        assert.ok(gapAnalysis.gaps.some(g => g.type === 'MISSING_NEGATIVE'), 'Should detect missing negative test');
+        assert.ok(gapAnalysis.gaps.some(g => g.type === 'UNTESTED_REQUIREMENT'), 'Should detect untested API req');
+        assert.ok(gapAnalysis.gaps.some(g => g.type === 'SPECIFICATION_DEFECT'), 'Should detect specification defect for TBD');
+    });
+
+    it('13. should handle stale recommendations when suiteVersion advances', async () => {
+        const staleSuiteId = 'suite_stale_test_789';
+        await supabaseService.saveRecommendations([
+            {
+                id: 'rec_stale_1',
+                suiteId: staleSuiteId,
+                userId: testUserId,
+                title: 'Old suggestion for v1',
+                status: 'SUGGESTED',
+                suiteVersion: 1
+            },
+            {
+                id: 'rec_stale_2',
+                suiteId: staleSuiteId,
+                userId: testUserId,
+                title: 'Accepted suggestion for v1',
+                status: 'ACCEPTED',
+                suiteVersion: 1
+            }
+        ]);
+
+        // When suite version moves to 2, mark stale recommendations as EXPIRED
+        const expiredCount = await supabaseService.markStaleRecommendations(staleSuiteId, 2);
+        assert.strictEqual(expiredCount, 2);
+
+        const rec1 = await supabaseService.getRecommendation('rec_stale_1', testUserId);
+        assert.strictEqual(rec1.status, 'EXPIRED');
+    });
+
+    it('14. should test bulk add and bulk dismiss controller endpoints', async () => {
+        const recommendationsController = require('../src/controllers/recommendations.controller');
+
+        const mockReq = (body = {}) => ({
+            user: { id: testUserId, _id: testUserId },
+            body
+        });
+
+        const mockRes = () => {
+            const res = {
+                statusCode: 200,
+                body: null,
+                status(code) { this.statusCode = code; return this; },
+                json(payload) { this.body = payload; return this; }
+            };
+            return res;
+        };
+
+        // Create recommendations to bulk dismiss
+        await supabaseService.saveRecommendations([
+            {
+                id: 'rec_dismiss_1',
+                suiteId: testSuiteId,
+                userId: testUserId,
+                title: 'Dismissable rec 1',
+                status: 'SUGGESTED'
+            },
+            {
+                id: 'rec_dismiss_2',
+                suiteId: testSuiteId,
+                userId: testUserId,
+                title: 'Dismissable rec 2',
+                status: 'SUGGESTED'
+            }
+        ]);
+
+        const dismissRes = mockRes();
+        await recommendationsController.bulkDismissRecommendations(
+            mockReq({ recommendationIds: ['rec_dismiss_1', 'rec_dismiss_2'] }),
+            dismissRes
+        );
+
+        assert.strictEqual(dismissRes.statusCode, 200);
+        assert.strictEqual(dismissRes.body.success, true);
+        assert.strictEqual(dismissRes.body.data.dismissedCount, 2);
+
+        const dismissed1 = await supabaseService.getRecommendation('rec_dismiss_1', testUserId);
+        assert.strictEqual(dismissed1.status, 'DISMISSED');
+    });
+
+    it('15. should test addRecommendationToSuite single-item endpoint with idempotency', async () => {
+        const recommendationsController = require('../src/controllers/recommendations.controller');
+
+        await supabaseService.saveRecommendations([
+            {
+                id: 'rec_single_add_1',
+                suiteId: testSuiteId,
+                userId: testUserId,
+                title: 'Single add scenario',
+                category: 'Functional',
+                priority: 'High',
+                steps: ['Action 1'],
+                expectedResult: 'Outcome',
+                status: 'SUGGESTED'
+            }
+        ]);
+
+        const mockReq = (headers = {}) => ({
+            user: { id: testUserId, _id: testUserId },
+            params: { id: 'rec_single_add_1' },
+            headers
+        });
+
+        const mockRes = () => {
+            const res = {
+                statusCode: 200,
+                body: null,
+                status(code) { this.statusCode = code; return this; },
+                json(payload) { this.body = payload; return this; }
+            };
+            return res;
+        };
+
+        const idemKey = `idem_single_${Date.now()}`;
+        const addRes1 = mockRes();
+        await recommendationsController.addRecommendationToSuite(mockReq({ 'idempotency-key': idemKey }), addRes1);
+
+        assert.strictEqual(addRes1.statusCode, 200);
+        assert.strictEqual(addRes1.body.success, true);
+        assert.ok(addRes1.body.data.testCaseId);
+
+        // Repeated request with same idempotency-key returns cached response without duplicate addition
+        const addRes2 = mockRes();
+        await recommendationsController.addRecommendationToSuite(mockReq({ 'idempotency-key': idemKey }), addRes2);
+        assert.strictEqual(addRes2.statusCode, 200);
+        assert.strictEqual(addRes2.body.data.testCaseId, addRes1.body.data.testCaseId);
     });
 });

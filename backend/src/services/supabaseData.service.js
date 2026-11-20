@@ -30,6 +30,8 @@ class SupabaseDataService {
         this.inMemoryFailureAnalyses = new Map();
         this.inMemoryRecommendations = new Map();
         this.inMemoryRecommendationSessions = new Map();
+        this.inMemoryCoverageAnalyses = new Map();
+        this.inMemoryRecommendationActions = [];
         this.inMemoryMaintenanceFindings = new Map();
         this.inMemoryReleases = new Map();
         this.inMemoryReadinessAssessments = new Map();
@@ -146,6 +148,14 @@ class SupabaseDataService {
                     for (const [k, v] of Object.entries(data.recommendationSessions)) {
                         this.inMemoryRecommendationSessions.set(k, v);
                     }
+                }
+                if (data.coverageAnalyses && typeof data.coverageAnalyses === 'object') {
+                    for (const [k, v] of Object.entries(data.coverageAnalyses)) {
+                        this.inMemoryCoverageAnalyses.set(k, v);
+                    }
+                }
+                if (Array.isArray(data.recommendationActions)) {
+                    this.inMemoryRecommendationActions = data.recommendationActions;
                 }
                 if (data.maintenanceFindings && typeof data.maintenanceFindings === 'object') {
                     for (const [k, v] of Object.entries(data.maintenanceFindings)) {
@@ -288,6 +298,8 @@ class SupabaseDataService {
                 failureAnalyses: Object.fromEntries(this.inMemoryFailureAnalyses),
                 recommendations: Object.fromEntries(this.inMemoryRecommendations),
                 recommendationSessions: Object.fromEntries(this.inMemoryRecommendationSessions),
+                coverageAnalyses: Object.fromEntries(this.inMemoryCoverageAnalyses),
+                recommendationActions: this.inMemoryRecommendationActions.slice(-2000),
                 maintenanceFindings: Object.fromEntries(this.inMemoryMaintenanceFindings),
                 ciConnections: Object.fromEntries(this.inMemoryCiConnections),
                 ciPipelines: Object.fromEntries(this.inMemoryCiPipelines),
@@ -4264,6 +4276,148 @@ class SupabaseDataService {
     // SMART TEST RECOMMENDATIONS PERSISTENCE
     // ============================================
 
+    /**
+     * Normalize status: supports legacy ('pending', 'accepted', 'rejected', 'converted')
+     * and production schema ('SUGGESTED', 'ACCEPTED', 'ADDED', 'DISMISSED', 'DUPLICATE', 'EXPIRED')
+     */
+    _normalizeRecommendationStatus(status) {
+        if (!status) return 'SUGGESTED';
+        const s = String(status).trim().toUpperCase();
+        if (s === 'PENDING') return 'SUGGESTED';
+        if (s === 'REJECTED') return 'DISMISSED';
+        if (s === 'CONVERTED') return 'ADDED';
+        if (['SUGGESTED', 'ACCEPTED', 'ADDED', 'DISMISSED', 'DUPLICATE', 'EXPIRED'].includes(s)) {
+            return s;
+        }
+        return 'SUGGESTED';
+    }
+
+    async saveRecommendations(recommendationsList = []) {
+        if (!Array.isArray(recommendationsList) || recommendationsList.length === 0) return [];
+        const now = new Date().toISOString();
+        const saved = [];
+
+        for (const item of recommendationsList) {
+            if (!item || !item.id) continue;
+            const rec = {
+                id: String(item.id),
+                sessionId: item.sessionId || null,
+                workspaceId: item.workspaceId || item.workspace_id || null,
+                projectId: item.projectId || item.project_id || null,
+                suiteId: String(item.suiteId || item.suite_id),
+                analysisId: item.analysisId || item.analysis_id || null,
+                requirementId: String(item.requirementId || item.relatedRequirementId || item.requirement_id || 'REQ_001'),
+                title: item.title ? item.title.trim() : 'Untitled Recommendation',
+                description: item.description || item.coverageGapAddressed || '',
+                category: item.category || 'Functional',
+                priority: ['Critical', 'High', 'Medium', 'Low'].includes(item.priority) ? item.priority : 'Medium',
+                reason: item.reason || item.recommendationReason || '',
+                whyThisTest: item.whyThisTest || item.why_this_test || item.coverageGapAddressed || '',
+                preconditions: item.preconditions || 'N/A',
+                steps: Array.isArray(item.steps) ? item.steps : [String(item.steps || '')],
+                expectedResult: item.expectedResult || item.expected_result || '',
+                sourceReferences: Array.isArray(item.sourceReferences || item.source_references)
+                    ? (item.sourceReferences || item.source_references)
+                    : (item.relatedRequirementId ? [item.relatedRequirementId] : []),
+                similarTestCaseIds: Array.isArray(item.similarTestCaseIds || item.similar_test_case_ids)
+                    ? (item.similarTestCaseIds || item.similar_test_case_ids)
+                    : (item.mostSimilarCaseId ? [item.mostSimilarCaseId] : []),
+                similarityStatus: item.similarityStatus || (item.isDuplicate ? 'duplicate' : item.similarityScore >= 45 ? 'similar' : 'distinct'),
+                status: this._normalizeRecommendationStatus(item.status),
+                createdBy: item.createdBy || item.userId || item.created_by || null,
+                updatedBy: item.updatedBy || item.userId || item.updated_by || null,
+                userId: item.userId || item.createdBy || item.created_by || null,
+                resultingTestCaseId: item.resultingTestCaseId || item.convertedTestCaseId || item.resulting_test_case_id || null,
+                suiteVersion: item.suiteVersion || item.suite_version || 1,
+                similarityScore: typeof item.similarityScore === 'number' ? item.similarityScore : 0,
+                mostSimilarCaseId: item.mostSimilarCaseId || null,
+                overlapExplanation: item.overlapExplanation || null,
+                relatedRequirementId: item.relatedRequirementId || item.requirementId || 'REQ_001',
+                relatedRequirementTitle: item.relatedRequirementTitle || item.title || '',
+                recommendationReason: item.recommendationReason || item.reason || '',
+                coverageGapAddressed: item.coverageGapAddressed || item.whyThisTest || '',
+                isDuplicate: Boolean(item.isDuplicate),
+                coverageStatus: item.coverageStatus || (item.similarityStatus === 'duplicate' ? 'Potential Duplicate' : 'New Scenario Coverage'),
+                convertedTestCaseId: item.convertedTestCaseId || item.resultingTestCaseId || null,
+                testData: item.testData || 'Standard test dataset',
+                createdAt: item.createdAt || item.created_at || now,
+                updatedAt: item.updatedAt || item.updated_at || now
+            };
+
+            this.inMemoryRecommendations.set(rec.id, rec);
+            saved.push(rec);
+
+            // Supabase database write if connected
+            if (this.supabase) {
+                try {
+                    await this.supabase.from('recommendations').upsert({
+                        id: rec.id,
+                        workspace_id: rec.workspaceId,
+                        project_id: rec.projectId,
+                        suite_id: rec.suiteId,
+                        analysis_id: rec.analysisId,
+                        requirement_id: rec.requirementId,
+                        title: rec.title,
+                        description: rec.description,
+                        category: rec.category,
+                        priority: rec.priority,
+                        reason: rec.reason,
+                        why_this_test: rec.whyThisTest,
+                        preconditions: rec.preconditions,
+                        steps: rec.steps,
+                        expected_result: rec.expectedResult,
+                        source_references: rec.sourceReferences,
+                        similar_test_case_ids: rec.similarTestCaseIds,
+                        similarity_status: rec.similarityStatus,
+                        status: rec.status,
+                        created_by: rec.createdBy,
+                        updated_by: rec.updatedBy,
+                        resulting_test_case_id: rec.resultingTestCaseId,
+                        suite_version: rec.suiteVersion,
+                        created_at: rec.createdAt,
+                        updated_at: rec.updatedAt
+                    });
+                } catch (_) {}
+            }
+        }
+
+        this._saveDiskWorkspacesStore();
+        return saved;
+    }
+
+    async getRecommendationsBySuite(suiteId, userId, filters = {}) {
+        if (!suiteId) return [];
+        let items = Array.from(this.inMemoryRecommendations.values())
+            .filter(r => String(r.suiteId) === String(suiteId));
+
+        if (userId) {
+            items = items.filter(r => !r.userId || String(r.userId) === String(userId));
+        }
+
+        if (filters.status && filters.status !== 'all') {
+            const normalizedStatusFilter = this._normalizeRecommendationStatus(filters.status);
+            items = items.filter(r => this._normalizeRecommendationStatus(r.status) === normalizedStatusFilter);
+        }
+
+        if (filters.priority && filters.priority !== 'all') {
+            items = items.filter(r => String(r.priority).toLowerCase() === String(filters.priority).toLowerCase());
+        }
+
+        if (filters.category && filters.category !== 'all') {
+            items = items.filter(r => String(r.category).toLowerCase() === String(filters.category).toLowerCase());
+        }
+
+        if (filters.requirementId && filters.requirementId !== 'all') {
+            items = items.filter(r => String(r.requirementId).toLowerCase() === String(filters.requirementId).toLowerCase());
+        }
+
+        if (filters.similarityStatus && filters.similarityStatus !== 'all') {
+            items = items.filter(r => String(r.similarityStatus).toLowerCase() === String(filters.similarityStatus).toLowerCase());
+        }
+
+        return items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
     async saveRecommendationSession(sessionData) {
         if (!sessionData || !sessionData.id) throw new Error('Valid recommendation sessionData is required');
         const now = new Date().toISOString();
@@ -4277,17 +4431,14 @@ class SupabaseDataService {
         this.inMemoryRecommendationSessions.set(sessionData.id, record);
 
         // Cache each individual recommendation
-        if (Array.isArray(sessionData.recommendations)) {
-            sessionData.recommendations.forEach(rec => {
-                if (rec && rec.id) {
-                    this.inMemoryRecommendations.set(rec.id, {
-                        ...rec,
-                        sessionId: sessionData.id,
-                        suiteId: sessionData.suiteId,
-                        userId: sessionData.userId
-                    });
-                }
-            });
+        if (Array.isArray(sessionData.recommendations) && sessionData.recommendations.length > 0) {
+            const mapped = sessionData.recommendations.map(rec => ({
+                ...rec,
+                sessionId: sessionData.id,
+                suiteId: sessionData.suiteId,
+                userId: sessionData.userId
+            }));
+            await this.saveRecommendations(mapped);
         }
 
         this._saveDiskWorkspacesStore();
@@ -4316,26 +4467,31 @@ class SupabaseDataService {
         if (!recommendationId) return null;
         const rec = this.inMemoryRecommendations.get(recommendationId);
         if (!rec) return null;
-        if (userId && String(rec.userId) !== String(userId)) return null;
+        if (userId && rec.userId && String(rec.userId) !== String(userId)) return null;
         return rec;
     }
 
-    async updateRecommendation(recommendationId, userId, { status, editedFields, convertedTestCaseId } = {}) {
+    async updateRecommendation(recommendationId, userId, updates = {}) {
         if (!recommendationId) throw new Error('recommendationId is required');
         const existing = this.inMemoryRecommendations.get(recommendationId);
         if (!existing) return null;
-        if (userId && String(existing.userId) !== String(userId)) {
+        if (userId && existing.userId && String(existing.userId) !== String(userId)) {
             const err = new Error('Access denied to recommendation');
             err.statusCode = 403;
             throw err;
         }
 
         const now = new Date().toISOString();
+        const { status, editedFields, convertedTestCaseId, resultingTestCaseId } = updates;
+        const normalizedStatus = status ? this._normalizeRecommendationStatus(status) : existing.status;
+
         const updated = {
             ...existing,
-            ...(status ? { status } : {}),
-            ...(convertedTestCaseId ? { convertedTestCaseId } : {}),
+            ...(status ? { status: normalizedStatus } : {}),
+            ...(convertedTestCaseId ? { resultingTestCaseId: convertedTestCaseId, convertedTestCaseId } : {}),
+            ...(resultingTestCaseId ? { resultingTestCaseId, convertedTestCaseId: resultingTestCaseId } : {}),
             ...(editedFields && typeof editedFields === 'object' ? editedFields : {}),
+            updatedBy: userId || existing.updatedBy,
             updatedAt: now,
             updated_at: now
         };
@@ -4351,8 +4507,126 @@ class SupabaseDataService {
             }
         }
 
+        if (this.supabase) {
+            try {
+                await this.supabase.from('recommendations').update({
+                    status: updated.status,
+                    resulting_test_case_id: updated.resultingTestCaseId,
+                    title: updated.title,
+                    steps: updated.steps,
+                    expected_result: updated.expectedResult,
+                    priority: updated.priority,
+                    updated_by: updated.updatedBy,
+                    updated_at: updated.updatedAt
+                }).eq('id', recommendationId);
+            } catch (_) {}
+        }
+
         this._saveDiskWorkspacesStore();
         return updated;
+    }
+
+    async bulkUpdateRecommendations(recommendationIds = [], userId, updates = {}) {
+        if (!Array.isArray(recommendationIds)) return [];
+        const results = [];
+        for (const id of recommendationIds) {
+            const res = await this.updateRecommendation(id, userId, updates);
+            if (res) results.push(res);
+        }
+        return results;
+    }
+
+    async saveCoverageAnalysis(analysisData) {
+        if (!analysisData || !analysisData.id) throw new Error('analysisData with id is required');
+        const now = new Date().toISOString();
+        const record = {
+            ...analysisData,
+            createdAt: analysisData.createdAt || now,
+            created_at: analysisData.created_at || now
+        };
+        this.inMemoryCoverageAnalyses.set(record.id, record);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('coverage_analyses').upsert({
+                    id: record.id,
+                    workspace_id: record.workspaceId || null,
+                    suite_id: record.suiteId,
+                    suite_version: record.suiteVersion || 1,
+                    total_requirements: record.totalRequirements || 0,
+                    untested_requirements: record.untestedRequirements || 0,
+                    shallow_coverage_count: record.shallowCoverageCount || 0,
+                    gaps: record.gaps || [],
+                    summary: record.summary || {},
+                    created_by: record.userId || null,
+                    created_at: record.createdAt
+                });
+            } catch (_) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getLatestCoverageAnalysis(suiteId, userId) {
+        if (!suiteId) return null;
+        const matches = Array.from(this.inMemoryCoverageAnalyses.values())
+            .filter(a => String(a.suiteId) === String(suiteId) && (!userId || !a.userId || String(a.userId) === String(userId)))
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return matches.length > 0 ? matches[0] : null;
+    }
+
+    async recordRecommendationAction(recommendationId, action, userId, metadata = {}) {
+        if (!recommendationId || !action) return null;
+        const now = new Date().toISOString();
+        const record = {
+            id: `recact_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            recommendationId,
+            action,
+            userId: userId || null,
+            metadata,
+            createdAt: now
+        };
+        this.inMemoryRecommendationActions.push(record);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('recommendation_actions').insert({
+                    id: record.id,
+                    recommendation_id: record.recommendationId,
+                    action: record.action,
+                    user_id: record.userId,
+                    metadata: record.metadata,
+                    created_at: record.createdAt
+                });
+            } catch (_) {}
+        }
+
+        this._saveDiskWorkspacesStore();
+        return record;
+    }
+
+    async getRecommendationActions(recommendationId) {
+        if (!recommendationId) return [];
+        return this.inMemoryRecommendationActions.filter(a => a.recommendationId === recommendationId);
+    }
+
+    async markStaleRecommendations(suiteId, currentVersion) {
+        if (!suiteId) return 0;
+        let count = 0;
+        for (const [id, rec] of this.inMemoryRecommendations.entries()) {
+            if (String(rec.suiteId) === String(suiteId)) {
+                const recVersion = Number(rec.suiteVersion || 1);
+                if (recVersion < Number(currentVersion) && ['SUGGESTED', 'ACCEPTED'].includes(rec.status)) {
+                    rec.status = 'EXPIRED';
+                    rec.updatedAt = new Date().toISOString();
+                    this.inMemoryRecommendations.set(id, rec);
+                    count++;
+                }
+            }
+        }
+        if (count > 0) this._saveDiskWorkspacesStore();
+        return count;
     }
 
     // ============================================

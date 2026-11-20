@@ -66,6 +66,12 @@ export default function SmartRecommendationsPage() {
     const [analysisSummary, setAnalysisSummary] = useState(null);
     const abortControllerRef = useRef(null);
 
+    // Filter State
+    const [activeStatusTab, setActiveStatusTab] = useState('all');
+    const [filterPriority, setFilterPriority] = useState('all');
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [filterRequirement, setFilterRequirement] = useState('all');
+
     // Result Card & Selection State
     const [selectedRecIds, setSelectedRecIds] = useState(new Set());
     const [addedRecIds, setAddedRecIds] = useState(new Set());
@@ -100,7 +106,7 @@ export default function SmartRecommendationsPage() {
 
     // Unadded recommendations count for leave protection
     const unaddedCount = useMemo(() => {
-        return recommendations.filter(r => !addedRecIds.has(r.id)).length;
+        return recommendations.filter(r => !addedRecIds.has(r.id) && (r.status || '').toUpperCase() === 'SUGGESTED').length;
     }, [recommendations, addedRecIds]);
 
     // Fetch user test suites on mount
@@ -127,34 +133,53 @@ export default function SmartRecommendationsPage() {
         return () => { isMounted = false; };
     }, []);
 
-    // Load suite context when selectedSuiteId changes
+    // Load suite context and persisted recommendations when selectedSuiteId changes
     useEffect(() => {
         if (!selectedSuiteId) {
             setSuiteContext(null);
+            setRecommendations([]);
             return;
         }
 
         let isMounted = true;
-        const loadContext = async () => {
+        const loadContextAndRecs = async () => {
             setContextLoading(true);
             try {
-                const res = await recommendationService.getContext(selectedSuiteId);
-                if (isMounted && res?.data) {
-                    setSuiteContext(res.data);
-                    // If deep-linked requirement is not in the suite, keep 'all'
+                const [ctxRes, recsRes] = await Promise.allSettled([
+                    recommendationService.getContext(selectedSuiteId),
+                    recommendationService.getSuiteRecommendations(selectedSuiteId)
+                ]);
+
+                if (isMounted && ctxRes.status === 'fulfilled' && ctxRes.value?.data) {
+                    setSuiteContext(ctxRes.value.data);
                     if (queryRequirement) {
-                        const exists = res.data.requirements?.some(r => r.id === queryRequirement);
+                        const exists = ctxRes.value.data.requirements?.some(r => r.id === queryRequirement);
                         setSelectedRequirementId(exists ? queryRequirement : 'all');
                     }
                 }
+
+                if (isMounted && recsRes.status === 'fulfilled' && recsRes.value?.data) {
+                    const loaded = recsRes.value.data.recommendations || [];
+                    if (loaded.length > 0) {
+                        setRecommendations(loaded);
+                        const added = new Set(
+                            loaded.filter(r => (r.status || '').toUpperCase() === 'ADDED' || (r.status || '').toLowerCase() === 'converted')
+                                .map(r => r.id)
+                        );
+                        setAddedRecIds(added);
+                        if (recsRes.value.data.analysisSummary) {
+                            setAnalysisSummary(recsRes.value.data.analysisSummary);
+                        }
+                    }
+                }
             } catch (err) {
-                console.error('Failed to load suite context:', err);
+                console.error('Failed to load suite data:', err);
             } finally {
                 if (isMounted) setContextLoading(false);
             }
         };
 
-        loadContext();
+        loadContextAndRecs();
         return () => { isMounted = false; };
     }, [selectedSuiteId, queryRequirement]);
 
@@ -169,7 +194,6 @@ export default function SmartRecommendationsPage() {
             next.delete('suiteId');
             return next;
         }, { replace: true });
-        // Clear previous in-memory results when switching suites
         setRecommendations([]);
         setAddedRecIds(new Set());
         setSelectedRecIds(new Set());
@@ -339,9 +363,12 @@ export default function SmartRecommendationsPage() {
         }
     };
 
-    // Dismiss single recommendation (in-memory)
-    const handleDismissSingle = (id) => {
-        setRecommendations(prev => prev.filter(r => r.id !== id));
+    // Dismiss single recommendation (syncs to backend if persisted)
+    const handleDismissSingle = async (id) => {
+        try {
+            await recommendationService.update(id, { status: 'DISMISSED' });
+        } catch (_) {}
+        setRecommendations(prev => prev.map(r => r.id === id ? { ...r, status: 'DISMISSED' } : r));
         setSelectedRecIds(prev => {
             const next = new Set(prev);
             next.delete(id);
@@ -351,10 +378,47 @@ export default function SmartRecommendationsPage() {
     };
 
     // Dismiss selected recommendations
-    const handleDismissSelected = () => {
-        setRecommendations(prev => prev.filter(r => !selectedRecIds.has(r.id)));
+    const handleDismissSelected = async () => {
+        const idsToDismiss = Array.from(selectedRecIds);
+        if (idsToDismiss.length === 0) return;
+        try {
+            await recommendationService.bulkDismiss({ recommendationIds: idsToDismiss });
+        } catch (_) {}
+        setRecommendations(prev => prev.map(r => idsToDismiss.includes(r.id) ? { ...r, status: 'DISMISSED' } : r));
         setSelectedRecIds(new Set());
-        setLiveAnnouncement('Selected recommendations dismissed.');
+        setLiveAnnouncement(`Dismissed ${idsToDismiss.length} recommendations.`);
+    };
+
+    // Export selected suggestions as JSON or CSV
+    const handleExportSelected = (format = 'json') => {
+        const targetRecs = recommendations.filter(r => selectedRecIds.has(r.id));
+        if (targetRecs.length === 0) return;
+
+        if (format === 'json') {
+            const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(targetRecs, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute('href', dataStr);
+            dl.setAttribute('download', `smart_recommendations_${selectedSuiteId || 'export'}.json`);
+            dl.click();
+        } else if (format === 'csv') {
+            const headers = ['ID', 'Title', 'Category', 'Priority', 'Requirement', 'Status', 'Why This Test', 'Expected Result'];
+            const rows = targetRecs.map(r => [
+                r.id,
+                `"${(r.title || '').replace(/"/g, '""')}"`,
+                r.category || 'Functional',
+                r.priority || 'Medium',
+                r.requirementId || r.relatedRequirementId || '',
+                r.status || 'SUGGESTED',
+                `"${(r.whyThisTest || r.recommendationReason || '').replace(/"/g, '""')}"`,
+                `"${(r.expectedResult || '').replace(/"/g, '""')}"`
+            ]);
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const dl = document.createElement('a');
+            dl.setAttribute('href', encodeURI(csvContent));
+            dl.setAttribute('download', `smart_recommendations_${selectedSuiteId || 'export'}.csv`);
+            dl.click();
+        }
+        setLiveAnnouncement(`Exported ${targetRecs.length} recommendations as ${format.toUpperCase()}.`);
     };
 
     // Open Edit Drawer
@@ -365,12 +429,12 @@ export default function SmartRecommendationsPage() {
             priority: rec.priority || 'Medium',
             steps: Array.isArray(rec.steps) ? rec.steps.join('\n') : String(rec.steps || ''),
             expectedResult: rec.expectedResult || '',
-            recommendationReason: rec.recommendationReason || ''
+            recommendationReason: rec.whyThisTest || rec.recommendationReason || ''
         });
     };
 
-    // Save Edit Form (in-memory)
-    const handleSaveEdit = (e) => {
+    // Save Edit Form (syncs with backend)
+    const handleSaveEdit = async (e) => {
         e.preventDefault();
         if (!editingRec) return;
 
@@ -379,15 +443,25 @@ export default function SmartRecommendationsPage() {
             .map(s => s.trim())
             .filter(Boolean);
 
+        const editedFields = {
+            title: editForm.title.trim() || editingRec.title,
+            priority: editForm.priority,
+            steps: updatedSteps.length > 0 ? updatedSteps : editingRec.steps,
+            expectedResult: editForm.expectedResult.trim() || editingRec.expectedResult,
+            reason: editForm.recommendationReason.trim() || editingRec.reason || ''
+        };
+
+        try {
+            await recommendationService.update(editingRec.id, { editedFields });
+        } catch (_) {}
+
         setRecommendations(prev => prev.map(r => {
             if (r.id === editingRec.id) {
                 return {
                     ...r,
-                    title: editForm.title.trim() || r.title,
-                    priority: editForm.priority,
-                    steps: updatedSteps.length > 0 ? updatedSteps : r.steps,
-                    expectedResult: editForm.expectedResult.trim() || r.expectedResult,
-                    recommendationReason: editForm.recommendationReason.trim() || r.recommendationReason
+                    ...editedFields,
+                    whyThisTest: editedFields.reason,
+                    recommendationReason: editedFields.reason
                 };
             }
             return r;
@@ -555,6 +629,52 @@ export default function SmartRecommendationsPage() {
         }
         return list;
     }, [recommendations, sortOption]);
+
+    // Filtered recommendations by status tab, priority, category, requirement
+    const filteredRecommendations = useMemo(() => {
+        return sortedRecommendations.filter(rec => {
+            // Status tab filter
+            if (activeStatusTab !== 'all') {
+                const normStatus = (rec.status || 'SUGGESTED').toUpperCase();
+                const target = activeStatusTab.toUpperCase();
+                if (target === 'SUGGESTED' && (normStatus === 'SUGGESTED' || normStatus === 'PENDING')) {
+                    // match
+                } else if (target === 'ADDED' && (normStatus === 'ADDED' || normStatus === 'CONVERTED' || addedRecIds.has(rec.id))) {
+                    // match
+                } else if (target === 'DISMISSED' && (normStatus === 'DISMISSED' || normStatus === 'REJECTED')) {
+                    // match
+                } else if (target === 'DUPLICATE' && (normStatus === 'DUPLICATE' || rec.isDuplicate)) {
+                    // match
+                } else if (normStatus !== target) {
+                    return false;
+                }
+            }
+
+            // Priority filter
+            if (filterPriority !== 'all' && String(rec.priority).toLowerCase() !== filterPriority.toLowerCase()) {
+                return false;
+            }
+
+            // Category filter
+            if (filterCategory !== 'all' && String(rec.category).toLowerCase() !== filterCategory.toLowerCase()) {
+                return false;
+            }
+
+            // Requirement filter
+            if (filterRequirement !== 'all') {
+                const rId = String(rec.requirementId || rec.relatedRequirementId || '').toLowerCase();
+                if (rId !== filterRequirement.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [sortedRecommendations, activeStatusTab, filterPriority, filterCategory, filterRequirement, addedRecIds]);
+
+    const hasStaleRecommendations = useMemo(() => {
+        return recommendations.some(r => (r.status || '').toUpperCase() === 'EXPIRED');
+    }, [recommendations]);
 
     return (
         <div className="sr-page-container">
@@ -941,6 +1061,89 @@ export default function SmartRecommendationsPage() {
             {/* Results Section */}
             {recommendations.length > 0 && !isGenerating && (
                 <section className="sr-results-section" aria-label="Generated test recommendations">
+                    {/* Stale Specification Warning Banner */}
+                    {hasStaleRecommendations && (
+                        <div className="sr-stale-banner" role="alert">
+                            <div>
+                                <strong>Specification updated:</strong> One or more recommendations were generated for an earlier suite version and have been marked Expired.
+                            </div>
+                            <button
+                                type="button"
+                                className="sr-retry-btn"
+                                onClick={handleGenerate}
+                            >
+                                Reanalyze
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Status Tabs Filter */}
+                    <nav className="sr-status-tabs" aria-label="Filter recommendations by status">
+                        {[
+                            { key: 'all', label: 'All', count: recommendations.length },
+                            { key: 'SUGGESTED', label: 'Suggested', count: recommendations.filter(r => (r.status || 'SUGGESTED').toUpperCase() === 'SUGGESTED' || (r.status || '').toLowerCase() === 'pending').length },
+                            { key: 'ADDED', label: 'Added', count: recommendations.filter(r => (r.status || '').toUpperCase() === 'ADDED' || (r.status || '').toLowerCase() === 'converted' || addedRecIds.has(r.id)).length },
+                            { key: 'DISMISSED', label: 'Dismissed', count: recommendations.filter(r => (r.status || '').toUpperCase() === 'DISMISSED' || (r.status || '').toLowerCase() === 'rejected').length },
+                            { key: 'DUPLICATE', label: 'Duplicate', count: recommendations.filter(r => (r.status || '').toUpperCase() === 'DUPLICATE' || r.isDuplicate).length },
+                            { key: 'EXPIRED', label: 'Expired', count: recommendations.filter(r => (r.status || '').toUpperCase() === 'EXPIRED').length }
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                type="button"
+                                className={`sr-status-tab ${activeStatusTab === tab.key ? 'active' : ''}`}
+                                onClick={() => setActiveStatusTab(tab.key)}
+                            >
+                                <span>{tab.label}</span>
+                                {tab.count > 0 && <span className="sr-tab-badge">{tab.count}</span>}
+                            </button>
+                        ))}
+                    </nav>
+
+                    {/* Secondary Filters Bar */}
+                    <div className="sr-filter-bar">
+                        <div className="sr-filter-item">
+                            <label htmlFor="sr-filter-priority">Priority:</label>
+                            <select
+                                id="sr-filter-priority"
+                                className="sr-filter-select"
+                                value={filterPriority}
+                                onChange={(e) => setFilterPriority(e.target.value)}
+                            >
+                                <option value="all">All priorities</option>
+                                <option value="Critical">Critical</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div className="sr-filter-item">
+                            <label htmlFor="sr-filter-cat">Category:</label>
+                            <select
+                                id="sr-filter-cat"
+                                className="sr-filter-select"
+                                value={filterCategory}
+                                onChange={(e) => setFilterCategory(e.target.value)}
+                            >
+                                <option value="all">All categories</option>
+                                {SHARED_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div className="sr-filter-item">
+                            <label htmlFor="sr-filter-req">Requirement:</label>
+                            <select
+                                id="sr-filter-req"
+                                className="sr-filter-select"
+                                value={filterRequirement}
+                                onChange={(e) => setFilterRequirement(e.target.value)}
+                            >
+                                <option value="all">All requirements</option>
+                                {suiteContext?.requirements?.map(r => (
+                                    <option key={r.id} value={r.id}>{r.id} - {r.title.length > 30 ? r.title.slice(0, 27) + '...' : r.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
                     {/* Results Toolbar */}
                     <div className="sr-results-toolbar">
                         <div className="sr-toolbar-left">
@@ -949,13 +1152,13 @@ export default function SmartRecommendationsPage() {
                                     type="checkbox"
                                     className="sr-checkbox"
                                     checked={
-                                        recommendations.filter(r => !addedRecIds.has(r.id)).length > 0 &&
-                                        selectedRecIds.size === recommendations.filter(r => !addedRecIds.has(r.id)).length
+                                        filteredRecommendations.filter(r => !addedRecIds.has(r.id)).length > 0 &&
+                                        selectedRecIds.size === filteredRecommendations.filter(r => !addedRecIds.has(r.id)).length
                                     }
                                     onChange={handleSelectAll}
                                 />
                                 <span className="sr-results-count">
-                                    {recommendations.length} recommendation{recommendations.length !== 1 ? 's' : ''}
+                                    {filteredRecommendations.length} recommendation{filteredRecommendations.length !== 1 ? 's' : ''}
                                 </span>
                             </label>
                         </div>
@@ -999,14 +1202,31 @@ export default function SmartRecommendationsPage() {
                                 >
                                     Dismiss selected
                                 </button>
+                                <button
+                                    type="button"
+                                    className="sr-bulk-btn sr-bulk-btn--export"
+                                    onClick={() => handleExportSelected('json')}
+                                    disabled={isAdding}
+                                >
+                                    Export JSON
+                                </button>
+                                <button
+                                    type="button"
+                                    className="sr-bulk-btn sr-bulk-btn--export"
+                                    onClick={() => handleExportSelected('csv')}
+                                    disabled={isAdding}
+                                >
+                                    Export CSV
+                                </button>
                             </div>
                         </div>
                     )}
 
                     {/* Recommendation Cards List */}
                     <div className="sr-cards-list">
-                        {sortedRecommendations.map((rec) => {
-                            const isAdded = addedRecIds.has(rec.id);
+                        {filteredRecommendations.map((rec) => {
+                            const isAdded = addedRecIds.has(rec.id) || (rec.status || '').toUpperCase() === 'ADDED' || (rec.status || '').toLowerCase() === 'converted';
+                            const isDismissed = (rec.status || '').toUpperCase() === 'DISMISSED' || (rec.status || '').toLowerCase() === 'rejected';
                             const isSelected = selectedRecIds.has(rec.id);
                             const isStepsExpanded = expandedCards.has(rec.id);
                             const isScenarioExpanded = expandedScenarios.has(rec.id);
@@ -1035,19 +1255,24 @@ export default function SmartRecommendationsPage() {
                                         <div className="sr-card-tags">
                                             <span className="sr-pill-tag sr-pill-tag--type">{rec.category || 'Functional'}</span>
                                             <span className="sr-pill-tag sr-pill-tag--priority">{rec.priority || 'Medium'}</span>
-                                            {rec.relatedRequirementId && (
-                                                <span className="sr-pill-tag sr-pill-tag--req">{rec.relatedRequirementId}</span>
+                                            {(rec.requirementId || rec.relatedRequirementId) && (
+                                                <span className="sr-pill-tag sr-pill-tag--req">{rec.requirementId || rec.relatedRequirementId}</span>
+                                            )}
+                                            {rec.similarityStatus && rec.similarityStatus !== 'distinct' && (
+                                                <span className={`sr-similarity-badge sr-similarity-badge--${rec.similarityStatus}`}>
+                                                    {rec.similarityStatus === 'duplicate' ? 'Duplicate Warning' : 'Similar Scenario'}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
 
                                     {/* Scenario Description (2-line clamped) */}
-                                    {rec.coverageGapAddressed && (
+                                    {(rec.description || rec.coverageGapAddressed) && (
                                         <div className="sr-card-scenario-wrap">
                                             <p className={`sr-card-scenario ${isScenarioExpanded ? 'expanded' : ''}`}>
-                                                {rec.coverageGapAddressed}
+                                                {rec.description || rec.coverageGapAddressed}
                                             </p>
-                                            {rec.coverageGapAddressed.length > 120 && (
+                                            {(rec.description || rec.coverageGapAddressed || '').length > 120 && (
                                                 <button
                                                     type="button"
                                                     className="sr-expand-text-btn"
@@ -1060,19 +1285,27 @@ export default function SmartRecommendationsPage() {
                                     )}
 
                                     {/* Why this test rationale */}
-                                    {rec.recommendationReason && (
+                                    {(rec.whyThisTest || rec.reason || rec.recommendationReason) && (
                                         <div className="sr-card-rationale">
                                             <span className="sr-rationale-label">Why this test:</span>
-                                            <span className="sr-rationale-text">{rec.recommendationReason}</span>
+                                            <span className="sr-rationale-text">{rec.whyThisTest || rec.reason || rec.recommendationReason}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Source references */}
+                                    {Array.isArray(rec.sourceReferences) && rec.sourceReferences.length > 0 && (
+                                        <div className="sr-card-rationale">
+                                            <span className="sr-rationale-label">Sources:</span>
+                                            <span className="sr-rationale-text">{rec.sourceReferences.join(', ')}</span>
                                         </div>
                                     )}
 
                                     {/* Overlap note if similarTo / mostSimilarCaseId is present */}
-                                    {(rec.isDuplicate || rec.mostSimilarCaseId) && (
+                                    {(rec.isDuplicate || rec.mostSimilarCaseId || rec.similarityStatus === 'duplicate' || rec.similarityStatus === 'similar') && (
                                         <div className="sr-overlap-note">
                                             <AlertCircle size={13} />
                                             <span>
-                                                Similar to {rec.mostSimilarCaseId || 'existing test case'}, review before adding
+                                                {rec.overlapExplanation || `Similar to existing test case ${rec.mostSimilarCaseId || 'in suite'}, review before adding.`}
                                             </span>
                                         </div>
                                     )}
@@ -1122,8 +1355,19 @@ export default function SmartRecommendationsPage() {
                                         {isAdded ? (
                                             <span className="sr-added-pill">
                                                 <Check size={14} />
-                                                <span>Added</span>
+                                                <span>Added to Suite</span>
                                             </span>
+                                        ) : isDismissed ? (
+                                            <button
+                                                type="button"
+                                                className="sr-card-btn"
+                                                onClick={() => {
+                                                    recommendationService.update(rec.id, { status: 'SUGGESTED' });
+                                                    setRecommendations(prev => prev.map(r => r.id === rec.id ? { ...r, status: 'SUGGESTED' } : r));
+                                                }}
+                                            >
+                                                Restore
+                                            </button>
                                         ) : (
                                             <>
                                                 <button
