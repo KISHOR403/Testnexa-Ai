@@ -1664,8 +1664,8 @@ class SupabaseDataService {
                 (summary.security || 0);
             if (sum > 0) {
                 summary.total = sum;
-            } else if (row.suite_data && typeof row.suite_data === 'object') {
-                const sd = row.suite_data;
+            } else if ((row.suite_data || row.suiteData) && typeof (row.suite_data || row.suiteData) === 'object') {
+                const sd = row.suite_data || row.suiteData;
                 const sdTotal = (sd.testCases?.length || 0) ||
                     (sd.tests?.length || 0) ||
                     ((sd.functional?.length || 0) +
@@ -1695,7 +1695,7 @@ class SupabaseDataService {
             appType: row.app_type || row.context || 'web',
             detailLevel: row.detail_level || row.depth || 'standard',
             messages: row.messages || [],
-            suiteData: row.suite_data || {},
+            suiteData: row.suite_data || row.suiteData || {},
             summary: summary,
             quality: row.quality || {},
             currentVersion: row.current_version || 1,

@@ -60,6 +60,90 @@ const createRateLimiter = ({
     };
 };
 
+const activeStreams = new Set();
+const copilotHourlyMap = new Map();
+const copilotDailyMap = new Map();
+
+/**
+ * Multi-tier sliding window rate limiter for Copilot Chat:
+ * - 30 messages per hour
+ * - 150 messages per day
+ * Returns 429 { code: 'RATE_LIMITED', retryAfter }
+ */
+const copilotChatRateLimiter = (req, res, next) => {
+    const key = (req.user?._id || req.user?.id || req.ip || 'unknown').toString();
+    const now = Date.now();
+
+    const HOUR_MS = 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    // Check hourly limit (30 / hr)
+    const hourly = (copilotHourlyMap.get(key) || []).filter(t => now - t < HOUR_MS);
+    if (hourly.length >= 30) {
+        const oldest = hourly[0];
+        const retryAfterSec = Math.max(1, Math.ceil((HOUR_MS - (now - oldest)) / 1000));
+        res.setHeader('Retry-After', retryAfterSec);
+        return res.status(429).json({
+            code: 'RATE_LIMITED',
+            message: 'Hourly Copilot message limit exceeded (30 messages/hour).',
+            retryAfter: retryAfterSec
+        });
+    }
+
+    // Check daily limit (150 / day)
+    const daily = (copilotDailyMap.get(key) || []).filter(t => now - t < DAY_MS);
+    if (daily.length >= 150) {
+        const oldest = daily[0];
+        const retryAfterSec = Math.max(1, Math.ceil((DAY_MS - (now - oldest)) / 1000));
+        res.setHeader('Retry-After', retryAfterSec);
+        return res.status(429).json({
+            code: 'RATE_LIMITED',
+            message: 'Daily Copilot message limit exceeded (150 messages/day).',
+            retryAfter: retryAfterSec
+        });
+    }
+
+    hourly.push(now);
+    daily.push(now);
+    copilotHourlyMap.set(key, hourly);
+    copilotDailyMap.set(key, daily);
+
+    next();
+};
+
+/**
+ * Concurrency limiter: Exactly 1 concurrent active stream per user
+ */
+const copilotConcurrencyLimiter = (req, res, next) => {
+    const key = (req.user?._id || req.user?.id || req.ip || 'unknown').toString();
+
+    if (activeStreams.has(key)) {
+        res.setHeader('Retry-After', 2);
+        return res.status(429).json({
+            code: 'RATE_LIMITED',
+            message: 'A Copilot generation is already running for your account. Please wait for it to complete.',
+            retryAfter: 2
+        });
+    }
+
+    activeStreams.add(key);
+
+    const cleanup = () => {
+        activeStreams.delete(key);
+    };
+
+    res.on('finish', cleanup);
+    res.on('close', cleanup);
+
+    next();
+};
+
+const copilotFeedbackRateLimiter = createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+    message: 'Too many feedback submissions. Please wait before submitting more feedback.'
+});
+
 const copilotRateLimiter = createRateLimiter({
     windowMs: 5 * 60 * 1000,
     max: 40,
@@ -117,6 +201,9 @@ const helpSearchMissRateLimiter = createRateLimiter({
 module.exports = {
     createRateLimiter,
     copilotRateLimiter,
+    copilotChatRateLimiter,
+    copilotConcurrencyLimiter,
+    copilotFeedbackRateLimiter,
     authLoginRateLimiter,
     authRegisterRateLimiter,
     authPasswordResetRateLimiter,

@@ -72,21 +72,8 @@ const callGemini = async (prompt, options = {}) => {
         const response = await result.response;
         const text = response.text();
 
-        // Log raw response length and preview for debugging
+        // Log response length without exposing sensitive text
         logger.info(`Gemini raw response: ${text ? text.length : 0} chars`);
-        if (text && text.length < 200) {
-            logger.warn('Gemini response suspiciously short:', text);
-        }
-
-        // Save raw response for debugging
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            fs.writeFileSync(
-                path.join(__dirname, '../../debug_raw_ai_response.txt'),
-                text || '(empty)'
-            );
-        } catch (e) { /* ignore file write errors */ }
 
         if (text) {
             return text;
