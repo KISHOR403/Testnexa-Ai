@@ -18,6 +18,8 @@ RUN npm ci
 COPY index.html vite.config.js eslint.config.js ./
 COPY frontend/ ./frontend/
 COPY public/ ./public/
+COPY scripts/ ./scripts/
+COPY content/ ./content/
 
 # Build arg for API URL (baked into static assets at build time)
 ARG VITE_API_BASE_URL=http://localhost:5000/api/v1
