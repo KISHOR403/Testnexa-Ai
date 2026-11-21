@@ -287,25 +287,59 @@ const getQualityMetrics = async ({ suiteId = 'all', userId }) => {
         const sid = String(session.id || session._id);
         const suiteCases = extractValidTestCasesFromSession(session, allSessionsMap);
 
-        // Normalize approval status on each case
+        // Normalize approval status on each case, honoring inMemoryTestCases if present
         suiteCases.forEach(tc => {
-            tc.approval_status = getCaseApprovalStatus(tc);
-            tc.is_approved = tc.approval_status === 'approved';
+            const memCase = supabaseService.inMemoryTestCases?.get(String(tc.id));
+            if (memCase) {
+                tc.approval_status = memCase.approval_status;
+                tc.is_approved = memCase.approval_status === 'approved';
+                tc.priority = memCase.priority || tc.priority;
+                tc.type = memCase.type || tc.type;
+            } else {
+                tc.approval_status = getCaseApprovalStatus(tc);
+                tc.is_approved = tc.approval_status === 'approved';
+            }
             tc.canonicalType = normalizeTestType(tc);
             tc.canonicalPriority = normalizeTestPriority(tc);
         });
 
-        const suiteReqs = extractNormalizedRequirements(session, suiteCases);
+        let suiteReqs = [];
+        if (supabaseService.inMemoryRequirements && supabaseService.inMemoryRequirements.size > 0) {
+            const stored = Array.from(supabaseService.inMemoryRequirements.values())
+                .filter(r => r.suite_id === sid);
+            if (stored.length > 0) {
+                suiteReqs = stored.map(r => ({
+                    id: r.id,
+                    key: r.key,
+                    title: r.title,
+                    description: r.description || r.title,
+                    category: r.category || 'Functional',
+                    priority: r.priority || 'Medium',
+                    source: r.source || 'extracted',
+                    source_quote: r.source_quote || '',
+                    explicitCaseRefs: []
+                }));
+            }
+        }
+        if (suiteReqs.length === 0) {
+            suiteReqs = extractNormalizedRequirements(session, suiteCases);
+        }
 
         // Map requirements to cases
         const reqLinkMap = new Map();
         suiteReqs.forEach(r => {
+            const directLinks = Array.from(supabaseService.inMemoryRequirementTestCases?.values() || [])
+                .filter(rtc => (rtc.requirement_id === r.id || rtc.requirement_id === r.key) && rtc.suite_id === sid);
+            const directCaseIds = new Set(directLinks.map(l => l.case_id));
+
             const linked = suiteCases.filter(tc => {
                 const cid = String(tc.id);
+                if (directCaseIds.has(cid)) return true;
                 const reqRef = String(tc.requirementId || tc.reqId || (tc.raw && (tc.raw.requirementId || tc.raw.reqId)) || '');
-                return reqRef === r.id || r.explicitCaseRefs.includes(cid);
+                return reqRef === r.id || reqRef === r.key || r.explicitCaseRefs.includes(cid);
             });
             reqLinkMap.set(r.id, linked);
+            if (r.key && r.key !== r.id) reqLinkMap.set(r.key, linked);
         });
 
         const suiteApproved = suiteCases.filter(tc => tc.approval_status === 'approved').length;

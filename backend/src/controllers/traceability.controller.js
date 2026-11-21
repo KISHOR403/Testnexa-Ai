@@ -21,6 +21,8 @@ const {
  * - /api/v1/traceability/export/:format
  */
 
+const { getCaseApprovalStatus } = require('../services/qualityMetrics.service');
+
 const EXECUTED_STATUSES = new Set(['passed', 'failed', 'blocked', 'skipped', 'timed_out', 'infrastructure_error']);
 
 const getAllSessionsMap = async (userId) => {
@@ -212,7 +214,7 @@ const buildTraceabilityRows = (requirements, testCases, execMap) => {
                 priority: tc.priority || 'Medium',
                 severity: tc.severity || 'Major',
                 executionType: tc.method || 'manual',
-                approvalStatus: tc.lifecycle || tc.status || 'ready',
+                approvalStatus: getCaseApprovalStatus(tc),
                 status,
                 durationMs: exec?.durationMs || 0,
                 executedAt: exec?.executedAt || null,

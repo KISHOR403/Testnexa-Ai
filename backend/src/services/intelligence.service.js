@@ -139,8 +139,18 @@ const getIntelligenceActivity = async ({ suiteId = 'all', userId, days = 30, tz 
  * @param {string} [suiteId='all']
  * @param {string} userId
  */
-const getIntelligenceOverview = async (suiteId = 'all', userId) => {
-    const targetSuiteId = (suiteId && String(suiteId).trim()) ? String(suiteId).trim() : 'all';
+const getIntelligenceOverview = async (suiteIdOrOpts = 'all', userIdArg) => {
+    let rawSuiteId = 'all';
+    let rawUserId = userIdArg;
+    if (typeof suiteIdOrOpts === 'object' && suiteIdOrOpts !== null) {
+        rawSuiteId = suiteIdOrOpts.suiteId || 'all';
+        rawUserId = suiteIdOrOpts.userId || userIdArg;
+    } else {
+        rawSuiteId = suiteIdOrOpts || 'all';
+    }
+
+    const targetSuiteId = (rawSuiteId && String(rawSuiteId).trim()) ? String(rawSuiteId).trim() : 'all';
+    const userId = rawUserId;
     const cacheKey = `${userId || 'all'}:${targetSuiteId}`;
 
     const cached = cache.get(cacheKey);

@@ -199,6 +199,38 @@ export const resolvePlatform = (data, record) => {
 };
 
 /**
+ * Normalizes requirement keys to canonical REQ_<SUITE>_<NNN> format
+ */
+export const normalizeRequirementKey = (key, suitePrefix = 'REG') => {
+    if (!key || typeof key !== 'string') return `REQ_${suitePrefix}_001`;
+    const clean = key.trim();
+    if (!clean) return `REQ_${suitePrefix}_001`;
+
+    // 1. Already canonical REQ_<SUITE>_<NNN>
+    if (/^REQ_[A-Z0-9]+_\d+$/i.test(clean)) return clean.toUpperCase();
+
+    // 2. Format REQ-<SUITE>-<NNN> e.g. REQ-REG-001 or REQ-AUTH-002
+    const suiteMatch = clean.match(/^REQ[-_]([A-Za-z0-9]+)[-_](\d+)$/i);
+    if (suiteMatch) {
+        return `REQ_${suiteMatch[1].toUpperCase()}_${suiteMatch[2].padStart(3, '0')}`;
+    }
+
+    // 3. Simple REQ-001 or REQ-12
+    const reqMatch = clean.match(/^REQ[-_]?(\d+)$/i);
+    if (reqMatch) {
+        return `REQ_${suitePrefix.toUpperCase()}_${reqMatch[1].padStart(3, '0')}`;
+    }
+
+    // 4. Prefix only like REG-001 or AUTH-005
+    const prefixMatch = clean.match(/^([A-Za-z0-9]+)[-_](\d+)$/i);
+    if (prefixMatch) {
+        return `REQ_${prefixMatch[1].toUpperCase()}_${prefixMatch[2].padStart(3, '0')}`;
+    }
+
+    return clean.replace(/[- ]+/g, '_').toUpperCase();
+};
+
+/**
  * Determines if a test case is strictly approved
  * ONLY approval_status === 'approved' or explicit boolean true
  */
@@ -436,6 +468,9 @@ export const computeCanonicalSuiteMetrics = (suiteOrRecord, runs = [], recordsBy
     const manualCases = Math.max(0, totalCases - automatedCases);
 
     const approvedCases = tests.filter(isTestCaseApproved).length;
+    const rejectedCases = tests.filter(tc => String(tc?.approval_status || tc?.approvalStatus || '').toLowerCase() === 'rejected').length;
+    const pendingCases = Math.max(0, totalCases - approvedCases - rejectedCases);
+    const isAllApproved = totalCases > 0 && approvedCases === totalCases;
 
     const highPriorityCases = tests.filter(tc => {
         const p = String(tc?.priority || '').toLowerCase();
@@ -443,24 +478,33 @@ export const computeCanonicalSuiteMetrics = (suiteOrRecord, runs = [], recordsBy
     }).length;
 
     // Canonical requirement linkage calculation
+    const suiteSlug = (suiteOrRecord?.projectName || suiteOrRecord?.title || 'REG').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase() || 'REG';
     const suiteReqs = Array.isArray(data?.requirements) ? data.requirements : [];
-    const declaredReqIds = suiteReqs.map((r, i) => String(typeof r === 'string' ? `REQ-${String(i + 1).padStart(3, '0')}` : (r?.id || r?.reqId || `REQ-${String(i + 1).padStart(3, '0')}`)));
-    const taggedReqIds = tests.map(tc => String(tc.requirementId || tc.reqId || tc.requirementRef || '')).filter(Boolean);
+    const declaredReqIds = suiteReqs.map((r, i) => {
+        const rawId = typeof r === 'string' ? r : (r?.key || r?.id || r?.reqId || `REQ_${suiteSlug}_${String(i + 1).padStart(3, '0')}`);
+        return normalizeRequirementKey(rawId, suiteSlug);
+    });
+    const taggedReqIds = tests.flatMap(tc => {
+        const ids = Array.isArray(tc.requirement_ids) && tc.requirement_ids.length > 0
+            ? tc.requirement_ids
+            : [tc.requirementId || tc.reqId || tc.requirementRef];
+        return ids.filter(Boolean).map(id => normalizeRequirementKey(id, suiteSlug));
+    });
     const allReqIdSet = new Set([...declaredReqIds, ...taggedReqIds]);
     const requirementsCount = allReqIdSet.size;
 
     const linkedReqIdSet = new Set(taggedReqIds);
-    suiteReqs.forEach(r => {
+    suiteReqs.forEach((r, i) => {
         if (typeof r === 'object' && r) {
             const cases = r.testCaseIds || r.linkedCases || r.testCases || [];
             if (Array.isArray(cases) && cases.length > 0) {
-                const id = String(r.id || r.reqId || '');
+                const id = normalizeRequirementKey(r.key || r.id || r.reqId || `REQ_${suiteSlug}_${String(i + 1).padStart(3, '0')}`, suiteSlug);
                 if (id) linkedReqIdSet.add(id);
             }
         }
     });
 
-    const linkedRequirements = Array.from(linkedReqIdSet);
+    const linkedRequirements = Array.from(linkedReqIdSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     const linkedRequirementsCount = linkedRequirements.length;
     const coverage = requirementsCount > 0 ? Math.round((linkedRequirementsCount / requirementsCount) * 100) : (totalCases > 0 ? 100 : 0);
 
@@ -473,6 +517,10 @@ export const computeCanonicalSuiteMetrics = (suiteOrRecord, runs = [], recordsBy
         manualCases,
         automatedCases,
         approvedCases,
+        rejectedCases,
+        hasRejected: rejectedCases > 0,
+        pendingCases,
+        isAllApproved,
         highPriorityCases,
         linkedRequirements,
         linkedRequirementsCount: linkedRequirements.length,

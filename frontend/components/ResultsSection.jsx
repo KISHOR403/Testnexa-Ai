@@ -54,7 +54,17 @@ import { InlineTestSignal } from './loading';
 import Modal from './ui/Modal';
 import NewTestRunModal from './execution/NewTestRunModal';
 import { testSuiteService } from '../services/sessionService';
+import { caseReviewService } from '../services/caseReviewService';
+import ApprovalPill from './testcases/ApprovalPill';
+import CaseEditorPanel from './testcases/CaseEditorPanel';
+import CaseHistoryDrawer from './testcases/CaseHistoryDrawer';
+import CaseRegeneratePanel from './testcases/CaseRegeneratePanel';
+import RejectReasonDialog from './testcases/RejectReasonDialog';
+import RequirementDrawer from './testcases/RequirementDrawer';
+import { useToast } from './common/ToastLiveRegion';
+import { normalizeRequirementKey } from '../utils/testSuiteSelectors';
 import '../styles/app/WorkspaceDesignSystem.css';
+import '../styles/app/SuiteReviewActions.css';
 
 // ─── Status Badge Component (B&W System: Shape & Icon, Never Hue) ───
 const StatusBadge = ({ status }) => {
@@ -247,7 +257,7 @@ const flattenAllTestCases = (result) => {
                         priority: tc.priority || 'Medium',
                         severity: tc.severity || (tc.priority === 'High' || tc.priority === 'Critical' ? 'Critical' : 'Major'),
                         status: tc.status || 'Needs Review',
-                        reqId: tc.requirementId || tc.reqId || 'REQ-001',
+                        reqId: normalizeRequirementKey(tc.requirementId || tc.reqId || 'REQ_REG_001'),
                         preconditions: Array.isArray(tc.preconditions)
                             ? tc.preconditions
                             : (tc.preconditions ? [String(tc.preconditions)] : ['User is authenticated in the testing environment.']),
@@ -393,6 +403,11 @@ const ResultsSectionContent = ({
     const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
     const [showRunModal, setShowRunModal] = useState(false);
+    const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+    const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+    const [reqDrawerOpen, setReqDrawerOpen] = useState(false);
+    const [activeReqKey, setActiveReqKey] = useState('');
+    const { showToast } = useToast?.() || { showToast: null };
 
     // ─── Export Modal State ───
     const [showExportModal, setShowExportModal] = useState(false);
@@ -563,9 +578,9 @@ const ResultsSectionContent = ({
         const suiteFeatureTitle = result?.feature || result?.testSuiteName || 'Primary Specification Requirements';
 
         testCases.forEach(tc => {
-            const reqKey = tc.reqId || 'REQ-001';
+            const reqKey = normalizeRequirementKey(tc.reqId || tc.requirementId || 'REQ_REG_001');
             if (!groups[reqKey]) {
-                const reqTitle = tc.module || (reqKey === 'REQ-001' ? suiteFeatureTitle : `${suiteFeatureTitle} (${reqKey})`);
+                const reqTitle = tc.module || `${suiteFeatureTitle} (${reqKey})`;
                 groups[reqKey] = {
                     reqId: reqKey,
                     title: reqTitle,
@@ -709,7 +724,165 @@ const ResultsSectionContent = ({
         setSelectedRows([]);
     };
 
-    // ─── Keyboard Navigation (J/K, Enter, Esc, Space) ───
+    const handleApproveSuite = () => {
+        setTestCases(prev => prev.map(tc => ({ ...tc, approval_status: 'approved', status: 'Approved' })));
+        setSuiteStatus('Approved');
+        setShowApproveModal(false);
+        showToast?.('All test cases approved.');
+    };
+
+    // ─── Single Test Approval Handler (Optimistic with Rollback & 10s Undo) ───
+    const handleApproveSingle = async (targetCase) => {
+        if (!targetCase || effectiveRole === 'viewer') return;
+        const caseId = targetCase.id;
+        const currentVersion = targetCase.version || 1;
+        const currentStatus = String(targetCase.approval_status || targetCase.status || '').toLowerCase();
+
+        if (currentStatus === 'approved') {
+            // Revoke approval -> reset to pending
+            try {
+                const res = await caseReviewService.resetApproval(caseId, currentVersion);
+                setTestCases(prev => prev.map(tc => tc.id === caseId ? {
+                    ...tc,
+                    approval_status: 'pending',
+                    status: 'Needs Review',
+                    version: res.data?.version ?? currentVersion
+                } : tc));
+                showToast?.('Approval revoked.');
+            } catch (err) {
+                if (err.status === 409 || err.code === 'CASE_CHANGED') {
+                    showToast?.('This case changed. Review the latest version.');
+                } else {
+                    showToast?.(err.message || 'Failed to revoke approval.');
+                }
+            }
+            return;
+        }
+
+        // Optimistic approve with rollback
+        const previousCase = { ...targetCase };
+        setTestCases(prev => prev.map(tc => tc.id === caseId ? {
+            ...tc,
+            approval_status: 'approved',
+            status: 'Approved',
+            approved_by: 'You',
+            approved_at: new Date().toISOString(),
+            approved_version: currentVersion
+        } : tc));
+
+        try {
+            const res = await caseReviewService.approveCase(caseId, currentVersion);
+            const updated = res.data || res;
+            setTestCases(prev => prev.map(tc => tc.id === caseId ? {
+                ...tc,
+                ...updated,
+                approval_status: 'approved',
+                status: 'Approved',
+                version: updated.version ?? currentVersion
+            } : tc));
+
+            showToast?.('Approved.', {
+                onUndo: async () => {
+                    await caseReviewService.undoApproval({ caseIds: [caseId] });
+                    setTestCases(prev => prev.map(tc => tc.id === caseId ? {
+                        ...tc,
+                        approval_status: 'pending',
+                        status: 'Needs Review'
+                    } : tc));
+                },
+                duration: 10000
+            });
+        } catch (err) {
+            // Rollback optimistic update
+            setTestCases(prev => prev.map(tc => tc.id === caseId ? previousCase : tc));
+            if (err.status === 409 || err.code === 'CASE_CHANGED') {
+                showToast?.('This case changed. Review the latest version.');
+            } else {
+                showToast?.(err.message || 'Failed to approve test case.');
+            }
+        }
+    };
+
+    const handleRejectCase = async (reason) => {
+        if (!selectedTc || effectiveRole === 'viewer') return;
+        const caseId = selectedTc.id;
+        const currentVersion = selectedTc.version || 1;
+        try {
+            const res = await caseReviewService.rejectCase(caseId, currentVersion, reason);
+            const updated = res.data || res;
+            setTestCases(prev => prev.map(tc => tc.id === caseId ? {
+                ...tc,
+                ...updated,
+                approval_status: 'rejected',
+                status: 'Rejected',
+                rejected_reason: reason
+            } : tc));
+            showToast?.('Case rejected.');
+            setRejectDialogOpen(false);
+        } catch (err) {
+            if (err.status === 409 || err.code === 'CASE_CHANGED') {
+                showToast?.('This case changed. Review the latest version.');
+            } else {
+                showToast?.(err.message || 'Failed to reject test case.');
+            }
+        }
+    };
+
+    const handleSaveCaseEdit = async (formData) => {
+        const caseId = formData.id || selectedTc.id;
+        const res = await caseReviewService.updateCase(caseId, formData, {
+            version: selectedTc.version || 1,
+            confirmUnlinked: formData.confirmUnlinked
+        });
+        const updated = res.data || res;
+        const wasApproved = String(selectedTc.approval_status || selectedTc.status || '').toLowerCase() === 'approved';
+
+        setTestCases(prev => prev.map(tc => tc.id === caseId ? {
+            ...tc,
+            ...updated,
+            version: updated.version,
+            approval_status: updated.approval_status || 'pending',
+            status: 'Needs Review'
+        } : tc));
+
+        setIsInlineEditing(false);
+        showToast?.(wasApproved ? 'Saved. Approval reset' : 'Saved.');
+    };
+
+    const handleRegenerateApplied = (appliedCase) => {
+        const updated = appliedCase.data || appliedCase;
+        setTestCases(prev => prev.map(tc => tc.id === updated.id ? {
+            ...tc,
+            ...updated,
+            version: updated.version,
+            approval_status: 'pending',
+            status: 'Needs Review'
+        } : tc));
+        setShowRegenModal(false);
+        showToast?.('Replaced.', {
+            onUndo: async () => {
+                if (updated.version > 1) {
+                    const restored = await caseReviewService.restoreVersion(updated.id, updated.version - 1);
+                    setTestCases(prev => prev.map(tc => tc.id === updated.id ? (restored.data || restored) : tc));
+                }
+            },
+            duration: 10000
+        });
+    };
+
+    const handleVersionRestored = (restoredCase) => {
+        const updated = restoredCase.data || restoredCase;
+        setTestCases(prev => prev.map(tc => tc.id === updated.id ? {
+            ...tc,
+            ...updated,
+            approval_status: 'pending',
+            status: 'Needs Review'
+        } : tc));
+        setHistoryDrawerOpen(false);
+        showToast?.(`Restored as version ${updated.version || 'new'}. Approval pending.`);
+    };
+
+    // ─── Keyboard Navigation (A, E, R, J/K, Enter, Esc) ───
     useEffect(() => {
         const handleKeyDown = (e) => {
             const tagName = e.target?.tagName?.toLowerCase();
@@ -717,7 +890,22 @@ const ResultsSectionContent = ({
                 return;
             }
 
-            if (e.key === 'j' || e.key === 'J') {
+            if (e.key === 'a' || e.key === 'A') {
+                if (selectedTc && !isInlineEditing && !showRegenModal) {
+                    e.preventDefault();
+                    handleApproveSingle(selectedTc);
+                }
+            } else if (e.key === 'e' || e.key === 'E') {
+                if (selectedTc && !isInlineEditing && !showRegenModal && effectiveRole !== 'viewer') {
+                    e.preventDefault();
+                    setIsInlineEditing(true);
+                }
+            } else if (e.key === 'r' || e.key === 'R') {
+                if (selectedTc && !isInlineEditing && !showRegenModal && effectiveRole !== 'viewer') {
+                    e.preventDefault();
+                    setShowRegenModal(true);
+                }
+            } else if (e.key === 'j' || e.key === 'J') {
                 e.preventDefault();
                 if (!filteredTests.length) return;
                 const currentIndex = filteredTests.findIndex(tc => tc.id === selectedTcId);
@@ -729,17 +917,17 @@ const ResultsSectionContent = ({
                 const currentIndex = filteredTests.findIndex(tc => tc.id === selectedTcId);
                 const prevIndex = currentIndex > 0 ? currentIndex - 1 : filteredTests.length - 1;
                 setSelectedTcId(filteredTests[prevIndex].id);
-            } else if (e.key === 'Enter') {
-                if (selectedTcId) {
-                    e.preventDefault();
-                    setIsDetailOpen(true);
-                    setMobileShowDetail(true);
-                }
             } else if (e.key === 'Escape') {
                 if (isDetailOpen || mobileShowDetail) {
                     e.preventDefault();
-                    setIsDetailOpen(false);
-                    setMobileShowDetail(false);
+                    if (isInlineEditing) {
+                        setIsInlineEditing(false);
+                    } else if (showRegenModal) {
+                        setShowRegenModal(false);
+                    } else {
+                        setIsDetailOpen(false);
+                        setMobileShowDetail(false);
+                    }
                 }
             } else if (e.key === ' ') {
                 if (selectedTcId) {
@@ -751,68 +939,7 @@ const ResultsSectionContent = ({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [filteredTests, selectedTcId, isDetailOpen, mobileShowDetail]);
-
-    // ─── Single Test Approval Handler ───
-    const handleApproveSingle = (id) => {
-        setTestCases(prev => prev.map(tc => tc.id === id ? { ...tc, status: tc.status === 'Approved' ? 'Needs Review' : 'Approved' } : tc));
-    };
-
-    // ─── Suite Approval Handler ───
-    const handleApproveSuite = () => {
-        setTestCases(prev => prev.map(tc => ({ ...tc, status: 'Approved' })));
-        setSuiteStatus('Approved');
-        setShowApproveModal(false);
-    };
-
-    // ─── Inline Edit Handlers ───
-    const handleStartInlineEdit = (tc) => {
-        setInlineEditData(JSON.parse(JSON.stringify(tc)));
-        setIsInlineEditing(true);
-    };
-
-    const handleSaveInlineEdit = () => {
-        if (!inlineEditData) return;
-        setTestCases(prev => prev.map(tc => tc.id === inlineEditData.id ? inlineEditData : tc));
-        setIsInlineEditing(false);
-        setShowSavedFeedback(true);
-        setTimeout(() => setShowSavedFeedback(false), 2000);
-    };
-
-    const handleCancelInlineEdit = () => {
-        setIsInlineEditing(false);
-        setInlineEditData(null);
-    };
-
-    // ─── Single Test Regenerate Handler ───
-    const handleOpenRegenerateSingle = (tc) => {
-        setEditingTc(tc);
-        setShowRegenModal(true);
-    };
-
-    const handleExecuteSingleRegen = () => {
-        setIsRegeneratingSingle(true);
-        setTimeout(() => {
-            setTestCases(prev => prev.map(tc => {
-                if (tc.id === editingTc.id) {
-                    return {
-                        ...tc,
-                        title: `${tc.title} (Enhanced with ${regenGoal.toLowerCase()})`,
-                        priority: 'High',
-                        severity: 'Critical',
-                        status: 'Needs Review',
-                        steps: [
-                            ...tc.steps,
-                            { action: `Verify security boundary assertion for ${regenGoal.toLowerCase()}.`, expected: 'Payload blocked with structured telemetry log.' }
-                        ]
-                    };
-                }
-                return tc;
-            }));
-            setIsRegeneratingSingle(false);
-            setShowRegenModal(false);
-        }, 1200);
-    };
+    }, [filteredTests, selectedTc, selectedTcId, isDetailOpen, mobileShowDetail, isInlineEditing, showRegenModal, effectiveRole]);
 
     // ─── Add Missing Tests from AI Recommendation ───
     const handleAddMissingTests = () => {
@@ -825,7 +952,7 @@ const ResultsSectionContent = ({
             priority: 'High',
             severity: 'Critical',
             status: 'Needs Review',
-            reqId: testCases[0]?.reqId || 'REQ-001',
+            reqId: normalizeRequirementKey(testCases[0]?.reqId || testCases[0]?.requirementId || 'REQ_REG_001'),
             preconditions: [`Testing environment configured with network telemetry for ${featureName}.`],
             steps: [
                 { action: `Trigger ${gap.title.toLowerCase()} condition under simulated workload.`, expected: 'System detects anomaly boundary and safely isolates transaction.' },
@@ -849,7 +976,7 @@ const ResultsSectionContent = ({
         if (!tc) return;
         const md = `### [${tc.id}] ${tc.title}
 - **Type:** ${tc.type} | **Priority:** ${tc.priority} | **Status:** ${tc.status}
-- **Traceability:** ${tc.reqId || 'REQ-001'}
+- **Traceability:** ${normalizeRequirementKey(tc.reqId || tc.requirementId || 'REQ_REG_001')}
 - **Preconditions:** ${Array.isArray(tc.preconditions) ? tc.preconditions.join(', ') : tc.preconditions}
 - **Expected Result:** ${tc.expectedResult}`;
 
@@ -990,7 +1117,7 @@ const ResultsSectionContent = ({
 
         try {
             const suiteTitle = result?.feature || result?.testSuiteName || 'Test Suite';
-            const suiteReq = testCases[0]?.reqId || 'REQ-001';
+            const suiteReq = normalizeRequirementKey(testCases[0]?.reqId || testCases[0]?.requirementId || 'REQ_REG_001');
             let content = '';
             let filename = `TestSuite_${suiteTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
             let mime = 'application/json';
@@ -1103,157 +1230,46 @@ const ResultsSectionContent = ({
         if (!selectedTc || !selectedTc.id) return null;
 
         // If inline editing
-        if (isInlineEditing && inlineEditData) {
+        if (isInlineEditing) {
             return (
-                <div className="tn-detail-inline-editor">
-                    <div className="tn-detail-header">
-                        <div className="tn-detail-meta-top">
-                            <span className="tn-tc-id-lg">{inlineEditData.id}</span>
-                            <span className="tn-inline-edit-badge">Editing</span>
-                        </div>
-                    </div>
-
-                    <div className="tn-inline-form">
-                        <div className="tn-form-group">
-                            <label>Title</label>
-                            <input
-                                type="text"
-                                value={inlineEditData.title}
-                                onChange={(e) => setInlineEditData({ ...inlineEditData, title: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="tn-form-row">
-                            <div className="tn-form-group">
-                                <label>Type</label>
-                                <select
-                                    value={inlineEditData.type}
-                                    onChange={(e) => setInlineEditData({ ...inlineEditData, type: e.target.value })}
-                                >
-                                    <option value="Functional">Functional</option>
-                                    <option value="Negative">Negative</option>
-                                    <option value="Edge Case">Edge Case</option>
-                                    <option value="Security">Security</option>
-                                    <option value="Validation">Validation</option>
-                                    <option value="API">API</option>
-                                </select>
-                            </div>
-                            <div className="tn-form-group">
-                                <label>Priority</label>
-                                <select
-                                    value={inlineEditData.priority}
-                                    onChange={(e) => setInlineEditData({ ...inlineEditData, priority: e.target.value })}
-                                >
-                                    <option value="Critical">Critical</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                            </div>
-                            <div className="tn-form-group">
-                                <label>Severity</label>
-                                <select
-                                    value={inlineEditData.severity}
-                                    onChange={(e) => setInlineEditData({ ...inlineEditData, severity: e.target.value })}
-                                >
-                                    <option value="Critical">Critical</option>
-                                    <option value="Major">Major</option>
-                                    <option value="Minor">Minor</option>
-                                    <option value="Trivial">Trivial</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="tn-form-group">
-                            <label>Preconditions</label>
-                            <textarea
-                                rows={2}
-                                value={Array.isArray(inlineEditData.preconditions) ? inlineEditData.preconditions.join('\n') : inlineEditData.preconditions}
-                                onChange={(e) => setInlineEditData({ ...inlineEditData, preconditions: e.target.value.split('\n') })}
-                            />
-                        </div>
-
-                        <div className="tn-form-group">
-                            <div className="tn-form-label-row">
-                                <label>Test Steps</label>
-                                <button
-                                    type="button"
-                                    className="tn-link-btn"
-                                    onClick={() => setInlineEditData({
-                                        ...inlineEditData,
-                                        steps: [...inlineEditData.steps, { action: '', expected: '' }]
-                                    })}
-                                >
-                                    + Add Step
-                                </button>
-                            </div>
-                            <div className="tn-edit-steps-list">
-                                {inlineEditData.steps.map((st, i) => (
-                                    <div key={i} className="tn-edit-step-row">
-                                        <span className="tn-step-idx">{i + 1}</span>
-                                        <div className="tn-edit-step-inputs">
-                                            <input
-                                                type="text"
-                                                placeholder="Action step..."
-                                                value={st.action || st}
-                                                onChange={(e) => {
-                                                    const newSteps = [...inlineEditData.steps];
-                                                    newSteps[i] = { ...st, action: e.target.value };
-                                                    setInlineEditData({ ...inlineEditData, steps: newSteps });
-                                                }}
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder="Expected outcome..."
-                                                value={st.expected || ''}
-                                                onChange={(e) => {
-                                                    const newSteps = [...inlineEditData.steps];
-                                                    newSteps[i] = { ...st, expected: e.target.value };
-                                                    setInlineEditData({ ...inlineEditData, steps: newSteps });
-                                                }}
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="tn-delete-step-btn"
-                                            onClick={() => {
-                                                const newSteps = inlineEditData.steps.filter((_, idx) => idx !== i);
-                                                setInlineEditData({ ...inlineEditData, steps: newSteps });
-                                            }}
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="tn-form-group">
-                            <label>Expected Result</label>
-                            <textarea
-                                rows={2}
-                                value={inlineEditData.expectedResult}
-                                onChange={(e) => setInlineEditData({ ...inlineEditData, expectedResult: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="tn-inline-edit-actions">
-                            <button className="tn-app-btn tn-app-btn--secondary" onClick={handleCancelInlineEdit}>
-                                Cancel
-                            </button>
-                            <button className="tn-app-btn tn-app-btn--primary" onClick={handleSaveInlineEdit}>
-                                <Check size={14} />
-                                <span>Save Changes</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <CaseEditorPanel
+                    testCase={selectedTc}
+                    suiteRequirements={requirementGroups}
+                    onSave={handleSaveCaseEdit}
+                    onCancel={() => setIsInlineEditing(false)}
+                />
             );
         }
+
+        // If AI regeneration panel
+        if (showRegenModal) {
+            return (
+                <CaseRegeneratePanel
+                    testCase={selectedTc}
+                    onApplySuccess={handleRegenerateApplied}
+                    onClose={() => setShowRegenModal(false)}
+                />
+            );
+        }
+
+        const isApproved = String(selectedTc.approval_status || selectedTc.status || '').toLowerCase() === 'approved';
+        const isRejected = String(selectedTc.approval_status || selectedTc.status || '').toLowerCase() === 'rejected';
+        const isPending = !isApproved && !isRejected;
+        const isViewer = effectiveRole === 'viewer';
+        const reqKey = normalizeRequirementKey(selectedTc.reqId || selectedTc.requirementId || 'REQ_REG_001');
 
         // Normal read-only detail view
         return (
             <div className="tn-detail-container">
+                {/* Keyboard Shortcut Hint Bar */}
+                <div className="tn-keyboard-hint-bar" title="Keyboard shortcuts available">
+                    <span><kbd>A</kbd> Approve</span>
+                    <span><kbd>E</kbd> Edit</span>
+                    <span><kbd>R</kbd> Regenerate</span>
+                    <span><kbd>J</kbd>/<kbd>K</kbd> Navigate</span>
+                    <span><kbd>Esc</kbd> Close</span>
+                </div>
+
                 {/* 0. Integrated Compact Header / Navigation */}
                 <div className="tn-detail-nav-header">
                     <button
@@ -1273,7 +1289,7 @@ const ResultsSectionContent = ({
                             className="tn-detail-nav-arrow"
                             disabled={selectedTcIndex <= 0}
                             onClick={handlePrevTc}
-                            title="Previous test case"
+                            title="Previous test case (K)"
                             aria-label="Previous test case"
                         >
                             <ChevronLeft size={14} />
@@ -1286,7 +1302,7 @@ const ResultsSectionContent = ({
                             className="tn-detail-nav-arrow"
                             disabled={selectedTcIndex >= filteredTests.length - 1}
                             onClick={handleNextTc}
-                            title="Next test case"
+                            title="Next test case (J)"
                             aria-label="Next test case"
                         >
                             <ChevronRight size={14} />
@@ -1306,24 +1322,29 @@ const ResultsSectionContent = ({
 
                 {/* Main scrollable body container with consistent padding and spacing */}
                 <div className="tn-detail-body">
-                    {/* 1. Test Case ID & Review Status */}
+                    {/* 1. Test Case ID, Version & Review Status */}
                     <div className="tn-detail-id-bar">
                         <div className="tn-detail-id-left">
                             <span className="tn-tc-id-lg">{selectedTc.id}</span>
-                            {selectedTc.reqId && (
-                                <span className="tn-req-pill">
-                                    <span className="tn-req-pill-dot" />
-                                    {selectedTc.reqId}
-                                </span>
-                            )}
+                            <button
+                                type="button"
+                                className="tn-req-pill tn-req-pill--interactive"
+                                onClick={() => {
+                                    setActiveReqKey(reqKey);
+                                    setReqDrawerOpen(true);
+                                }}
+                                title="Open requirement details"
+                            >
+                                <span className="tn-req-pill-dot" />
+                                {reqKey}
+                            </button>
+                            <span className="tn-version-badge" title="Test case version">
+                                v{selectedTc.version || 1}
+                            </span>
                         </div>
                         <div className="tn-detail-id-right">
-                            <StatusBadge status={selectedTc.status} />
-                            {showSavedFeedback && (
-                                <span className="tn-saved-indicator">
-                                    <Check size={12} /> Saved
-                                </span>
-                            )}
+                            <ApprovalPill status={selectedTc.approval_status || selectedTc.status} staleReason={selectedTc.stale_reason} />
+                            <StatusBadge status={selectedTc.executionStatus || 'Not executed'} />
                         </div>
                     </div>
 
@@ -1337,20 +1358,39 @@ const ResultsSectionContent = ({
 
                     {/* 3. Primary Actions: Approve, Edit, Regenerate */}
                     <div className="tn-detail-actions-bar">
-                        <button
-                            type="button"
-                            className={`tn-app-btn tn-app-btn--sm ${selectedTc.status === 'Approved' ? 'tn-app-btn--secondary' : 'tn-app-btn--primary'}`}
-                            onClick={() => handleApproveSingle(selectedTc.id)}
-                            title="Toggle approval status"
-                        >
-                            <Check size={13} />
-                            <span>{selectedTc.status === 'Approved' ? 'Revoke Approval' : 'Approve'}</span>
-                        </button>
+                        {isPending && (
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--primary tn-app-btn--sm"
+                                disabled={isViewer}
+                                onClick={() => handleApproveSingle(selectedTc)}
+                                title={isViewer ? "You need editor access" : "Approve test case (A)"}
+                                style={{ background: '#fff', color: '#000', border: '1px solid #fff', fontWeight: 600 }}
+                            >
+                                <Check size={13} />
+                                <span>Approve</span>
+                            </button>
+                        )}
+
+                        {isApproved && (
+                            <div className="tn-approved-byline" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.72)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                <Check size={13} />
+                                <span>Approved by {selectedTc.approved_by || 'reviewer'} on {new Date(selectedTc.approved_at || Date.now()).toLocaleDateString()}, v{selectedTc.version || 1}</span>
+                            </div>
+                        )}
+
+                        {isRejected && (
+                            <div className="tn-rejected-byline" style={{ fontSize: '0.8rem', color: '#fff', background: '#1c1c1c', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                <span>Rejected: {selectedTc.rejected_reason || 'See details'}</span>
+                            </div>
+                        )}
+
                         <button
                             type="button"
                             className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                            onClick={() => handleStartInlineEdit(selectedTc)}
-                            title="Edit test case"
+                            disabled={isViewer}
+                            onClick={() => setIsInlineEditing(true)}
+                            title={isViewer ? "You need editor access" : "Edit test case (E)"}
                         >
                             <Edit3 size={13} />
                             <span>Edit</span>
@@ -1358,8 +1398,9 @@ const ResultsSectionContent = ({
                         <button
                             type="button"
                             className="tn-app-btn tn-app-btn--secondary tn-app-btn--sm"
-                            onClick={() => handleOpenRegenerateSingle(selectedTc)}
-                            title="Regenerate single test"
+                            disabled={isViewer}
+                            onClick={() => setShowRegenModal(true)}
+                            title={isViewer ? "You need editor access" : "Regenerate test case (R)"}
                         >
                             <RefreshCw size={13} />
                             <span>Regenerate</span>
@@ -1376,6 +1417,32 @@ const ResultsSectionContent = ({
                             </button>
                             {showDetailMore && (
                                 <div className="tn-detail-more-dropdown">
+                                    {isApproved && (
+                                        <button type="button" disabled={isViewer} onClick={() => { handleApproveSingle(selectedTc); setShowDetailMore(false); }}>
+                                            <RotateCcw size={13} />
+                                            <span>Revoke approval</span>
+                                        </button>
+                                    )}
+                                    {!isRejected && (
+                                        <button type="button" disabled={isViewer} onClick={() => { setRejectDialogOpen(true); setShowDetailMore(false); }}>
+                                            <X size={13} />
+                                            <span>Reject</span>
+                                        </button>
+                                    )}
+                                    {isRejected && (
+                                        <button type="button" disabled={isViewer} onClick={() => { handleApproveSingle(selectedTc); setShowDetailMore(false); }}>
+                                            <RotateCcw size={13} />
+                                            <span>Reset to pending</span>
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={() => { navigator.clipboard.writeText(selectedTc.id); setShowDetailMore(false); showToast?.('Case ID copied.'); }}>
+                                        <Copy size={13} />
+                                        <span>Copy ID</span>
+                                    </button>
+                                    <button type="button" onClick={() => { setHistoryDrawerOpen(true); setShowDetailMore(false); }}>
+                                        <Clock size={13} />
+                                        <span>View history</span>
+                                    </button>
                                     <button type="button" onClick={() => { setShowGherkin(!showGherkin); setShowDetailMore(false); }}>
                                         <Code size={13} />
                                         <span>{showGherkin ? 'Hide BDD Spec' : 'BDD Specification'}</span>
@@ -1383,6 +1450,22 @@ const ResultsSectionContent = ({
                                     <button type="button" onClick={() => { handleCopyDetails(selectedTc); setShowDetailMore(false); }}>
                                         <Copy size={13} />
                                         <span>{copiedDetails ? 'Copied!' : 'Copy as Markdown'}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={isViewer}
+                                        style={{ color: 'rgba(255,255,255,0.7)' }}
+                                        onClick={() => {
+                                            if (window.confirm(`Delete ${selectedTc.id}? This cannot be undone.`)) {
+                                                setTestCases(prev => prev.filter(tc => tc.id !== selectedTc.id));
+                                                setIsDetailOpen(false);
+                                                showToast?.('Case deleted.');
+                                            }
+                                            setShowDetailMore(false);
+                                        }}
+                                    >
+                                        <Trash2 size={13} />
+                                        <span>Delete</span>
                                     </button>
                                 </div>
                             )}
@@ -1415,10 +1498,18 @@ const ResultsSectionContent = ({
                         <div className="tn-meta-item">
                             <span className="tn-meta-label">Traceability</span>
                             <div className="tn-meta-value">
-                                <span className="tn-req-pill">
+                                <button
+                                    type="button"
+                                    className="tn-req-pill tn-req-pill--interactive"
+                                    onClick={() => {
+                                        setActiveReqKey(reqKey);
+                                        setReqDrawerOpen(true);
+                                    }}
+                                    title="Open requirement details"
+                                >
                                     <span className="tn-req-pill-dot" />
-                                    {selectedTc.reqId || 'REQ-001'}
-                                </span>
+                                    {reqKey}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1529,7 +1620,7 @@ const ResultsSectionContent = ({
                         <div className="tn-app-header__identity">
                             <h2 className="tn-suite-title">{result.feature || result.testSuiteName || 'Test Suite Specification'}</h2>
                             <div className="tn-app-header__tags">
-                                <span className="tn-tag tn-tag--req">{testCases[0]?.reqId || 'REQ-001'}</span>
+                                <span className="tn-tag tn-tag--req">{normalizeRequirementKey(testCases[0]?.reqId || testCases[0]?.requirementId || 'REQ_REG_001')}</span>
                                 <span className={`tn-tag ${suiteStatus === 'Approved' ? 'tn-tag--ready' : 'tn-tag--alert'}`}>
                                     <span className="tn-status-dot" /> {suiteStatus === 'Approved' ? 'Approved' : 'Needs Review'}
                                 </span>
@@ -1811,7 +1902,7 @@ const ResultsSectionContent = ({
                                 </button>
                             </div>
                         ) : (
-                            <div className={`tn-app-split-workspace ${!isDetailOpen ? 'tn-split--detail-closed' : ''} ${mobileShowDetail ? 'tn-mobile-detail-active' : ''}`}>
+                            <div className={`tn-app-split-workspace ${!isDetailOpen ? 'tn-split--detail-closed' : 'tn-split--detail-open'} ${mobileShowDetail ? 'tn-mobile-detail-active' : ''}`}>
                                 {/* Left: Data Table & Mobile Cards */}
                                 <div className="tn-app-table-pane">
                                     {/* Desktop Data Table (hidden on mobile via CSS) */}
@@ -1830,6 +1921,7 @@ const ResultsSectionContent = ({
                                                 <th className="tn-th-title">Test Scenario & Title</th>
                                                 <th className="tn-th-type">Type</th>
                                                 <th className="tn-th-priority">Priority</th>
+                                                <th className="tn-th-approval">Approval</th>
                                                 <th className="tn-th-status">Status</th>
                                             </tr>
                                         </thead>
@@ -1845,6 +1937,7 @@ const ResultsSectionContent = ({
                                                             setSelectedTcId(tc.id);
                                                             setIsDetailOpen(true);
                                                             setIsInlineEditing(false);
+                                                            setShowRegenModal(false);
                                                             setShowGherkin(false);
                                                             // On mobile, drill into detail
                                                             if (window.innerWidth < 768) {
@@ -1875,8 +1968,11 @@ const ResultsSectionContent = ({
                                                         <td className="tn-td-priority">
                                                             <PriorityBadge priority={tc.priority} />
                                                         </td>
+                                                        <td className="tn-td-approval">
+                                                            <ApprovalPill status={tc.approval_status || tc.status} staleReason={tc.stale_reason} />
+                                                        </td>
                                                         <td className="tn-td-status">
-                                                            <StatusBadge status={tc.status} />
+                                                            <StatusBadge status={tc.executionStatus || 'Not executed'} />
                                                         </td>
                                                     </tr>
                                                 );
@@ -1890,6 +1986,7 @@ const ResultsSectionContent = ({
                                             const isSelected = selectedTcId === tc.id;
                                             const isChecked = selectedRows.includes(tc.id);
                                             const stepsCount = Array.isArray(tc.steps) ? tc.steps.length : 0;
+                                            const reqKey = normalizeRequirementKey(tc.reqId || tc.requirementId || 'REQ_REG_001');
                                             return (
                                                 <div
                                                     key={tc.id}
@@ -1909,7 +2006,8 @@ const ResultsSectionContent = ({
                                                             <span className="tn-tc-id">{tc.id}</span>
                                                         </div>
                                                         <div className="tn-mobile-card__badges">
-                                                            <StatusBadge status={tc.status} />
+                                                            <ApprovalPill status={tc.approval_status || tc.status} staleReason={tc.stale_reason} size="sm" />
+                                                            <StatusBadge status={tc.executionStatus || 'Not executed'} />
                                                         </div>
                                                     </div>
 
@@ -1924,12 +2022,18 @@ const ResultsSectionContent = ({
                                                         <div className="tn-mobile-card__meta-tags">
                                                             <TypeBadge type={tc.type} />
                                                             <PriorityBadge priority={tc.priority} />
-                                                            {tc.reqId && (
-                                                                <span className="tn-req-pill">
-                                                                    <span className="tn-req-pill-dot" />
-                                                                    {tc.reqId}
-                                                                </span>
-                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                className="tn-req-pill tn-req-pill--interactive"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveReqKey(reqKey);
+                                                                    setReqDrawerOpen(true);
+                                                                }}
+                                                            >
+                                                                <span className="tn-req-pill-dot" />
+                                                                {reqKey}
+                                                            </button>
                                                             {stepsCount > 0 && (
                                                                 <span className="tn-mobile-card__steps-badge">
                                                                     {stepsCount} {stepsCount === 1 ? 'step' : 'steps'}
@@ -2159,58 +2263,12 @@ const ResultsSectionContent = ({
                 </div>
             )}
 
-            {/* ─── 8. Single Test Regenerate Modal (Portal) ─── */}
-            <Modal
-                isOpen={showRegenModal && Boolean(editingTc)}
-                onClose={() => setShowRegenModal(false)}
-                title="Regenerate & Enhance Test"
-                icon={<RefreshCw size={18} className="text-teal-400" />}
-                size="sm"
-                id="regen-single-test-modal"
-                footer={
-                    <>
-                        <button type="button" className="tn-app-btn tn-app-btn--secondary" onClick={() => setShowRegenModal(false)}>
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
-                            className="tn-app-btn tn-app-btn--primary"
-                            onClick={handleExecuteSingleRegen}
-                            disabled={isRegeneratingSingle}
-                        >
-                            {isRegeneratingSingle ? <InlineTestSignal size={14} /> : <RefreshCw size={14} />}
-                            <span>{isRegeneratingSingle ? 'Optimizing Test...' : 'Regenerate'}</span>
-                        </button>
-                    </>
-                }
-            >
-                <p className="tn-modal-desc">Select how to optimize <strong>{editingTc?.id}</strong>:</p>
-                <div className="tn-radio-group">
-                    {[
-                        'Improve scenario clarity and add boundary asserts',
-                        'Strengthen security attack vectors & payload checks',
-                        'Add edge cases around token TTL and network failures',
-                        'Regenerate completely'
-                    ].map((opt) => (
-                        <label key={opt} className={`tn-radio-card ${regenGoal === opt ? 'is-selected' : ''}`}>
-                            <input
-                                type="radio"
-                                name="regenGoal"
-                                checked={regenGoal === opt}
-                                onChange={() => setRegenGoal(opt)}
-                            />
-                            <span>{opt}</span>
-                        </label>
-                    ))}
-                </div>
-            </Modal>
-
             {/* ─── 9. Approve Suite Modal (Portal) ─── */}
             <Modal
                 isOpen={showApproveModal}
                 onClose={() => setShowApproveModal(false)}
                 title="Approve Test Suite"
-                icon={<CheckCheck size={20} className="text-emerald-400" />}
+                icon={<CheckCheck size={20} />}
                 size="sm"
                 id="approve-suite-modal"
                 footer={
@@ -2230,8 +2288,8 @@ const ResultsSectionContent = ({
                 </p>
                 <div className="tn-approval-summary">
                     <div><span>Total Tests:</span> <strong>{totalCount}</strong></div>
-                    <div><span>Requirement:</span> <strong>{testCases[0]?.reqId || 'REQ-001'}</strong></div>
-                    <div><span>Coverage:</span> <strong className="text-teal-400">{coverageConfidence}%</strong></div>
+                    <div><span>Requirement:</span> <strong>{normalizeRequirementKey(testCases[0]?.reqId || testCases[0]?.requirementId || 'REQ_REG_001')}</strong></div>
+                    <div><span>Coverage:</span> <strong>{coverageConfidence}%</strong></div>
                 </div>
             </Modal>
 
@@ -2320,12 +2378,12 @@ const ResultsSectionContent = ({
                                 checked={exportOptions.traceability}
                                 onChange={(e) => setExportOptions({ ...exportOptions, traceability: e.target.checked })}
                             />
-                            <span>Requirement Traceability (REQ-001)</span>
+                            <span>Requirement Traceability</span>
                         </label>
                     </div>
                 </div>
                 {exportError && (
-                    <div style={{ fontSize: '0.8rem', color: '#FF7B72' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)' }}>
                         {exportError}
                     </div>
                 )}
@@ -2362,7 +2420,7 @@ const ResultsSectionContent = ({
                 <div className="tn-form-group">
                     <label htmlFor="share-link-input">Shareable Workspace Link</label>
                     {isLoadingShare && !shareUrl ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', color: '#8BAF9A', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', color: 'rgba(255,255,255,0.72)', fontSize: '0.85rem' }}>
                             <InlineTestSignal size={14} />
                             <span>Generating secure share link...</span>
                         </div>
@@ -2389,16 +2447,16 @@ const ResultsSectionContent = ({
                         </div>
                     )}
                     {shareError && (
-                        <div style={{ fontSize: '0.8rem', color: '#FF7B72', marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', marginTop: '4px' }}>
                             {shareError}
                         </div>
                     )}
                     {copyError && (
-                        <div style={{ fontSize: '0.8rem', color: '#FF7B72', marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)', marginTop: '4px' }}>
                             {copyError}
                         </div>
                     )}
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: '#6A7272' }}>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255,255,255,0.56)' }}>
                         Authorized recipients can open this test suite directly in another browser tab under the assigned role.
                     </p>
                 </div>
@@ -2425,6 +2483,33 @@ const ResultsSectionContent = ({
                     />
                 </div>
             )}
+
+            {/* ─── 13. Modals & Drawers: Reject, History, Requirement ─── */}
+            <RejectReasonDialog
+                isOpen={rejectDialogOpen}
+                onClose={() => setRejectDialogOpen(false)}
+                onConfirm={handleRejectCase}
+                testCase={selectedTc}
+            />
+
+            <CaseHistoryDrawer
+                isOpen={historyDrawerOpen}
+                onClose={() => setHistoryDrawerOpen(false)}
+                testCase={selectedTc}
+                onRestoreSuccess={handleVersionRestored}
+            />
+
+            <RequirementDrawer
+                isOpen={reqDrawerOpen}
+                onClose={() => setReqDrawerOpen(false)}
+                requirementKey={activeReqKey}
+                suiteId={resolvedSuiteId}
+                suiteCases={testCases}
+                onSelectTestCase={(tcId) => {
+                    setSelectedTcId(tcId);
+                    setIsDetailOpen(true);
+                }}
+            />
         </div>
     );
 };
@@ -2434,7 +2519,7 @@ const ResultsSection = (props) => {
         return (
             <div className="tn-app-workspace tn-empty-workspace">
                 <div className="tn-empty-content">
-                    <Layers size={36} className="text-teal-400" />
+                    <Layers size={36} className="text-neutral-400" />
                     <h3>No Test Suite Loaded</h3>
                     <p>Enter a requirement specification above to generate a production-ready test suite.</p>
                 </div>

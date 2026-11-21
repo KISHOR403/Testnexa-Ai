@@ -239,7 +239,13 @@ const getSession = async (req, res) => {
             });
         }
 
-        return res.json({ success: true, data: result.session });
+        let reviewStatus = 'needs_review';
+        try {
+            const caseReviewService = require('../services/caseReview.service');
+            reviewStatus = await caseReviewService.deriveSuiteReviewStatus(sessionId, userId);
+        } catch (e) {}
+
+        return res.json({ success: true, data: { ...result.session, reviewStatus } });
     } catch (error) {
         logger.error('Error getting session', error);
         res.status(500).json({ success: false, code: 'SERVER_ERROR', message: error.message });

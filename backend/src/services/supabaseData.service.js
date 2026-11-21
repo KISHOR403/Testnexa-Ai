@@ -601,15 +601,25 @@ class SupabaseDataService {
             return { error: 'INVALID_ID', status: 400, message: 'Invalid session ID' };
         }
 
-        const { data: rawSession, error } = await supabase
-            .from('workspace_sessions')
-            .select('*')
-            .eq('id', sessionId)
-            .maybeSingle();
+        let rawSession = null;
+        if (this.isAvailable && this.sessionsTableAvailable !== false) {
+            try {
+                const { data, error } = await supabase
+                    .from('workspace_sessions')
+                    .select('*')
+                    .eq('id', sessionId)
+                    .maybeSingle();
 
-        if (error) {
-            logger.error('Supabase getSharedSession error:', error);
-            return { error: 'SERVER_ERROR', status: 500, message: 'Database error retrieving session' };
+                if (!error && data) {
+                    rawSession = data;
+                }
+            } catch (err) {
+                this.sessionsTableAvailable = false;
+            }
+        }
+
+        if (!rawSession) {
+            rawSession = this.inMemorySessions.get(sessionId);
         }
 
         if (!rawSession) {

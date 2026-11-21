@@ -370,10 +370,23 @@ exports.exportPipelinePlaywright = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Suite not found' });
         }
 
-        const specCode = pipelineExportService.generatePlaywrightSuiteCode(suite);
+        const approvedFilter = req.query.approved || 'only';
+        const specCode = pipelineExportService.generatePlaywrightSuiteCode(suite, { approved: approvedFilter });
         res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="suite-${pipeline.suite_id}.spec.js"`);
-        return res.status(200).send(specCode);
+        res.setHeader('X-Exported-Count', String(specCode.exportedCount || 0));
+        res.setHeader('X-Skipped-Count', String(specCode.skippedCount || 0));
+
+        if (req.query.format === 'json' || req.headers.accept?.includes('application/json')) {
+            return res.status(200).json({
+                success: true,
+                specCode: specCode.toString(),
+                exportedCount: specCode.exportedCount || 0,
+                skippedCount: specCode.skippedCount || 0
+            });
+        }
+
+        return res.status(200).send(specCode.toString());
     } catch (err) {
         logger.error('Error exporting Playwright suite:', err);
         res.status(500).json({ success: false, message: err.message });

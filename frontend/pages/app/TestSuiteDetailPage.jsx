@@ -17,7 +17,12 @@ import { computeCanonicalSuiteMetrics } from '../../utils/testSuiteSelectors';
 import RunButton from '../../components/common/RunButton';
 import { useFeature } from '../../config/features';
 import { useComingSoon } from '../../context/ComingSoonContext';
+import { caseReviewService } from '../../services/caseReviewService';
+import ApproveRemainingDialog from '../../components/testcases/ApproveRemainingDialog';
+import LinkedRequirementsSection from '../../components/testcases/LinkedRequirementsSection';
+import { ToastProvider, useToast } from '../../components/common/ToastLiveRegion';
 import '../../styles/app/TestSuiteDetail.css';
+import '../../styles/app/SuiteReviewActions.css';
 
 // Helper to determine if a suite object contains actual test cases
 const hasTestCases = (data) => {
@@ -116,7 +121,31 @@ const TestSuiteDetailPage = () => {
     const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
     const [descriptionExpanded, setDescriptionExpanded] = useState(false);
     const [idCopied, setIdCopied] = useState(false);
+    const [approveRemainingModalOpen, setApproveRemainingModalOpen] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const [exportIncludePending, setExportIncludePending] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [suiteRequirements, setSuiteRequirements] = useState([]);
     const moreMenuRef = useRef(null);
+    const { showToast } = useToast?.() || { showToast: null };
+
+    // Load canonical suite requirements
+    useEffect(() => {
+        if (!id) return;
+        let isCurrent = true;
+        const fetchReqs = async () => {
+            try {
+                const res = await caseReviewService.getSuiteRequirements(id);
+                if (isCurrent && res) {
+                    setSuiteRequirements(Array.isArray(res.data) ? res.data : (res.requirements || []));
+                }
+            } catch (err) {
+                // Ignore fallback to local
+            }
+        };
+        fetchReqs();
+        return () => { isCurrent = false; };
+    }, [id, retryTrigger]);
 
     useEffect(() => {
         const handleOutsideClick = (e) => {
@@ -406,6 +435,13 @@ const TestSuiteDetailPage = () => {
         return computeCanonicalSuiteMetrics(suiteData || remoteSession, suiteRuns, sourceMap);
     }, [suiteData, remoteSession, suiteRuns, caseSourceSessions]);
 
+    const pendingCases = useMemo(() => {
+        return (metrics.tests || []).filter(tc => {
+            const appr = String(tc.approval_status || tc.approvalStatus || tc.status || '').toLowerCase();
+            return appr !== 'approved' && appr !== 'rejected';
+        });
+    }, [metrics.tests]);
+
     const formattedDate = useMemo(() => {
         const rawDate = remoteSession?.updatedAt || remoteSession?.updated_at || remoteSession?.createdAt || remoteSession?.created_at;
         if (!rawDate) return 'Sep 13, 2026';
@@ -517,11 +553,6 @@ const TestSuiteDetailPage = () => {
     if (remoteSession && !hasTestCases(suiteData) && !loadError) {
         return (
             <div className="test-suite-detail-page">
-                <nav className="tsd-breadcrumb" aria-label="Breadcrumb">
-                    <NavLink to="/app/test-suites" className="tsd-breadcrumb-link">Test suites</NavLink>
-                    <span className="tsd-breadcrumb-separator">&gt;</span>
-                    <span className="tsd-breadcrumb-current">{remoteSession.title || 'Requirement Specification'}</span>
-                </nav>
                 <div className="tsd-history-empty" style={{ margin: '40px 0', padding: '48px 24px' }}>
                     <Layers size={32} className="tsd-empty-icon" />
                     <h2 className="tsd-empty-title">{remoteSession.title || 'Test Suite'}</h2>
@@ -555,22 +586,22 @@ const TestSuiteDetailPage = () => {
                         width: '54px',
                         height: '54px',
                         borderRadius: '12px',
-                        background: 'rgba(56, 189, 248, 0.12)',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#38BDF8',
+                        color: 'var(--tsd-text-1, #fff)',
                         marginBottom: '1rem'
                     }}>
                         <Lock size={26} />
                     </div>
 
                     <div className="ws-empty-text-wrap" style={{ maxWidth: '460px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#F1F5F9', marginBottom: '0.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--tsd-text-1, #fff)', marginBottom: '0.5rem' }}>
                             Authentication Required
                         </h2>
-                        <p style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                        <p style={{ color: 'var(--tsd-text-2, rgba(255,255,255,0.72))', fontSize: '0.9rem', lineHeight: '1.5' }}>
                             This shared test suite is restricted to workspace members. Please sign in to verify your identity and view the suite.
                         </p>
                     </div>
@@ -596,22 +627,22 @@ const TestSuiteDetailPage = () => {
                         width: '54px',
                         height: '54px',
                         borderRadius: '12px',
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#EF4444',
+                        color: 'var(--tsd-text-1, #fff)',
                         marginBottom: '1rem'
                     }}>
                         <ShieldAlert size={26} />
                     </div>
 
                     <div className="ws-empty-text-wrap" style={{ maxWidth: '460px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#F1F5F9', marginBottom: '0.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--tsd-text-1, #fff)', marginBottom: '0.5rem' }}>
                             Share Link Revoked
                         </h2>
-                        <p style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                        <p style={{ color: 'var(--tsd-text-2, rgba(255,255,255,0.72))', fontSize: '0.9rem', lineHeight: '1.5' }}>
                             The link to this test suite has been revoked or expired by its owner. Please request a new share link from the suite owner.
                         </p>
                     </div>
@@ -637,22 +668,22 @@ const TestSuiteDetailPage = () => {
                         width: '54px',
                         height: '54px',
                         borderRadius: '12px',
-                        background: 'rgba(234, 179, 8, 0.12)',
-                        border: '1px solid rgba(234, 179, 8, 0.3)',
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#EAB308',
+                        color: 'var(--tsd-text-1, #fff)',
                         marginBottom: '1rem'
                     }}>
                         <ShieldAlert size={26} />
                     </div>
 
                     <div className="ws-empty-text-wrap" style={{ maxWidth: '460px' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#F1F5F9', marginBottom: '0.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--tsd-text-1, #fff)', marginBottom: '0.5rem' }}>
                             Access Denied
                         </h2>
-                        <p style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                        <p style={{ color: 'var(--tsd-text-2, rgba(255,255,255,0.72))', fontSize: '0.9rem', lineHeight: '1.5' }}>
                             {errorMessage}
                         </p>
                     </div>
@@ -678,22 +709,22 @@ const TestSuiteDetailPage = () => {
                     width: '54px',
                     height: '54px',
                     borderRadius: '12px',
-                    background: 'rgba(224, 108, 117, 0.12)',
-                    border: '1px solid rgba(224, 108, 117, 0.3)',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#E06C75',
+                    color: 'var(--tsd-text-1, #fff)',
                     marginBottom: '1rem'
                 }}>
                     <AlertCircle size={26} />
                 </div>
 
                 <div className="ws-empty-text-wrap" style={{ maxWidth: '440px' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#F1F5F9', marginBottom: '0.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--tsd-text-1, #fff)', marginBottom: '0.5rem' }}>
                         Test Suite Not Found
                     </h2>
-                    <p style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                    <p style={{ color: 'var(--tsd-text-2, rgba(255,255,255,0.72))', fontSize: '0.9rem', lineHeight: '1.5' }}>
                         {errorMessage}
                     </p>
                 </div>
@@ -777,30 +808,71 @@ const TestSuiteDetailPage = () => {
         downloadAnchor.remove();
     };
 
-    const handleApproveRemaining = async () => {
-        if (!canManageSuite || !suiteData) return;
-        try {
-            const currentTests = getSuiteCaseRecords(suiteData);
-            const updatedTests = currentTests.map(tc => ({
-                ...tc,
-                status: 'Approved',
-                approvalStatus: 'Approved',
-                isApproved: true
-            }));
-            const nextSuiteData = {
-                ...suiteData,
-                testCases: updatedTests,
-                managedSuite: true
-            };
-            const res = await sessionService.update(id, { suiteData: nextSuiteData }, shareToken);
-            if (res?.data) {
-                setRemoteSession(res.data);
-            } else {
-                setRemoteSession(prev => ({ ...prev, suiteData: nextSuiteData }));
-            }
-        } catch (err) {
-            console.error('Failed to approve remaining test cases:', err);
+    const handleConfirmApproveRemaining = async ({ caseIds, expectedCount }) => {
+        if (!canManageSuite || !id) return;
+        const res = await caseReviewService.approveRemaining(id, { caseIds, expectedCount });
+        const batchId = res.batchId || res.data?.batchId;
+        const approvedCount = res.approved?.length ?? expectedCount;
+
+        // Optimistically update test cases
+        if (remoteSession || suiteData) {
+            const currentTests = getSuiteCaseRecords(suiteData || remoteSession?.suiteData || {});
+            const updatedTests = currentTests.map(tc => {
+                const tcId = tc.id || tc.testCaseId;
+                if (caseIds.includes(tcId)) {
+                    return {
+                        ...tc,
+                        approval_status: 'approved',
+                        status: 'Approved',
+                        isApproved: true,
+                        approved_by: 'You',
+                        approved_at: new Date().toISOString()
+                    };
+                }
+                return tc;
+            });
+            const nextSuiteData = { ...(suiteData || {}), testCases: updatedTests, managedSuite: true };
+            setRemoteSession(prev => ({ ...prev, suiteData: nextSuiteData }));
         }
+
+        showToast?.(`${approvedCount} approved.`, {
+            onUndo: async () => {
+                if (batchId) {
+                    await caseReviewService.undoApproval({ batchId });
+                } else {
+                    await caseReviewService.undoApproval({ caseIds });
+                }
+                setRetryTrigger(prev => prev + 1);
+            },
+            duration: 10000
+        });
+    };
+
+    const handleExportPlaywright = async (filter = 'only') => {
+        setIsExporting(true);
+        try {
+            const res = await caseReviewService.exportPlaywright(id, { approved: filter });
+            const blob = new Blob([res.specCode || res.code || ''], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${(suiteTitle || 'suite').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.spec.js`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast?.(`Exported ${res.exportedCount} cases (${res.skippedCount} skipped).`);
+            setExportModalOpen(false);
+        } catch (err) {
+            alert(err.message || 'Failed to export Playwright spec.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleApproveRemaining = () => {
+        if (!canManageSuite || !suiteData) return;
+        setApproveRemainingModalOpen(true);
     };
 
     const handleArchiveConfirm = async () => {
@@ -810,13 +882,6 @@ const TestSuiteDetailPage = () => {
 
     return (
         <div className="test-suite-detail-page">
-            {/* 1. Header: Breadcrumb only in top bar ("Test suites > Suite Title") */}
-            <nav className="tsd-breadcrumb" aria-label="Breadcrumb">
-                <NavLink to="/app/test-suites" className="tsd-breadcrumb-link">Test suites</NavLink>
-                <span className="tsd-breadcrumb-separator">&gt;</span>
-                <span className="tsd-breadcrumb-current">{suiteTitle}</span>
-            </nav>
-
             {/* Header: Title, clamped description with Show more, meta line, action buttons */}
             <header className="tsd-header">
                 <div className="tsd-header-left">
@@ -872,7 +937,7 @@ const TestSuiteDetailPage = () => {
                     <button
                         type="button"
                         className="tsd-btn-secondary"
-                        onClick={handleExportSuite}
+                        onClick={() => setExportModalOpen(true)}
                     >
                         <Download size={14} />
                         <span>Export</span>
@@ -985,6 +1050,9 @@ const TestSuiteDetailPage = () => {
                 <div className="tsd-review-info">
                     <span className="tsd-review-count">
                         {metrics.approvedCases} of {metrics.totalCases} approved
+                        {metrics.rejectedCases > 0 && (
+                            <span className="tsd-review-rejected-tag"> · {metrics.rejectedCases} rejected</span>
+                        )}
                     </span>
                     <div className="tsd-progress-track">
                         <div
@@ -993,16 +1061,32 @@ const TestSuiteDetailPage = () => {
                         />
                     </div>
                 </div>
-                <button
-                    type="button"
-                    className="tsd-btn-approve-remaining"
-                    disabled={isApproveDisabled}
-                    title={approveTooltip}
-                    onClick={handleApproveRemaining}
-                >
-                    <Check size={13} />
-                    <span>Approve remaining</span>
-                </button>
+                {metrics.isAllApproved ? (
+                    <div className="tsd-all-approved-banner">
+                        <Check size={14} />
+                        <span>All approved</span>
+                        <button
+                            type="button"
+                            className="tn-app-btn tn-app-btn--sm tn-app-btn--primary"
+                            onClick={() => handleExportPlaywright('only')}
+                            style={{ marginLeft: 8 }}
+                        >
+                            <Download size={12} />
+                            <span>Export approved</span>
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className="tsd-btn-approve-remaining"
+                        disabled={pendingCases.length === 0 || !canManageSuite}
+                        title={pendingCases.length === 0 ? 'No pending test cases to approve' : approveTooltip}
+                        onClick={handleApproveRemaining}
+                    >
+                        <Check size={13} />
+                        <span>Approve remaining</span>
+                    </button>
+                )}
             </div>
 
             {/* 3. Stats strip: one horizontal strip, equal columns, from the single count function */}
@@ -1017,7 +1101,8 @@ const TestSuiteDetailPage = () => {
                 </div>
                 <div className="tsd-stat-col">
                     <span className="tsd-stat-val">{metrics.coverage}%</span>
-                    <span className="tsd-stat-label">Coverage</span>
+                    <span className="tsd-stat-label">linked</span>
+                    <span className="tsd-stat-sub">0% verified (needs test execution, soon)</span>
                 </div>
                 <div className="tsd-stat-col">
                     <span className="tsd-stat-val">{metrics.highPriorityCases}</span>
@@ -1113,30 +1198,16 @@ const TestSuiteDetailPage = () => {
                     </div>
                 )}
 
-                {/* Linked requirements block (outlined chip list that wraps, with Coverage matrix button) */}
-                <div className="tsd-requirements-block">
-                    <div className="tsd-requirements-head">
-                        <span className="tsd-subheading">Linked requirements ({metrics.linkedRequirementsCount})</span>
-                        <Link to={`/app/coverage?suiteId=${encodeURIComponent(id)}`} className="tsd-btn-secondary tsd-btn-sm">
-                            Coverage matrix
-                        </Link>
-                    </div>
-                    <div className="tsd-req-chip-list">
-                        {metrics.linkedRequirements.length > 0 ? (
-                            metrics.linkedRequirements.map(reqId => (
-                                <Link
-                                    key={reqId}
-                                    to={`/app/coverage?suiteId=${encodeURIComponent(id)}&requirementId=${encodeURIComponent(reqId)}`}
-                                    className="tsd-req-chip"
-                                >
-                                    {reqId}
-                                </Link>
-                            ))
-                        ) : (
-                            <span className="tsd-muted-text">No requirements linked to this suite.</span>
-                        )}
-                    </div>
-                </div>
+                {/* Linked requirements block with canonical keys and rich drawer */}
+                <LinkedRequirementsSection
+                    suiteId={id || remoteSession?.id}
+                    suiteCases={metrics.tests}
+                    requirements={suiteRequirements}
+                    onRequirementMutated={() => setRetryTrigger(prev => prev + 1)}
+                    onSelectTestCase={(tcId) => {
+                        navigate(`/app/test-suites/${id}?testCaseId=${encodeURIComponent(tcId)}`);
+                    }}
+                />
             </section>
 
             {/* Archive Confirmation Dialog */}
@@ -1217,8 +1288,80 @@ const TestSuiteDetailPage = () => {
                 onClose={() => setRunModalOpen(false)}
                 initialSuite={{ ...remoteSession, id: id || remoteSession?.id, suiteData }}
             />
+
+            {/* Approve Remaining Dialog */}
+            <ApproveRemainingDialog
+                isOpen={approveRemainingModalOpen}
+                onClose={() => setApproveRemainingModalOpen(false)}
+                onConfirm={handleConfirmApproveRemaining}
+                pendingCases={pendingCases}
+                rejectedCount={metrics.rejectedCases}
+                totalCount={metrics.totalCases}
+            />
+
+            {/* Export Dialog with approved filter and skipped reporting */}
+            {exportModalOpen && (
+                <div className="tn-dialog-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !isExporting) setExportModalOpen(false); }}>
+                    <div className="tn-dialog tn-dialog--sm" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title">
+                        <div className="tn-dialog__header">
+                            <div>
+                                <div className="tn-eyebrow">Export Pipeline</div>
+                                <h3 id="export-dialog-title">Export Playwright Tests</h3>
+                            </div>
+                            <button type="button" className="tn-btn-icon" onClick={() => setExportModalOpen(false)} disabled={isExporting} aria-label="Close">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="tn-dialog__body">
+                            <p className="tn-dialog-desc">
+                                Export executable Playwright spec code for this test suite.
+                            </p>
+
+                            <div className="tn-form-group" style={{ padding: '8px 0' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                                    <span>Include pending cases ({pendingCases.length})</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={exportIncludePending}
+                                        onChange={(e) => setExportIncludePending(e.target.checked)}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="tn-notice-callout">
+                                <AlertCircle size={14} />
+                                <span>
+                                    {exportIncludePending
+                                        ? `${metrics.rejectedCases} rejected cases will be skipped (rejected cases are never exported).`
+                                        : `${pendingCases.length + metrics.rejectedCases} cases will be skipped (exporting approved only).`}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="tn-dialog__footer">
+                            <button type="button" className="tn-app-btn tn-app-btn--secondary" onClick={() => setExportModalOpen(false)} disabled={isExporting}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="tn-app-btn tn-app-btn--primary"
+                                onClick={() => handleExportPlaywright(exportIncludePending ? 'include_pending' : 'only')}
+                                disabled={isExporting || (!exportIncludePending && metrics.approvedCases === 0)}
+                            >
+                                <Download size={14} />
+                                <span>{isExporting ? 'Exporting…' : 'Download Spec'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-export default TestSuiteDetailPage;
+export const TestSuiteDetailPageWithToast = (props) => (
+    <ToastProvider>
+        <TestSuiteDetailPage {...props} />
+    </ToastProvider>
+);
+
+export default TestSuiteDetailPageWithToast;

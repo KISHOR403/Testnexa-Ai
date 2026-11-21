@@ -7,7 +7,8 @@ import {
     unwrapSuiteData,
     extractSuiteCases,
     resolvePlatform,
-    sanitizeCredentialPlaceholders
+    sanitizeCredentialPlaceholders,
+    normalizeRequirementKey
 } from './testSuiteSelectors.js';
 
 const EXECUTED_STATUSES = new Set(['passed', 'failed', 'blocked', 'skipped', 'timed_out', 'infrastructure_error']);
@@ -20,7 +21,7 @@ export const extractRequirements = (suiteOrRecord, testCases = []) => {
     const requirementsMap = new Map();
 
     const addRequirement = (id, title, category = 'Functional', priority = 'Medium', explicitCases = [], source = 'extracted', source_quote = '', description = '') => {
-        const cleanId = String(id || '').trim();
+        const cleanId = normalizeRequirementKey(id);
         const cleanTitle = String(title || cleanId || 'Requirement specification').trim();
         if (!cleanId && !cleanTitle) return;
 

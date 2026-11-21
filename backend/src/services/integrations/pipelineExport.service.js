@@ -15,9 +15,10 @@ class PipelineExportService {
      * Generates a complete, ready-to-run Playwright .spec.js file for a test suite.
      * Ensures every test title begins with `[<TC_KEY>] <Title>` for unambiguous mapping.
      */
-    generatePlaywrightSuiteCode(session) {
+    generatePlaywrightSuiteCode(session, options = {}) {
         if (!session) throw new Error('Test suite session is required');
 
+        const approvedFilter = String(options.approved || 'only').toLowerCase(); // 'only' | 'include_pending'
         const suiteData = unwrapSuiteData(session);
         const suiteTitle = session.title || suiteData.testSuiteName || suiteData.feature || 'Test Suite';
         const safeSuiteTitle = suiteTitle.replace(/['"\\]/g, '\\$&');
@@ -25,6 +26,8 @@ class PipelineExportService {
         // Extract test cases
         const cases = [];
         const seenIds = new Set();
+        let totalEncountered = 0;
+        let skippedCount = 0;
 
         SUITE_CASE_KEYS.forEach(category => {
             const list = suiteData[category];
@@ -34,7 +37,23 @@ class PipelineExportService {
                     const id = String(item.id || item.testCaseId || '').trim();
                     if (!id || seenIds.has(id)) return;
                     seenIds.add(id);
+                    totalEncountered++;
 
+                    const approvalStatus = String(item.approval_status || (item.is_approved ? 'approved' : 'pending')).toLowerCase();
+
+                    // Rule 1: Rejected cases are NEVER exported under any circumstance
+                    if (approvalStatus === 'rejected') {
+                        skippedCount++;
+                        return;
+                    }
+
+                    // Rule 2: If approved='only', only include explicitly approved cases
+                    if (approvedFilter === 'only' && approvalStatus !== 'approved') {
+                        skippedCount++;
+                        return;
+                    }
+
+                    // Rule 3: If approved='include_pending', include approved and pending cases
                     cases.push({
                         id,
                         title: String(item.title || item.testScenario || item.name || 'Untitled Scenario').trim(),
@@ -43,7 +62,8 @@ class PipelineExportService {
                         preconditions: item.preconditions || '',
                         steps: Array.isArray(item.steps) ? item.steps : (item.steps ? [String(item.steps)] : []),
                         expectedResult: item.expectedResult || item.expected || '',
-                        automationMapping: item.automationMapping || item.playwrightBinding || null
+                        automationMapping: item.automationMapping || item.playwrightBinding || null,
+                        approvalStatus
                     });
                 });
             }
@@ -76,13 +96,15 @@ class PipelineExportService {
                 lines.push(testDeclaration);
 
                 if (tc.preconditions) {
-                    lines.push(`        // Preconditions: ${tc.preconditions.replace(/\n/g, ' ')}`);
+                    const precondStr = Array.isArray(tc.preconditions) ? tc.preconditions.join('; ') : String(tc.preconditions);
+                    lines.push(`        // Preconditions: ${precondStr.replace(/\n/g, ' ')}`);
                 }
 
-                if (tc.steps.length > 0) {
+                if (tc.steps && tc.steps.length > 0) {
                     lines.push(`        // Steps:`);
                     tc.steps.forEach((st, idx) => {
-                        lines.push(`        //   ${idx + 1}. ${String(st).replace(/\n/g, ' ')}`);
+                        const stepText = typeof st === 'object' ? `${st.action || ''} -> ${st.expected || ''}` : String(st);
+                        lines.push(`        //   ${idx + 1}. ${stepText.replace(/\n/g, ' ')}`);
                     });
                 }
 
@@ -121,7 +143,13 @@ class PipelineExportService {
         lines.push(`});`);
         lines.push(``);
 
-        return lines.join('\n');
+        const codeString = lines.join('\n');
+        const result = new String(codeString);
+        result.specCode = codeString;
+        result.exportedCount = cases.length;
+        result.skippedCount = skippedCount;
+        result.totalEncountered = totalEncountered;
+        return result;
     }
 
     /**

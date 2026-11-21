@@ -108,8 +108,12 @@ app.use((req, res, next) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1', apiRoutes);
 app.use('/api/v1/sessions', require('./routes/session.routes'));
+app.use('/api/v1/suites', require('./routes/testSuite.routes'));
 app.use('/api/v1/test-suites', require('./routes/testSuite.routes'));
-app.use('/api/v1/test-cases', require('./routes/testCase.routes'));
+app.use('/api/v1/cases', require('./routes/caseReview.routes'));
+app.use('/api/v1/test-cases', require('./routes/caseReview.routes'));
+app.use('/api/v1/requirements', require('./routes/requirement.routes'));
+app.use('/api/v1/approvals', require('./routes/approval.routes'));
 app.use('/api/v1/copilot', require('./routes/copilot.routes'));
 app.use('/api/v1/workspaces', require('./routes/workspace.routes'));
 app.use('/api/v1/runs', require('./routes/execution.routes'));
